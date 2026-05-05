@@ -16,10 +16,12 @@ type ScreenshotRegionState = {
 
 export function ScreenshotMenu({
   buttonClassName = "icon-button",
+  directClipboardCapture = false,
   targetRef,
   targetLabel = "Workspace surface",
 }: {
   buttonClassName?: string;
+  directClipboardCapture?: boolean;
   targetRef: RefObject<HTMLElement | null>;
   targetLabel?: string;
 }) {
@@ -109,6 +111,14 @@ export function ScreenshotMenu({
     setRegionState({ bounds, destination });
   }
 
+  function handleButtonClick() {
+    if (directClipboardCapture) {
+      handleEntirePanel("clipboard");
+      return;
+    }
+    setMenuOpen((open) => !open);
+  }
+
   function handleRegionPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (!regionState || !pointInBounds(event.clientX, event.clientY, regionState.bounds)) {
       return;
@@ -164,10 +174,10 @@ export function ScreenshotMenu({
       <div className="terminal-menu-wrapper screenshot-menu-wrapper" ref={menuRef}>
         <button
           aria-label="Take screenshot"
-          aria-haspopup="menu"
-          aria-expanded={menuOpen ? "true" : "false"}
+          aria-haspopup={directClipboardCapture ? undefined : "menu"}
+          aria-expanded={directClipboardCapture ? undefined : menuOpen ? "true" : "false"}
           className={buttonClassName}
-          onClick={() => setMenuOpen((open) => !open)}
+          onClick={handleButtonClick}
           title={copiedStatus || "Take screenshot"}
           type="button"
         >

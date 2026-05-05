@@ -473,7 +473,11 @@ export function RemoteDesktopWorkspace({
               <RotateCcw size={13} />
             </button>
           ) : null}
-          <ScreenshotMenu targetLabel={`${tab.title} ${typeLabel} view`} targetRef={workspaceRef} />
+          <ScreenshotMenu
+            directClipboardCapture={connection?.type === "rdp"}
+            targetLabel={`${tab.title} ${typeLabel} view`}
+            targetRef={connection?.type === "rdp" ? hostRef : workspaceRef}
+          />
         </div>
       </div>
       <div className="remote-desktop-workspace" ref={hostRef}>
