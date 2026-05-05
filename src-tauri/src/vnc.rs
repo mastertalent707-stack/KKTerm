@@ -18,7 +18,7 @@ use vnc::{
 };
 
 const DEFAULT_VNC_PORT: u16 = 5900;
-const REFRESH_INTERVAL: Duration = Duration::from_millis(33);
+const REFRESH_INTERVAL: Duration = Duration::from_millis(16);
 const X11_CONTROL_LEFT: u32 = 0xffe3;
 const X11_ALT_LEFT: u32 = 0xffe9;
 const X11_DELETE: u32 = 0xffff;
@@ -83,7 +83,7 @@ pub struct VncSimpleRequest {
 }
 
 #[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase", tag = "kind")]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "kind")]
 enum VncSessionEvent {
     Connected {
         session_id: String,
@@ -113,6 +113,14 @@ enum VncSessionEvent {
     },
     Bell {
         session_id: String,
+    },
+    SetCursor {
+        session_id: String,
+        width: u16,
+        height: u16,
+        hot_x: u16,
+        hot_y: u16,
+        rgba: String,
     },
     ClipboardText {
         session_id: String,
@@ -300,9 +308,12 @@ async fn connect_vnc(
     let password_for_auth = Arc::clone(&password);
     VncConnector::new(stream)
         .set_auth_method(async move { Ok((*password_for_auth).clone()) })
+        .add_encoding(VncEncoding::Tight)
         .add_encoding(VncEncoding::Zrle)
         .add_encoding(VncEncoding::CopyRect)
         .add_encoding(VncEncoding::Raw)
+        .add_encoding(VncEncoding::CursorPseudo)
+        .add_encoding(VncEncoding::DesktopSizePseudo)
         .allow_shared(true)
         .set_pixel_format(PixelFormat::rgba())
         .build()
@@ -332,22 +343,40 @@ fn spawn_vnc_event_loop(
     mut stop: oneshot::Receiver<()>,
 ) {
     runtime.spawn(async move {
-        let _ = app.emit(
-            "vnc-session-event",
+        eprintln!("[vnc {session_id}] event loop starting");
+        emit_vnc_event(
+            &app,
             VncSessionEvent::Connected {
                 session_id: session_id.clone(),
                 name: "VNC".to_string(),
             },
         );
+        if let Err(error) = client.input(X11Event::FullRefresh).await {
+            eprintln!("[vnc {session_id}] initial FullRefresh failed: {error}");
+            emit_vnc_event(
+                &app,
+                VncSessionEvent::Error {
+                    session_id: session_id.clone(),
+                    message: to_vnc_error(error),
+                },
+            );
+            emit_vnc_event(&app, VncSessionEvent::Disconnected { session_id });
+            return;
+        }
         let mut refresh_interval = time::interval(REFRESH_INTERVAL);
+        refresh_interval.set_missed_tick_behavior(time::MissedTickBehavior::Delay);
+        // Skip the immediate first tick so we don't race the FullRefresh above with an incremental Refresh.
+        refresh_interval.tick().await;
         loop {
             tokio::select! {
                 _ = &mut stop => {
+                    eprintln!("[vnc {session_id}] stop signal received");
                     let _ = client.close().await;
                     break;
                 }
                 _ = refresh_interval.tick() => {
                     if let Err(error) = client.input(X11Event::Refresh).await {
+                        eprintln!("[vnc {session_id}] refresh input failed: {error}");
                         emit_vnc_event(&app, VncSessionEvent::Error {
                             session_id: session_id.clone(),
                             message: to_vnc_error(error),
@@ -359,6 +388,7 @@ fn spawn_vnc_event_loop(
                     match event {
                         Ok(event) => handle_vnc_event(&app, &session_id, event),
                         Err(error) => {
+                            eprintln!("[vnc {session_id}] recv_event failed: {error}");
                             emit_vnc_event(&app, VncSessionEvent::Error {
                                 session_id: session_id.clone(),
                                 message: to_vnc_error(error),
@@ -369,11 +399,30 @@ fn spawn_vnc_event_loop(
                 }
             }
         }
+        eprintln!("[vnc {session_id}] event loop exiting");
         emit_vnc_event(&app, VncSessionEvent::Disconnected { session_id });
     });
 }
 
 fn handle_vnc_event(app: &AppHandle, session_id: &str, event: VncEvent) {
+    eprintln!(
+        "[vnc {session_id}] server event: {}",
+        match &event {
+            VncEvent::SetResolution(s) => format!("SetResolution {}x{}", s.width, s.height),
+            VncEvent::RawImage(r, data) =>
+                format!("RawImage {}x{} @ ({},{}) {} bytes", r.width, r.height, r.x, r.y, data.len()),
+            VncEvent::Copy(d, s) =>
+                format!("Copy {}x{} ({},{})->({},{})", d.width, d.height, s.x, s.y, d.x, d.y),
+            VncEvent::Bell => "Bell".into(),
+            VncEvent::SetCursor(r, _) =>
+                format!("SetCursor {}x{} hot=({},{})", r.width, r.height, r.x, r.y),
+            VncEvent::Text(_) => "ClipboardText".into(),
+            VncEvent::Error(m) => format!("Error: {m}"),
+            VncEvent::SetPixelFormat(_) => "SetPixelFormat".into(),
+            VncEvent::JpegImage(_, _) => "JpegImage".into(),
+            _ => "Other".into(),
+        }
+    );
     match event {
         VncEvent::SetResolution(screen) => emit_vnc_event(
             app,
@@ -426,7 +475,18 @@ fn handle_vnc_event(app: &AppHandle, session_id: &str, event: VncEvent) {
                 message,
             },
         ),
-        VncEvent::SetPixelFormat(_) | VncEvent::JpegImage(_, _) | VncEvent::SetCursor(_, _) => {}
+        VncEvent::SetCursor(rect, data) => emit_vnc_event(
+            app,
+            VncSessionEvent::SetCursor {
+                session_id: session_id.to_string(),
+                width: rect.width,
+                height: rect.height,
+                hot_x: rect.x,
+                hot_y: rect.y,
+                rgba: BASE64.encode(data),
+            },
+        ),
+        VncEvent::SetPixelFormat(_) | VncEvent::JpegImage(_, _) => {}
         _ => {}
     }
 }

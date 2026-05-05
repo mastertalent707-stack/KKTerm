@@ -36,6 +36,15 @@ type VncSessionEvent =
       sourceY: number;
     }
   | { kind: "bell"; sessionId: string }
+  | {
+      kind: "setCursor";
+      sessionId: string;
+      width: number;
+      height: number;
+      hotX: number;
+      hotY: number;
+      rgba: string;
+    }
   | { kind: "clipboardText"; sessionId: string; text: string }
   | { kind: "error"; sessionId: string; message: string }
   | { kind: "disconnected"; sessionId: string };
@@ -63,6 +72,8 @@ export function RemoteDesktopWorkspace({
   const rdpVisibleRef = useRef(false);
   const rdpControlRef = useRef("");
   const vncButtonMaskRef = useRef(0);
+  const vncPendingPointerRef = useRef<{ x: number; y: number; buttonMask: number } | null>(null);
+  const vncPointerRafRef = useRef<number | null>(null);
   const visibilityRef = useRef({ isActive, suppressed: false });
   const markConnectionSessionStarted = useWorkspaceStore(
     (state) => state.markConnectionSessionStarted,
@@ -241,6 +252,11 @@ export function RemoteDesktopWorkspace({
     sessionStartingRef.current = false;
     sessionIdRef.current = null;
     vncButtonMaskRef.current = 0;
+    vncPendingPointerRef.current = null;
+    if (vncPointerRafRef.current !== null) {
+      window.cancelAnimationFrame(vncPointerRafRef.current);
+      vncPointerRafRef.current = null;
+    }
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (canvas && context) {
@@ -583,9 +599,18 @@ export function RemoteDesktopWorkspace({
     let disposed = false;
     let dispose: (() => void) | undefined;
     void listen<VncSessionEvent>("vnc-session-event", (event) => {
-      if (disposed || event.payload.sessionId !== sessionIdRef.current) {
+      if (disposed) {
         return;
       }
+      if (event.payload.sessionId !== sessionIdRef.current) {
+        console.debug("[vnc] dropped event (sessionId mismatch)", {
+          payloadSessionId: event.payload.sessionId,
+          currentSessionId: sessionIdRef.current,
+          kind: event.payload.kind,
+        });
+        return;
+      }
+      console.debug("[vnc] received event", event.payload.kind, event.payload);
       handleVncSessionEvent(event.payload);
     }).then((unlisten) => {
       if (disposed) {
@@ -631,6 +656,10 @@ export function RemoteDesktopWorkspace({
   }, [canStartVnc]);
 
   const handleVncSessionEvent = (event: VncSessionEvent) => {
+    if (event.kind === "connected") {
+      setRdpStatus("Connected, waiting for framebuffer");
+      return;
+    }
     if (event.kind === "resolution") {
       resizeVncCanvas(event.width, event.height);
       setVncHasDisplay(true);
@@ -644,6 +673,10 @@ export function RemoteDesktopWorkspace({
     }
     if (event.kind === "copy") {
       copyVncImage(event);
+      return;
+    }
+    if (event.kind === "setCursor") {
+      applyVncCursor(event);
       return;
     }
     if (event.kind === "error") {
@@ -687,6 +720,28 @@ export function RemoteDesktopWorkspace({
     context.putImageData(imageData, event.x, event.y);
   };
 
+  const applyVncCursor = (event: Extract<VncSessionEvent, { kind: "setCursor" }>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+    if (event.width === 0 || event.height === 0) {
+      canvas.style.cursor = "none";
+      return;
+    }
+    const offscreen = document.createElement("canvas");
+    offscreen.width = event.width;
+    offscreen.height = event.height;
+    const ctx = offscreen.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    const bytes = decodeBase64Bytes(event.rgba);
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(bytes), event.width, event.height), 0, 0);
+    const dataUrl = offscreen.toDataURL("image/png");
+    canvas.style.cursor = `url("${dataUrl}") ${event.hotX} ${event.hotY}, default`;
+  };
+
   const copyVncImage = (event: Extract<VncSessionEvent, { kind: "copy" }>) => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
@@ -711,42 +766,63 @@ export function RemoteDesktopWorkspace({
     };
   };
 
-  const sendVncPointer = (event: ReactPointerEvent<HTMLCanvasElement>, buttonMask?: number) => {
+  const flushVncPointer = () => {
+    vncPointerRafRef.current = null;
+    const pending = vncPendingPointerRef.current;
     const sessionId = sessionIdRef.current;
-    if (!sessionId || !sessionStartedRef.current) {
+    if (!pending || !sessionId || !sessionStartedRef.current) {
       return;
     }
-    const point = vncPointForEvent(event);
+    vncPendingPointerRef.current = null;
     void invokeCommand("send_vnc_pointer_event", {
-      request: {
-        sessionId,
-        x: point.x,
-        y: point.y,
-        buttonMask: buttonMask ?? vncButtonMaskRef.current,
-      },
+      request: { sessionId, ...pending },
     }).catch((error) => {
       setRdpError(error instanceof Error ? error.message : String(error));
     });
+  };
+
+  const sendVncPointer = (
+    event: ReactPointerEvent<HTMLCanvasElement>,
+    buttonMask?: number,
+    immediate = false,
+  ) => {
+    if (!sessionStartedRef.current) {
+      return;
+    }
+    const point = vncPointForEvent(event);
+    const mask = buttonMask ?? vncButtonMaskRef.current;
+    vncPendingPointerRef.current = { x: point.x, y: point.y, buttonMask: mask };
+    if (immediate) {
+      if (vncPointerRafRef.current !== null) {
+        window.cancelAnimationFrame(vncPointerRafRef.current);
+        vncPointerRafRef.current = null;
+      }
+      flushVncPointer();
+      return;
+    }
+    if (vncPointerRafRef.current === null) {
+      vncPointerRafRef.current = window.requestAnimationFrame(flushVncPointer);
+    }
   };
 
   const handleVncPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.focus();
     event.currentTarget.setPointerCapture(event.pointerId);
     vncButtonMaskRef.current = pointerButtonMask(event.button);
-    sendVncPointer(event, vncButtonMaskRef.current);
+    sendVncPointer(event, vncButtonMaskRef.current, true);
   };
 
   const handleVncPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     vncButtonMaskRef.current = 0;
-    sendVncPointer(event, 0);
+    sendVncPointer(event, 0, true);
   };
 
   const handleVncWheel = (event: ReactWheelEvent<HTMLCanvasElement>) => {
     event.preventDefault();
     const pointerEvent = event as unknown as ReactPointerEvent<HTMLCanvasElement>;
     const wheelMask = event.deltaY < 0 ? 8 : 16;
-    sendVncPointer(pointerEvent, wheelMask);
-    window.setTimeout(() => sendVncPointer(pointerEvent, 0), 20);
+    sendVncPointer(pointerEvent, wheelMask, true);
+    window.setTimeout(() => sendVncPointer(pointerEvent, 0, true), 20);
   };
 
   const handleVncKey = (event: ReactKeyboardEvent<HTMLCanvasElement>, down: boolean) => {
@@ -806,7 +882,11 @@ export function RemoteDesktopWorkspace({
           />
         </div>
       </div>
-      <div className="remote-desktop-workspace" ref={hostRef}>
+      <div
+        className="remote-desktop-workspace"
+        ref={hostRef}
+        {...(connection?.type === "vnc" ? { "data-vnc-debug": "true" } : {})}
+      >
         {connection?.type === "vnc" ? (
           <canvas
             aria-label={`${tab.title} VNC display`}
@@ -821,7 +901,7 @@ export function RemoteDesktopWorkspace({
             tabIndex={0}
           />
         ) : null}
-        <div className="remote-desktop-placeholder">
+        <div className="remote-desktop-placeholder" hidden={vncHasDisplay}>
           <Icon size={34} />
           <h2>{connection?.name ?? typeLabel}</h2>
           <p>{connection ? `${typeLabel} ${connectionSubtitle(connection)}` : typeLabel}</p>
