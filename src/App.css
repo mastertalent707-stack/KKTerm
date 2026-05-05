@@ -3237,9 +3237,13 @@ progress {
   padding: 0 9px;
   color: var(--text-muted);
   text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 800;
+  font-family: inherit;
 }
 
 .settings-nav-item span {

@@ -30,7 +30,20 @@ Provides a typed command wrapper between React and Rust. The frontend should not
 
 ### Frontend Settings
 
-`src/settings/SettingsPage.tsx` owns the Settings surface, including settings-specific draft state, save/reset handlers, summaries, placeholder entries, and small helper controls. `src/App.tsx` only routes to Settings; the persisted-settings bootstrap into the workspace store lives in `src/lib/settings.ts` as a single `useBootstrapSettings()` hook so new persisted settings can be added in one place. The OS keychain owner id for the AI API key (`AI_PROVIDER_SECRET_OWNER_ID`) is also defined in `src/lib/settings.ts` so SettingsPage and bootstrap share one constant. New Settings sections should stay in the settings module unless they become large enough to justify a submodule under `src/settings/`.
+`src/settings/SettingsPage.tsx` owns the Settings shell — the header, sidebar nav, and section routing. Each settings section is a separate page component under `src/settings/`, owning its own draft state, save/reset handlers, and helper controls:
+
+- `src/settings/GeneralSettings.tsx` — Language (i18n) selector.
+- `src/settings/AppearanceSettings.tsx` — App UI font family, layout reset, Color Scheme placeholder.
+- `src/settings/AiSettings.tsx` — AI provider kind, dynamic provider fields, API key, output language.
+- `src/settings/SshSettings.tsx` — Read-only SSH defaults and SFTP transfer defaults summary.
+- `src/settings/TerminalSettings.tsx` — Terminal font, size, line height, scrollback, cursor, default shell, toggles.
+- `src/settings/RdpSettings.tsx` — Planned RDP quality defaults summary.
+- `src/settings/VncSettings.tsx` — Planned VNC quality defaults summary.
+- `src/settings/AboutSettings.tsx` — Product info, version, open-source component tables.
+- `src/settings/shared.tsx` — Reusable `SettingsSummary` and `PlannedSettingsGrid` components.
+- `src/settings/aboutData.ts` — Static product metadata and open-source component groups.
+
+`src/App.tsx` only routes to Settings; the persisted-settings bootstrap into the workspace store lives in `src/lib/settings.ts` as a single `useBootstrapSettings()` hook so new persisted settings can be added in one place. The OS keychain owner id for the AI API key (`AI_PROVIDER_SECRET_OWNER_ID`) is also defined in `src/lib/settings.ts` so SettingsPage and bootstrap share one constant. New Settings sections should stay in the settings module unless they become large enough to justify a submodule under `src/settings/`.
 
 ### Internationalization
 
@@ -224,6 +237,9 @@ Workspace chrome layout is global state. Connection-specific live context may ch
 - `src/remote-desktop/RemoteDesktopWorkspace.tsx` — RDP/VNC workspace host, RDP ActiveX visibility/bounds synchronization, and VNC canvas framebuffer/input handling.
 - `src/ai/AssistantPanel.tsx` — AI Assistant chat surface, markdown rendering, chat history, extension draft intent UI, terminal send handoff.
 - `src/ai/providers.ts` — provider definitions and frontend provider validation.
+- `src/settings/SettingsPage.tsx` — Settings shell with sidebar nav and section routing.
+- `src/settings/shared.tsx` — Shared `SettingsSummary` and `PlannedSettingsGrid` for settings pages.
+- `src/settings/aboutData.ts` — Product metadata and open-source component groups.
 - `src/lib/clipboard.ts` — shared clipboard read/write fallback helpers.
 - `src/i18n/config.ts` — i18next instance, language detection, dynamic locale loading, `switchLanguage()`, `ensureI18nReady()`.
 - `src/i18n/useT.ts` — typed translation hook with key autocompletion.

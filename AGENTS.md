@@ -2,71 +2,51 @@
 
 ## Project Shape
 
-AdminDeck is a Windows-first, local-first Tauri v2 desktop app with a Rust backend and React/TypeScript frontend. The product direction lives in `docs/PRD.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, and `docs/ADR/`.
-
-Before changing product behavior or terminology, read `CONTEXT.md` and preserve its domain boundaries.
+AdminDeck is a Windows-first, local-first Tauri v2 desktop app — Rust backend, React/TypeScript frontend. Product direction: `docs/PRD.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/ADR/`. Before changing behavior or terminology, read `CONTEXT.md` and preserve its domain boundaries.
 
 ## Domain Language
 
-- **Connection**: durable, stored in SQLite. Supported kinds are local terminal, SSH terminal, URL (embedded WebView2), RDP, and VNC. SFTP is opened from an SSH Connection.
-- **Quick Connect**: creates an unsaved one-off connection draft, then starts a session.
-- **Session**: live process/channel/SFTP browser/webview state, not the saved profile itself.
+- **Connection**: durable, stored in SQLite. Kinds: local terminal, SSH terminal, URL (embedded WebView2), RDP, VNC. SFTP opens from an SSH Connection.
+- **Quick Connect**: unsaved one-off connection draft that starts a session.
+- **Session**: live process/channel/SFTP/webview state, not the saved profile.
 - **Tab**: frontend workspace container, not a backend domain object.
 
-Avoid using "profile" as the canonical name for stored openable resources. Use **Connection**.
+Use **Connection** (not "profile") for stored openable resources.
 
 ## Engineering Defaults
 
 - Prefer existing repo patterns over new abstractions.
-- Keep backend data boundaries explicit: SQLite stores non-secret durable data, OS keychain stores secrets, and terminal contents are not logged by default.
-- Keep Tauri command calls behind typed frontend wrappers in `src/lib/tauri.ts`.
-- Keep the Settings surface in `src/settings/SettingsPage.tsx`; `src/App.tsx` should route to it and bootstrap settings, not own settings form/control code.
-- Keep `src/App.tsx` limited to app shell routing, global panel layout, and bootstrap. Put connection-tree work in `src/connections/`, workspace dispatch/status/screenshot work in `src/workspace/`, terminal work in `src/terminal/`, SFTP work in `src/sftp/`, URL WebView work in `src/webview/`, remote desktop work in `src/remote-desktop/`, and assistant UI work in `src/ai/`.
-- Do not put live session state into the durable connection model.
-- Keep UI state such as tabs and selected panes in the frontend workspace layer unless there is a clear persistence requirement.
-- For TSX accessibility attributes, use the typed helpers in `src/lib/aria.ts` for dynamic ARIA values so React emits valid values and source analyzers do not read JSX expressions as literal strings. Match ARIA roles to real children: `role="menu"` should contain menu items, while mixed popovers with forms/inputs should use a dialog-style surface instead.
-- Avoid JSX `style=` for UI layout and theming when classes, data attributes, CSS variables, or ref-applied geometry can carry the state. Keep CSS compatibility warnings in mind: add vendor fallbacks where needed and avoid `color-mix()` in shared app CSS unless the target support is intentional.
+- SQLite stores non-secret durable data; OS keychain stores secrets; terminal contents are not logged by default.
+- Do not put live session state into the durable connection model. Keep UI state (tabs, selected panes) in the frontend workspace layer unless persistence is required.
+- Keep Tauri command calls behind typed wrappers in `src/lib/tauri.ts`.
+- `src/App.tsx`: app shell routing, global panel layout, activity rail, Settings routing, and bootstrap effects only — it does not own form/control code or feature surfaces. Place feature code in:
+  - `src/connections/` — connection tree
+  - `src/workspace/` — workspace dispatch, status, screenshots
+  - `src/terminal/TerminalWorkspace.tsx`, `src/sftp/SftpWorkspace.tsx`, `src/webview/WebViewWorkspace.tsx`, `src/remote-desktop/RemoteDesktopWorkspace.tsx` — feature workspaces
+  - `src/ai/AssistantPanel.tsx` — assistant UI
+  - `src/settings/SettingsPage.tsx` — Settings UI sections, draft state, save/reset, settings-specific helper controls
+  - `src/lib/settings.ts` — persisted-settings bootstrap (`useBootstrapSettings`) and `AI_PROVIDER_SECRET_OWNER_ID` keychain owner constant. Add new persisted settings here rather than cloning a `useEffect` in `App.tsx`.
+- See `docs/ARCHITECTURE.md` "Frontend Module Map" before placing new UI or helper logic.
+- For dynamic ARIA in TSX, use the typed helpers in `src/lib/aria.ts` and spread their results onto elements. Match ARIA roles to real children: `role="menu"` for menu items only; mixed popovers with forms use a dialog-style surface.
+- Avoid JSX `style=` when classes, data attributes, CSS variables, or ref-applied geometry can carry the state. Add vendor fallbacks; avoid `color-mix()` in shared app CSS unless target support is intentional.
 
 ## Internationalization (i18n)
 
-AdminDeck uses **i18next** with **react-i18next** for UI translation. The architecture lives in `src/i18n/`.
+Stack: **i18next + react-i18next**, in `src/i18n/`. English (`locales/en.json`, ~500 keys, 11 namespaces) is the source of truth and the only bundled locale; 12 others (fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id) load on demand via dynamic `import()`. Selection persists in `localStorage` (`admindeck.language`) and is hot-swapped via `switchLanguage()` in `src/i18n/config.ts`; `ensureI18nReady()` handles startup. Selector lives at Settings → General → Language. The typed `useT()` hook in `src/i18n/useT.ts` autocompletes keys from the English JSON shape.
 
-### Architecture
-- **`src/i18n/config.ts`** — i18next instance, language detection (localStorage `admindeck.language`), dynamic locale chunk loading via `import()`, `switchLanguage()`, and `ensureI18nReady()` for startup.
-- **`src/i18n/useT.ts`** — typed `useT()` hook with full key autocompletion derived from the English locale JSON shape.
-- **`src/i18n/locales/en.json`** — English source-of-truth with ~500 keys under 11 namespaces (`app`, `settings`, `connections`, `terminal`, `sftp`, `webview`, `remoteDesktop`, `ai`, `workspace`, `common`, `languages`).
-- **`src/i18n/locales/<code>.json`** — 12 additional language files (fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id). Only English is bundled; other languages load on demand via dynamic `import()`.
+### Rules
+1. **Every user-visible string MUST go through `t()`** — labels, aria-labels, titles, placeholders, status, errors. In React, `const { t } = useTranslation()`. In pure helpers that can't use hooks, import `i18next` from `src/i18n/config` and call `i18next.t(key)`.
+2. **Implement English first.** Add or change keys in `src/i18n/locales/en.json` under the appropriate namespace (dot-notation, e.g. `settings.general.language`). Do not block UI work translating every locale in the same change.
+3. **Track pending translations in `docs/LOCALIZATION.md`** for every new or changed English key not translated immediately. Each entry needs the key, English value, namespace, file/component, UI role (label/button/status/tooltip/error/fragment), surrounding user flow, tone, placeholder details, and domain notes. No context-free TODOs — standalone words are often ambiguous without nearby controls and state.
+4. **Only update non-English locale files when intentionally translating.** When you do, keep all 13 files structurally aligned and remove the matching pending entry from `docs/LOCALIZATION.md`. Technical terms (SSH, SFTP, RDP, VNC, tmux, ProxyJump, PowerShell, WSL, API, URL) typically stay English across languages.
+5. **When renaming or removing a key**, update `en.json`, revise/remove the matching `docs/LOCALIZATION.md` entry, and clean up any translated locale files that touched the key.
 
-### Supported languages
-English (default), French, Italian, German, Spanish (Spain), Spanish (Mexico), Portuguese (Brazil), Chinese (Traditional), Chinese (Simplified), Japanese, Korean, Thai, Indonesian. Language selection persists in `localStorage` and survives app restarts.
-
-### Language selector
-Settings → General → Language dropdown. Calls `switchLanguage()` which persists the choice and hot-swaps the locale bundle.
-
-### Rules for adding/changing UI strings
-1. **Every user-visible string MUST go through `t()` or `useT()`.** Never hardcode English text in JSX, aria-labels, titles, placeholders, status messages, or error text.
-2. **Add the new key to `src/i18n/locales/en.json` first**, under the appropriate namespace. Use nested dot-notation keys (e.g. `settings.general.language`).
-3. **Add the key to every other locale file** under `src/i18n/locales/` with the translated value. Technical terms (SSH, SFTP, RDP, VNC, tmux, ProxyJump, PowerShell, WSL, API, URL) typically stay in English across all languages.
-4. **Use `useTranslation` in React components** (`const { t } = useTranslation()`). For pure helper functions that cannot use hooks, import `i18next` from `src/i18n/config` and call `i18next.t(key)`.
-5. **When renaming or removing a key**, update all 13 locale files so no stale keys remain.
-6. **Keep the English file as the source of truth.** When adding a key, write the English value there and propagate translations outward.
-
-### Namespace conventions
-- `app` — App shell, ActivityRail, panel resize handles
-- `settings` — Settings page sections, labels, status messages, form fields
-- `connections` — Connection sidebar, tree, dialogs, Quick Connect, context menus
-- `terminal` — Terminal workspace, toolbar, context menus, SSH host key dialogs
-- `sftp` — SFTP browser, transfers, conflicts, properties
-- `webview` — URL WebView toolbar, credential fill
-- `remoteDesktop` — RDP/VNC workspace status, toolbar
-- `ai` — AI Assistant panel, markdown toolbar, chat history, waiting phrases
-- `workspace` — Tab strip, canvas empty state, status bar, screenshot menu
-- `common` — Shared action labels (Save, Cancel, Close, Delete, Copy, etc.)
-- `languages` — Native language names for the selector dropdown
+### Namespaces
+`app` (shell, ActivityRail, resize handles), `settings`, `connections` (sidebar, tree, dialogs, Quick Connect, context menus), `terminal` (workspace, toolbar, SSH host key dialogs), `sftp` (browser, transfers, conflicts, properties), `webview` (URL toolbar, credential fill), `remoteDesktop` (RDP/VNC status, toolbar), `ai` (assistant panel, markdown toolbar, chat history, waiting phrases), `workspace` (tab strip, canvas, status bar, screenshot menu), `common` (Save, Cancel, Close, Delete, Copy…), `languages` (native names).
 
 ## Checks
 
-Run the relevant checks before handing work back:
+Run before handing work back:
 
 ```bash
 npm run check
