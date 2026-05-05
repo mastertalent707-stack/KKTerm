@@ -28,7 +28,7 @@ v0.1 includes:
 - OpenAI-compatible BYO API key
 - Claude Code CLI and Codex CLI path configuration
 - light app chrome with dark terminal panes
-- Settings placeholder surface for Language (i18n) and Color Scheme
+- Settings surface with Terminal behavior, AI provider, App UI font, layout reset, read-only SSH/SFTP summaries, and Language (i18n) plus Color Scheme placeholders
 
 v0.1 excludes:
 

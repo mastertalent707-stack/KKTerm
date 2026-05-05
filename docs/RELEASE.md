@@ -92,5 +92,5 @@ The script increments the `<major>.<minor>.<build>` version across npm, Tauri, a
 - Screenshot capture is available from terminal Pane toolbars and non-terminal workspace top toolbars. Region and Entire Window/Panel captures are copied to the system clipboard; sending screenshots to the AI Assistant remains deferred until an explicit image-analysis flow exists.
 - RDP, VNC, webview tabs, sync, team sharing, and portable encrypted credential vaults are deferred.
 - AI command assistance stages proposals only; it does not autonomously execute commands.
-- The current Settings surface only shows Language (i18n) and Color Scheme placeholders; diagnostics, terminal, SSH, SFTP, AI provider, update, and keybinding controls are not exposed there yet.
+- Settings exposes editable Terminal behavior, AI provider, App UI font, and layout reset controls; SSH and SFTP defaults are currently read-only summaries; Language (i18n) and Color Scheme remain placeholders; diagnostics, update, SSH config import, editable SSH/SFTP defaults, and keybinding controls are not exposed there yet.
 - Diagnostics bundles are folders, not compressed archives.

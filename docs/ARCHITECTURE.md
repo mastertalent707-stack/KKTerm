@@ -28,6 +28,10 @@ Owns Tauri setup, window lifecycle, command registration, menus, native dialogs,
 
 Provides a typed command wrapper between React and Rust. The frontend should not manually string-build backend calls. Commands should return structured results and structured errors.
 
+### Frontend Settings
+
+`src/settings/SettingsPage.tsx` owns the Settings surface, including settings-specific draft state, save/reset handlers, summaries, placeholder entries, and small helper controls. `src/App.tsx` should only route to Settings and bootstrap persisted settings into the workspace store. New Settings sections should stay in the settings module unless they become large enough to justify a submodule under `src/settings/`.
+
 ### Storage
 
 Owns SQLite migrations and repositories for:
@@ -183,7 +187,7 @@ The primary UI is a dense desktop workspace:
 
 Default visual direction: quiet productivity light chrome with dark terminal panes.
 
-The activity rail uses icons with delayed hover labels for top-level destinations. The top rail entry is Dashboard, and the second entry is Settings. The current Settings surface intentionally exposes only Language (i18n) and Color Scheme as to-be-implemented placeholders.
+The activity rail uses icons with delayed hover labels for top-level destinations. The top rail entry is Dashboard, and the second entry is Settings. The current Settings surface lives in `src/settings/SettingsPage.tsx`; it exposes editable Terminal behavior, AI provider, App UI font, and layout reset controls; read-only SSH and SFTP summaries; and Language (i18n) plus Color Scheme as explicit to-be-implemented placeholders.
 
 AdminDeck does not include a global command palette in the current product scope; navigation and workflow entry points should stay visible in the Dashboard/connection tree, tab workspace, SFTP toolbar/context actions, assistant panel, and Settings.
 

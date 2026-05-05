@@ -2,6 +2,12 @@
 
 Follow `AGENTS.md` for repository workflow and `CONTEXT.md` for product language.
 
+## Frontend Module Boundaries
+
+- `src/App.tsx` owns app shell routing, workspace composition, and startup/bootstrap effects.
+- `src/settings/SettingsPage.tsx` owns Settings UI sections, settings draft state, save/reset handlers, and settings-specific helper controls.
+- Keep typed Tauri calls behind `src/lib/tauri.ts`; do not call backend commands with ad hoc stringly wrappers from Settings or App code.
+
 ## Critical Domain Boundaries
 
 - **Connection** is durable SQLite data for something the user can open, including local terminal, SSH terminal, URL, RDP, and VNC kinds.
