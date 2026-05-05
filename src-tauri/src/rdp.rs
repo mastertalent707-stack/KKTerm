@@ -12,7 +12,7 @@ mod platform {
     use windows::{
         core::{Interface, BSTR, PCSTR, PCWSTR},
         Win32::{
-            Foundation::{HWND, POINT, RECT, VARIANT_FALSE, VARIANT_TRUE},
+            Foundation::{HWND, LPARAM, POINT, RECT, VARIANT_FALSE, VARIANT_TRUE, WPARAM},
             Graphics::Gdi::ClientToScreen,
             System::{
                 Com::{
@@ -24,9 +24,10 @@ mod platform {
                 Variant::{VariantClear, VARIANT, VT_BOOL, VT_BSTR, VT_DISPATCH, VT_I2, VT_I4},
             },
             UI::WindowsAndMessaging::{
-                CreateWindowExW, DestroyWindow, GetWindowRect, SetWindowPos, ShowWindow, HMENU,
-                SWP_NOACTIVATE, SWP_NOZORDER, SW_SHOWNOACTIVATE, WS_CLIPCHILDREN,
-                WS_CLIPSIBLINGS, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_POPUP, WS_VISIBLE,
+                CreateWindowExW, DestroyWindow, GetWindowRect, SendMessageW, SetWindowPos,
+                ShowWindow, HMENU, SWP_NOACTIVATE, SWP_NOZORDER, SW_SHOWNOACTIVATE, WM_KEYDOWN,
+                WM_KEYUP, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+                WS_POPUP, WS_VISIBLE,
             },
         },
     };
@@ -38,6 +39,9 @@ mod platform {
     const RDP_MIN_DESKTOP_HEIGHT: i32 = 480;
     const RDP_DISPLAY_ORIENTATION_LANDSCAPE: i32 = 0;
     const RDP_DISPLAY_SCALE_FACTOR_PERCENT: i32 = 100;
+    const VK_CONTROL_KEY: usize = 0x11;
+    const VK_ALT_KEY: usize = 0x12;
+    const VK_END_KEY: usize = 0x23;
     const RDP_PROGIDS: &[&str] = &[
         "MsTscAx.MsTscAx.13",
         "MsTscAx.MsTscAx.12",
@@ -353,6 +357,22 @@ mod platform {
                     connection_state,
                     connected: is_rdp_connected_state(connection_state),
                 })
+            })
+        }
+
+        pub fn send_ctrl_alt_delete(
+            &self,
+            app: AppHandle,
+            request: RdpSimpleRequest,
+        ) -> Result<(), String> {
+            let sessions = Arc::clone(&self.sessions);
+            run_on_main_thread(app, move |_app| {
+                let sessions = lock_sessions(&sessions)?;
+                let session = sessions
+                    .get(&request.session_id)
+                    .ok_or_else(|| format!("RDP session '{}' was not found", request.session_id))?;
+                invoke_method(&session.dispatch, "SendCtrlAltDel")
+                    .or_else(|_| send_ctrl_alt_end_to_rdp(session.hwnd))
             })
         }
     }
@@ -747,6 +767,28 @@ mod platform {
 
     fn invoke_method(dispatch: &IDispatch, name: &str) -> Result<(), String> {
         invoke_method_with_i32_args(dispatch, name, &[])
+    }
+
+    fn send_ctrl_alt_end_to_rdp(hwnd: HWND) -> Result<(), String> {
+        unsafe {
+            let _ = SendMessageW(
+                hwnd,
+                WM_KEYDOWN,
+                Some(WPARAM(VK_CONTROL_KEY)),
+                Some(LPARAM(0)),
+            );
+            let _ = SendMessageW(hwnd, WM_KEYDOWN, Some(WPARAM(VK_ALT_KEY)), Some(LPARAM(0)));
+            let _ = SendMessageW(hwnd, WM_KEYDOWN, Some(WPARAM(VK_END_KEY)), Some(LPARAM(0)));
+            let _ = SendMessageW(hwnd, WM_KEYUP, Some(WPARAM(VK_END_KEY)), Some(LPARAM(0)));
+            let _ = SendMessageW(hwnd, WM_KEYUP, Some(WPARAM(VK_ALT_KEY)), Some(LPARAM(0)));
+            let _ = SendMessageW(
+                hwnd,
+                WM_KEYUP,
+                Some(WPARAM(VK_CONTROL_KEY)),
+                Some(LPARAM(0)),
+            );
+        }
+        Ok(())
     }
 
     fn invoke_method_with_i32_args(
@@ -1366,6 +1408,17 @@ mod platform {
                 connection_state: 0,
                 connected: is_rdp_connected_state(0),
             })
+        }
+
+        pub fn send_ctrl_alt_delete(
+            &self,
+            _app: AppHandle,
+            _request: RdpSimpleRequest,
+        ) -> Result<(), String> {
+            Err(
+                "RDP Ctrl+Alt+Delete requires Windows and the Microsoft RDP ActiveX control"
+                    .to_string(),
+            )
         }
     }
 

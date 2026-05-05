@@ -19,6 +19,9 @@ use vnc::{
 
 const DEFAULT_VNC_PORT: u16 = 5900;
 const REFRESH_INTERVAL: Duration = Duration::from_millis(33);
+const X11_CONTROL_LEFT: u32 = 0xffe3;
+const X11_ALT_LEFT: u32 = 0xffe9;
+const X11_DELETE: u32 = 0xffff;
 
 pub struct VncSessionManager {
     runtime: Runtime,
@@ -201,6 +204,20 @@ impl VncSessionManager {
             .map_err(to_vnc_error)
     }
 
+    pub fn send_ctrl_alt_delete(&self, request: VncSimpleRequest) -> Result<(), String> {
+        let client = self.client_for(&request.session_id)?;
+        self.runtime
+            .block_on(async {
+                send_vnc_key(&client, X11_CONTROL_LEFT, true).await?;
+                send_vnc_key(&client, X11_ALT_LEFT, true).await?;
+                send_vnc_key(&client, X11_DELETE, true).await?;
+                send_vnc_key(&client, X11_DELETE, false).await?;
+                send_vnc_key(&client, X11_ALT_LEFT, false).await?;
+                send_vnc_key(&client, X11_CONTROL_LEFT, false).await
+            })
+            .map_err(to_vnc_error)
+    }
+
     pub fn refresh(&self, request: VncSimpleRequest) -> Result<(), String> {
         let client = self.client_for(&request.session_id)?;
         self.runtime
@@ -295,6 +312,16 @@ async fn connect_vnc(
         .map_err(to_vnc_error)?
         .finish()
         .map_err(to_vnc_error)
+}
+
+async fn send_vnc_key(
+    client: &vnc::VncClient,
+    keycode: u32,
+    down: bool,
+) -> Result<(), vnc::VncError> {
+    client
+        .input(X11Event::KeyEvent(ClientKeyEvent { keycode, down }))
+        .await
 }
 
 fn spawn_vnc_event_loop(

@@ -782,6 +782,10 @@ type CommandMap = {
     args: { request: RdpSimpleRequest };
     result: RdpSessionStatus;
   };
+  send_rdp_ctrl_alt_delete: {
+    args: { request: RdpSimpleRequest };
+    result: null;
+  };
   start_vnc_session: {
     args: { request: StartVncSessionRequest };
     result: VncSessionStarted;
@@ -805,6 +809,10 @@ type CommandMap = {
   get_vnc_session_status: {
     args: { request: VncSimpleRequest };
     result: VncSessionStatus;
+  };
+  send_vnc_ctrl_alt_delete: {
+    args: { request: VncSimpleRequest };
+    result: null;
   };
 };
 

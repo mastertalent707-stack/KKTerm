@@ -1,7 +1,7 @@
 import { connectionIconForType, connectionSubtitle, connectionTypeLabel } from "../connections/utils";
 import { ScreenshotMenu } from "../workspace/ScreenshotMenu";
 import { documentHasWebviewOverlay } from "../workspace/nativeOverlay";
-import { Monitor, RotateCcw } from "lucide-react";
+import { Keyboard, Monitor, RotateCcw } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import type {
@@ -274,6 +274,17 @@ export function RemoteDesktopWorkspace({
     setRdpStartKey((key) => key + 1);
   };
 
+  const handleSendCtrlAltDelete = () => {
+    const sessionId = sessionIdRef.current;
+    if (!sessionId || !sessionStartedRef.current || !isTauriRuntime()) {
+      return;
+    }
+    const command = canStartVnc ? "send_vnc_ctrl_alt_delete" : "send_rdp_ctrl_alt_delete";
+    void invokeCommand(command, { request: { sessionId } }).catch((error) => {
+      setRdpError(error instanceof Error ? error.message : String(error));
+    });
+  };
+
   const scheduleBoundsPush = () => {
     if (!sessionStartedRef.current) {
       return;
@@ -416,41 +427,45 @@ export function RemoteDesktopWorkspace({
       return;
     }
     let disposed = false;
+    let startTimer = 0;
     const sessionId = `vnc-${tab.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     sessionIdRef.current = sessionId;
     sessionStartingRef.current = true;
     setRdpStatus((current) => (current === "Reconnecting" ? current : "Connecting"));
     setRdpError("");
 
-    void invokeCommand("start_vnc_session", {
-      request: {
-        sessionId,
-        host: connection.host,
-        port: connection.port,
-        secretOwnerId: connection.id,
-      },
-    })
-      .then((started) => {
-        sessionStartingRef.current = false;
-        if (disposed) {
-          void invokeCommand("close_vnc_session", { request: { sessionId: started.sessionId } });
-          return;
-        }
-        sessionStartedRef.current = true;
-        setRdpStatus("Connected");
-        markConnectionSessionStarted(connection.id);
+    startTimer = window.setTimeout(() => {
+      void invokeCommand("start_vnc_session", {
+        request: {
+          sessionId,
+          host: connection.host,
+          port: connection.port,
+          secretOwnerId: connection.id,
+        },
       })
-      .catch((error) => {
-        sessionStartingRef.current = false;
-        sessionStartedRef.current = false;
-        if (!disposed) {
-          setRdpStatus("");
-          setRdpError(error instanceof Error ? error.message : String(error));
-        }
+        .then((started) => {
+          sessionStartingRef.current = false;
+          if (disposed) {
+            void invokeCommand("close_vnc_session", { request: { sessionId: started.sessionId } });
+            return;
+          }
+          sessionStartedRef.current = true;
+          setRdpStatus("Connected");
+          markConnectionSessionStarted(connection.id);
+        })
+        .catch((error) => {
+          sessionStartingRef.current = false;
+          sessionStartedRef.current = false;
+          if (!disposed) {
+            setRdpStatus("");
+            setRdpError(error instanceof Error ? error.message : String(error));
+          }
+        });
       });
 
     return () => {
       disposed = true;
+      window.clearTimeout(startTimer);
       const ownsSession = sessionStartingRef.current || sessionStartedRef.current;
       sessionStartingRef.current = false;
       const started = sessionStartedRef.current;
@@ -760,6 +775,18 @@ export function RemoteDesktopWorkspace({
         </div>
         <div className="toolbar-cluster">
           {rdpStatus ? <span className="webview-toolbar-status">{rdpStatus}</span> : null}
+          {canStartRdp || canStartVnc ? (
+            <button
+              aria-label={`Send Ctrl+Alt+Delete to ${typeLabel} session`}
+              className="icon-button"
+              disabled={!isTauriRuntime() || !sessionStartedRef.current}
+              onClick={handleSendCtrlAltDelete}
+              title="Send Ctrl+Alt+Delete"
+              type="button"
+            >
+              <Keyboard size={13} />
+            </button>
+          ) : null}
           {canStartRdp || canStartVnc ? (
             <button
               aria-label={`Reconnect ${typeLabel} session`}

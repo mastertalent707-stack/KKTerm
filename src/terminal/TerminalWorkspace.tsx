@@ -3,7 +3,7 @@ import { readFromClipboard, writeToClipboard } from "../lib/clipboard";
 import { ScreenshotMenu } from "../workspace/ScreenshotMenu";
 import { RemoteDesktopWorkspace } from "../remote-desktop/RemoteDesktopWorkspace";
 import { WebViewWorkspace } from "../webview/WebViewWorkspace";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Mouse, ChevronRight, Circle, ClipboardPaste, Columns2, Copy, LayoutDashboard, Menu, RefreshCw, Save, Search, SplitSquareHorizontal, Type, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Mouse, ChevronRight, Circle, ClipboardPaste, Columns2, Copy, Keyboard, LayoutDashboard, Menu, RefreshCw, Save, Search, SplitSquareHorizontal, Type, X } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
@@ -12,7 +12,7 @@ import { defaultTerminalSettings } from "../sample-data";
 import { useWorkspaceStore } from "../store";
 import { createTerminalRenderer, type TerminalDimensions, type TerminalRenderer } from "./renderer";
 import { ensureLayout } from "../workspace/layout";
-import { getPaneRenderer, registerPaneInputWriter, registerPaneRenderer, unregisterPaneInputWriter, unregisterPaneRenderer } from "../workspace/paneRegistry";
+import { getPaneRenderer, registerPaneInputWriter, registerPaneRenderer, unregisterPaneInputWriter, unregisterPaneRenderer, writeInputToPane } from "../workspace/paneRegistry";
 import type { Connection, LayoutNode, SplitDirection, TerminalPane, WorkspacePane, WorkspaceTab } from "../types";
 
 type TerminalContextMenuState = {
@@ -159,6 +159,20 @@ export function TerminalWorkspace({ isActive, tab }: { isActive: boolean; tab: W
     resetTabLayout(tab.id);
   }
 
+  function handleSendCtrlAltDelete() {
+    const pane = focusedPaneId ? tab.panes.find((entry) => entry.id === focusedPaneId) : undefined;
+    if (!pane || !isTerminalPane(pane) || pane.connection?.type !== "ssh") {
+      return;
+    }
+    writeInputToPane(pane.id, "\x1b[3;7~");
+  }
+
+  const focusedSshPane = focusedPaneId
+    ? tab.panes.find(
+        (pane) => pane.id === focusedPaneId && isTerminalPane(pane) && pane.connection?.type === "ssh",
+      )
+    : undefined;
+
   return (
     <section
       className={[
@@ -186,6 +200,16 @@ export function TerminalWorkspace({ isActive, tab }: { isActive: boolean; tab: W
             >
               <Columns2 size={15} />
               SFTP
+            </button>
+            <button
+              className="icon-button"
+              aria-label="Send Ctrl+Alt+Delete to focused SSH session"
+              disabled={!focusedSshPane}
+              onClick={handleSendCtrlAltDelete}
+              title="Send Ctrl+Alt+Delete"
+              type="button"
+            >
+              <Keyboard size={15} />
             </button>
             <div className="terminal-menu-wrapper" ref={splitMenuRef}>
               <button

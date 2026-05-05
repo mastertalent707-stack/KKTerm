@@ -673,6 +673,15 @@ fn get_rdp_session_status(
 }
 
 #[tauri::command]
+fn send_rdp_ctrl_alt_delete(
+    app: tauri::AppHandle,
+    rdp_sessions: tauri::State<'_, rdp::RdpSessionManager>,
+    request: rdp::RdpSimpleRequest,
+) -> Result<(), String> {
+    rdp_sessions.send_ctrl_alt_delete(app, request)
+}
+
+#[tauri::command]
 fn start_vnc_session(
     app: tauri::AppHandle,
     vnc_sessions: tauri::State<'_, vnc::VncSessionManager>,
@@ -729,6 +738,14 @@ fn get_vnc_session_status(
     request: vnc::VncSimpleRequest,
 ) -> Result<vnc::VncSessionStatus, String> {
     vnc_sessions.session_status(request)
+}
+
+#[tauri::command]
+fn send_vnc_ctrl_alt_delete(
+    vnc_sessions: tauri::State<'_, vnc::VncSessionManager>,
+    request: vnc::VncSimpleRequest,
+) -> Result<(), String> {
+    vnc_sessions.send_ctrl_alt_delete(request)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -861,12 +878,14 @@ pub fn run() {
             sync_rdp_display_size,
             close_rdp_session,
             get_rdp_session_status,
+            send_rdp_ctrl_alt_delete,
             start_vnc_session,
             send_vnc_pointer_event,
             send_vnc_key_event,
             refresh_vnc_session,
             close_vnc_session,
-            get_vnc_session_status
+            get_vnc_session_status,
+            send_vnc_ctrl_alt_delete
         ])
         .run(tauri::generate_context!())
         .expect("error while running AdminDeck");
