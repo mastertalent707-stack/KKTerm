@@ -1,6 +1,7 @@
 import { Camera } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent, RefObject } from "react";
+import { useTranslation } from "react-i18next";
 import { menuButtonAria } from "../lib/aria";
 import { invokeCommand, isTauriRuntime, type CaptureScreenshotRequest } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
@@ -17,15 +18,14 @@ type ScreenshotRegionState = {
 
 export function ScreenshotMenu({
   buttonClassName = "icon-button",
-  directClipboardCapture = false,
   targetRef,
-  targetLabel = "Workspace surface",
+  targetLabel,
 }: {
   buttonClassName?: string;
-  directClipboardCapture?: boolean;
   targetRef: RefObject<HTMLElement | null>;
   targetLabel?: string;
 }) {
+  const { t } = useTranslation();
   const setAssistantContextSnippet = useWorkspaceStore(
     (state) => state.setAssistantContextSnippet,
   );
@@ -35,6 +35,7 @@ export function ScreenshotMenu({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const regionTargetRef = useRef<HTMLDivElement | null>(null);
   const regionSelectionRef = useRef<HTMLDivElement | null>(null);
+  const resolvedTargetLabel = targetLabel ?? t("workspace.workspaceSurface");
 
   useEffect(() => {
     if (!menuOpen) {
@@ -52,7 +53,7 @@ export function ScreenshotMenu({
 
   async function captureRect(rect: ScreenshotRect, destination: "assistant" | "clipboard") {
     if (!isTauriRuntime()) {
-      window.alert("Screenshots require the Tauri desktop runtime.");
+      window.alert(t("workspace.screenshotsRequireRuntime"));
       return;
     }
 
@@ -65,21 +66,23 @@ export function ScreenshotMenu({
         setAssistantContextSnippet({
           id: `screenshot-${Date.now()}`,
           kind: "screenshot",
-          sourceLabel: `${targetLabel} screenshot`,
+          sourceLabel: `${resolvedTargetLabel} ${t("workspace.screenshot")}`,
           imageDataUrl: screenshot.dataUrl,
           width: screenshot.width,
           height: screenshot.height,
           capturedAt: new Date().toISOString(),
         });
-        setCopiedStatus("Sent to AI");
+        setCopiedStatus(t("workspace.sentToAi"));
       } else {
         await invokeCommand("capture_screenshot_to_clipboard", { request: rect });
-        setCopiedStatus("Copied");
+        setCopiedStatus(t("workspace.copied"));
       }
       window.setTimeout(() => setCopiedStatus(""), 1600);
     } catch (error) {
       window.alert(
-        `Could not capture screenshot: ${error instanceof Error ? error.message : String(error)}`,
+        t("workspace.screenshotCaptureError", {
+          message: error instanceof Error ? error.message : String(error),
+        }),
       );
     }
   }
@@ -115,10 +118,6 @@ export function ScreenshotMenu({
   }
 
   function handleButtonClick() {
-    if (directClipboardCapture) {
-      handleEntirePanel("clipboard");
-      return;
-    }
     setMenuOpen((open) => !open);
   }
 
@@ -205,11 +204,11 @@ export function ScreenshotMenu({
     <>
       <div className="terminal-menu-wrapper screenshot-menu-wrapper" ref={menuRef}>
         <button
-          aria-label="Take screenshot"
-          {...(directClipboardCapture ? {} : menuButtonAria(menuOpen))}
+          aria-label={t("workspace.takeScreenshot")}
+          {...menuButtonAria(menuOpen)}
           className={buttonClassName}
           onClick={handleButtonClick}
-          title={copiedStatus || "Take screenshot"}
+          title={copiedStatus || t("workspace.takeScreenshot")}
           type="button"
         >
           <Camera size={13} />
@@ -222,7 +221,7 @@ export function ScreenshotMenu({
               role="menuitem"
               type="button"
             >
-              Copy Region
+              {t("workspace.copyRegion")}
             </button>
             <button
               className="terminal-menu-item"
@@ -230,7 +229,7 @@ export function ScreenshotMenu({
               role="menuitem"
               type="button"
             >
-              Copy Entire Window/Panel
+              {t("workspace.copyEntirePanel")}
             </button>
             <button
               className="terminal-menu-item"
@@ -238,7 +237,7 @@ export function ScreenshotMenu({
               role="menuitem"
               type="button"
             >
-              Send Region to AI Assistant
+              {t("workspace.sendRegionToAi")}
             </button>
             <button
               className="terminal-menu-item"
@@ -246,14 +245,14 @@ export function ScreenshotMenu({
               role="menuitem"
               type="button"
             >
-              Send Entire Window/Panel to AI Assistant
+              {t("workspace.sendEntirePanelToAi")}
             </button>
           </div>
         ) : null}
       </div>
       {regionState ? (
         <div
-          aria-label="Select screenshot region"
+          aria-label={t("workspace.selectRegion")}
           className="screenshot-region-overlay"
           onKeyDown={handleRegionKeyDown}
           onPointerDown={handleRegionPointerDown}

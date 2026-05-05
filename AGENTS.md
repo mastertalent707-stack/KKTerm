@@ -27,6 +27,7 @@ Use **Connection** (not "profile") for stored openable resources.
   - `src/settings/SettingsPage.tsx` — Settings UI sections, draft state, save/reset, settings-specific helper controls
   - `src/lib/settings.ts` — persisted-settings bootstrap (`useBootstrapSettings`) and `AI_PROVIDER_SECRET_OWNER_ID` keychain owner constant. Add new persisted settings here rather than cloning a `useEffect` in `App.tsx`.
 - See `docs/ARCHITECTURE.md` "Frontend Module Map" before placing new UI or helper logic.
+- Native HWND-backed surfaces cannot be trusted to obey DOM z-index. RDP ActiveX and WebView2 must be parked/hidden whenever app-owned DOM overlays, dialogs, menus, or region-selection surfaces need to appear above them. For RDP, preserve the screenshot/parking behavior in `src/remote-desktop/RemoteDesktopWorkspace.tsx`: capture the visible RDP host via the typed screenshot command, show that bitmap underneath the DOM overlay, then hide/park the ActiveX HWND until the overlay closes. Keep overlay detection centralized in `src/workspace/nativeOverlay.ts` and update that helper when adding new app-level overlays.
 - For dynamic ARIA in TSX, use the typed helpers in `src/lib/aria.ts` and spread their results onto elements. Match ARIA roles to real children: `role="menu"` for menu items only; mixed popovers with forms use a dialog-style surface.
 - Avoid JSX `style=` when classes, data attributes, CSS variables, or ref-applied geometry can carry the state. Add vendor fallbacks; avoid `color-mix()` in shared app CSS unless target support is intentional.
 

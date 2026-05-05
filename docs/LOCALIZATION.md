@@ -90,6 +90,78 @@ When a key is translated into every supported locale, remove its entry from this
 - Domain notes: Keep `COM1` untranslated.
 - Translation status: Pending for fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id
 
+### `workspace.copyRegion`
+
+- English: "Capture Region(Clipboard)"
+- Namespace: `workspace`
+- Appears in: `src/workspace/ScreenshotMenu.tsx`
+- UI role: Menu item
+- Context: Screenshot button submenu item. The user selects this item, then draws a rectangular region inside the active workspace surface; the selected pixels are copied to the OS clipboard.
+- Tone: Concise command label
+- Placeholders: None
+- Domain notes: `Clipboard` refers to the operating system clipboard destination.
+- Translation status: Pending for fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id
+
+### `workspace.sendRegionToAi`
+
+- English: "Capture Region(AI Assistant)"
+- Namespace: `workspace`
+- Appears in: `src/workspace/ScreenshotMenu.tsx`
+- UI role: Menu item
+- Context: Screenshot button submenu item. The user selects this item, then draws a rectangular region inside the active workspace surface; the selected pixels are attached to AI Assistant context.
+- Tone: Concise command label
+- Placeholders: None
+- Domain notes: Keep `AI Assistant` aligned with the product feature name.
+- Translation status: Pending for fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id
+
+### `workspace.copyEntirePanel`
+
+- English: "Capture Entire Window(Clipboard)"
+- Namespace: `workspace`
+- Appears in: `src/workspace/ScreenshotMenu.tsx`
+- UI role: Menu item
+- Context: Screenshot button submenu item. Captures the entire target workspace surface or pane immediately and copies it to the OS clipboard.
+- Tone: Concise command label
+- Placeholders: None
+- Domain notes: `Window` refers to the visible target workspace area for the screenshot command, not necessarily the full desktop app window.
+- Translation status: Pending for fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id
+
+### `workspace.sendEntirePanelToAi`
+
+- English: "Capture Entire Window(AI Assistant)"
+- Namespace: `workspace`
+- Appears in: `src/workspace/ScreenshotMenu.tsx`
+- UI role: Menu item
+- Context: Screenshot button submenu item. Captures the entire target workspace surface or pane immediately and attaches it to AI Assistant context.
+- Tone: Concise command label
+- Placeholders: None
+- Domain notes: Keep `AI Assistant` aligned with the product feature name. `Window` refers to the visible target workspace area for the screenshot command.
+- Translation status: Pending for fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id
+
+### `workspace.screenshotCaptureError`
+
+- English: "Could not capture screenshot: {{message}}"
+- Namespace: `workspace`
+- Appears in: `src/workspace/ScreenshotMenu.tsx`
+- UI role: Error
+- Context: Alert shown when screenshot capture fails for either clipboard or AI Assistant destinations.
+- Tone: Direct error
+- Placeholders: `{{message}}` is the runtime error returned by the screenshot capture command.
+- Domain notes: Screenshot capture may include native Windows surfaces such as RDP ActiveX and WebView2.
+- Translation status: Pending for fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id
+
+### `workspace.workspaceSurface`
+
+- English: "Workspace surface"
+- Namespace: `workspace`
+- Appears in: `src/workspace/ScreenshotMenu.tsx`
+- UI role: Fallback label fragment
+- Context: Fallback source label used for screenshots when a caller does not provide a more specific surface label such as terminal pane, SFTP view, URL view, or RDP view.
+- Tone: Neutral noun phrase
+- Placeholders: None
+- Domain notes: Refers to the visible capture target, not a backend Session or durable Connection.
+- Translation status: Pending for fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id
+
 ## Entry Template
 
 ```markdown

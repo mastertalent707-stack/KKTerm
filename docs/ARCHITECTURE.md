@@ -99,6 +99,8 @@ SSH Connections may store a non-secret `useTmuxSessions` preference. This value 
 
 RDP Sessions are Windows-native child controls hosted through the Microsoft RDP ActiveX COM control in `mstscax.dll`. The Rust backend creates and drives the control from Tauri commands while the frontend owns Tab/workspace placement. VNC Sessions use the Rust `vnc-rs` client for RFB handshakes, password auth, framebuffer updates, CopyRect handling, and pointer/key input; the frontend renders RGBA framebuffer rectangles into a canvas in `src/remote-desktop/RemoteDesktopWorkspace.tsx`.
 
+RDP ActiveX is a native child HWND, not a DOM element. It can draw above React dialogs and menus regardless of CSS `z-index`. When a DOM overlay must appear above an active RDP view, `src/workspace/nativeOverlay.ts` detects the overlay and `src/remote-desktop/RemoteDesktopWorkspace.tsx` captures the current RDP host rectangle through the screenshot command, renders that transient bitmap inside the workspace, then hides/parks the ActiveX HWND until the overlay is gone. This preserves the user's visual context for Add Connection dialogs, screenshot menus, Region selection, and other app-owned overlays without allowing the native control to cover them. Any new app-level overlay that should stack above WebView2 or RDP must be added to the shared native overlay detector.
+
 RDP sizing has an important diagnostic trap: gray left/right gutters or a visible resize after switching Tabs can be caused by frontend workspace layout changes, not by the RDP transport itself. In particular, global chrome such as the right AI Assistant panel must keep one workspace-wide width/collapsed state; it must not load per-Connection panel layout on Tab activation. Per-Connection assistant panel state changes the workspace width during Tab switching, which then forces the native RDP ActiveX HWND to resize and can look like an RDP display-sync bug. When investigating RDP gutters, first verify that `remote-desktop-workspace` bounds and app chrome widths stay identical before and after Tab activation.
 
 ### Connection Tree
@@ -153,6 +155,8 @@ Owns SFTP sessions launched from SSH Connections, local/remote listing, multi-se
 Owns explicit user-triggered screenshot capture for active workspace surfaces. Terminal Panes expose the screenshot action in the Pane toolbar; URL, SFTP, RDP, and VNC workspaces expose it in the top workspace toolbar. The frontend owns the menu and Region selection overlay, then calls the typed Tauri command with a client-area rectangle.
 
 On Windows, the Rust backend translates the requested rectangle into physical screen coordinates and uses GDI capture so native child surfaces such as WebView2 and the RDP ActiveX host are included. Captures can be written directly to the system clipboard as image data, or encoded as a transient PNG data URL and attached to the AI Assistant context through an explicit Send to AI Assistant action. Screenshot capture does not persist image files and does not log terminal contents.
+
+The same screenshot path is also used internally for RDP overlay suppression. Before hiding the ActiveX HWND for a menu/dialog/Region overlay, the frontend captures the RDP host rectangle and displays the resulting transient bitmap under the DOM overlay. That internal capture is not persisted and is distinct from user-requested clipboard or AI Assistant captures.
 
 ### SSH Config Importer
 
@@ -231,12 +235,12 @@ Workspace chrome layout is global state. Connection-specific live context may ch
 - `src/workspace/WorkspaceCanvas.tsx` — `TabStrip` and `WorkspaceCanvas`, including active Tab dispatch to terminal, SFTP, URL, and remote desktop surfaces.
 - `src/workspace/ScreenshotMenu.tsx` — screenshot menu, Region overlay, screenshot-to-clipboard, and screenshot-to-AI handoff.
 - `src/workspace/StatusBar.tsx` — performance/budget status presentation.
-- `src/workspace/nativeOverlay.ts` — shared overlay suppression detection for native HWND-backed surfaces.
+- `src/workspace/nativeOverlay.ts` — shared overlay suppression detection for native HWND-backed surfaces; update this when a new DOM menu, dialog, or overlay needs to appear above WebView2 or RDP.
 - `src/terminal/TerminalWorkspace.tsx` — terminal workspace, split layout view, pane host, tmux session tag/popover, terminal context menu, SSH tmux inspection helpers.
 - `src/terminal/renderer.ts` — renderer abstraction and xterm/WebGL renderer implementation.
 - `src/sftp/SftpWorkspace.tsx` — SFTP dual-pane browser, file panes, transfers, overwrite conflicts, context menu, properties popup.
 - `src/webview/WebViewWorkspace.tsx` — URL Connection WebView2 host, webview session lease management, toolbar navigation, credential fill.
-- `src/remote-desktop/RemoteDesktopWorkspace.tsx` — RDP/VNC workspace host, RDP ActiveX visibility/bounds synchronization, and VNC canvas framebuffer/input handling.
+- `src/remote-desktop/RemoteDesktopWorkspace.tsx` — RDP/VNC workspace host, RDP ActiveX visibility/bounds synchronization, RDP snapshot/parking for DOM overlays, and VNC canvas framebuffer/input handling.
 - `src/ai/AssistantPanel.tsx` — AI Assistant chat surface, markdown rendering, chat history, extension draft intent UI, terminal send handoff.
 - `src/ai/providers.ts` — provider definitions and frontend provider validation.
 - `src/settings/SettingsPage.tsx` — Settings shell with sidebar nav and section routing.

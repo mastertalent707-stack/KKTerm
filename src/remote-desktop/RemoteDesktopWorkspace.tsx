@@ -9,7 +9,7 @@ import type {
   PointerEvent as ReactPointerEvent,
   WheelEvent as ReactWheelEvent,
 } from "react";
-import { invokeCommand, isTauriRuntime } from "../lib/tauri";
+import { invokeCommand, isTauriRuntime, type AssistantScreenshot } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
 import type { WorkspaceTab } from "../types";
 
@@ -71,6 +71,7 @@ export function RemoteDesktopWorkspace({
   const displaySyncInFlightRef = useRef(false);
   const rdpVisibleRef = useRef(false);
   const rdpControlRef = useRef("");
+  const rdpSuppressionCaptureInFlightRef = useRef(false);
   const vncButtonMaskRef = useRef(0);
   const vncPendingPointerRef = useRef<{ x: number; y: number; buttonMask: number } | null>(null);
   const vncPointerRafRef = useRef<number | null>(null);
@@ -81,6 +82,7 @@ export function RemoteDesktopWorkspace({
   const markConnectionSessionEnded = useWorkspaceStore((state) => state.markConnectionSessionEnded);
   const [suppressed, setSuppressed] = useState(false);
   const [rdpError, setRdpError] = useState("");
+  const [rdpSnapshot, setRdpSnapshot] = useState<AssistantScreenshot | null>(null);
   const [rdpStatus, setRdpStatus] = useState("");
   const [rdpStartKey, setRdpStartKey] = useState(0);
   const [vncHasDisplay, setVncHasDisplay] = useState(false);
@@ -141,6 +143,25 @@ export function RemoteDesktopWorkspace({
       window.requestAnimationFrame(tick);
     });
 
+  const captureVisibleRdpSnapshot = async () => {
+    if (
+      !canStartRdp ||
+      !isTauriRuntime() ||
+      !sessionStartedRef.current ||
+      !rdpVisibleRef.current ||
+      !displayReadyRef.current
+    ) {
+      return null;
+    }
+    const bounds = computeBounds();
+    if (!bounds) {
+      return null;
+    }
+    return invokeCommand("capture_screenshot_for_assistant", {
+      request: bounds,
+    });
+  };
+
   const pushRdpVisibility = () => {
     const sessionId = sessionIdRef.current;
     if (!sessionStartedRef.current || !sessionId) {
@@ -171,6 +192,9 @@ export function RemoteDesktopWorkspace({
     })
       .then(() => {
         rdpVisibleRef.current = visible;
+        if (visible) {
+          setRdpSnapshot(null);
+        }
       })
       .catch((error) => {
         setRdpError(error instanceof Error ? error.message : String(error));
@@ -245,6 +269,8 @@ export function RemoteDesktopWorkspace({
     displaySyncInFlightRef.current = false;
     rdpVisibleRef.current = false;
     rdpControlRef.current = "";
+    rdpSuppressionCaptureInFlightRef.current = false;
+    setRdpSnapshot(null);
   };
 
   const resetVncSessionRefs = () => {
@@ -536,7 +562,38 @@ export function RemoteDesktopWorkspace({
       return;
     }
     const updateSuppression = () => {
-      setSuppressed(documentHasWebviewOverlay());
+      if (!documentHasWebviewOverlay()) {
+        rdpSuppressionCaptureInFlightRef.current = false;
+        visibilityRef.current = { ...visibilityRef.current, suppressed: false };
+        setSuppressed(false);
+        return;
+      }
+      if (visibilityRef.current.suppressed || rdpSuppressionCaptureInFlightRef.current) {
+        return;
+      }
+      rdpSuppressionCaptureInFlightRef.current = true;
+      void captureVisibleRdpSnapshot()
+        .then((snapshot) => {
+          if (!documentHasWebviewOverlay()) {
+            visibilityRef.current = { ...visibilityRef.current, suppressed: false };
+            setSuppressed(false);
+            return;
+          }
+          if (snapshot) {
+            setRdpSnapshot(snapshot);
+          }
+          visibilityRef.current = { ...visibilityRef.current, suppressed: true };
+          setSuppressed(true);
+        })
+        .catch(() => {
+          if (documentHasWebviewOverlay()) {
+            visibilityRef.current = { ...visibilityRef.current, suppressed: true };
+            setSuppressed(true);
+          }
+        })
+        .finally(() => {
+          rdpSuppressionCaptureInFlightRef.current = false;
+        });
     };
     updateSuppression();
     const observer = new MutationObserver(updateSuppression);
@@ -548,6 +605,7 @@ export function RemoteDesktopWorkspace({
     return () => {
       observer.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canStartRdp]);
 
   useEffect(() => {
@@ -877,7 +935,6 @@ export function RemoteDesktopWorkspace({
             </button>
           ) : null}
           <ScreenshotMenu
-            directClipboardCapture={connection?.type === "rdp"}
             targetLabel={`${tab.title} ${typeLabel} view`}
             targetRef={connection?.type === "rdp" || connection?.type === "vnc" ? hostRef : workspaceRef}
           />
@@ -887,6 +944,15 @@ export function RemoteDesktopWorkspace({
         className="remote-desktop-workspace"
         ref={hostRef}
       >
+        {connection?.type === "rdp" && rdpSnapshot ? (
+          <img
+            alt=""
+            className="rdp-suppression-snapshot"
+            height={rdpSnapshot.height}
+            src={rdpSnapshot.dataUrl}
+            width={rdpSnapshot.width}
+          />
+        ) : null}
         {connection?.type === "vnc" ? (
           <canvas
             aria-label={`${tab.title} VNC display`}
@@ -902,7 +968,7 @@ export function RemoteDesktopWorkspace({
             tabIndex={0}
           />
         ) : null}
-        <div className="remote-desktop-placeholder" hidden={vncHasDisplay}>
+        <div className="remote-desktop-placeholder" hidden={vncHasDisplay || Boolean(rdpSnapshot)}>
           <Icon size={34} />
           <h2>{connection?.name ?? typeLabel}</h2>
           <p>{connection ? `${typeLabel} ${connectionSubtitle(connection)}` : typeLabel}</p>
