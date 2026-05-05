@@ -23,8 +23,12 @@ export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 export const LANGUAGE_STORAGE_KEY = "admindeck.language";
 
 export function detectLanguage(): SupportedLanguage {
+  return getStoredLanguage() ?? detectSystemLanguage();
+}
+
+function getStoredLanguage(): SupportedLanguage | null {
   if (typeof window === "undefined") {
-    return "en";
+    return null;
   }
   try {
     const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
@@ -34,7 +38,65 @@ export function detectLanguage(): SupportedLanguage {
   } catch {
     // Storage unavailable
   }
+  return null;
+}
+
+function detectSystemLanguage(): SupportedLanguage {
+  if (typeof navigator === "undefined") {
+    return "en";
+  }
+
+  const candidates = [...(navigator.languages ?? []), navigator.language];
+  for (const language of candidates) {
+    const supportedLanguage = matchSupportedLanguage(language);
+    if (supportedLanguage) {
+      return supportedLanguage;
+    }
+  }
+
   return "en";
+}
+
+function matchSupportedLanguage(language: string | undefined): SupportedLanguage | null {
+  if (!language) {
+    return null;
+  }
+
+  const normalized = language.trim().replace("_", "-");
+  if (!normalized) {
+    return null;
+  }
+
+  if (isSupportedLanguage(normalized)) {
+    return normalized;
+  }
+
+  const lowerLanguage = normalized.toLowerCase();
+  if (lowerLanguage.startsWith("zh")) {
+    if (
+      lowerLanguage.includes("hans") ||
+      lowerLanguage.includes("-cn") ||
+      lowerLanguage.includes("-sg")
+    ) {
+      return "zh-CN";
+    }
+    return "zh-TW";
+  }
+
+  if (lowerLanguage === "pt" || lowerLanguage.startsWith("pt-")) {
+    return "pt-BR";
+  }
+
+  if (lowerLanguage === "es-mx") {
+    return "es-MX";
+  }
+
+  const baseLanguage = lowerLanguage.split("-")[0];
+  return (
+    SUPPORTED_LANGUAGES.find(
+      (supportedLanguage) => supportedLanguage.toLowerCase() === baseLanguage,
+    ) ?? null
+  );
 }
 
 function isSupportedLanguage(value: string): value is SupportedLanguage {
