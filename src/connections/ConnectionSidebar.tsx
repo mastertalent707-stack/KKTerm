@@ -4,7 +4,8 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronDown, ChevronRight, F
 import { AddComputer as IconParkAddComputer, CollapseTextInput as IconParkCollapseTextInput, DataScreen as IconParkDataScreen, Delete as IconParkDelete, Edit as IconParkEdit, ExpandTextInput as IconParkExpandTextInput, FolderPlus as IconParkFolderPlus, LaptopComputer as IconParkLaptopComputer, Server as IconParkServer, Setting as IconParkSetting, Terminal as IconParkTerminal } from "@icon-park/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
-import { ariaExpanded, ariaPressed, dialogButtonAria } from "../lib/aria";
+import { useTranslation } from "react-i18next";
+import { ariaExpanded, dialogButtonAria } from "../lib/aria";
 import { invokeCommand, isTauriRuntime, selectKeyFile } from "../lib/tauri";
 import { connectionTree } from "../sample-data";
 import { useWorkspaceStore } from "../store";
@@ -111,6 +112,7 @@ export function ConnectionSidebar({
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }) {
+  const { t } = useTranslation();
   const query = useWorkspaceStore((state) => state.query);
   const setQuery = useWorkspaceStore((state) => state.setQuery);
   const openConnection = useWorkspaceStore((state) => state.openConnection);
@@ -877,21 +879,21 @@ export function ConnectionSidebar({
     <aside className="connection-sidebar">
       <div className="sidebar-header">
         <div>
-          <h1>Connections</h1>
+          <h1>{t("connections.title")}</h1>
         </div>
         <div className="sidebar-actions">
           <button
             className="icon-button"
-            aria-label="Add connection"
-            title="Add connection"
+            aria-label={t("connections.addConnection")}
+            title={t("connections.addConnection")}
             onClick={() => setFormMode("save")}
           >
             <Plus size={16} />
           </button>
           <button
             className="icon-button"
-            aria-label="Collapse Connections column"
-            title="Collapse Connections column"
+            aria-label={t("connections.collapseColumn")}
+            title={t("connections.collapseColumn")}
             onClick={onToggleCollapsed}
             type="button"
           >
@@ -905,7 +907,7 @@ export function ConnectionSidebar({
         <input
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
-          placeholder="Search hosts, folders"
+          placeholder={t("connections.searchPlaceholder")}
         />
       </label>
 
@@ -916,7 +918,7 @@ export function ConnectionSidebar({
           onClick={() => setQuickConnectMenuOpen((isOpen) => !isOpen)}
         >
           <Play size={15} />
-          Quick connect
+          {t("connections.quickConnect")}
         </button>
         {quickConnectMenuOpen ? (
           <QuickConnectMenu
@@ -933,30 +935,30 @@ export function ConnectionSidebar({
           />
         ) : null}
       </div>
-      <div className="tree-folder-controls" aria-label="Folder tree controls">
+      <div className="tree-folder-controls" aria-label={t("connections.folderTreeControls")}>
         <button
-          aria-label="New folder"
+          aria-label={t("connections.newFolder")}
           className="tree-folder-control"
           onClick={() => void handleCreateFolder()}
-          title="New folder"
+          title={t("connections.newFolder")}
           type="button"
         >
           <FolderPlus size={13} />
         </button>
         <button
-          aria-label="Collapse all folders"
+          aria-label={t("connections.collapseAll")}
           className="tree-folder-control"
           onClick={handleCollapseAllFolders}
-          title="Collapse All"
+          title={t("connections.collapseAll")}
           type="button"
         >
           <IconParkCollapseTextInput size={13} />
         </button>
         <button
-          aria-label="Expand all folders"
+          aria-label={t("connections.expandAll")}
           className="tree-folder-control"
           onClick={handleExpandAllFolders}
-          title="Expand All"
+          title={t("connections.expandAll")}
           type="button"
         >
           <IconParkExpandTextInput size={13} />
@@ -966,7 +968,7 @@ export function ConnectionSidebar({
 
       <div
         className={`tree-list ${dropTarget === "root" ? "drop-target" : ""}`}
-        aria-label="Connection tree"
+        aria-label={t("connections.connectionTree")}
         data-connection-count={filteredTree.connections.length}
         data-folder-count={filteredTree.folders.length}
         data-tree-drop-kind="root"
@@ -1154,6 +1156,7 @@ function ConnectionFolderNode({
   onContextMenu: (folder: ConnectionFolder, event: ReactMouseEvent<HTMLElement>) => void;
   pendingFolderDraft: PendingFolderDraft | null;
 }) {
+  const { t } = useTranslation();
   const connectionCount = countConnections(folder);
   const folderCount = countFolders(folder.folders);
   const isCollapsed = collapsedFolderIds.has(folder.id);
@@ -1190,7 +1193,7 @@ function ConnectionFolderNode({
         <div className="tree-folder">
           <button
             {...ariaExpanded(!isCollapsed)}
-            aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${folder.name}`}
+            aria-label={`${isCollapsed ? t("connections.expand") : t("connections.collapse")} ${folder.name}`}
             className="tree-disclosure"
             onClick={(event) => {
               event.preventDefault();
@@ -1198,7 +1201,7 @@ function ConnectionFolderNode({
               onToggleFolder(folder.id);
             }}
             onPointerDown={(event) => event.stopPropagation()}
-            title={isCollapsed ? "Expand folder" : "Collapse folder"}
+            title={isCollapsed ? t("connections.expandFolder") : t("connections.collapseFolder")}
             type="button"
           >
             {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
@@ -1210,7 +1213,7 @@ function ConnectionFolderNode({
         <span className="folder-actions">
           <button
             className="row-action"
-            aria-label={`New subfolder in ${folder.name}`}
+            aria-label={`${t("connections.newSubfolderIn")} ${folder.name}`}
             onClick={() => void onCreateFolder(folder.id)}
           >
             <FolderPlus size={13} />
@@ -1365,6 +1368,7 @@ function TreeContextMenu({
   onRename: () => void;
   onAddToPane: (direction: SplitDirection) => void;
 }) {
+  const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1413,11 +1417,11 @@ function TreeContextMenu({
         <>
           <button onClick={onCreateConnection} role="menuitem" type="button">
             <IconParkAddComputer className="menu-item-icon" size={15} />
-            <span>New Connection</span>
+            <span>{t("connections.newConnection")}</span>
           </button>
           <button onClick={onCreateFolder} role="menuitem" type="button">
             <IconParkFolderPlus className="menu-item-icon" size={15} />
-            <span>New Folder</span>
+            <span>{t("connections.newFolder")}</span>
           </button>
         </>
       ) : null}
@@ -1425,11 +1429,11 @@ function TreeContextMenu({
         <>
           <button onClick={onRename} role="menuitem" type="button">
             <IconParkEdit className="menu-item-icon" size={15} />
-            <span>Rename</span>
+            <span>{t("connections.rename")}</span>
           </button>
           <button onClick={onDelete} role="menuitem" type="button">
             <IconParkDelete className="menu-item-icon" size={15} />
-            <span>Delete</span>
+            <span>{t("connections.delete")}</span>
           </button>
         </>
       ) : null}
@@ -1439,32 +1443,32 @@ function TreeContextMenu({
             <div className="tree-context-submenu" role="none">
               <button aria-haspopup="menu" className="tree-submenu-trigger" role="menuitem" type="button">
                 <PanelRight className="menu-item-icon" size={15} />
-                <span>Add to...</span>
+                <span>{t("connections.addTo")}</span>
                 <ChevronRight className="menu-item-chevron" size={13} />
               </button>
-              <div className="tree-context-submenu-menu" role="menu" aria-label="Add to pane">
+              <div className="tree-context-submenu-menu" role="menu" aria-label={t("connections.addToPane")}>
                 <button onClick={() => onAddToPane("left")} role="menuitem" type="button">
                   <ArrowLeft className="menu-item-icon" size={15} />
-                  <span>Left</span>
+                  <span>{t("connections.left")}</span>
                 </button>
                 <button onClick={() => onAddToPane("right")} role="menuitem" type="button">
                   <ArrowRight className="menu-item-icon" size={15} />
-                  <span>Right</span>
+                  <span>{t("connections.right")}</span>
                 </button>
                 <button onClick={() => onAddToPane("down")} role="menuitem" type="button">
                   <ArrowDown className="menu-item-icon" size={15} />
-                  <span>Lower</span>
+                  <span>{t("connections.lower")}</span>
                 </button>
                 <button onClick={() => onAddToPane("up")} role="menuitem" type="button">
                   <ArrowUp className="menu-item-icon" size={15} />
-                  <span>Upper</span>
+                  <span>{t("connections.upper")}</span>
                 </button>
               </div>
             </div>
           ) : null}
           <button onClick={onProperties} role="menuitem" type="button">
             <IconParkSetting className="menu-item-icon" size={15} />
-            <span>Properties</span>
+            <span>{t("connections.properties")}</span>
           </button>
         </>
       ) : null}
@@ -1492,6 +1496,7 @@ export function QuickConnectMenu({
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [sshHost, setSshHost] = useState("");
   const [sshPort, setSshPort] = useState(String(sshSettings.defaultPort));
+  const { t } = useTranslation();
   const normalizedSshPort = Number(sshPort || sshSettings.defaultPort);
   const canSubmitSsh =
     Boolean(sshHost.trim()) &&
@@ -1520,21 +1525,21 @@ export function QuickConnectMenu({
   }
 
   return (
-    <div className="quick-connect-menu" role="dialog" aria-label="Quick connect">
+    <div className="quick-connect-menu" role="dialog" aria-label={t("connections.quickConnectDialog")}>
       {sshDialogOpen ? (
         <form className="quick-connect-mini-dialog" onSubmit={handleSshSubmit}>
           <label>
-            <span>Hostname</span>
+            <span>{t("connections.hostname")}</span>
             <input
               autoFocus
               onChange={(event) => setSshHost(event.currentTarget.value)}
-              placeholder="example.internal"
+              placeholder={t("connections.exampleHost")}
               required
               value={sshHost}
             />
           </label>
           <label>
-            <span>Port</span>
+            <span>{t("connections.port")}</span>
             <input
               inputMode="numeric"
               max="65535"
@@ -1547,17 +1552,17 @@ export function QuickConnectMenu({
           </label>
           <div className="quick-connect-mini-actions">
             <button disabled={!canSubmitSsh} type="submit">
-              Connect
+              {t("connections.connect")}
             </button>
             <button onClick={() => setSshDialogOpen(false)} type="button">
-              Cancel
+              {t("connections.cancel")}
             </button>
           </div>
         </form>
       ) : (
         <button onClick={() => setSshDialogOpen(true)} type="button">
           <Server size={15} />
-          <span>SSH</span>
+          <span>{t("connections.ssh")}</span>
         </button>
       )}
       {shellOptions.map((option) =>
@@ -1570,10 +1575,10 @@ export function QuickConnectMenu({
             </button>
             <div className="quick-connect-submenu-panel">
               <button onClick={() => onOpenLocalShell(option)} type="button">
-                Normal
+                {t("connections.normal")}
               </button>
               <button onClick={() => onOpenElevatedShell(option)} type="button">
-                Admin
+                {t("connections.admin")}
               </button>
             </div>
           </div>
@@ -1614,37 +1619,6 @@ export function QuickConnectMenu({
   );
 }
 
-const CONNECTION_TYPE_TILES: Array<{
-  type: ConnectionTileType;
-  title: string;
-  description: string;
-}> = [
-  {
-    type: "ssh",
-    title: "SSH",
-    description: "Secure shell",
-  },
-  {
-    type: "local",
-    title: "Terminal",
-    description: "Local shell",
-  },
-  {
-    type: "url",
-    title: "URL",
-    description: "Embedded web app",
-  },
-  {
-    type: "rdp",
-    title: "Remote Desktop",
-    description: "Windows RDP",
-  },
-  {
-    type: "vnc",
-    title: "VNC",
-    description: "Screen control",
-  },
-];
 
 const CONNECTION_ICON_FILLS: Record<Exclude<ConnectionTileType, "url">, string[]> = {
   ssh: ["#1f2937", "#f3f4f6", "#111827", "#6b7280"],
@@ -1720,7 +1694,8 @@ function ConnectionDialog({
   onCancel: () => void;
   onSubmit: (request: ConnectionDialogRequest) => void | Promise<void>;
 }) {
-  const [connectionType, setConnectionType] = useState<ConnectionType | "">(
+  const { t } = useTranslation();
+  const [connectionType] = useState<ConnectionType | "">(
     initialConnection?.type ?? "",
   );
   const [authMethod, setAuthMethod] = useState<"keyFile" | "password" | "agent">(
@@ -1842,29 +1817,7 @@ function ConnectionDialog({
             </span>
           </div>
         ) : (
-          <fieldset className="connection-type-picker">
-            <legend>Type*</legend>
-            <div className="connection-type-grid">
-              {CONNECTION_TYPE_TILES.map((tile) => (
-                <button
-                  {...ariaPressed(connectionType === tile.type)}
-                  className={`connection-type-tile ${connectionType === tile.type ? "selected" : ""}`}
-                  data-connection-type={tile.type}
-                  key={tile.type}
-                  onClick={() => setConnectionType(tile.type)}
-                  type="button"
-                >
-                  <span className="connection-type-icon">
-                    <ConnectionTypeGlyph type={tile.type} size={32} />
-                  </span>
-                  <span className="connection-type-copy">
-                    <strong>{tile.title}</strong>
-                    <small>{tile.description}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </fieldset>
+          <span className="quick-connect-recent-empty">{t("connections.noRecent")}</span>
         )}
 
         {connectionType ? (

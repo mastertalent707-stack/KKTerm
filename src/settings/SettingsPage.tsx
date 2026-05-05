@@ -37,6 +37,8 @@ import type {
   TerminalCursorStyle,
   TerminalSettings,
 } from "../types";
+import { useTranslation } from "react-i18next";
+import { SUPPORTED_LANGUAGES, switchLanguage, detectLanguage, type SupportedLanguage } from "../i18n/config";
 
 // Re-exported for any external callers; new code should import from
 // `lib/settings` directly so the keychain owner id has one source of truth.
@@ -142,6 +144,7 @@ export function SettingsPage({
   onBack: () => void;
   onResetLayout: () => void;
 }) {
+  const { t } = useTranslation();
   const terminalSettings = useWorkspaceStore((state) => state.terminalSettings);
   const sshSettings = useWorkspaceStore((state) => state.sshSettings);
   const sftpSettings = useWorkspaceStore((state) => state.sftpSettings);
@@ -164,6 +167,7 @@ export function SettingsPage({
   const [aiError, setAiError] = useState("");
   const [activeSectionId, setActiveSectionId] =
     useState<SettingsSectionId>("general-settings");
+  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(detectLanguage);
   const hasTerminalChanges = JSON.stringify(terminalDraft) !== JSON.stringify(terminalSettings);
   const hasAppearanceChanges =
     JSON.stringify(appearanceDraft) !== JSON.stringify(appearanceSettings);
@@ -207,7 +211,7 @@ export function SettingsPage({
         : nextSettings;
       setTerminalSettings(saved);
       setTerminalDraft(saved);
-      setStatus("Terminal settings saved.");
+      setStatus(t("settings.terminalSaved"));
     } catch (error) {
       setError(error instanceof Error ? error.message : String(error));
     }
@@ -223,7 +227,7 @@ export function SettingsPage({
         : nextSettings;
       setAppearanceSettings(saved);
       setAppearanceDraft(saved);
-      setAppearanceStatus("Appearance settings saved.");
+      setAppearanceStatus(t("settings.appearanceSaved"));
     } catch (error) {
       setAppearanceError(error instanceof Error ? error.message : String(error));
     }
@@ -240,7 +244,7 @@ export function SettingsPage({
         : defaultAppearanceSettings;
       setAppearanceSettings(saved);
       setAppearanceDraft(saved);
-      setAppearanceStatus("Appearance settings reset.");
+      setAppearanceStatus(t("settings.appearanceReset"));
     } catch (error) {
       setAppearanceError(error instanceof Error ? error.message : String(error));
     }
@@ -271,7 +275,7 @@ export function SettingsPage({
         : nextSettings;
       setAiProviderSettings(saved);
       setAiDraft(saved);
-      setAiStatus("AI provider saved.");
+      setAiStatus(t("settings.aiProviderSaved"));
     } catch (error) {
       setAiError(error instanceof Error ? error.message : String(error));
     }
@@ -279,7 +283,7 @@ export function SettingsPage({
 
   async function handleClearAiProviderSettings() {
     const shouldClear = window.confirm(
-      "Clear all AI provider settings and remove the saved AI API key?",
+      t("settings.clearAiConfirm"),
     );
     if (!shouldClear) {
       return;
@@ -304,7 +308,7 @@ export function SettingsPage({
       setAiDraft(saved);
       setApiKeyDraft("");
       setAiProviderHasApiKey(false);
-      setAiStatus("AI provider settings cleared.");
+      setAiStatus(t("settings.aiProviderCleared"));
     } catch (error) {
       setAiError(error instanceof Error ? error.message : String(error));
     }
@@ -329,23 +333,23 @@ export function SettingsPage({
       <header className="settings-page-header">
         <div>
           <p className="panel-label">AdminDeck</p>
-          <h1>Settings</h1>
+          <h1>{t("settings.title")}</h1>
         </div>
         <button className="toolbar-button" type="button" onClick={onBack}>
           <ArrowLeft size={15} />
-          Workspace
+          {t("settings.workspace")}
         </button>
       </header>
 
       <div className="settings-layout">
-        <aside className="settings-nav" aria-label="Settings sections">
+        <aside className="settings-nav" aria-label={t("settings.sectionsNav")}>
           <a
             href="#general-settings"
             className={settingsNavItemClass("general-settings", activeSectionId)}
             onClick={() => setActiveSectionId("general-settings")}
           >
             <SettingsIcon size={16} />
-            <span>General</span>
+            <span>{t("settings.sectionGeneral")}</span>
           </a>
           <a
             href="#appearance-settings"
@@ -353,7 +357,7 @@ export function SettingsPage({
             onClick={() => setActiveSectionId("appearance-settings")}
           >
             <Palette size={16} />
-            <span>Appearance</span>
+            <span>{t("settings.sectionAppearance")}</span>
           </a>
           <a
             href="#assistant-settings"
@@ -361,7 +365,7 @@ export function SettingsPage({
             onClick={() => setActiveSectionId("assistant-settings")}
           >
             <Bot size={16} />
-            <span>AI Assistant</span>
+            <span>{t("settings.sectionAiAssistant")}</span>
           </a>
           <a
             href="#ssh-settings"
@@ -369,7 +373,7 @@ export function SettingsPage({
             onClick={() => setActiveSectionId("ssh-settings")}
           >
             <Server size={16} />
-            <span>SSH</span>
+            <span>{t("settings.sectionSsh")}</span>
           </a>
           <a
             href="#terminal-settings"
@@ -377,7 +381,7 @@ export function SettingsPage({
             onClick={() => setActiveSectionId("terminal-settings")}
           >
             <Terminal size={16} />
-            <span>Terminal</span>
+            <span>{t("settings.sectionTerminal")}</span>
           </a>
           <a
             href="#rdp-settings"
@@ -385,7 +389,7 @@ export function SettingsPage({
             onClick={() => setActiveSectionId("rdp-settings")}
           >
             <Monitor size={16} />
-            <span>Remote Desktop(RDP)</span>
+            <span>{t("settings.sectionRdp")}</span>
           </a>
           <a
             href="#vnc-settings"
@@ -393,7 +397,7 @@ export function SettingsPage({
             onClick={() => setActiveSectionId("vnc-settings")}
           >
             <Network size={16} />
-            <span>VNC</span>
+            <span>{t("settings.sectionVnc")}</span>
           </a>
           <a
             href="#about-settings"
@@ -401,33 +405,45 @@ export function SettingsPage({
             onClick={() => setActiveSectionId("about-settings")}
           >
             <Info size={16} />
-            <span>About</span>
+            <span>{t("settings.sectionAbout")}</span>
           </a>
         </aside>
 
-        <section className="settings-content" aria-label="Settings">
+        <section className="settings-content" aria-label={t("settings.settingsContent")}>
           <section className="settings-card settings-section" id="general-settings">
             <div className="settings-section-header">
               <div>
-                <p className="panel-label">General</p>
-                <h2>Workspace defaults</h2>
+                <p className="panel-label">{t("settings.sectionGeneral")}</p>
+                <h2>{t("settings.generalDefaults")}</h2>
               </div>
             </div>
 
-            <div className="settings-placeholder-list">
-              <button className="settings-placeholder-item" type="button">
-                <Languages size={17} />
-                <span>Language (i18n)</span>
-                <strong>To be implemented</strong>
-              </button>
+            <div className="form-grid">
+              <label>
+                <span><Languages size={17} /> {t("settings.language")}</span>
+                <select
+                  value={currentLanguage}
+                  onChange={(event) => {
+                    const lang = event.currentTarget.value as SupportedLanguage;
+                    setCurrentLanguage(lang);
+                    void switchLanguage(lang);
+                  }}
+                >
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <option key={lang} value={lang}>
+                      {t(`languages.${lang}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
           </section>
 
           <section className="settings-card settings-section" id="appearance-settings">
             <div className="settings-section-header">
               <div>
-                <p className="panel-label">Appearance</p>
-                <h2>Interface</h2>
+                <p className="panel-label">{t("settings.sectionAppearance")}</p>
+                <h2>{t("settings.appearanceInterface")}</h2>
               </div>
               <div className="settings-header-actions">
                 <button
@@ -437,7 +453,7 @@ export function SettingsPage({
                   type="button"
                 >
                   <Save size={15} />
-                  Save
+                  {t("settings.save")}
                 </button>
                 <button
                   className="toolbar-button"
@@ -445,13 +461,13 @@ export function SettingsPage({
                   type="button"
                 >
                   <RotateCcw size={15} />
-                  Reset Font
+                  {t("settings.resetFont")}
                 </button>
               </div>
             </div>
             <div className="form-grid">
               <label>
-                <span>App UI font family</span>
+                <span>{t("settings.appUiFontFamily")}</span>
                 <input
                   list="app-ui-font-options"
                   onChange={(event) => {
@@ -464,35 +480,35 @@ export function SettingsPage({
                   value={appearanceDraft.appFontFamily}
                 />
                 <datalist id="app-ui-font-options">
-                  <option value={defaultAppearanceSettings.appFontFamily}>Satoshi</option>
+                  <option value={defaultAppearanceSettings.appFontFamily}>{t("settings.satoshi")}</option>
                   <option value='Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'>
-                    System sans
+                    {t("settings.systemSans")}
                   </option>
                   <option value='"Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif'>
-                    Segoe UI Variable
+                    {t("settings.segoeUiVariable")}
                   </option>
                 </datalist>
                 <small className="field-hint">
-                  Default uses src/assets/fonts/Satoshi-Variable.ttf.
+                  {t("settings.defaultFontHint")}
                 </small>
               </label>
-              <SettingsSummary label="Active UI font" value={appearanceDraft.appFontFamily} />
+              <SettingsSummary label={t("settings.activeUiFont")} value={appearanceDraft.appFontFamily} />
             </div>
             <div className="settings-reset-layout">
               <div>
-                <strong>Layout</strong>
-                <span>Reset panel widths, collapsed panels, and saved terminal pane layouts.</span>
+                <strong>{t("settings.layout")}</strong>
+                <span>{t("settings.resetLayoutDescription")}</span>
               </div>
               <button className="toolbar-button" onClick={onResetLayout} type="button">
                 <RotateCcw size={15} />
-                Reset Layout
+                {t("settings.resetLayout")}
               </button>
             </div>
             <div className="settings-placeholder-list">
               <button className="settings-placeholder-item" type="button">
                 <Palette size={17} />
-                <span>Color Scheme</span>
-                <strong>To be implemented</strong>
+                <span>{t("settings.colorScheme")}</span>
+                <strong>{t("settings.toBeImplemented")}</strong>
               </button>
             </div>
             {appearanceStatus ? (
@@ -504,8 +520,8 @@ export function SettingsPage({
           <section className="settings-card settings-section" id="assistant-settings">
             <div className="settings-section-header">
               <div>
-                <p className="panel-label">AI Assistant</p>
-                <h2>AI provider</h2>
+                <p className="panel-label">{t("settings.sectionAiAssistant")}</p>
+                <h2>{t("settings.aiProvider")}</h2>
               </div>
               <div className="settings-header-actions">
                 <button
@@ -515,7 +531,7 @@ export function SettingsPage({
                   type="button"
                 >
                   <Save size={15} />
-                  Save
+                  {t("settings.save")}
                 </button>
                 <button
                   className="toolbar-button"
@@ -523,14 +539,14 @@ export function SettingsPage({
                   type="button"
                 >
                   <Trash2 size={15} />
-                  Clear All Settings
+                  {t("settings.clearAllSettings")}
                 </button>
               </div>
             </div>
 
             <div className="form-grid ai-provider-selector-grid">
               <label>
-                <span>Provider</span>
+                <span>{t("settings.provider")}</span>
                 <select
                   onChange={(event) =>
                     handleAiProviderKindChange(event.currentTarget.value as AiProviderKind)
@@ -567,15 +583,15 @@ export function SettingsPage({
             </div>
 
             <div className="settings-summary-grid compact">
-              <SettingsSummary label="Active endpoint" value={formatProviderHost(aiDraft.baseUrl)} />
+              <SettingsSummary label={t("settings.activeEndpoint")} value={formatProviderHost(aiDraft.baseUrl)} />
               <SettingsSummary
-                label="Capabilities"
+                label={t("settings.capabilities")}
                 value={aiProviderDefinition.capabilities
                   .map(formatAiProviderCapability)
                   .join(", ")}
               />
               <SettingsSummary
-                label="Reasoning"
+                label={t("settings.reasoning")}
                 value={formatReasoningEffort(aiDraft.reasoningEffort)}
               />
             </div>
@@ -586,18 +602,18 @@ export function SettingsPage({
           <section className="settings-card settings-section" id="ssh-settings">
             <div className="settings-section-header">
               <div>
-                <p className="panel-label">SSH</p>
-                <h2>SSH and SFTP defaults</h2>
+                <p className="panel-label">{t("settings.sectionSsh")}</p>
+                <h2>{t("settings.sshDefaults")}</h2>
               </div>
             </div>
             <div className="settings-summary-grid">
-              <SettingsSummary label="Default user" value={sshSettings.defaultUser} />
-              <SettingsSummary label="Default port" value={String(sshSettings.defaultPort)} />
-              <SettingsSummary label="Default key" value={sshSettings.defaultKeyPath || "Not set"} />
-              <SettingsSummary label="ProxyJump" value={sshSettings.defaultProxyJump || "Not set"} />
+              <SettingsSummary label={t("settings.defaultUser")} value={sshSettings.defaultUser} />
+              <SettingsSummary label={t("settings.defaultPort")} value={String(sshSettings.defaultPort)} />
+              <SettingsSummary label={t("settings.defaultKey")} value={sshSettings.defaultKeyPath || t("settings.notSet")} />
+              <SettingsSummary label={t("settings.proxyJump")} value={sshSettings.defaultProxyJump || t("settings.notSet")} />
               <SettingsSummary
-                label="SFTP overwrite"
-                value={sftpSettings.overwriteBehavior === "overwrite" ? "Overwrite" : "Fail"}
+                label={t("settings.sftpOverwrite")}
+                value={sftpSettings.overwriteBehavior === "overwrite" ? t("settings.overwrite") : t("settings.fail")}
               />
             </div>
           </section>
@@ -605,8 +621,8 @@ export function SettingsPage({
           <section className="settings-card settings-section" id="terminal-settings">
             <div className="settings-section-header">
               <div>
-                <p className="panel-label">Terminal</p>
-                <h2>Terminal behavior</h2>
+                <p className="panel-label">{t("settings.sectionTerminal")}</p>
+                <h2>{t("settings.terminalBehavior")}</h2>
               </div>
               <button
                 className="toolbar-button"
@@ -615,13 +631,13 @@ export function SettingsPage({
                 type="button"
               >
                 <Save size={15} />
-                Save
+                {t("settings.save")}
               </button>
             </div>
 
             <div className="form-grid three-columns">
               <label>
-                <span>Font family</span>
+                <span>{t("settings.fontFamily")}</span>
                 <input
                   onChange={(event) => {
                     const fontFamily = event.currentTarget.value;
@@ -634,7 +650,7 @@ export function SettingsPage({
                 />
               </label>
               <label>
-                <span>Font size</span>
+                <span>{t("settings.fontSize")}</span>
                 <input
                   inputMode="numeric"
                   max={32}
@@ -651,7 +667,7 @@ export function SettingsPage({
                 />
               </label>
               <label>
-                <span>Line height</span>
+                <span>{t("settings.lineHeight")}</span>
                 <input
                   max={2}
                   min={1}
@@ -671,7 +687,7 @@ export function SettingsPage({
 
             <div className="form-grid three-columns">
               <label>
-                <span>Scrollback lines</span>
+                <span>{t("settings.scrollbackLines")}</span>
                 <input
                   inputMode="numeric"
                   max={100000}
@@ -687,10 +703,10 @@ export function SettingsPage({
                   type="number"
                   value={terminalDraft.scrollbackLines}
                 />
-                <small className="field-hint">Default is 10,000. Valid range is 100 to 100,000.</small>
+                <small className="field-hint">{t("settings.scrollbackHint")}</small>
               </label>
               <label>
-                <span>Cursor style</span>
+                <span>{t("settings.cursorStyle")}</span>
                 <select
                   onChange={(event) => {
                     const cursorStyle = event.currentTarget.value as TerminalCursorStyle;
@@ -701,13 +717,13 @@ export function SettingsPage({
                   }}
                   value={terminalDraft.cursorStyle}
                 >
-                  <option value="block">Block</option>
-                  <option value="bar">Bar</option>
-                  <option value="underline">Underline</option>
+                  <option value="block">{t("settings.block")}</option>
+                  <option value="bar">{t("settings.bar")}</option>
+                  <option value="underline">{t("settings.underline")}</option>
                 </select>
               </label>
               <label>
-                <span>Default shell</span>
+                <span>{t("settings.defaultShell")}</span>
                 <select
                   onChange={(event) => {
                     const defaultShell = event.currentTarget.value;
@@ -718,9 +734,9 @@ export function SettingsPage({
                   }}
                   value={terminalDraft.defaultShell}
                 >
-                  <option value="powershell.exe">PowerShell</option>
-                  <option value="cmd.exe">Command Prompt</option>
-                  <option value="wsl.exe">WSL</option>
+                  <option value="powershell.exe">{t("settings.powerShell")}</option>
+                  <option value="cmd.exe">{t("settings.commandPrompt")}</option>
+                  <option value="wsl.exe">{t("settings.wsl")}</option>
                 </select>
               </label>
             </div>
@@ -738,7 +754,7 @@ export function SettingsPage({
                   }}
                   type="checkbox"
                 />
-                Copy selected terminal text automatically
+                {t("settings.copyOnSelect")}
               </label>
               <label>
                 <input
@@ -752,7 +768,7 @@ export function SettingsPage({
                   }}
                   type="checkbox"
                 />
-                Confirm multiline paste
+                {t("settings.confirmMultilinePaste")}
               </label>
             </div>
 
@@ -763,8 +779,8 @@ export function SettingsPage({
           <section className="settings-card settings-section" id="rdp-settings">
             <div className="settings-section-header">
               <div>
-                <p className="panel-label">Remote Desktop(RDP)</p>
-                <h2>Quality defaults</h2>
+                <p className="panel-label">{t("settings.sectionRdp")}</p>
+                <h2>{t("settings.qualityDefaults")}</h2>
               </div>
             </div>
             <PlannedSettingsGrid settings={RDP_QUALITY_SETTINGS} />
@@ -773,8 +789,8 @@ export function SettingsPage({
           <section className="settings-card settings-section" id="vnc-settings">
             <div className="settings-section-header">
               <div>
-                <p className="panel-label">VNC</p>
-                <h2>Quality defaults</h2>
+                <p className="panel-label">{t("settings.sectionVnc")}</p>
+                <h2>{t("settings.qualityDefaults")}</h2>
               </div>
             </div>
             <PlannedSettingsGrid settings={VNC_QUALITY_SETTINGS} />
@@ -783,7 +799,7 @@ export function SettingsPage({
           <section className="settings-card settings-section" id="about-settings">
             <div className="settings-section-header">
               <div>
-                <p className="panel-label">About</p>
+                <p className="panel-label">{t("settings.sectionAbout")}</p>
                 <h2>{ABOUT_PRODUCT.name}</h2>
               </div>
               <a
@@ -793,7 +809,7 @@ export function SettingsPage({
                 target="_blank"
               >
                 <ExternalLink size={15} />
-                GitHub
+                {t("settings.github")}
               </a>
             </div>
 
@@ -806,19 +822,18 @@ export function SettingsPage({
             </div>
 
             <div className="settings-summary-grid">
-              <SettingsSummary label="Developer" value={ABOUT_PRODUCT.developer} />
-              <SettingsSummary label="Version" value={ABOUT_PRODUCT.version} />
-              <SettingsSummary label="License" value={ABOUT_PRODUCT.license} />
-              <SettingsSummary label="Repository" value={ABOUT_PRODUCT.repositoryUrl} />
+              <SettingsSummary label={t("settings.developer")} value={ABOUT_PRODUCT.developer} />
+              <SettingsSummary label={t("settings.version")} value={ABOUT_PRODUCT.version} />
+              <SettingsSummary label={t("settings.license")} value={ABOUT_PRODUCT.license} />
+              <SettingsSummary label={t("settings.repository")} value={ABOUT_PRODUCT.repositoryUrl} />
             </div>
 
             <div className="open-source-panel">
               <div className="open-source-panel-header">
                 <div>
-                  <strong>Open-source components</strong>
+                  <strong>{t("settings.openSourceComponents")}</strong>
                   <span>
-                    Direct frontend, tooling, and Rust components referenced by the project
-                    manifests.
+                    {t("settings.openSourceComponents")}
                   </span>
                 </div>
                 <span>{openSourceComponentCount()} components</span>
@@ -857,11 +872,13 @@ function AiProviderSettingsFieldControl({
   onApiKeyDraftChange: (value: string) => void;
   onDraftChange: (patch: Partial<AiProviderSettings>) => void;
 }) {
+  const { t } = useTranslation();
+
   switch (field) {
     case "baseUrl":
       return (
         <label>
-          <span>Endpoint</span>
+          <span>{t("settings.endpoint")}</span>
           <input
             onChange={(event) => onDraftChange({ baseUrl: event.currentTarget.value })}
             readOnly={!definition.allowsCustomBaseUrl}
@@ -873,7 +890,7 @@ function AiProviderSettingsFieldControl({
       const datalistId = `ai-provider-model-options-${definition.kind}`;
       return (
         <label>
-          <span>Model</span>
+          <span>{t("settings.model")}</span>
           <input
             list={datalistId}
             onChange={(event) => onDraftChange({ model: event.currentTarget.value })}
@@ -892,7 +909,7 @@ function AiProviderSettingsFieldControl({
     case "reasoningEffort":
       return (
         <label>
-          <span>Reasoning effort</span>
+          <span>{t("settings.reasoningEffort")}</span>
           <select
             onChange={(event) =>
               onDraftChange({ reasoningEffort: event.currentTarget.value as AiReasoningEffort })
@@ -915,7 +932,7 @@ function AiProviderSettingsFieldControl({
             autoComplete="off"
             disabled={!definition.requiresApiKey}
             onChange={(event) => onApiKeyDraftChange(event.currentTarget.value)}
-            placeholder={hasApiKey ? "Saved" : definition.apiKeyLabel}
+            placeholder={hasApiKey ? t("settings.save") : definition.apiKeyLabel}
             type="password"
             value={apiKeyDraft}
           />
@@ -964,15 +981,16 @@ function OpenSourceComponentGroup({
   components: readonly OpenSourceComponent[];
   label: string;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="open-source-group">
       <h3>{label}</h3>
       <div className="open-source-table" role="table" aria-label={`${label} components`}>
         <div className="open-source-table-row header" role="row">
-          <span role="columnheader">Component</span>
-          <span role="columnheader">Version</span>
-          <span role="columnheader">License</span>
-          <span role="columnheader">Role</span>
+          <span role="columnheader">{t("settings.component")}</span>
+          <span role="columnheader">{t("settings.version")}</span>
+          <span role="columnheader">{t("settings.license")}</span>
+          <span role="columnheader">{t("settings.role")}</span>
         </div>
         {components.map((component) => (
           <div className="open-source-table-row" key={component.name} role="row">

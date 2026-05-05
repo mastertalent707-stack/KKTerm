@@ -2,6 +2,19 @@
 
 Follow `AGENTS.md` for repository workflow and `CONTEXT.md` for product language.
 
+## Internationalization (i18n)
+
+AdminDeck uses **i18next + react-i18next**. The i18n module lives in `src/i18n/`.
+
+- **English is the source of truth**: `src/i18n/locales/en.json` defines every key. All other locale files mirror the same structure.
+- **All user-visible text must pass through `t()`**: labels, aria-labels, titles, placeholders, status messages, error text, confirmation prompts. Never write bare English strings in JSX.
+- **In React components**, use `const { t } = useTranslation()` from `react-i18next`.
+- **In pure functions that cannot use hooks**, import the default `i18next` instance from `src/i18n/config` and call `i18next.t("key")`.
+- **Add new keys to `en.json` first**, then propagate to the other 12 locale files (`fr`, `it`, `de`, `es`, `es-MX`, `pt-BR`, `zh-TW`, `zh-CN`, `ja`, `ko`, `th`, `id`).
+- **When a key is renamed or removed**, update all 13 files to keep them in sync. Stale keys cause no runtime error (fallback to English) but clutter the locale files.
+- **Language switching** is handled by `switchLanguage()` in `src/i18n/config.ts`. The selected language persists in `localStorage` under `admindeck.language`.
+- **Dynamic locale loading**: only English is bundled; other languages load on demand via dynamic `import()`. Vite automatically code-splits each locale into its own chunk.
+
 ## Frontend Module Boundaries
 
 - `src/App.tsx` owns app shell routing, global panel layout, Settings routing, the activity rail, and startup/bootstrap effects. It should not grow workspace surface, connection-tree, assistant, or Settings form code.

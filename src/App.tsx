@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, LayoutDashboard, Settings } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { invokeCommand, isTauriRuntime } from "./lib/tauri";
 import { useBootstrapSettings } from "./lib/settings";
 import { SettingsPage } from "./settings/SettingsPage";
@@ -102,6 +103,7 @@ function removeLayoutStorageKeys() {
 }
 
 function App() {
+  const { t } = useTranslation();
   const [activePage, setActivePage] = useState<"workspace" | "settings">("workspace");
   const appearanceSettings = useWorkspaceStore((state) => state.appearanceSettings);
   const setFrontendLaunchMs = useWorkspaceStore((state) => state.setFrontendLaunchMs);
@@ -274,7 +276,7 @@ function App() {
             <div className="connection-collapsed-separator" aria-hidden="true" />
           ) : (
             <PanelResizeHandle
-              ariaLabel="Resize Connections column"
+              ariaLabel={t("app.resizeConnections")}
               side="left"
               onPointerDown={handleConnectionPanelResize}
             />
@@ -285,10 +287,10 @@ function App() {
             <StatusBar />
           </main>
           <PanelResizeHandle
-            ariaLabel="Resize AI Assistant panel"
+            ariaLabel={t("app.resizeAiAssistant")}
             side="right"
             collapsed={aiPanelLayout.collapsed}
-            collapsedLabel="AI Assistant"
+            collapsedLabel={t("app.aiAssistant")}
             onClick={() =>
               aiPanelLayout.collapsed
                 ? setAiPanelLayout((layout) => ({ ...layout, collapsed: false }))
@@ -379,6 +381,8 @@ function ActivityRail({
   onConnectionsRestore: () => void;
   onNavigate: (page: "workspace" | "settings") => void;
 }) {
+  const { t } = useTranslation();
+
   function handleConnectionsClick() {
     onNavigate("workspace");
     if (connectionsCollapsed) {
@@ -387,27 +391,27 @@ function ActivityRail({
   }
 
   return (
-    <nav className="activity-rail" aria-label="Primary">
+    <nav className="activity-rail" aria-label={t("app.primaryNav")}>
       <button
         className={`rail-button ${activePage === "workspace" ? "active" : ""} ${
           connectionsCollapsed ? "connections-collapsed-indicator" : ""
         }`}
-        aria-label="Connections"
+        aria-label={t("app.connections")}
         onClick={handleConnectionsClick}
       >
         <LayoutDashboard size={18} />
         <span className="rail-tooltip" role="tooltip">
-          Connections
+          {t("app.connections")}
         </span>
       </button>
       <button
         className={`rail-button rail-button-settings ${activePage === "settings" ? "active" : ""}`}
-        aria-label="Settings"
+        aria-label={t("app.settings")}
         onClick={() => onNavigate("settings")}
       >
         <Settings size={18} />
         <span className="rail-tooltip" role="tooltip">
-          Settings
+          {t("app.settings")}
         </span>
       </button>
     </nav>

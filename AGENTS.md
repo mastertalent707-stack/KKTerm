@@ -27,6 +27,43 @@ Avoid using "profile" as the canonical name for stored openable resources. Use *
 - For TSX accessibility attributes, use the typed helpers in `src/lib/aria.ts` for dynamic ARIA values so React emits valid values and source analyzers do not read JSX expressions as literal strings. Match ARIA roles to real children: `role="menu"` should contain menu items, while mixed popovers with forms/inputs should use a dialog-style surface instead.
 - Avoid JSX `style=` for UI layout and theming when classes, data attributes, CSS variables, or ref-applied geometry can carry the state. Keep CSS compatibility warnings in mind: add vendor fallbacks where needed and avoid `color-mix()` in shared app CSS unless the target support is intentional.
 
+## Internationalization (i18n)
+
+AdminDeck uses **i18next** with **react-i18next** for UI translation. The architecture lives in `src/i18n/`.
+
+### Architecture
+- **`src/i18n/config.ts`** — i18next instance, language detection (localStorage `admindeck.language`), dynamic locale chunk loading via `import()`, `switchLanguage()`, and `ensureI18nReady()` for startup.
+- **`src/i18n/useT.ts`** — typed `useT()` hook with full key autocompletion derived from the English locale JSON shape.
+- **`src/i18n/locales/en.json`** — English source-of-truth with ~500 keys under 11 namespaces (`app`, `settings`, `connections`, `terminal`, `sftp`, `webview`, `remoteDesktop`, `ai`, `workspace`, `common`, `languages`).
+- **`src/i18n/locales/<code>.json`** — 12 additional language files (fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id). Only English is bundled; other languages load on demand via dynamic `import()`.
+
+### Supported languages
+English (default), French, Italian, German, Spanish (Spain), Spanish (Mexico), Portuguese (Brazil), Chinese (Traditional), Chinese (Simplified), Japanese, Korean, Thai, Indonesian. Language selection persists in `localStorage` and survives app restarts.
+
+### Language selector
+Settings → General → Language dropdown. Calls `switchLanguage()` which persists the choice and hot-swaps the locale bundle.
+
+### Rules for adding/changing UI strings
+1. **Every user-visible string MUST go through `t()` or `useT()`.** Never hardcode English text in JSX, aria-labels, titles, placeholders, status messages, or error text.
+2. **Add the new key to `src/i18n/locales/en.json` first**, under the appropriate namespace. Use nested dot-notation keys (e.g. `settings.general.language`).
+3. **Add the key to every other locale file** under `src/i18n/locales/` with the translated value. Technical terms (SSH, SFTP, RDP, VNC, tmux, ProxyJump, PowerShell, WSL, API, URL) typically stay in English across all languages.
+4. **Use `useTranslation` in React components** (`const { t } = useTranslation()`). For pure helper functions that cannot use hooks, import `i18next` from `src/i18n/config` and call `i18next.t(key)`.
+5. **When renaming or removing a key**, update all 13 locale files so no stale keys remain.
+6. **Keep the English file as the source of truth.** When adding a key, write the English value there and propagate translations outward.
+
+### Namespace conventions
+- `app` — App shell, ActivityRail, panel resize handles
+- `settings` — Settings page sections, labels, status messages, form fields
+- `connections` — Connection sidebar, tree, dialogs, Quick Connect, context menus
+- `terminal` — Terminal workspace, toolbar, context menus, SSH host key dialogs
+- `sftp` — SFTP browser, transfers, conflicts, properties
+- `webview` — URL WebView toolbar, credential fill
+- `remoteDesktop` — RDP/VNC workspace status, toolbar
+- `ai` — AI Assistant panel, markdown toolbar, chat history, waiting phrases
+- `workspace` — Tab strip, canvas empty state, status bar, screenshot menu
+- `common` — Shared action labels (Save, Cancel, Close, Delete, Copy, etc.)
+- `languages` — Native language names for the selector dropdown
+
 ## Checks
 
 Run the relevant checks before handing work back:

@@ -19,11 +19,13 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { menuButtonAria } from "../lib/aria";
 import { invokeCommand } from "../lib/tauri";
 import { getAiProviderDefinition, validateAiProviderForChat } from "./providers";
 import { useWorkspaceStore } from "../store";
 import { writeInputToPane } from "../workspace/paneRegistry";
+import i18next from "../i18n/config";
 
 type AssistantChatMessage = {
   id: string;
@@ -46,213 +48,12 @@ type AssistantPromptIntent = "chat" | "extensionCreation";
 
 const EXTENSION_DRAFT_PROMPT = "Create an AdminDeck extension draft for: ";
 
-const ASSISTANT_WAITING_PHRASES = [
-  "Fixing phaser cannon",
-  "Opening the hatch",
-  "Charging the jump drive",
-  "Aligning the star map",
-  "Spinning up the ion fan",
-  "Polishing the command deck",
-  "Tuning the warp kettle",
-  "Rebooting the moon router",
-  "Counting spare photons",
-  "Warming the flux capacitor",
-  "Calibrating laser spoons",
-  "Priming the nebula pump",
-  "Negotiating with the airlock",
-  "Filing asteroid paperwork",
-  "Dusting the antimatter shelf",
-  "Reticulating space splines",
-  "Checking helmet vibes",
-  "Defragging the cargo bay",
-  "Unjamming the holo button",
-  "Balancing the plasma tray",
-  "Finding the left thruster",
-  "Tickling the debug console",
-  "Restarting orbital coffee",
-  "Inflating backup gravity",
-  "Rewiring the tiny reactor",
-  "Tapping the starboard gauge",
-  "Loading cosmic duct tape",
-  "Convincing the nav computer",
-  "Sequencing hatch confetti",
-  "Indexing comet receipts",
-  "Greasing the wormhole hinge",
-  "Ping-testing Mars",
-  "Sorting the photon drawer",
-  "Cooling the laser noodles",
-  "Tightening gravity bolts",
-  "Priming the escape kazoo",
-  "Painting racing stripes",
-  "Untangling sensor cables",
-  "Waking the sleep module",
-  "Auditing stardust inventory",
-  "Shaking the quantum snowglobe",
-  "Finding north in space",
-  "Folding the solar sail",
-  "Loading backup starlight",
-  "Rehearsing airlock manners",
-  "Baking a moon packet",
-  "Charging the sarcasm shield",
-  "Buffing the docking clamp",
-  "Sharpening the laser pointer",
-  "Priming the thought engine",
-  "Warming up the command chair",
-  "Asking the dashboard nicely",
-  "Cycling the photon valves",
-  "Refreshing the orbit cache",
-  "Rebalancing the holo grid",
-  "Tuning the antenna eyebrows",
-  "Opening a tiny wormhole",
-  "Calming the fusion toaster",
-  "Tapping the reactor glass",
-  "Checking the space odometer",
-  "Stirring the data soup",
-  "Filling the oxygen spreadsheet",
-  "Aligning satellite socks",
-  "Charging the blaster dial",
-  "Plotting a snack trajectory",
-  "Washing the sensor array",
-  "Summoning auxiliary pixels",
-  "Scanning for loose commas",
-  "Decrypting the captain's doodle",
-  "Inventorying laser batteries",
-  "Priming the turbo clipboard",
-  "Tightening the console latch",
-  "Reheating the star chart",
-  "Cycling the space windshield",
-  "Repacking the toolkit",
-  "Testing zero-g cupholders",
-  "Stabilizing the time drawer",
-  "Loading orbital elevator music",
-  "Finding the backup button",
-  "Recharging the idea cannon",
-  "Adjusting the moon mirror",
-  "Flossing the fiber uplink",
-  "Polishing the escape pod",
-  "Resetting the drama dampener",
-  "Opening channel banana",
-  "Patching the astro modem",
-  "Checking the warp warranty",
-  "Sorting the asteroid queue",
-  "Measuring the cosmic shrug",
-  "Sealing the vacuum zipper",
-  "Cycling the launch chime",
-  "Rebooting the gravity fan",
-  "Massaging the matrix",
-  "Tuning the ion kazoo",
-  "Refilling the star ink",
-  "Aligning the blink lights",
-  "Priming the orbit blender",
-  "Counting laser freckles",
-  "Unlocking the science drawer",
-  "Greasing the docking rails",
-  "Pinging the command moon",
-  "Refactoring the hyperspace",
-  "Starting the tiny supernova",
-  "Scanning for friendly qubits",
-  "Tapping the fusion meter",
-  "Loading the patience module",
-  "Dialing the photon desk",
-  "Rotating the starboard waffle",
-  "Checking the captain's checklist",
-  "Balancing the antenna fork",
-  "Rewinding the time cassette",
-  "Powering the polite thruster",
-  "Tuning the orbit guitar",
-  "Loading the moon compiler",
-  "Untying the data knot",
-  "Calibrating the comet broom",
-  "Charging the signal lantern",
-  "Rebooting the hatch bell",
-  "Flipping the plasma pancake",
-  "Opening the auxiliary curtain",
-  "Testing the vacuum whistle",
-  "Priming the starboard toaster",
-  "Buffing the quantum knob",
-  "Refreshing the nebula cache",
-  "Warming the rocket socks",
-  "Assembling the space sandwich",
-  "Aligning the laser stapler",
-  "Checking the orbit invoice",
-  "Tuning the warp harmonica",
-  "Feeding the command queue",
-  "Stacking spare timelines",
-  "Cleaning the photon lens",
-  "Patching the hatch firmware",
-  "Loading the console confetti",
-  "Rehearsing the docking wink",
-  "Starting the plasma metronome",
-  "Counting backup universes",
-  "Tightening the starlight jar",
-  "Polishing the telemetry spoon",
-  "Resetting the orbital toaster",
-  "Opening the moon drawer",
-  "Charging the debug beacon",
-  "Tuning the static hammock",
-  "Repacking the nebula toolbox",
-  "Scanning for lost semicolons",
-  "Priming the turbo antenna",
-  "Adjusting the time zipper",
-  "Loading the starboard playlist",
-  "Checking the gravity receipt",
-  "Dusting the launch button",
-  "Rebooting the comet scheduler",
-  "Finding the cosmic clipboard",
-  "Balancing the sensor teacup",
-  "Tapping the hatch twice",
-  "Folding the wormhole napkin",
-  "Charging the orbital lantern",
-  "Polishing the warp sprocket",
-  "Refreshing the photon pantry",
-  "Checking the space calendar",
-  "Tuning the navigation kazoo",
-  "Loading the answer thrusters",
-  "Rewiring the stardust modem",
-  "Opening the cargo fortune",
-  "Measuring the launch grin",
-  "Unclogging the plasma funnel",
-  "Counting the quiet beeps",
-  "Calibrating the quantum teapot",
-  "Priming the orbit stapler",
-  "Fixing the dashboard wobble",
-  "Testing the starboard wink",
-  "Recharging the thought lantern",
-  "Sorting hyperspace coupons",
-  "Polishing the signal mirror",
-  "Loading the hatch password",
-  "Cycling the antimatter fan",
-  "Checking the moon gasket",
-  "Tuning the sensor marimba",
-  "Launching the tiny checklist",
-  "Aligning the nebula ruler",
-  "Rebooting the captain's chair",
-  "Packing spare photons",
-  "Opening the diagnostics pantry",
-  "Priming the laser accordion",
-  "Untangling the orbit spaghetti",
-  "Charging the polite laser",
-  "Checking the fusion cup",
-  "Defrosting the comet tray",
-  "Retuning the space banjo",
-  "Loading the answer cartridge",
-  "Patching the moon socket",
-  "Counting celestial paperclips",
-  "Stabilizing the blinkenlights",
-  "Warming the response engine",
-  "Rebalancing the starboard vibes",
-  "Opening the tiny airlock",
-  "Testing the hyperspace zipper",
-  "Refreshing the command buffer",
-  "Calibrating the orbit spoon",
-  "Charging the answer beacon",
-  "Checking the last hatch",
-] as const;
-
 function randomAssistantWaitingPhrase() {
-  return ASSISTANT_WAITING_PHRASES[
-    Math.floor(Math.random() * ASSISTANT_WAITING_PHRASES.length)
-  ];
+  const phrases = i18next.t("ai.waitingPhrases", { returnObjects: true }) as readonly string[];
+  if (!Array.isArray(phrases) || phrases.length === 0) {
+    return "Charging the answer beacon";
+  }
+  return phrases[Math.floor(Math.random() * phrases.length)] ?? "Charging the answer beacon";
 }
 
 function createAssistantChatMessage(
@@ -275,7 +76,7 @@ function createAssistantChatThreadId() {
 
 function assistantThreadTitle(messages: AssistantChatMessage[]) {
   const firstUserMessage = messages.find((message) => message.role === "user");
-  const title = firstUserMessage?.content.trim().replace(/\s+/g, " ") || "New chat";
+  const title = firstUserMessage?.content.trim().replace(/\s+/g, " ") || i18next.t("ai.newChat");
   return title.length > 56 ? `${title.slice(0, 53)}...` : title;
 }
 
@@ -376,7 +177,7 @@ function normalizeAssistantChatThread(value: unknown): AssistantChatThread[] {
       contextLabel:
         typeof candidate.contextLabel === "string" && candidate.contextLabel.trim()
           ? candidate.contextLabel.trim()
-          : "Workspace",
+          : i18next.t("ai.workspace"),
       messages,
       createdAt,
       updatedAt,
@@ -423,6 +224,7 @@ export function AssistantPanel({
   onOpenSettings: () => void;
   onToggleCollapsed: () => void;
 }) {
+  const { t } = useTranslation();
   const activeTab = useWorkspaceStore((state) =>
     state.tabs.find((tab) => tab.id === state.activeTabId),
   );
@@ -449,10 +251,10 @@ export function AssistantPanel({
   const addContextMenuRef = useRef<HTMLDivElement | null>(null);
   const contextLabel = activeTab
     ? `${activeTab.title} - ${workspaceKindLabel(activeTab)}`
-    : "No active session";
+    : t("ai.noActiveSession");
   const connectionLabel = activeTab?.connection
     ? `${activeTab.connection.user}@${activeTab.connection.host}`
-    : "Workspace";
+    : t("ai.workspace");
   const providerDefinition = getAiProviderDefinition(aiProviderSettings.providerKind);
   const activeTerminalPaneId =
     activeTab?.kind === "terminal" ? activeTab.focusedPaneId ?? activeTab.panes[0]?.id : undefined;
@@ -520,17 +322,17 @@ export function AssistantPanel({
 
   function handleSendCodeToTerminal(code: string) {
     if (!activeTerminalPaneId) {
-      setTerminalSendStatus("Open and focus a terminal first.");
+      setTerminalSendStatus(t("ai.openTerminalFirst"));
       return;
     }
 
     const data = code.endsWith("\n") ? code : `${code}\n`;
     if (writeInputToPane(activeTerminalPaneId, data)) {
-      setTerminalSendStatus("Sent to focused terminal.");
+      setTerminalSendStatus(t("ai.sentToTerminal"));
       return;
     }
 
-    setTerminalSendStatus("Focused terminal is still starting.");
+    setTerminalSendStatus(t("ai.terminalStarting"));
   }
 
   function handleChatSubmit(event: FormEvent) {
@@ -588,12 +390,12 @@ export function AssistantPanel({
 
   async function handleCopyMessage(message: AssistantChatMessage) {
     await writeToClipboard(message.content);
-    setMessageCopyStatus(`${message.role === "user" ? "Your" : "Assistant"} message copied.`);
+    setMessageCopyStatus(t("ai.messageCopied"));
   }
 
   async function handleCopyCode(code: string) {
     await writeToClipboard(code);
-    setMessageCopyStatus("Code copied.");
+    setMessageCopyStatus(t("ai.codeCopied"));
   }
 
   function handleStartExtensionDraft() {
@@ -604,7 +406,7 @@ export function AssistantPanel({
     setAddContextMenuOpen(false);
     setAssistantIntent("extensionCreation");
     setTerminalSendStatus("");
-    setMessageCopyStatus("Extension drafts stay review-only until you explicitly approve future install or run steps.");
+    setMessageCopyStatus(t("ai.extensionStagedNotice"));
     if (!prompt.trim()) {
       setPrompt(EXTENSION_DRAFT_PROMPT);
       window.requestAnimationFrame(() => {
@@ -622,7 +424,7 @@ export function AssistantPanel({
   function handleStubContextOption(label: string) {
     setAddContextMenuOpen(false);
     setTerminalSendStatus("");
-    setMessageCopyStatus(`${label} is staged in the UI and will be implemented later.`);
+    setMessageCopyStatus(`${label} ${t("ai.stagedInUi")}`);
   }
 
   async function submitAssistantPrompt() {
@@ -638,7 +440,7 @@ export function AssistantPanel({
     } catch (error) {
       const assistantMessage = createAssistantChatMessage(
         "assistant",
-        `AI provider settings error: ${error instanceof Error ? error.message : String(error)}`,
+        `${t("ai.providerError")}: ${error instanceof Error ? error.message : String(error)}`,
         requestIntent,
       );
       setMessages((current) => [...current, userMessage, assistantMessage]);
@@ -687,7 +489,7 @@ export function AssistantPanel({
       setChatError(message);
       setMessages((current) => [
         ...current,
-        createAssistantChatMessage("assistant", `AI Assistant error: ${message}`, requestIntent),
+        createAssistantChatMessage("assistant", `${t("ai.errorPrefix")}: ${message}`, requestIntent),
       ]);
     } finally {
       setIsSendingPrompt(false);
@@ -725,39 +527,39 @@ export function AssistantPanel({
   return (
     <aside className="assistant-panel">
       <div className="assistant-topbar">
-        <h2>AI Assistant</h2>
+        <h2>{t("ai.title")}</h2>
         <button
-          aria-label="Refresh AI Assistant"
+          aria-label={t("ai.refresh")}
           className="assistant-toolbar-button"
-          title="Refresh AI Assistant"
+          title={t("ai.refresh")}
           type="button"
         >
           <RefreshCw size={16} />
         </button>
         <button
-          aria-label="AI Assistant settings"
+          aria-label={t("ai.settings")}
           className="assistant-toolbar-button"
           onClick={onOpenSettings}
-          title="AI Assistant settings"
+          title={t("ai.settings")}
           type="button"
         >
           <Settings size={16} />
         </button>
         <button
-          aria-label="New AI Assistant chat"
+          aria-label={t("ai.newAiChat")}
           className="assistant-toolbar-button"
           disabled={isSendingPrompt}
           onClick={handleNewChat}
-          title="New chat"
+          title={t("ai.newChat")}
           type="button"
         >
           <Plus size={16} />
         </button>
         <button
-          aria-label="Collapse AI Assistant panel"
+          aria-label={t("ai.collapsePanel")}
           className="assistant-toolbar-button"
           onClick={onToggleCollapsed}
-          title="Collapse AI Assistant panel"
+          title={t("ai.collapsePanel")}
           type="button"
         >
           <PanelRight size={17} />
@@ -776,22 +578,22 @@ export function AssistantPanel({
         <div className="assistant-context assistant-extension-context">
           <Plus size={16} />
           <span>
-            <strong>Extension draft</strong>
-            <small>Review-only; no install or run without explicit approval.</small>
+            <strong>{t("ai.extensionDraft")}</strong>
+            <small>{t("ai.extensionReviewOnly")}</small>
           </span>
         </div>
       ) : null}
 
       <section className="assistant-tasks">
         <header>
-          <span>Chats</span>
+          <span>{t("ai.chats")}</span>
           <button
             className="assistant-view-all-button"
             disabled={sortedChatHistory.length === 0}
             onClick={() => setShowAllChats(true)}
             type="button"
           >
-            View All({sortedChatHistory.length})
+            {t("ai.viewAll")}({sortedChatHistory.length})
           </button>
         </header>
         {recentChatHistory.length > 0 ? (
@@ -807,24 +609,24 @@ export function AssistantPanel({
             </button>
           ))
         ) : (
-          <p>No chats yet.</p>
+          <p>{t("ai.noChatsYet")}</p>
         )}
       </section>
 
       {showAllChats ? (
         <div className="assistant-chat-history-backdrop" role="presentation">
-          <section className="assistant-chat-history-dialog" role="dialog" aria-label="All chats">
+          <section className="assistant-chat-history-dialog" role="dialog" aria-label={t("ai.allChats")}>
             <header>
               <div>
-                <span>Chats</span>
-                <small>{sortedChatHistory.length} saved</small>
+                <span>{t("ai.chats")}</span>
+                <small>{sortedChatHistory.length} {t("ai.saved")}</small>
               </div>
               <button
                 className="assistant-toolbar-button"
                 onClick={() => setShowAllChats(false)}
                 type="button"
-                aria-label="Close chat history"
-                title="Close"
+                aria-label={t("ai.closeChatHistory")}
+                title={t("ai.close")}
               >
                 <X size={15} />
               </button>
@@ -853,9 +655,9 @@ export function AssistantPanel({
             <span>{assistantContextSnippet.sourceLabel}</span>
             <button
               className="row-action"
-              aria-label="Clear selected output context"
+              aria-label={t("ai.clearContext")}
               onClick={clearAssistantContextSnippet}
-              title="Clear selected output context"
+              title={t("ai.clearContext")}
               type="button"
             >
               <X size={13} />
@@ -889,7 +691,7 @@ export function AssistantPanel({
         {isSendingPrompt ? (
           <article className="assistant-message assistant-waiting" aria-live="polite">
             <span className="assistant-spinner" aria-hidden="true" />
-            <span>{waitingPhrase || "Charging the answer beacon"}<span className="assistant-waiting-dots" aria-hidden="true">{".".repeat(waitingDots)}</span></span>
+            <span>{waitingPhrase || t("ai.chargingBeacon")}<span className="assistant-waiting-dots" aria-hidden="true">{".".repeat(waitingDots)}</span></span>
           </article>
         ) : null}
       </div>
@@ -904,7 +706,7 @@ export function AssistantPanel({
           onKeyDown={handleComposerKeyDown}
           onChange={(event) => setPrompt(event.currentTarget.value)}
           disabled={isSendingPrompt}
-          placeholder="Ask AI Assistant anything."
+          placeholder={t("ai.composerPlaceholder")}
           rows={3}
           value={prompt}
         />
@@ -916,39 +718,39 @@ export function AssistantPanel({
               disabled={isSendingPrompt}
               onClick={() => setAddContextMenuOpen((open) => !open)}
               type="button"
-              aria-label="Add context"
-              title="Add context"
+              aria-label={t("ai.addContext")}
+              title={t("ai.addContext")}
             >
               <Plus size={18} />
             </button>
             {addContextMenuOpen ? (
-              <div className="assistant-add-menu" role="menu" aria-label="Add context">
+              <div className="assistant-add-menu" role="menu" aria-label={t("ai.addContext")}>
                 <button
                   className="assistant-add-menu-item"
-                  onClick={() => handleStubContextOption("Add Files/Photos")}
+                  onClick={() => handleStubContextOption(t("ai.addFiles"))}
                   role="menuitem"
                   type="button"
                 >
                   <FileImage size={15} />
-                  Add Files/Photos
+                  {t("ai.addFiles")}
                 </button>
                 <button
                   className="assistant-add-menu-item"
-                  onClick={() => handleStubContextOption("Add Screenshot")}
+                  onClick={() => handleStubContextOption(t("ai.addScreenshot"))}
                   role="menuitem"
                   type="button"
                 >
                   <Camera size={15} />
-                  Add Screenshot
+                  {t("ai.addScreenshot")}
                 </button>
                 <button
                   className="assistant-add-menu-item"
-                  onClick={() => handleStubContextOption("Add Terminal Buffer")}
+                  onClick={() => handleStubContextOption(t("ai.addTerminalBuffer"))}
                   role="menuitem"
                   type="button"
                 >
                   <ScrollText size={15} />
-                  Add Terminal Buffer
+                  {t("ai.addTerminalBuffer")}
                 </button>
                 <div className="assistant-add-menu-submenu">
                   <button
@@ -958,7 +760,7 @@ export function AssistantPanel({
                     type="button"
                   >
                     <Puzzle size={15} />
-                    Extensions
+                    {t("ai.extensions")}
                     <ChevronRight className="assistant-add-menu-chevron" size={13} />
                   </button>
                   <div className="assistant-add-menu assistant-add-menu-submenu-panel" role="menu">
@@ -970,7 +772,7 @@ export function AssistantPanel({
                       type="button"
                     >
                       <Plus size={14} />
-                      Draft Extension
+                      {t("ai.draftExtension")}
                     </button>
                   </div>
                 </div>
@@ -979,7 +781,7 @@ export function AssistantPanel({
           </div>
           <span>{aiProviderSettings.model || providerDefinition.defaultModel}</span>
           <button
-            aria-label="Send message"
+            aria-label={t("ai.sendMessage")}
             className="assistant-send-button"
             disabled={!prompt.trim() || isSendingPrompt}
             type="submit"
@@ -1003,6 +805,7 @@ function AssistantMessageView({
   onCopyMessage: (message: AssistantChatMessage) => void;
   onSendCode: (code: string) => void;
 }) {
+  const { t } = useTranslation();
   const userMessageLineCount = message.role === "user" ? message.content.split(/\r?\n/).length : 0;
   const shouldTruncateUserMessage = message.role === "user" && userMessageLineCount > 10;
   const canSendCode = message.intent !== "extensionCreation";
@@ -1026,15 +829,15 @@ function AssistantMessageView({
           onClick={() => setIsUserMessageExpanded((expanded) => !expanded)}
           type="button"
         >
-          {isUserMessageExpanded ? "Show less" : "More"}
+          {isUserMessageExpanded ? t("ai.showLess") : t("ai.more")}
         </button>
       ) : null}
       <div className="assistant-message-actions">
         <time dateTime={message.createdAt}>{formatAssistantMessageTime(message.createdAt)}</time>
         <button
-          aria-label="Copy message"
+          aria-label={t("ai.copyMessage")}
           onClick={() => onCopyMessage(message)}
-          title="Copy message"
+          title={t("ai.copyMessage")}
           type="button"
         >
           <Copy size={10} />
@@ -1059,13 +862,15 @@ function MarkdownContent({
   onCopyCode: (code: string) => void;
   onSendCode: (code: string) => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="markdown-content">
       {parseMarkdownBlocks(content).map((block, index) =>
         block.kind === "code" ? (
           <div className="markdown-code-block" key={`code-${index}`}>
             <div className="markdown-code-toolbar">
-              <span>{block.language || "code"}</span>
+              <span>{block.language || t("ai.code")}</span>
               <div className="markdown-code-actions">
                 <button
                   className="assistant-code-send"
@@ -1073,7 +878,7 @@ function MarkdownContent({
                   type="button"
                 >
                   <Copy size={13} />
-                  Copy
+                  {t("ai.copy")}
                 </button>
                 <button
                   className="assistant-code-send"
@@ -1081,13 +886,13 @@ function MarkdownContent({
                   onClick={() => onSendCode(block.code)}
                   title={
                     canSendCode
-                      ? "Send to focused terminal"
-                      : "Extension drafts are review-only"
+                      ? t("ai.sendToTerminal")
+                      : t("ai.extensionReviewTooltip")
                   }
                   type="button"
                 >
                   <Terminal size={13} />
-                  Send
+                  {t("ai.send")}
                 </button>
               </div>
             </div>

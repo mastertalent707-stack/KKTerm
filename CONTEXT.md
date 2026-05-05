@@ -4,6 +4,19 @@ AdminDeck is a local-first desktop administration workspace for terminal, SSH, S
 
 ## Language
 
+**i18n / Localization**:
+AdminDeck supports 13 UI languages through i18next. The English locale (`src/i18n/locales/en.json`) is the source-of-truth key structure. All user-visible strings must be routed through `t()` or `useTranslation()`; bare English text in JSX is a bug.
+
+**Locale**:
+A language-region bundle stored as a JSON file under `src/i18n/locales/`. English is bundled with the app; 12 additional locales load on demand via dynamic `import()`. The active locale is persisted in `localStorage` (`admindeck.language`) and survives app restarts.
+
+**Translation key**:
+A dot-notation path into the locale JSON (e.g. `settings.general.language`, `ai.waitingPhrases`). Keys are organized by namespace matching the frontend module map. New UI strings require a new key in all 13 locale files.
+
+**Namespace**:
+A top-level section of the locale JSON mapping to a frontend module: `app`, `settings`, `connections`, `terminal`, `sftp`, `webview`, `remoteDesktop`, `ai`, `workspace`, `common`, `languages`. Keep new keys in the namespace closest to the owning component.
+
+
 **Connection**:
 A durable openable resource stored in SQLite. The supported kinds are local terminal, SSH terminal, URL (an embedded WebView2 browser surface targeting a single http(s) origin), RDP, and VNC. SFTP is opened from an SSH Connection and is not stored as a standalone Connection.
 _Avoid_: Profile, saved session, host entry

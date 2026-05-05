@@ -32,6 +32,16 @@ Provides a typed command wrapper between React and Rust. The frontend should not
 
 `src/settings/SettingsPage.tsx` owns the Settings surface, including settings-specific draft state, save/reset handlers, summaries, placeholder entries, and small helper controls. `src/App.tsx` only routes to Settings; the persisted-settings bootstrap into the workspace store lives in `src/lib/settings.ts` as a single `useBootstrapSettings()` hook so new persisted settings can be added in one place. The OS keychain owner id for the AI API key (`AI_PROVIDER_SECRET_OWNER_ID`) is also defined in `src/lib/settings.ts` so SettingsPage and bootstrap share one constant. New Settings sections should stay in the settings module unless they become large enough to justify a submodule under `src/settings/`.
 
+### Internationalization
+
+The i18n layer lives in `src/i18n/` and uses **i18next** with **react-i18next**.
+
+- **`src/i18n/config.ts`** owns the i18next instance, language detection (`localStorage` key `admindeck.language`), dynamic locale chunk loading, the `switchLanguage()` API, and the `ensureI18nReady()` startup guard.
+- **`src/i18n/useT.ts`** provides a typed `useT()` hook with full key autocompletion from the English locale shape.
+- **`src/i18n/locales/en.json`** is the source-of-truth translation file (11 namespaces, ~500 keys). English is bundled with the app; the 12 other locales (`fr`, `it`, `de`, `es`, `es-MX`, `pt-BR`, `zh-TW`, `zh-CN`, `ja`, `ko`, `th`, `id`) load on demand via dynamic `import()` and are automatically code-split by Vite.
+- **Settings → General → Language** exposes a dropdown that calls `switchLanguage()`, which hot-swaps the locale bundle and persists the choice.
+- **All user-visible strings must go through `t()` or `useTranslation()`**. Hardcoded English text in JSX is forbidden. New keys go into `en.json` first, then are propagated to all 12 other locale files. Renamed or removed keys must be updated in every file. Pure helper functions that cannot use React hooks import `i18next` from `src/i18n/config` and call `i18next.t(key)`.
+
 ### Storage
 
 Owns SQLite migrations and repositories for:
@@ -187,7 +197,7 @@ The primary UI is a dense desktop workspace:
 
 Default visual direction: quiet productivity light chrome with dark terminal panes.
 
-The activity rail uses icons with delayed hover labels for top-level destinations. The top rail entry is Dashboard, and the second entry is Settings. The current Settings surface lives in `src/settings/SettingsPage.tsx`; it is ordered as General, Appearance, AI Assistant, SSH, Terminal, Remote Desktop(RDP), VNC, and About. General exposes Language (i18n) as an explicit to-be-implemented placeholder, Appearance owns App UI font, layout reset, and Color Scheme as a placeholder, SSH folds in SFTP transfer defaults, Terminal owns editable terminal behavior, and RDP/VNC expose planned quality default summaries.
+The activity rail uses icons with delayed hover labels for top-level destinations. The top rail entry is Dashboard, and the second entry is Settings. The current Settings surface lives in `src/settings/SettingsPage.tsx`; it is ordered as General, Appearance, AI Assistant, SSH, Terminal, Remote Desktop(RDP), VNC, and About. General exposes Language (i18n) as a selectable dropdown, Appearance owns App UI font, layout reset, and Color Scheme as a placeholder, SSH folds in SFTP transfer defaults, Terminal owns editable terminal behavior, and RDP/VNC expose planned quality default summaries.
 
 AdminDeck does not include a global command palette in the current product scope; navigation and workflow entry points should stay visible in the Dashboard/connection tree, tab workspace, SFTP toolbar/context actions, assistant panel, and Settings.
 
@@ -215,6 +225,9 @@ Workspace chrome layout is global state. Connection-specific live context may ch
 - `src/ai/AssistantPanel.tsx` — AI Assistant chat surface, markdown rendering, chat history, extension draft intent UI, terminal send handoff.
 - `src/ai/providers.ts` — provider definitions and frontend provider validation.
 - `src/lib/clipboard.ts` — shared clipboard read/write fallback helpers.
+- `src/i18n/config.ts` — i18next instance, language detection, dynamic locale loading, `switchLanguage()`, `ensureI18nReady()`.
+- `src/i18n/useT.ts` — typed translation hook with key autocompletion.
+- `src/i18n/locales/en.json` — English source-of-truth; 12 additional locale files under the same directory.
 
 New feature code should land in the owning module above. Keep `src/App.tsx` limited to app chrome and cross-cutting bootstrap. Workspace state, settings I/O, layout serialization, terminal rendering, pane input routing, and the Tauri command boundary remain separated under `src/store.ts`, `src/lib/`, `src/workspace/`, `src/terminal/`, and `src/lib/tauri.ts`.
 

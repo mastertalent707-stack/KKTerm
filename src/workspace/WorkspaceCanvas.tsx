@@ -6,12 +6,14 @@ import { TerminalWorkspace } from "../terminal/TerminalWorkspace";
 import { WebViewWorkspace } from "../webview/WebViewWorkspace";
 import { Plus, Terminal, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { dialogButtonAria } from "../lib/aria";
 import { invokeCommand } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
 import type { Connection } from "../types";
 
 export function TabStrip() {
+  const { t } = useTranslation();
   const tabs = useWorkspaceStore((state) => state.tabs);
   const activeTabId = useWorkspaceStore((state) => state.activeTabId);
   const sshSettings = useWorkspaceStore((state) => state.sshSettings);
@@ -84,7 +86,7 @@ export function TabStrip() {
   }
 
   return (
-    <div className="tab-strip" aria-label="Workspace tabs">
+    <div className="tab-strip" aria-label={t("workspace.tabs")}>
       {tabs.map((tab) => (
         <div className={tab.id === activeTabId ? "tab active" : "tab"} key={tab.id}>
           <button className="tab-button" onClick={() => activateTab(tab.id)} type="button">
@@ -112,9 +114,9 @@ export function TabStrip() {
         <button
           {...dialogButtonAria(quickConnectMenuOpen)}
           className="new-tab"
-          aria-label="New tab"
+          aria-label={t("workspace.newTab")}
           onClick={() => setQuickConnectMenuOpen((isOpen) => !isOpen)}
-          title="New tab"
+          title={t("workspace.newTab")}
           type="button"
         >
           <Plus size={15} />
@@ -139,6 +141,7 @@ export function TabStrip() {
 }
 
 export function WorkspaceCanvas() {
+  const { t } = useTranslation();
   const tabs = useWorkspaceStore((state) => state.tabs);
   const activeTabId = useWorkspaceStore((state) => state.activeTabId);
 
@@ -147,8 +150,8 @@ export function WorkspaceCanvas() {
       <div className="workspace-canvas">
         <section className="empty-workspace">
           <Terminal size={28} />
-          <h2>No active session</h2>
-          <p>Open a Connection from the tree.</p>
+          <h2>{t("workspace.noActiveSession")}</h2>
+          <p>{t("workspace.openFromTree")}</p>
         </section>
       </div>
     );

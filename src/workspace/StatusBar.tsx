@@ -1,4 +1,5 @@
 import { HardDrive } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useWorkspaceStore } from "../store";
 
 const PERFORMANCE_BUDGETS = {
@@ -9,30 +10,31 @@ const PERFORMANCE_BUDGETS = {
 } as const;
 
 export function StatusBar() {
+  const { t } = useTranslation();
   const performanceMetrics = useWorkspaceStore((state) => state.performanceMetrics);
   const launchLabel = performanceMetrics.frontendLaunchMs
-    ? `UI ready ${formatDuration(performanceMetrics.frontendLaunchMs)}`
-    : "UI timing pending";
+    ? `${t("workspace.uiReady")} ${formatDuration(performanceMetrics.frontendLaunchMs)}`
+    : t("workspace.uiTimingPending");
   const localSessionLabel = performanceMetrics.lastLocalTerminalStart
-    ? `Local ready ${formatDuration(performanceMetrics.lastLocalTerminalStart.durationMs)}`
-    : "Local timing pending";
+    ? `${t("workspace.localReady")} ${formatDuration(performanceMetrics.lastLocalTerminalStart.durationMs)}`
+    : t("workspace.localTimingPending");
   const sshSessionLabel = performanceMetrics.lastSshTerminalStart
-    ? `SSH ready ${formatDuration(performanceMetrics.lastSshTerminalStart.durationMs)}`
-    : "SSH timing pending";
+    ? `${t("workspace.sshReady")} ${formatDuration(performanceMetrics.lastSshTerminalStart.durationMs)}`
+    : t("workspace.sshTimingPending");
   const memoryLabel = performanceMetrics.workingSetBytes
-    ? `Memory ${formatBytes(performanceMetrics.workingSetBytes)}`
-    : "Memory pending";
+    ? `${t("workspace.memory")} ${formatBytes(performanceMetrics.workingSetBytes)}`
+    : t("workspace.memoryPending");
 
   return (
     <footer className="status-bar">
       <span>
         <HardDrive size={13} />
-        Local-first
+        {t("workspace.localFirst")}
       </span>
-      <span>Telemetry off</span>
+      <span>{t("workspace.telemetryOff")}</span>
       <span
         className={budgetClass(performanceMetrics.frontendLaunchMs, PERFORMANCE_BUDGETS.frontendReadyMs)}
-        title={`Budget: <= ${formatDuration(PERFORMANCE_BUDGETS.frontendReadyMs)} to usable UI`}
+        title={`${t("workspace.budgetPrefix")}: <= ${formatDuration(PERFORMANCE_BUDGETS.frontendReadyMs)}`}
       >
         {launchLabel}
       </span>
