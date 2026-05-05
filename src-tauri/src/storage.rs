@@ -2932,7 +2932,8 @@ mod tests {
 
     #[test]
     fn appearance_settings_round_trip_through_settings_table() {
-        let storage = Storage::open(temp_db_path("appearance-settings")).expect("storage opens");
+        let db_path = temp_db_path("appearance-settings");
+        let storage = Storage::open(db_path.clone()).expect("storage opens");
 
         let defaults = storage
             .appearance_settings()
@@ -2941,18 +2942,23 @@ mod tests {
 
         let updated = storage
             .update_appearance_settings(AppearanceSettings {
-                app_font_family: "  \"Segoe UI Variable\", \"Segoe UI\", sans-serif  ".to_string(),
+                app_font_family:
+                    "  \"JF Open Huninn\", \"Microsoft JhengHei UI\", \"Segoe UI\", sans-serif  "
+                        .to_string(),
             })
             .expect("appearance settings update");
 
         assert_eq!(
             updated.app_font_family,
-            "\"Segoe UI Variable\", \"Segoe UI\", sans-serif"
+            "\"JF Open Huninn\", \"Microsoft JhengHei UI\", \"Segoe UI\", sans-serif"
         );
 
-        let reloaded = storage
+        drop(storage);
+
+        let reopened = Storage::open(db_path).expect("storage reopens after app restart");
+        let reloaded = reopened
             .appearance_settings()
-            .expect("appearance settings reload");
+            .expect("appearance settings reload after restart");
         assert_eq!(reloaded.app_font_family, updated.app_font_family);
     }
 

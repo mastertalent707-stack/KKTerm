@@ -5,7 +5,49 @@ import { invokeCommand, isTauriRuntime } from "../lib/tauri";
 import { defaultAppearanceSettings } from "../sample-data";
 import { useWorkspaceStore } from "../store";
 import type { AppearanceSettings as AppearanceSettingsType } from "../types";
-import { SettingsSummary } from "./shared";
+
+const APP_UI_FONT_OPTIONS = [
+  {
+    labelKey: "settings.satoshiDefault",
+    value: defaultAppearanceSettings.appFontFamily,
+  },
+  {
+    labelKey: "settings.jfOpenHuninn",
+    value: '"JF Open Huninn", "Microsoft JhengHei UI", "Microsoft YaHei UI", "Segoe UI", sans-serif',
+  },
+  {
+    labelKey: "settings.segoeUi",
+    value: '"Segoe UI", ui-sans-serif, system-ui, sans-serif',
+  },
+  {
+    labelKey: "settings.arial",
+    value: 'Arial, "Segoe UI", sans-serif',
+  },
+  {
+    labelKey: "settings.microsoftJhengHeiUi",
+    value: '"Microsoft JhengHei UI", "Segoe UI", sans-serif',
+  },
+  {
+    labelKey: "settings.microsoftYaHeiUi",
+    value: '"Microsoft YaHei UI", "Segoe UI", sans-serif',
+  },
+  {
+    labelKey: "settings.yuGothicUi",
+    value: '"Yu Gothic UI", "Segoe UI", sans-serif',
+  },
+  {
+    labelKey: "settings.malgunGothic",
+    value: '"Malgun Gothic", "Segoe UI", sans-serif',
+  },
+  {
+    labelKey: "settings.tahoma",
+    value: 'Tahoma, "Segoe UI", sans-serif',
+  },
+  {
+    labelKey: "settings.consolas",
+    value: 'Consolas, "Segoe UI", sans-serif',
+  },
+] as const;
 
 function normalizeAppearanceSettingsDraft(settings: AppearanceSettingsType): AppearanceSettingsType {
   if (!settings.appFontFamily.trim()) {
@@ -47,23 +89,6 @@ export function AppearanceSettings({ onResetLayout }: { onResetLayout: () => voi
     }
   }
 
-  async function handleReset() {
-    try {
-      setError("");
-      setStatus("");
-      const saved = isTauriRuntime()
-        ? await invokeCommand("update_appearance_settings", {
-            request: defaultAppearanceSettings,
-          })
-        : defaultAppearanceSettings;
-      setAppearanceSettings(saved);
-      setDraft(saved);
-      setStatus(t("settings.appearanceReset"));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
-  }
-
   return (
     <section className="settings-card settings-section">
       <div className="settings-section-header">
@@ -81,21 +106,12 @@ export function AppearanceSettings({ onResetLayout }: { onResetLayout: () => voi
             <Save size={15} />
             {t("settings.save")}
           </button>
-          <button
-            className="toolbar-button"
-            onClick={() => void handleReset()}
-            type="button"
-          >
-            <RotateCcw size={15} />
-            {t("settings.resetFont")}
-          </button>
         </div>
       </div>
-      <div className="form-grid">
+      <div className="form-grid appearance-font-grid">
         <label>
           <span>{t("settings.appUiFontFamily")}</span>
-          <input
-            list="app-ui-font-options"
+          <select
             onChange={(event) => {
               const appFontFamily = event.currentTarget.value;
               setDraft((settings) => ({
@@ -104,21 +120,17 @@ export function AppearanceSettings({ onResetLayout }: { onResetLayout: () => voi
               }));
             }}
             value={draft.appFontFamily}
-          />
-          <datalist id="app-ui-font-options">
-            <option value={defaultAppearanceSettings.appFontFamily}>{t("settings.satoshi")}</option>
-            <option value='Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'>
-              {t("settings.systemSans")}
-            </option>
-            <option value='"Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif'>
-              {t("settings.segoeUiVariable")}
-            </option>
-          </datalist>
-          <small className="field-hint">
-            {t("settings.defaultFontHint")}
-          </small>
+          >
+            {APP_UI_FONT_OPTIONS.some((option) => option.value === draft.appFontFamily) ? null : (
+              <option value={draft.appFontFamily}>{t("settings.customFont")}</option>
+            )}
+            {APP_UI_FONT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {t(option.labelKey)}
+              </option>
+            ))}
+          </select>
         </label>
-        <SettingsSummary label={t("settings.activeUiFont")} value={draft.appFontFamily} />
       </div>
       <div className="settings-reset-layout">
         <div>

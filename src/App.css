@@ -8,6 +8,14 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "JF Open Huninn";
+  src: url("./assets/fonts/jf-openhuninn-2.1.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 400;
+  font-style: normal;
+}
+
 :root {
   color: var(--text);
   background: var(--app-bg);
@@ -3951,6 +3959,10 @@ progress {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 96px;
   gap: 10px;
+}
+
+.form-grid.appearance-font-grid {
+  grid-template-columns: minmax(220px, 420px);
 }
 
 .form-grid.ai-provider-selector-grid {
