@@ -38,10 +38,9 @@ import i18next from "./i18n/config";
 
 const LAYOUT_STORAGE_PREFIX = "admindeck.layout.";
 const TMUX_SESSION_STORAGE_PREFIX = "admindeck.tmuxSessions.";
-const TMUX_SESSION_ID_PATTERN = /^(?:admindeck-)?[a-z]+(?:[0-9]{2}|[0-9]{3})?$/;
-// Stable ASCII slugs for remote tmux session names.
-// Keep these code-facing and locale-neutral; use ai.tmuxSessionLabels
-// (same index position) for localized display labels.
+const TMUX_SESSION_ID_PATTERN = /^[^\s:;]+$/u;
+// Stable fallback slugs. New tmux session ids use ai.tmuxSessionLabels
+// for the active locale when those labels are safe for tmux.
 // ja, zh-CN, zh-TW: anime sci-fi themed labels
 // All other locales: normal sci-fi themed labels
 const TMUX_SESSION_NAMES = [
@@ -162,6 +161,11 @@ export function getTmuxSessionLabel(slug: string): string {
     // Fall through to slug
   }
   return slug;
+}
+
+export function forgetTmuxSessionId(connectionId: string, sessionId: string) {
+  const sessionIds = loadStoredTmuxSessionIds(connectionId).filter((entry) => entry !== sessionId);
+  persistTmuxSessionIds(connectionId, sessionIds);
 }
 
 function loadStoredLayout(
@@ -298,12 +302,26 @@ function generateTmuxSessionId(existingSessionIds: string[]) {
 }
 
 function isCurrentTmuxSessionId(value: unknown): value is string {
-  return typeof value === "string" && TMUX_SESSION_ID_PATTERN.test(value);
+  return (
+    typeof value === "string" &&
+    TMUX_SESSION_ID_PATTERN.test(value) &&
+    !Array.from(value).some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)
+  );
 }
 
 function randomTmuxName() {
   const index = randomTmuxIndex(TMUX_SESSION_NAMES.length);
-  return TMUX_SESSION_NAMES[index] ?? "airlock";
+  return localizedTmuxSessionName(index) ?? TMUX_SESSION_NAMES[index] ?? "airlock";
+}
+
+function localizedTmuxSessionName(index: number) {
+  try {
+    const labels = i18next.t("ai.tmuxSessionLabels", { returnObjects: true });
+    const label = Array.isArray(labels) ? labels[index] : undefined;
+    return typeof label === "string" && isCurrentTmuxSessionId(label) ? label : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function randomTmuxIndex(max: number) {

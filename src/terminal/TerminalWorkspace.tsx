@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { dialogButtonAria, menuButtonAria } from "../lib/aria";
 import { invokeCommand, isTauriRuntime, saveTextFile, type TerminalOutput, type TmuxSession } from "../lib/tauri";
 import { defaultTerminalSettings } from "../sample-data";
-import { getTmuxSessionLabel, useWorkspaceStore } from "../store";
+import { forgetTmuxSessionId, getTmuxSessionLabel, useWorkspaceStore } from "../store";
 import { createTerminalRenderer, type TerminalDimensions, type TerminalRenderer } from "./renderer";
 import { ensureLayout } from "../workspace/layout";
 import { getPaneRenderer, registerPaneInputWriter, registerPaneRenderer, unregisterPaneInputWriter, unregisterPaneRenderer, writeInputToPane } from "../workspace/paneRegistry";
@@ -599,6 +599,7 @@ function TmuxSessionTag({
           tmuxSessionId: targetSessionId,
         },
       });
+      forgetTmuxSessionId(connection.id, targetSessionId);
       setMouseEnabledIds((prev) => {
         const next = new Set(prev);
         next.delete(targetSessionId);
