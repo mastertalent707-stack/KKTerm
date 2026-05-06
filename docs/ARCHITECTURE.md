@@ -32,6 +32,8 @@ Automatic database backups follow the same rule: they run during startup or expl
 
 Provides a typed command wrapper between React and Rust. The frontend should not manually string-build backend calls. Commands should return structured results and structured errors.
 
+Debug-only observability should use local debug logs, console output, or the diagnostics bundle path rather than visible in-app status indicators. Visible diagnostic UI belongs only in deliberate product features or explicit user-requested debugging surfaces, not as ad hoc instrumentation for a temporary debugging build.
+
 ### Frontend Settings
 
 `src/settings/SettingsPage.tsx` owns the Settings shell — the header, sidebar nav, and section routing. Each settings section is a separate page component under `src/settings/`, owning its own draft state, save/reset handlers, and helper controls:

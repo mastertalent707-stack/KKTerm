@@ -21,6 +21,7 @@ Use **Connection** (not "profile") for stored openable resources.
 - Keep Tauri command calls behind typed wrappers in `src/lib/tauri.ts`.
 - Do not add Tauri app-window close listeners/hooks. In this app, `CloseRequested`, `onCloseRequested`, `tauri://close-requested`, `prevent_close`, and close-confirmation hooks have repeatedly broken the native Windows title-bar close button in Tauri v2. Keep the main window close path native and unhooked. Persist window/layout state during normal resize/move/settings flows instead of doing work during close.
 - Automatic database backups must not run from app-window close. The supported shape is startup/manual backup ZIP creation using the same importable AdminDeck settings export format.
+- For debugging builds, prefer local debug logs, console output, or existing diagnostics plumbing over adding visible in-app indicators/status text. Add user-visible debug indicators only when explicitly requested or when they are part of a real product feature.
 - `src/App.tsx`: app shell routing, global panel layout, activity rail, Settings routing, and bootstrap effects only — it does not own form/control code or feature surfaces. Place feature code in:
   - `src/connections/` — connection tree
   - `src/workspace/` — workspace dispatch, status, screenshots

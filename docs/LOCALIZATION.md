@@ -216,11 +216,11 @@ When a key is translated into every supported locale, remove its entry from this
 
 ### `settings.autoBackupHint`
 
-- English: "Create an importable SQLite backup ZIP when AdminDeck starts. Automatic backups older than 1 week are deleted after each startup backup."
+- English: "Automatic backups older than 1 week are deleted after each startup backup."
 - Namespace: `settings`
 - Appears in: `src/settings/GeneralSettings.tsx`
 - UI role: Help text
-- Context: Explanatory text under the Auto Backup checkbox in General Settings. Clarifies that automatic backup happens at startup, not during app close.
+- Context: Explanatory text under the Auto Backup checkbox in General Settings.
 - Tone: Informational and direct
 - Placeholders: None
 - Domain notes: SQLite and ZIP should remain technical terms; the backup file is compatible with Import Settings.
@@ -334,18 +334,6 @@ When a key is translated into every supported locale, remove its entry from this
 - Domain notes: Database Folder refers to the local app data folder, not a remote Connection folder.
 - Translation status: Pending for fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id
 
-### `settings.openDatabaseFolderComplete`
-
-- English: "Database folder opened."
-- Namespace: `settings`
-- Appears in: `src/settings/GeneralSettings.tsx`
-- UI role: Success status
-- Context: Shown after the Open Database Folder action successfully asks the OS to open the folder.
-- Tone: Brief confirmation
-- Placeholders: None
-- Domain notes: The OS file manager handles the actual folder window.
-- Translation status: Pending for fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id
-
 ### `settings.settingsDataActions`
 
 - English: "Settings backup and import actions"
@@ -356,18 +344,6 @@ When a key is translated into every supported locale, remove its entry from this
 - Tone: Descriptive accessibility text
 - Placeholders: None
 - Domain notes: Refers to settings/database file actions, not app navigation.
-- Translation status: Pending for fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id
-
-### `settings.settingsDataHint`
-
-- English: "Backups are AdminDeck zip files that can be restored with Import."
-- Namespace: `settings`
-- Appears in: `src/settings/GeneralSettings.tsx`
-- UI role: Help text
-- Context: Inline note beside the backup/import actions explaining that backup files are directly importable ZIP archives.
-- Tone: Informational
-- Placeholders: None
-- Domain notes: AdminDeck and Import are product/UI terms; zip refers to a .zip archive file.
 - Translation status: Pending for fr, it, de, es, es-MX, pt-BR, zh-TW, zh-CN, ja, ko, th, id
 
 ### `settings.settingsExportFilter`

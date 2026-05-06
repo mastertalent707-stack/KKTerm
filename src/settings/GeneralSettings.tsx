@@ -99,7 +99,6 @@ export function GeneralSettings() {
     try {
       const path = await invokeCommand("get_database_folder");
       await openFilesystemPath(path);
-      setStatus(t("settings.openDatabaseFolderComplete"));
     } catch (openError) {
       setError(openError instanceof Error ? openError.message : String(openError));
     }
@@ -228,9 +227,6 @@ export function GeneralSettings() {
           <FolderOpen size={16} />
           {t("settings.openDatabaseFolder")}
         </button>
-        <div className="settings-data-note">
-          <span>{t("settings.settingsDataHint")}</span>
-        </div>
       </div>
 
       {status ? <p className="settings-status success">{status}</p> : null}
