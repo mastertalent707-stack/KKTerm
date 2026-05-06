@@ -148,12 +148,15 @@ const TMUX_SESSION_NAMES = [
 ];
 
 export function getTmuxSessionLabel(slug: string): string {
-  const index = TMUX_SESSION_NAMES.indexOf(slug);
+  const match = /^(?:admindeck-)?([a-z]+)((?:[0-9]{2}|[0-9]{3})?)$/.exec(slug);
+  const baseSlug = match?.[1] ?? slug;
+  const suffix = match?.[2] ?? "";
+  const index = TMUX_SESSION_NAMES.indexOf(baseSlug);
   if (index === -1) return slug;
   try {
     const labels = i18next.t("ai.tmuxSessionLabels", { returnObjects: true });
     if (Array.isArray(labels) && index < labels.length && typeof labels[index] === "string") {
-      return labels[index] as string;
+      return `${labels[index]}${suffix}`;
     }
   } catch {
     // Fall through to slug

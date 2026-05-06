@@ -7,6 +7,7 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Mouse, ChevronRight, Ci
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { dialogButtonAria, menuButtonAria } from "../lib/aria";
 import { invokeCommand, isTauriRuntime, saveTextFile, type TerminalOutput, type TmuxSession } from "../lib/tauri";
 import { defaultTerminalSettings } from "../sample-data";
@@ -521,6 +522,7 @@ function TmuxSessionTag({
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [mouseEnabledIds, setMouseEnabledIds] = useState<Set<string>>(new Set());
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const { t } = useTranslation();
 
   const tabs = useWorkspaceStore((state) => state.tabs);
   const activateTab = useWorkspaceStore((state) => state.activateTab);
@@ -660,34 +662,40 @@ function TmuxSessionTag({
         className="tmux-session-tag"
         {...dialogButtonAria(open)}
         onClick={() => void handleToggle()}
-        title="Show tmux sessions"
+        title={t("terminal.showTmux")}
         type="button"
       >
         tmux {sessionId ? getTmuxSessionLabel(sessionId) : sessionId}
       </button>
       {open ? (
-        <div className="tmux-session-menu" role="dialog" aria-label="tmux sessions">
+        <div className="tmux-session-menu" role="dialog" aria-label={t("terminal.tmuxSessions")}>
           <header>
-            <strong>tmux sessions</strong>
+            <strong>{t("terminal.tmuxSessions")}</strong>
             <button
               className="terminal-pane-action"
-              aria-label="Refresh tmux sessions"
+              aria-label={t("terminal.refreshTmux")}
               onClick={() => void loadSessions()}
-              title="Refresh tmux sessions"
+              title={t("terminal.refreshTmux")}
               type="button"
             >
               <RefreshCw size={13} />
             </button>
           </header>
-          {loading ? <p>Loading...</p> : null}
+          {loading ? <p>{t("terminal.loading")}</p> : null}
           {error ? <p className="form-error">{error}</p> : null}
-          {!loading && !error && sessions.length === 0 ? <p>No tmux sessions.</p> : null}
+          {!loading && !error && sessions.length === 0 ? <p>{t("terminal.noTmuxSessions")}</p> : null}
           <div className="tmux-session-list">
             {sessions.map((session) => {
               const location = findSessionPane(session.id);
               const isInApp = location !== null;
               const isExpanded = expandedSessionId === session.id;
               const mouseOn = mouseEnabledIds.has(session.id);
+              const sessionLabel = getTmuxSessionLabel(session.id);
+              const sessionStatus = isInApp
+                ? t("terminal.open")
+                : session.attached
+                  ? t("terminal.attached")
+                  : t("terminal.detached");
 
               return (
                 <div className="tmux-session-row" key={session.id}>
@@ -695,31 +703,31 @@ function TmuxSessionTag({
                     <button
                       className={`tmux-session-row-info${isInApp ? " in-app" : ""}`}
                       onClick={() => handleSessionRowClick(session)}
-                      title={isInApp ? "Focus pane" : "Open in pane"}
+                      title={isInApp ? t("terminal.focusPane") : t("terminal.openInPane")}
                       type="button"
                     >
-                      <strong>{session.id}</strong>
+                      <strong>{sessionLabel}</strong>
                       <small>
-                        {isInApp ? "open" : session.attached ? "attached" : "detached"}
+                        {sessionStatus}
                         {" · "}
                         {session.windows}w
                       </small>
                     </button>
                     <button
                       className={`tmux-mouse-toggle${mouseOn ? " active" : ""}`}
-                      aria-label={`${mouseOn ? "Disable" : "Enable"} mouse for ${session.id}`}
+                      aria-label={`${mouseOn ? t("terminal.mouseOn") : t("terminal.mouseOff")} ${sessionLabel}`}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => void handleToggleMouse(session.id)}
-                      title={`Mouse: ${mouseOn ? "on" : "off"}`}
+                      title={mouseOn ? t("terminal.mouseOn") : t("terminal.mouseOff")}
                       type="button"
                     >
                       <Mouse size={11} />
                     </button>
                     <button
                       className="terminal-pane-action"
-                      aria-label={`Close tmux session ${session.id}`}
+                      aria-label={`${t("terminal.closeTmux")} ${sessionLabel}`}
                       onClick={() => void handleCloseSession(session.id)}
-                      title="Close tmux session"
+                      title={t("terminal.closeTmux")}
                       type="button"
                     >
                       <X size={13} />
@@ -730,7 +738,7 @@ function TmuxSessionTag({
                       <button
                         className="tmux-direction-btn"
                         onClick={() => handleOpenInDirection(session, "left")}
-                        title="Open left"
+                        title={t("terminal.openLeft")}
                         type="button"
                       >
                         <ArrowLeft size={12} />
@@ -738,7 +746,7 @@ function TmuxSessionTag({
                       <button
                         className="tmux-direction-btn"
                         onClick={() => handleOpenInDirection(session, "up")}
-                        title="Open above"
+                        title={t("terminal.openAbove")}
                         type="button"
                       >
                         <ArrowUp size={12} />
@@ -746,7 +754,7 @@ function TmuxSessionTag({
                       <button
                         className="tmux-direction-btn"
                         onClick={() => handleOpenInDirection(session, "down")}
-                        title="Open below"
+                        title={t("terminal.openBelow")}
                         type="button"
                       >
                         <ArrowDown size={12} />
@@ -754,7 +762,7 @@ function TmuxSessionTag({
                       <button
                         className="tmux-direction-btn"
                         onClick={() => handleOpenInDirection(session, "right")}
-                        title="Open right"
+                        title={t("terminal.openRight")}
                         type="button"
                       >
                         <ArrowRight size={12} />
