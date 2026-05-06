@@ -4,6 +4,7 @@ import { documentHasWebviewOverlay } from "../workspace/nativeOverlay";
 import { Keyboard, Monitor, RotateCcw } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type {
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
@@ -56,8 +57,9 @@ export function RemoteDesktopWorkspace({
   isActive: boolean;
   tab: WorkspaceTab;
 }) {
+  const { t } = useTranslation();
   const connection = tab.connection;
-  const typeLabel = connection ? connectionTypeLabel(connection.type) : "Remote desktop";
+  const typeLabel = connection ? connectionTypeLabel(connection.type) : t("remoteDesktop.typeLabel");
   const Icon = connection ? connectionIconForType(connection.type) : Monitor;
   const workspaceRef = useRef<HTMLElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -178,7 +180,7 @@ export function RemoteDesktopWorkspace({
     if (wantsVisible && displayReadyRef.current && boundsChanged) {
       displayReadyRef.current = false;
       rdpVisibleRef.current = false;
-      setRdpStatus("Preparing display");
+      setRdpStatus(t("remoteDesktop.preparingDisplay"));
       void invokeCommand("set_rdp_visibility", {
         request: { sessionId, visible: false, ...(previous ?? bounds) },
       }).catch((error) => {
@@ -242,10 +244,10 @@ export function RemoteDesktopWorkspace({
         if (result.displaySynced) {
           displayReadyRef.current = true;
           lastBoundsRef.current = bounds;
-          setRdpStatus("Connected");
+          setRdpStatus(t("remoteDesktop.connected"));
           pushRdpVisibility();
         } else if (result.connected) {
-          setRdpStatus("Preparing display");
+          setRdpStatus(t("remoteDesktop.preparingDisplay"));
         }
       })
       .catch((error) => {
@@ -304,7 +306,7 @@ export function RemoteDesktopWorkspace({
       resetRdpSessionRefs();
     }
     setRdpError("");
-    setRdpStatus("Reconnecting");
+    setRdpStatus(t("remoteDesktop.reconnecting"));
     if (ownedSession && sessionId) {
       void invokeCommand(canStartVnc ? "close_vnc_session" : "close_rdp_session", {
         request: { sessionId },
@@ -374,7 +376,7 @@ export function RemoteDesktopWorkspace({
       }
       if (!rdpVisibleRef.current) {
         displayReadyRef.current = false;
-        setRdpStatus("Preparing display");
+        setRdpStatus(t("remoteDesktop.preparingDisplay"));
         attemptRdpDisplaySync();
         return;
       }
@@ -405,7 +407,7 @@ export function RemoteDesktopWorkspace({
       rdpVisibleRef.current = false;
       lastBoundsRef.current = bounds;
       rdpControlRef.current = "";
-      setRdpStatus((current) => (current === "Reconnecting" ? current : "Connecting"));
+      setRdpStatus((current) => (current === t("remoteDesktop.reconnecting") ? current : t("remoteDesktop.connecting")));
       void invokeCommand("start_rdp_session", {
         request: {
           sessionId,
@@ -424,7 +426,7 @@ export function RemoteDesktopWorkspace({
           }
           sessionStartedRef.current = true;
           rdpControlRef.current = started.control;
-          setRdpStatus("Preparing display");
+          setRdpStatus(t("remoteDesktop.preparingDisplay"));
           markConnectionSessionStarted(connection.id);
           attemptRdpDisplaySync();
         })
@@ -473,7 +475,7 @@ export function RemoteDesktopWorkspace({
     const sessionId = `vnc-${tab.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     sessionIdRef.current = sessionId;
     sessionStartingRef.current = true;
-    setRdpStatus((current) => (current === "Reconnecting" ? current : "Connecting"));
+    setRdpStatus((current) => (current === t("remoteDesktop.reconnecting") ? current : t("remoteDesktop.connecting")));
     setRdpError("");
 
     startTimer = window.setTimeout(() => {
@@ -492,7 +494,7 @@ export function RemoteDesktopWorkspace({
             return;
           }
           sessionStartedRef.current = true;
-          setRdpStatus("Connected");
+          setRdpStatus(t("remoteDesktop.connected"));
           markConnectionSessionStarted(connection.id);
         })
         .catch((error) => {
@@ -637,7 +639,7 @@ export function RemoteDesktopWorkspace({
           if (!status.connected && sessionIdRef.current === status.sessionId) {
             displayReadyRef.current = false;
             rdpVisibleRef.current = false;
-            setRdpStatus("Disconnected");
+            setRdpStatus(t("remoteDesktop.disconnected"));
           }
         })
         .catch((error) => {
@@ -694,7 +696,7 @@ export function RemoteDesktopWorkspace({
       })
         .then((status) => {
           if (!status.connected && sessionIdRef.current === status.sessionId) {
-            setRdpStatus("Disconnected");
+            setRdpStatus(t("remoteDesktop.disconnected"));
           }
         })
         .catch((error) => {
@@ -709,13 +711,13 @@ export function RemoteDesktopWorkspace({
 
   const handleVncSessionEvent = (event: VncSessionEvent) => {
     if (event.kind === "connected") {
-      setRdpStatus("Connected, waiting for framebuffer");
+      setRdpStatus(t("remoteDesktop.waitingFramebuffer"));
       return;
     }
     if (event.kind === "resolution") {
       resizeVncCanvas(event.width, event.height);
       setVncHasDisplay(true);
-      setRdpStatus("Connected");
+      setRdpStatus(t("remoteDesktop.connected"));
       return;
     }
     if (event.kind === "rawImage") {
@@ -733,11 +735,11 @@ export function RemoteDesktopWorkspace({
     }
     if (event.kind === "error") {
       setRdpError(event.message);
-      setRdpStatus("Disconnected");
+      setRdpStatus(t("remoteDesktop.disconnected"));
       return;
     }
     if (event.kind === "disconnected") {
-      setRdpStatus("Disconnected");
+      setRdpStatus(t("remoteDesktop.disconnected"));
     }
   };
 
@@ -900,23 +902,25 @@ export function RemoteDesktopWorkspace({
 
   return (
     <section
-      className={isActive ? "terminal-workspace active" : "terminal-workspace"}
+      className={isActive ? "terminal-workspace remote-desktop-shell active" : "terminal-workspace remote-desktop-shell"}
       ref={workspaceRef}
     >
-      <div className="workspace-toolbar">
-        <div>
-          <strong>{tab.title}</strong>
-          <span>{tab.subtitle}</span>
-        </div>
-        <div className="toolbar-cluster">
+      <article className="terminal-pane remote-desktop-pane">
+        <header>
+          <span>
+            <Icon size={13} />
+            {tab.title}
+          </span>
+          <div className="terminal-pane-actions">
+            {tab.subtitle ? <small>{tab.subtitle}</small> : null}
           {rdpStatus ? <span className="webview-toolbar-status">{rdpStatus}</span> : null}
           {canStartRdp || canStartVnc ? (
             <button
-              aria-label={`Send Ctrl+Alt+Delete to ${typeLabel} session`}
-              className="icon-button"
+              aria-label={`${t("remoteDesktop.sendCtrlAltDel")} ${typeLabel} ${t("remoteDesktop.session")}`}
+              className="terminal-pane-action"
               disabled={!isTauriRuntime() || !sessionStartedRef.current}
               onClick={handleSendCtrlAltDelete}
-              title="Send Ctrl+Alt+Delete"
+              title={t("remoteDesktop.sendCtrlAltDel")}
               type="button"
             >
               <Keyboard size={13} />
@@ -924,22 +928,23 @@ export function RemoteDesktopWorkspace({
           ) : null}
           {canStartRdp || canStartVnc ? (
             <button
-              aria-label={`Reconnect ${typeLabel} session`}
-              className="icon-button"
+              aria-label={`${t("remoteDesktop.reconnect")} ${typeLabel} ${t("remoteDesktop.session")}`}
+              className="terminal-pane-action"
               disabled={!isTauriRuntime()}
               onClick={handleReconnect}
-              title="Reconnect"
+              title={t("remoteDesktop.reconnect")}
               type="button"
             >
               <RotateCcw size={13} />
             </button>
           ) : null}
           <ScreenshotMenu
+            buttonClassName="terminal-pane-action"
             targetLabel={`${tab.title} ${typeLabel} view`}
             targetRef={connection?.type === "rdp" || connection?.type === "vnc" ? hostRef : workspaceRef}
           />
         </div>
-      </div>
+        </header>
       <div
         className="remote-desktop-workspace"
         ref={hostRef}
@@ -955,7 +960,7 @@ export function RemoteDesktopWorkspace({
         ) : null}
         {connection?.type === "vnc" ? (
           <canvas
-            aria-label={`${tab.title} VNC display`}
+            aria-label={`${tab.title} ${t("remoteDesktop.displayAria")}`}
             className={vncHasDisplay ? "vnc-display ready" : "vnc-display"}
             onContextMenu={(event) => event.preventDefault()}
             onKeyDown={(event) => handleVncKey(event, true)}
@@ -974,25 +979,26 @@ export function RemoteDesktopWorkspace({
           <p>{connection ? `${typeLabel} ${connectionSubtitle(connection)}` : typeLabel}</p>
           {connection?.type === "rdp" ? (
             !isTauriRuntime() ? (
-              <small>RDP uses the Windows desktop runtime.</small>
+              <small>{t("remoteDesktop.rdpDesktopRequired")}</small>
             ) : rdpError ? (
               <small className="form-error">{rdpError}</small>
             ) : (
-              <small>Microsoft RDP ActiveX host is running in this workspace.</small>
+              <small>{t("remoteDesktop.rdpActiveX")}</small>
             )
           ) : connection?.type === "vnc" ? (
             !isTauriRuntime() ? (
-              <small>VNC uses the desktop runtime.</small>
+              <small>{t("remoteDesktop.vncDesktopRequired")}</small>
             ) : rdpError ? (
               <small className="form-error">{rdpError}</small>
             ) : (
-              <small>VNC framebuffer is running in this workspace.</small>
+              <small>{t("remoteDesktop.vncFramebuffer")}</small>
             )
           ) : (
-            <small>Remote desktop transport unavailable.</small>
+            <small>{t("remoteDesktop.transportUnavailable")}</small>
           )}
         </div>
       </div>
+      </article>
     </section>
   );
 }

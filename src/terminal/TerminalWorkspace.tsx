@@ -60,44 +60,16 @@ export function TerminalWorkspace({ isActive, tab }: { isActive: boolean; tab: W
   const resetTabLayout = useWorkspaceStore((state) => state.resetTabLayout);
   const defaultFontSize = defaultTerminalSettings.fontSize;
   const canSplit = tab.panes.some((pane) => pane.connection);
-  const sshConnection = tab.connection?.type === "ssh" ? tab.connection : undefined;
   const focusedPaneId = tab.focusedPaneId ?? tab.panes[0]?.id;
   const layout = useMemo(() => ensureLayout(tab.layout, tab.panes), [tab.layout, tab.panes]);
   const isSingleEmbeddedPane = tab.panes.length === 1 && tab.panes[0] !== undefined && !isTerminalPane(tab.panes[0]);
 
-  const [splitMenuOpen, setSplitMenuOpen] = useState(false);
-  const [hamburgerOpen, setHamburgerOpen] = useState(false);
-  const splitMenuRef = useRef<HTMLDivElement | null>(null);
-  const hamburgerMenuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!splitMenuOpen && !hamburgerOpen) {
-      return;
-    }
-    function onPointerDown(event: PointerEvent) {
-      const target = event.target as Node | null;
-      if (splitMenuRef.current && target && !splitMenuRef.current.contains(target)) {
-        setSplitMenuOpen(false);
-      }
-      if (hamburgerMenuRef.current && target && !hamburgerMenuRef.current.contains(target)) {
-        setHamburgerOpen(false);
-      }
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [splitMenuOpen, hamburgerOpen]);
-
-  function handleSplit(direction: "right" | "left" | "down" | "up") {
-    setSplitMenuOpen(false);
+  function handleSplit(paneId: string, direction: "right" | "left" | "down" | "up") {
+    setFocusedPane(tab.id, paneId);
     splitTerminalPaneDirected(tab.id, direction);
   }
 
-  async function handleSaveBuffer() {
-    setHamburgerOpen(false);
-    const targetPaneId = focusedPaneId;
-    if (!targetPaneId) {
-      return;
-    }
+  async function handleSaveBuffer(targetPaneId: string) {
     const targetPane = tab.panes.find((pane) => pane.id === targetPaneId);
     const renderer = getPaneRenderer(targetPaneId);
     if (!renderer) {
@@ -153,28 +125,20 @@ export function TerminalWorkspace({ isActive, tab }: { isActive: boolean; tab: W
   }
 
   function handleSaveView() {
-    setHamburgerOpen(false);
     saveTabLayout(tab.id);
   }
 
   function handleResetView() {
-    setHamburgerOpen(false);
     resetTabLayout(tab.id);
   }
 
-  function handleSendCtrlAltDelete() {
-    const pane = focusedPaneId ? tab.panes.find((entry) => entry.id === focusedPaneId) : undefined;
+  function handleSendCtrlAltDelete(paneId: string) {
+    const pane = tab.panes.find((entry) => entry.id === paneId);
     if (!pane || !isTerminalPane(pane) || pane.connection?.type !== "ssh") {
       return;
     }
     writeInputToPane(pane.id, "\x1b[3;7~");
   }
-
-  const focusedSshPane = focusedPaneId
-    ? tab.panes.find(
-        (pane) => pane.id === focusedPaneId && isTerminalPane(pane) && pane.connection?.type === "ssh",
-      )
-    : undefined;
 
   return (
     <section
@@ -186,182 +150,6 @@ export function TerminalWorkspace({ isActive, tab }: { isActive: boolean; tab: W
         .filter(Boolean)
         .join(" ")}
     >
-      {!isSingleEmbeddedPane ? (
-        <div className="workspace-toolbar">
-          <div>
-            <strong>{tab.title}</strong>
-            <span>{tab.subtitle}</span>
-          </div>
-          <div className="toolbar-cluster">
-            <button
-              className="toolbar-button"
-              aria-label="Open SFTP browser"
-              disabled={!sshConnection}
-              onClick={() => sshConnection && openSftpBrowser(sshConnection)}
-              title="Open SFTP browser"
-              type="button"
-            >
-              <Columns2 size={15} />
-              SFTP
-            </button>
-            <button
-              className="icon-button"
-              aria-label="Send Ctrl+Alt+Delete to focused SSH session"
-              disabled={!focusedSshPane}
-              onClick={handleSendCtrlAltDelete}
-              title="Send Ctrl+Alt+Delete"
-              type="button"
-            >
-              <Keyboard size={15} />
-            </button>
-            <div className="terminal-menu-wrapper" ref={splitMenuRef}>
-              <button
-                className="icon-button"
-                aria-label="Split layout"
-                {...menuButtonAria(splitMenuOpen)}
-                disabled={!canSplit}
-                onClick={() => setSplitMenuOpen((open) => !open)}
-                title="Split layout"
-                type="button"
-              >
-                <SplitSquareHorizontal size={15} />
-              </button>
-              {splitMenuOpen ? (
-                <div className="terminal-menu" role="menu">
-                  <button
-                    className="terminal-menu-item"
-                    onClick={() => handleSplit("right")}
-                    role="menuitem"
-                    type="button"
-                  >
-                    <ArrowRight size={13} />
-                    Split Right
-                  </button>
-                  <button
-                    className="terminal-menu-item"
-                    onClick={() => handleSplit("left")}
-                    role="menuitem"
-                    type="button"
-                  >
-                    <ArrowLeft size={13} />
-                    Split Left
-                  </button>
-                  <button
-                    className="terminal-menu-item"
-                    onClick={() => handleSplit("down")}
-                    role="menuitem"
-                    type="button"
-                  >
-                    <ArrowDown size={13} />
-                    Split Down
-                  </button>
-                  <button
-                    className="terminal-menu-item"
-                    onClick={() => handleSplit("up")}
-                    role="menuitem"
-                    type="button"
-                  >
-                    <ArrowUp size={13} />
-                    Split Up
-                  </button>
-                </div>
-              ) : null}
-            </div>
-            <div className="terminal-menu-wrapper" ref={hamburgerMenuRef}>
-              <button
-                className="icon-button"
-                aria-label="Terminal actions"
-                {...menuButtonAria(hamburgerOpen)}
-                onClick={() => setHamburgerOpen((open) => !open)}
-                title="Terminal actions"
-                type="button"
-              >
-                <Menu size={15} />
-              </button>
-              {hamburgerOpen ? (
-                <div className="terminal-menu" role="menu">
-                <button
-                  className="terminal-menu-item"
-                  onClick={() => void handleSaveBuffer()}
-                  role="menuitem"
-                  type="button"
-                >
-                  <Save size={13} />
-                  Save Buffer
-                </button>
-                <div className="terminal-menu-submenu">
-                  <button
-                    className="terminal-menu-item"
-                    role="menuitem"
-                    type="button"
-                  >
-                    <Type size={13} />
-                    Font
-                    <ChevronRight size={13} className="terminal-menu-chevron" />
-                  </button>
-                  <div className="terminal-menu terminal-menu-submenu-panel" role="menu">
-                    <button
-                      className="terminal-menu-item"
-                      onClick={() => handleFontChange(1)}
-                      role="menuitem"
-                      type="button"
-                    >
-                      Increase size
-                    </button>
-                    <button
-                      className="terminal-menu-item"
-                      onClick={() => handleFontChange(-1)}
-                      role="menuitem"
-                      type="button"
-                    >
-                      Decrease size
-                    </button>
-                    <button
-                      className="terminal-menu-item"
-                      onClick={() => handleFontChange("reset")}
-                      role="menuitem"
-                      type="button"
-                    >
-                      Reset size
-                    </button>
-                  </div>
-                </div>
-                <div className="terminal-menu-submenu">
-                  <button
-                    className="terminal-menu-item"
-                    role="menuitem"
-                    type="button"
-                  >
-                    <LayoutDashboard size={13} />
-                    View
-                    <ChevronRight size={13} className="terminal-menu-chevron" />
-                  </button>
-                  <div className="terminal-menu terminal-menu-submenu-panel" role="menu">
-                    <button
-                      className="terminal-menu-item"
-                      onClick={handleSaveView}
-                      role="menuitem"
-                      type="button"
-                    >
-                      Save
-                    </button>
-                    <button
-                      className="terminal-menu-item"
-                      onClick={handleResetView}
-                      role="menuitem"
-                      type="button"
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       <div className="terminal-grid">
         {layout ? (
           <TerminalLayoutView
@@ -371,6 +159,14 @@ export function TerminalWorkspace({ isActive, tab }: { isActive: boolean; tab: W
             panes={tab.panes}
             focusedPaneId={focusedPaneId}
             onFocusPane={(paneId) => setFocusedPane(tab.id, paneId)}
+            canSplit={canSplit}
+            onFontChange={handleFontChange}
+            onOpenSftp={(connection) => openSftpBrowser(connection)}
+            onResetView={handleResetView}
+            onSaveBuffer={(paneId) => void handleSaveBuffer(paneId)}
+            onSaveView={handleSaveView}
+            onSendCtrlAltDelete={handleSendCtrlAltDelete}
+            onSplit={handleSplit}
           />
         ) : null}
       </div>
@@ -385,6 +181,14 @@ function TerminalLayoutView({
   panes,
   focusedPaneId,
   onFocusPane,
+  canSplit,
+  onFontChange,
+  onOpenSftp,
+  onResetView,
+  onSaveBuffer,
+  onSaveView,
+  onSendCtrlAltDelete,
+  onSplit,
 }: {
   isActive: boolean;
   tabId: string;
@@ -392,6 +196,14 @@ function TerminalLayoutView({
   panes: WorkspacePane[];
   focusedPaneId: string | undefined;
   onFocusPane: (paneId: string) => void;
+  canSplit: boolean;
+  onFontChange: (delta: number | "reset") => void;
+  onOpenSftp: (connection: Connection) => void;
+  onResetView: () => void;
+  onSaveBuffer: (paneId: string) => void;
+  onSaveView: () => void;
+  onSendCtrlAltDelete: (paneId: string) => void;
+  onSplit: (paneId: string, direction: "right" | "left" | "down" | "up") => void;
 }) {
   if (layout.type === "leaf") {
     const pane = panes.find((entry) => entry.id === layout.paneId);
@@ -407,6 +219,14 @@ function TerminalLayoutView({
             pane={pane}
             isFocused={pane.id === focusedPaneId}
             onFocus={() => onFocusPane(pane.id)}
+            canSplit={canSplit}
+            onFontChange={onFontChange}
+            onOpenSftp={onOpenSftp}
+            onResetView={onResetView}
+            onSaveBuffer={onSaveBuffer}
+            onSaveView={onSaveView}
+            onSendCtrlAltDelete={onSendCtrlAltDelete}
+            onSplit={onSplit}
           />
         ) : (
           <EmbeddedConnectionPane
@@ -436,6 +256,14 @@ function TerminalLayoutView({
           panes={panes}
           focusedPaneId={focusedPaneId}
           onFocusPane={onFocusPane}
+          canSplit={canSplit}
+          onFontChange={onFontChange}
+          onOpenSftp={onOpenSftp}
+          onResetView={onResetView}
+          onSaveBuffer={onSaveBuffer}
+          onSaveView={onSaveView}
+          onSendCtrlAltDelete={onSendCtrlAltDelete}
+          onSplit={onSplit}
         />
       ))}
     </div>
@@ -841,12 +669,28 @@ function TerminalPaneView({
   pane,
   isFocused,
   onFocus,
+  canSplit,
+  onFontChange,
+  onOpenSftp,
+  onResetView,
+  onSaveBuffer,
+  onSaveView,
+  onSendCtrlAltDelete,
+  onSplit,
 }: {
   isActive: boolean;
   tabId: string;
   pane: TerminalPane;
   isFocused: boolean;
   onFocus: () => void;
+  canSplit: boolean;
+  onFontChange: (delta: number | "reset") => void;
+  onOpenSftp: (connection: Connection) => void;
+  onResetView: () => void;
+  onSaveBuffer: (paneId: string) => void;
+  onSaveView: () => void;
+  onSendCtrlAltDelete: (paneId: string) => void;
+  onSplit: (paneId: string, direction: "right" | "left" | "down" | "up") => void;
 }) {
   const paneRef = useRef<HTMLElement | null>(null);
   const terminalElementRef = useRef<HTMLDivElement | null>(null);
@@ -869,8 +713,12 @@ function TerminalPaneView({
     resultCount: number;
     found: boolean;
   }>({ resultIndex: -1, resultCount: 0, found: true });
+  const [splitMenuOpen, setSplitMenuOpen] = useState(false);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [selectedTerminalText, setSelectedTerminalText] = useState("");
   const [contextMenu, setContextMenu] = useState<TerminalContextMenuState | null>(null);
+  const splitMenuRef = useRef<HTMLDivElement | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const terminalSettings = useWorkspaceStore((state) => state.terminalSettings);
   const setAssistantContextSnippet = useWorkspaceStore(
     (state) => state.setAssistantContextSnippet,
@@ -889,6 +737,25 @@ function TerminalPaneView({
   );
   const closePane = useWorkspaceStore((state) => state.closePane);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    if (!splitMenuOpen && !actionsMenuOpen) {
+      return;
+    }
+
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node | null;
+      if (splitMenuRef.current && target && !splitMenuRef.current.contains(target)) {
+        setSplitMenuOpen(false);
+      }
+      if (actionsMenuRef.current && target && !actionsMenuRef.current.contains(target)) {
+        setActionsMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [actionsMenuOpen, splitMenuOpen]);
 
   useEffect(() => {
     const element = terminalElementRef.current;
@@ -1333,6 +1200,37 @@ function TerminalPaneView({
     terminalRendererRef.current?.focus();
   }
 
+  function handleOpenSftp() {
+    if (pane.connection?.type !== "ssh") {
+      return;
+    }
+    onOpenSftp(pane.connection);
+  }
+
+  function handleSplit(direction: "right" | "left" | "down" | "up") {
+    setSplitMenuOpen(false);
+    onSplit(pane.id, direction);
+  }
+
+  function handleSaveBuffer() {
+    setActionsMenuOpen(false);
+    onSaveBuffer(pane.id);
+  }
+
+  function handleSaveView() {
+    setActionsMenuOpen(false);
+    onSaveView();
+  }
+
+  function handleResetView() {
+    setActionsMenuOpen(false);
+    onResetView();
+  }
+
+  function handleFontChange(delta: number | "reset") {
+    onFontChange(delta);
+  }
+
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -1355,8 +1253,9 @@ function TerminalPaneView({
       ? `${searchResult.resultIndex + 1}/${searchResult.resultCount}`
       : searchResult.found
         ? "..."
-        : "No results"
+        : t("terminal.noResults")
     : "";
+  const isSshPane = pane.connection?.type === "ssh";
 
   return (
     <article
@@ -1381,10 +1280,84 @@ function TerminalPaneView({
           ) : null}
           <small>{pane.cwd}</small>
           <button
+            className="terminal-pane-action terminal-pane-action-text"
+            aria-label={t("terminal.openSftp")}
+            disabled={!isSshPane}
+            onClick={handleOpenSftp}
+            title={t("terminal.openSftp")}
+            type="button"
+          >
+            <Columns2 size={13} />
+            <span>{t("terminal.sftp")}</span>
+          </button>
+          <button
             className="terminal-pane-action"
-            aria-label="Find in terminal scrollback"
+            aria-label={t("terminal.sendCtrlAltDel")}
+            disabled={!isSshPane}
+            onClick={() => onSendCtrlAltDelete(pane.id)}
+            title={t("terminal.sendCtrlAltDel")}
+            type="button"
+          >
+            <Keyboard size={13} />
+          </button>
+          <div className="terminal-menu-wrapper" ref={splitMenuRef}>
+            <button
+              className="terminal-pane-action"
+              aria-label={t("terminal.splitLayout")}
+              {...menuButtonAria(splitMenuOpen)}
+              disabled={!canSplit}
+              onClick={() => setSplitMenuOpen((open) => !open)}
+              title={t("terminal.splitLayout")}
+              type="button"
+            >
+              <SplitSquareHorizontal size={13} />
+            </button>
+            {splitMenuOpen ? (
+              <div className="terminal-menu" role="menu">
+                <button
+                  className="terminal-menu-item"
+                  onClick={() => handleSplit("right")}
+                  role="menuitem"
+                  type="button"
+                >
+                  <ArrowRight size={13} />
+                  {t("terminal.splitRight")}
+                </button>
+                <button
+                  className="terminal-menu-item"
+                  onClick={() => handleSplit("left")}
+                  role="menuitem"
+                  type="button"
+                >
+                  <ArrowLeft size={13} />
+                  {t("terminal.splitLeft")}
+                </button>
+                <button
+                  className="terminal-menu-item"
+                  onClick={() => handleSplit("down")}
+                  role="menuitem"
+                  type="button"
+                >
+                  <ArrowDown size={13} />
+                  {t("terminal.splitDown")}
+                </button>
+                <button
+                  className="terminal-menu-item"
+                  onClick={() => handleSplit("up")}
+                  role="menuitem"
+                  type="button"
+                >
+                  <ArrowUp size={13} />
+                  {t("terminal.splitUp")}
+                </button>
+              </div>
+            ) : null}
+          </div>
+          <button
+            className="terminal-pane-action"
+            aria-label={t("terminal.findInScrollback")}
             onClick={() => setSearchOpen((open) => !open)}
-            title="Find in terminal scrollback"
+            title={t("terminal.findInScrollback")}
             type="button"
           >
             <Search size={13} />
@@ -1407,20 +1380,111 @@ function TerminalPaneView({
           />
           <button
             className="terminal-pane-action"
-            aria-label="Send selection to AI Assistant"
+            aria-label={t("terminal.sendToAi")}
             disabled={!selectedTerminalText}
             onMouseDown={(e) => e.preventDefault()}
             onClick={handleSendSelectionToAssistant}
-            title="Send selection to AI Assistant"
+            title={t("terminal.sendToAi")}
             type="button"
           >
             <Bot size={13} />
           </button>
+          <div className="terminal-menu-wrapper" ref={actionsMenuRef}>
+            <button
+              className="terminal-pane-action"
+              aria-label={t("terminal.actions")}
+              {...menuButtonAria(actionsMenuOpen)}
+              onClick={() => setActionsMenuOpen((open) => !open)}
+              title={t("terminal.actions")}
+              type="button"
+            >
+              <Menu size={13} />
+            </button>
+            {actionsMenuOpen ? (
+              <div className="terminal-menu" role="menu">
+                <button
+                  className="terminal-menu-item"
+                  onClick={handleSaveBuffer}
+                  role="menuitem"
+                  type="button"
+                >
+                  <Save size={13} />
+                  {t("terminal.saveBuffer")}
+                </button>
+                <div className="terminal-menu-submenu">
+                  <button
+                    className="terminal-menu-item"
+                    role="menuitem"
+                    type="button"
+                  >
+                    <Type size={13} />
+                    {t("terminal.font")}
+                    <ChevronRight size={13} className="terminal-menu-chevron" />
+                  </button>
+                  <div className="terminal-menu terminal-menu-submenu-panel" role="menu">
+                    <button
+                      className="terminal-menu-item"
+                      onClick={() => handleFontChange(1)}
+                      role="menuitem"
+                      type="button"
+                    >
+                      {t("terminal.increaseSize")}
+                    </button>
+                    <button
+                      className="terminal-menu-item"
+                      onClick={() => handleFontChange(-1)}
+                      role="menuitem"
+                      type="button"
+                    >
+                      {t("terminal.decreaseSize")}
+                    </button>
+                    <button
+                      className="terminal-menu-item"
+                      onClick={() => handleFontChange("reset")}
+                      role="menuitem"
+                      type="button"
+                    >
+                      {t("terminal.resetSize")}
+                    </button>
+                  </div>
+                </div>
+                <div className="terminal-menu-submenu">
+                  <button
+                    className="terminal-menu-item"
+                    role="menuitem"
+                    type="button"
+                  >
+                    <LayoutDashboard size={13} />
+                    {t("terminal.view")}
+                    <ChevronRight size={13} className="terminal-menu-chevron" />
+                  </button>
+                  <div className="terminal-menu terminal-menu-submenu-panel" role="menu">
+                    <button
+                      className="terminal-menu-item"
+                      onClick={handleSaveView}
+                      role="menuitem"
+                      type="button"
+                    >
+                      {t("terminal.save")}
+                    </button>
+                    <button
+                      className="terminal-menu-item"
+                      onClick={handleResetView}
+                      role="menuitem"
+                      type="button"
+                    >
+                      {t("terminal.reset")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
           <button
             className="terminal-pane-action terminal-pane-close"
-            aria-label={pane.tmuxSessionId ? "Detach tmux session" : "Close pane"}
+            aria-label={pane.tmuxSessionId ? t("terminal.detachTmux") : t("terminal.closePane")}
             onClick={() => closePane(tabId, pane.id)}
-            title={pane.tmuxSessionId ? "Detach tmux session" : "Close pane"}
+            title={pane.tmuxSessionId ? t("terminal.detachTmux") : t("terminal.closePane")}
             type="button"
           >
             <X size={13} />
@@ -1431,10 +1495,10 @@ function TerminalPaneView({
         <div className="terminal-search-bar">
           <Search size={13} />
           <input
-            aria-label="Find in terminal scrollback"
+            aria-label={t("terminal.findInScrollback")}
             onChange={(event) => setSearchTerm(event.currentTarget.value)}
             onKeyDown={handleSearchKeyDown}
-            placeholder="Find"
+            placeholder={t("terminal.find")}
             ref={searchInputRef}
             value={searchTerm}
           />
@@ -1442,30 +1506,30 @@ function TerminalPaneView({
             {searchStatusLabel}
           </span>
           <button
-            aria-label="Previous search result"
+            aria-label={t("terminal.previousSearch")}
             className="terminal-pane-action"
             disabled={!searchTerm.trim()}
             onClick={handleSearchPrevious}
-            title="Previous search result"
+            title={t("terminal.previousSearch")}
             type="button"
           >
             <ArrowUp size={13} />
           </button>
           <button
-            aria-label="Next search result"
+            aria-label={t("terminal.nextSearch")}
             className="terminal-pane-action"
             disabled={!searchTerm.trim()}
             onClick={handleSearchNext}
-            title="Next search result"
+            title={t("terminal.nextSearch")}
             type="button"
           >
             <ArrowDown size={13} />
           </button>
           <button
-            aria-label="Close terminal search"
+            aria-label={t("terminal.closeSearch")}
             className="terminal-pane-action"
             onClick={handleCloseSearch}
-            title="Close terminal search"
+            title={t("terminal.closeSearch")}
             type="button"
           >
             <X size={13} />
@@ -1503,6 +1567,7 @@ function TerminalContextMenu({
   onPaste: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   useLayoutEffect(() => {
     const node = menuRef.current;
@@ -1535,7 +1600,7 @@ function TerminalContextMenu({
           type="button"
         >
           <Copy size={14} />
-          <span>Copy</span>
+          <span>{t("terminal.copy")}</span>
         </button>
       ) : (
         <button
@@ -1547,7 +1612,7 @@ function TerminalContextMenu({
           type="button"
         >
           <ClipboardPaste size={14} />
-          <span>Paste</span>
+          <span>{t("terminal.paste")}</span>
         </button>
       )}
     </div>
