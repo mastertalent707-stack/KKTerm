@@ -115,3 +115,27 @@ When a key is translated into every supported locale, remove its entry from this
 - **Tone:** Plain, instructive.
 - **Placeholders:** None.
 - **Domain notes:** Mirrors `bulkUserRequired`.
+
+## Wiki feature (added 2026-05-07)
+
+The wiki workspace adds a new `wiki` namespace plus one `app` key. All entries below
+are English-only and pending translation across the 12 non-English locales.
+
+### app.wiki
+- **English value:** Wiki
+- **Namespace:** `app`
+- **File/component:** `src/App.tsx` ActivityRail
+- **UI role:** Aria label / tooltip on the activity rail wiki button
+- **Flow/context:** Sibling of `app.connections` and `app.settings`. Switches the workspace to the wiki view.
+- **Tone:** Single noun.
+- **Placeholders:** None.
+
+### wiki.* (entire namespace)
+- **English values:** see `src/i18n/locales/en.json` `wiki` block.
+- **Namespace:** `wiki`
+- **File/component:** `src/wiki/WikiWorkspace.tsx`, `src/wiki/WikiTree.tsx`, `src/wiki/WikiEditor.tsx`, `src/wiki/WikiPreview.tsx`, plus the connection-toolbar wiki dropdown surfaced from `src/workspace/`.
+- **UI role:** Mix of labels, buttons, placeholders, error toasts, and empty states for the wiki workspace and editor.
+- **Flow/context:** Personal-wiki workspace with a page tree, CodeMirror markdown editor, search, attachments, and zip export. `[[id]]` wiki links and `{{connection:id}}` embeds are markdown extensions; their tokens are NOT translated, only the surrounding UI strings.
+- **Tone:** Direct, terse — admin/sysop audience.
+- **Placeholders:** `{{path}}` (export success), `{{error}}` (failure messages).
+- **Domain notes:** "Wiki" stays as a loanword in most locales; "page", "subpage" follow the locale's existing tree/document terminology. "Markdown" stays in English. "Attachment" maps to the locale's standard term for file attachment. The phrase "Linked connections" should match the locale's translation of `connections.title`.

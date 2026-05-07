@@ -12,7 +12,7 @@ use std::{
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
 
-const SCHEMA_USER_VERSION: i32 = 6;
+const SCHEMA_USER_VERSION: i32 = 7;
 
 const CURRENT_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS connection_folders (
@@ -77,6 +77,75 @@ CREATE TABLE IF NOT EXISTS settings (
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS wiki_pages (
+    id TEXT PRIMARY KEY,
+    parent_id TEXT REFERENCES wiki_pages(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    slug TEXT NOT NULL,
+    body_md TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_wiki_pages_parent_sort
+    ON wiki_pages(parent_id, sort_order);
+
+CREATE INDEX IF NOT EXISTS idx_wiki_pages_slug
+    ON wiki_pages(slug);
+
+CREATE TABLE IF NOT EXISTS wiki_page_links (
+    page_id TEXT NOT NULL REFERENCES wiki_pages(id) ON DELETE CASCADE,
+    target_page_id TEXT NOT NULL REFERENCES wiki_pages(id) ON DELETE CASCADE,
+    PRIMARY KEY (page_id, target_page_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_wiki_page_links_target
+    ON wiki_page_links(target_page_id);
+
+CREATE TABLE IF NOT EXISTS wiki_page_connections (
+    page_id TEXT NOT NULL REFERENCES wiki_pages(id) ON DELETE CASCADE,
+    connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+    PRIMARY KEY (page_id, connection_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_wiki_page_connections_connection
+    ON wiki_page_connections(connection_id);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS wiki_pages_fts USING fts5(
+    title,
+    body_md,
+    content='wiki_pages',
+    content_rowid='rowid',
+    tokenize='unicode61'
+);
+
+CREATE TRIGGER IF NOT EXISTS wiki_pages_ai AFTER INSERT ON wiki_pages BEGIN
+    INSERT INTO wiki_pages_fts(rowid, title, body_md) VALUES (new.rowid, new.title, new.body_md);
+END;
+
+CREATE TRIGGER IF NOT EXISTS wiki_pages_ad AFTER DELETE ON wiki_pages BEGIN
+    INSERT INTO wiki_pages_fts(wiki_pages_fts, rowid, title, body_md) VALUES('delete', old.rowid, old.title, old.body_md);
+END;
+
+CREATE TRIGGER IF NOT EXISTS wiki_pages_au AFTER UPDATE ON wiki_pages BEGIN
+    INSERT INTO wiki_pages_fts(wiki_pages_fts, rowid, title, body_md) VALUES('delete', old.rowid, old.title, old.body_md);
+    INSERT INTO wiki_pages_fts(rowid, title, body_md) VALUES (new.rowid, new.title, new.body_md);
+END;
+
+CREATE TABLE IF NOT EXISTS wiki_attachments (
+    id TEXT PRIMARY KEY,
+    page_id TEXT NOT NULL REFERENCES wiki_pages(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    relative_path TEXT NOT NULL,
+    mime TEXT,
+    bytes INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_wiki_attachments_page
+    ON wiki_attachments(page_id);
 "#;
 
 pub struct Storage {
@@ -1588,6 +1657,22 @@ impl Storage {
             .lock()
             .map_err(|_| "SQLite connection lock is poisoned".to_string())
     }
+
+    pub(crate) fn with_connection<R>(
+        &self,
+        body: impl FnOnce(&SqliteConnection) -> Result<R, String>,
+    ) -> Result<R, String> {
+        let connection = self.lock()?;
+        body(&connection)
+    }
+
+    pub(crate) fn with_connection_mut<R>(
+        &self,
+        body: impl FnOnce(&mut SqliteConnection) -> Result<R, String>,
+    ) -> Result<R, String> {
+        let mut connection = self.lock()?;
+        body(&mut connection)
+    }
 }
 
 fn open_initialized_connection(db_path: &Path) -> Result<SqliteConnection, String> {
@@ -2077,8 +2162,93 @@ fn run_migrations(connection: &mut SqliteConnection) -> Result<(), String> {
         ensure_url_credential_capture_columns(connection)?;
     }
 
+    if current < 7 {
+        ensure_wiki_tables(connection)?;
+    }
+
     connection
         .execute_batch(&format!("PRAGMA user_version = {SCHEMA_USER_VERSION}"))
+        .map_err(to_storage_error)?;
+    Ok(())
+}
+
+fn ensure_wiki_tables(connection: &mut SqliteConnection) -> Result<(), String> {
+    // CURRENT_SCHEMA already creates these with IF NOT EXISTS, but databases that
+    // were initialized before v7 may have run CURRENT_SCHEMA from an older binary
+    // and missed them. Run the wiki block explicitly so upgrade paths are safe.
+    connection
+        .execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS wiki_pages (
+                id TEXT PRIMARY KEY,
+                parent_id TEXT REFERENCES wiki_pages(id) ON DELETE CASCADE,
+                title TEXT NOT NULL,
+                slug TEXT NOT NULL,
+                body_md TEXT NOT NULL DEFAULT '',
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_wiki_pages_parent_sort
+                ON wiki_pages(parent_id, sort_order);
+
+            CREATE INDEX IF NOT EXISTS idx_wiki_pages_slug
+                ON wiki_pages(slug);
+
+            CREATE TABLE IF NOT EXISTS wiki_page_links (
+                page_id TEXT NOT NULL REFERENCES wiki_pages(id) ON DELETE CASCADE,
+                target_page_id TEXT NOT NULL REFERENCES wiki_pages(id) ON DELETE CASCADE,
+                PRIMARY KEY (page_id, target_page_id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_wiki_page_links_target
+                ON wiki_page_links(target_page_id);
+
+            CREATE TABLE IF NOT EXISTS wiki_page_connections (
+                page_id TEXT NOT NULL REFERENCES wiki_pages(id) ON DELETE CASCADE,
+                connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+                PRIMARY KEY (page_id, connection_id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_wiki_page_connections_connection
+                ON wiki_page_connections(connection_id);
+
+            CREATE VIRTUAL TABLE IF NOT EXISTS wiki_pages_fts USING fts5(
+                title,
+                body_md,
+                content='wiki_pages',
+                content_rowid='rowid',
+                tokenize='unicode61'
+            );
+
+            CREATE TRIGGER IF NOT EXISTS wiki_pages_ai AFTER INSERT ON wiki_pages BEGIN
+                INSERT INTO wiki_pages_fts(rowid, title, body_md) VALUES (new.rowid, new.title, new.body_md);
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS wiki_pages_ad AFTER DELETE ON wiki_pages BEGIN
+                INSERT INTO wiki_pages_fts(wiki_pages_fts, rowid, title, body_md) VALUES('delete', old.rowid, old.title, old.body_md);
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS wiki_pages_au AFTER UPDATE ON wiki_pages BEGIN
+                INSERT INTO wiki_pages_fts(wiki_pages_fts, rowid, title, body_md) VALUES('delete', old.rowid, old.title, old.body_md);
+                INSERT INTO wiki_pages_fts(rowid, title, body_md) VALUES (new.rowid, new.title, new.body_md);
+            END;
+
+            CREATE TABLE IF NOT EXISTS wiki_attachments (
+                id TEXT PRIMARY KEY,
+                page_id TEXT NOT NULL REFERENCES wiki_pages(id) ON DELETE CASCADE,
+                filename TEXT NOT NULL,
+                relative_path TEXT NOT NULL,
+                mime TEXT,
+                bytes INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_wiki_attachments_page
+                ON wiki_attachments(page_id);
+            "#,
+        )
         .map_err(to_storage_error)?;
     Ok(())
 }

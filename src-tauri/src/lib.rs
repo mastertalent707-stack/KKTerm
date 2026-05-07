@@ -15,6 +15,7 @@ mod storage;
 mod telnet;
 mod vnc;
 mod webview;
+mod wiki;
 mod window_state;
 
 use serde::{Deserialize, Serialize};
@@ -1015,6 +1016,105 @@ fn send_vnc_ctrl_alt_delete(
     vnc_sessions.send_ctrl_alt_delete(request)
 }
 
+#[tauri::command]
+fn list_wiki_tree(
+    storage: tauri::State<'_, storage::Storage>,
+) -> Result<wiki::WikiTree, String> {
+    wiki::list_wiki_tree(&storage)
+}
+
+#[tauri::command]
+fn get_wiki_page(
+    storage: tauri::State<'_, storage::Storage>,
+    page_id: String,
+) -> Result<wiki::WikiPage, String> {
+    wiki::get_wiki_page(&storage, page_id)
+}
+
+#[tauri::command]
+fn create_wiki_page(
+    storage: tauri::State<'_, storage::Storage>,
+    request: wiki::CreateWikiPageRequest,
+) -> Result<wiki::WikiPage, String> {
+    wiki::create_wiki_page(&storage, request)
+}
+
+#[tauri::command]
+fn update_wiki_page(
+    storage: tauri::State<'_, storage::Storage>,
+    request: wiki::UpdateWikiPageRequest,
+) -> Result<wiki::WikiPage, String> {
+    wiki::update_wiki_page(&storage, request)
+}
+
+#[tauri::command]
+fn delete_wiki_page(
+    storage: tauri::State<'_, storage::Storage>,
+    paths: tauri::State<'_, wiki::WikiPaths>,
+    page_id: String,
+) -> Result<(), String> {
+    wiki::delete_wiki_page(&storage, &paths, page_id)
+}
+
+#[tauri::command]
+fn move_wiki_page(
+    storage: tauri::State<'_, storage::Storage>,
+    request: wiki::MoveWikiPageRequest,
+) -> Result<wiki::WikiTree, String> {
+    wiki::move_wiki_page(&storage, request)
+}
+
+#[tauri::command]
+fn search_wiki(
+    storage: tauri::State<'_, storage::Storage>,
+    query: String,
+    limit: Option<u32>,
+) -> Result<Vec<wiki::WikiSearchHit>, String> {
+    wiki::search_wiki(&storage, query, limit.unwrap_or(20))
+}
+
+#[tauri::command]
+fn list_wiki_pages_for_connection(
+    storage: tauri::State<'_, storage::Storage>,
+    connection_id: String,
+) -> Result<Vec<wiki::WikiPageReference>, String> {
+    wiki::list_wiki_pages_for_connection(&storage, connection_id)
+}
+
+#[tauri::command]
+fn save_wiki_attachment(
+    storage: tauri::State<'_, storage::Storage>,
+    paths: tauri::State<'_, wiki::WikiPaths>,
+    request: wiki::SaveWikiAttachmentRequest,
+) -> Result<wiki::WikiAttachment, String> {
+    wiki::save_wiki_attachment(&storage, &paths, request)
+}
+
+#[tauri::command]
+fn delete_wiki_attachment(
+    storage: tauri::State<'_, storage::Storage>,
+    paths: tauri::State<'_, wiki::WikiPaths>,
+    request: wiki::DeleteWikiAttachmentRequest,
+) -> Result<(), String> {
+    wiki::delete_wiki_attachment(&storage, &paths, request)
+}
+
+#[tauri::command]
+fn export_wiki_zip(
+    storage: tauri::State<'_, storage::Storage>,
+    paths: tauri::State<'_, wiki::WikiPaths>,
+    dest_path: String,
+) -> Result<wiki::WikiExportInfo, String> {
+    wiki::export_wiki_zip(&storage, &paths, std::path::PathBuf::from(dest_path))
+}
+
+#[tauri::command]
+fn get_wiki_attachments_folder(
+    paths: tauri::State<'_, wiki::WikiPaths>,
+) -> Result<String, String> {
+    Ok(paths.root().display().to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     logging::init();
@@ -1024,13 +1124,14 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let db_path = app
+            let app_data_dir = app
                 .path()
                 .app_data_dir()
                 .map_err(|error| {
                     setup_error(format!("failed to resolve app data directory: {error}"))
-                })?
-                .join("admin-deck.sqlite3");
+                })?;
+            let db_path = app_data_dir.join("admin-deck.sqlite3");
+            let wiki_paths = wiki::WikiPaths::new(app_data_dir);
             let storage = storage::Storage::open(db_path).map_err(setup_error)?;
             let main_window_settings = storage.main_window_settings().map_err(setup_error)?;
             if let Err(error) = storage.backup_if_enabled_for_startup() {
@@ -1049,6 +1150,7 @@ pub fn run() {
             app.manage(webview::WebviewSessionManager::new());
             app.manage(rdp::RdpSessionManager::new());
             app.manage(vnc::VncSessionManager::new());
+            app.manage(wiki_paths);
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -1167,7 +1269,19 @@ pub fn run() {
             refresh_vnc_session,
             close_vnc_session,
             get_vnc_session_status,
-            send_vnc_ctrl_alt_delete
+            send_vnc_ctrl_alt_delete,
+            list_wiki_tree,
+            get_wiki_page,
+            create_wiki_page,
+            update_wiki_page,
+            delete_wiki_page,
+            move_wiki_page,
+            search_wiki,
+            list_wiki_pages_for_connection,
+            save_wiki_attachment,
+            delete_wiki_attachment,
+            export_wiki_zip,
+            get_wiki_attachments_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running AdminDeck");
