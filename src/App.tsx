@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, LayoutDashboard, Settings } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, LayoutDashboard, Settings } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,8 @@ import { AssistantPanel } from "./ai/AssistantPanel";
 import { ConnectionSidebar } from "./connections/ConnectionSidebar";
 import { StatusBar } from "./workspace/StatusBar";
 import { TabStrip, WorkspaceCanvas } from "./workspace/WorkspaceCanvas";
+import { WikiWorkspace } from "./wiki/WikiWorkspace";
+import { useOpenWikiListener } from "./wiki/WikiPagesButton";
 
 type PanelLayoutState = {
   collapsed: boolean;
@@ -102,15 +104,23 @@ function removeLayoutStorageKeys() {
   }
 }
 
+type ActivePage = "workspace" | "wiki" | "settings";
+
 function App() {
   const { t } = useTranslation();
-  const [activePage, setActivePage] = useState<"workspace" | "settings">("workspace");
+  const [activePage, setActivePage] = useState<ActivePage>("workspace");
+  const [wikiInitialPageId, setWikiInitialPageId] = useState<string | null>(null);
   const appearanceSettings = useWorkspaceStore((state) => state.appearanceSettings);
   const setFrontendLaunchMs = useWorkspaceStore((state) => state.setFrontendLaunchMs);
   const setPerformanceSnapshot = useWorkspaceStore((state) => state.setPerformanceSnapshot);
   const appShellRef = useRef<HTMLDivElement | null>(null);
   const resetAllLayouts = useWorkspaceStore((state) => state.resetAllLayouts);
   useBootstrapSettings();
+
+  useOpenWikiListener((pageId) => {
+    setWikiInitialPageId(pageId);
+    setActivePage("wiki");
+  });
 
   const [connectionPanelLayout, setConnectionPanelLayout] = useState(() =>
     loadPanelLayout(
@@ -260,9 +270,14 @@ function App() {
         onConnectionsRestore={() =>
           setConnectionPanelLayout((layout) => ({ ...layout, collapsed: false }))
         }
-        onNavigate={setActivePage}
+        onNavigate={(page) => {
+          if (page !== "wiki") {
+            setWikiInitialPageId(null);
+          }
+          setActivePage(page);
+        }}
       />
-      <div className="workspace-page" aria-hidden={activePage === "settings"}>
+      <div className="workspace-page" aria-hidden={activePage !== "workspace"}>
         <ConnectionSidebar
           collapsed={connectionPanelLayout.collapsed}
           onToggleCollapsed={() =>
@@ -309,6 +324,15 @@ function App() {
           }
         />
       </div>
+      {activePage === "wiki" ? (
+        <div className="wiki-page" role="region" aria-label={t("wiki.title")}>
+          <WikiWorkspace
+            active={activePage === "wiki"}
+            initialPageId={wikiInitialPageId}
+            onOpenConnection={() => setActivePage("workspace")}
+          />
+        </div>
+      ) : null}
       {activePage === "settings" ? (
         <SettingsPage
           onBack={() => setActivePage("workspace")}
@@ -381,10 +405,10 @@ function ActivityRail({
   onConnectionsRestore,
   onNavigate,
 }: {
-  activePage: "workspace" | "settings";
+  activePage: ActivePage;
   connectionsCollapsed: boolean;
   onConnectionsRestore: () => void;
-  onNavigate: (page: "workspace" | "settings") => void;
+  onNavigate: (page: ActivePage) => void;
 }) {
   const { t } = useTranslation();
 
@@ -407,6 +431,16 @@ function ActivityRail({
         <LayoutDashboard size={18} />
         <span className="rail-tooltip" role="tooltip">
           {t("app.connections")}
+        </span>
+      </button>
+      <button
+        className={`rail-button ${activePage === "wiki" ? "active" : ""}`}
+        aria-label={t("app.wiki")}
+        onClick={() => onNavigate("wiki")}
+      >
+        <BookOpen size={18} />
+        <span className="rail-tooltip" role="tooltip">
+          {t("app.wiki")}
         </span>
       </button>
       <button

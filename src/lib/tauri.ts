@@ -34,6 +34,17 @@ import type {
   UpdateConnectionRequest,
   UrlCredentialSummary,
   UrlDataPartitionSummary,
+  CreateWikiPageRequest,
+  DeleteWikiAttachmentRequest,
+  MoveWikiPageRequest,
+  SaveWikiAttachmentRequest,
+  UpdateWikiPageRequest,
+  WikiAttachment,
+  WikiExportInfo,
+  WikiPage,
+  WikiPageReference,
+  WikiSearchHit,
+  WikiTree,
 } from "../types";
 
 type BrowserFileHandle = {
@@ -955,6 +966,54 @@ type CommandMap = {
     args: { request: VncSimpleRequest };
     result: null;
   };
+  list_wiki_tree: {
+    args: undefined;
+    result: WikiTree;
+  };
+  get_wiki_page: {
+    args: { pageId: string };
+    result: WikiPage;
+  };
+  create_wiki_page: {
+    args: { request: CreateWikiPageRequest };
+    result: WikiPage;
+  };
+  update_wiki_page: {
+    args: { request: UpdateWikiPageRequest };
+    result: WikiPage;
+  };
+  delete_wiki_page: {
+    args: { pageId: string };
+    result: null;
+  };
+  move_wiki_page: {
+    args: { request: MoveWikiPageRequest };
+    result: WikiTree;
+  };
+  search_wiki: {
+    args: { query: string; limit?: number };
+    result: WikiSearchHit[];
+  };
+  list_wiki_pages_for_connection: {
+    args: { connectionId: string };
+    result: WikiPageReference[];
+  };
+  save_wiki_attachment: {
+    args: { request: SaveWikiAttachmentRequest };
+    result: WikiAttachment;
+  };
+  delete_wiki_attachment: {
+    args: { request: DeleteWikiAttachmentRequest };
+    result: null;
+  };
+  export_wiki_zip: {
+    args: { destPath: string };
+    result: WikiExportInfo;
+  };
+  get_wiki_attachments_folder: {
+    args: undefined;
+    result: string;
+  };
 };
 
 export function invokeCommand<Name extends keyof CommandMap>(
@@ -1097,6 +1156,33 @@ export function isTauriRuntime() {
     "__TAURI_INTERNALS__" in
       (window as Window & { __TAURI_INTERNALS__?: unknown })
   );
+}
+
+export async function selectWikiExportPath(defaultFilename: string) {
+  if (!isTauriRuntime()) {
+    return null;
+  }
+  const path = await saveDialog({
+    defaultPath: defaultFilename,
+    filters: [{ name: "AdminDeck wiki export", extensions: ["zip"] }],
+    title: "Export wiki",
+  });
+  return typeof path === "string" ? path : null;
+}
+
+export async function selectWikiAttachmentFiles() {
+  if (!isTauriRuntime()) {
+    return [] as string[];
+  }
+  const selection = await openDialog({
+    directory: false,
+    multiple: true,
+    title: "Attach files to wiki page",
+  });
+  if (Array.isArray(selection)) {
+    return selection;
+  }
+  return typeof selection === "string" ? [selection] : [];
 }
 
 export async function openFilesystemPath(path: string) {
