@@ -246,6 +246,15 @@ export interface SshHostKeyPreview {
   status: "trusted" | "unknown" | "changed";
 }
 
+export interface GeneratedSshKeyPair {
+  privateKeyPath: string;
+  publicKeyPath: string;
+}
+
+export interface TransferSshPublicKeyResult {
+  publicKeyPath: string;
+}
+
 export interface CommandProposalPlan {
   prompt: string;
   command: string;
@@ -597,6 +606,23 @@ type CommandMap = {
   update_ssh_settings: {
     args: { request: SshSettings };
     result: SshSettings;
+  };
+  generate_ssh_key_pair: {
+    args: { request: { email: string } };
+    result: GeneratedSshKeyPair;
+  };
+  transfer_ssh_public_key: {
+    args: {
+      request: {
+        host: string;
+        port?: number;
+        username: string;
+        password: string;
+        keyPath?: string;
+        proxyJump?: string;
+      };
+    };
+    result: TransferSshPublicKeyResult;
   };
   get_sftp_settings: {
     args: undefined;

@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react";
-import { FolderOpen, Save } from "lucide-react";
+import { FolderOpen, KeyRound, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { ConnectionIcon } from "../connections/ConnectionIcon";
 import { invokeCommand, isTauriRuntime, selectKeyFile } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
-import type {
-  SftpOverwriteBehavior,
-  SftpSettings as SftpSettingsType,
-  SshSettings as SshSettingsType,
-} from "../types";
+import type { SshSettings as SshSettingsType } from "../types";
 
 function normalizeSshSettingsDraft(settings: SshSettingsType, t: TFunction): SshSettingsType {
   const defaultUser = settings.defaultUser.trim();
@@ -35,24 +31,15 @@ function normalizeSshSettingsDraft(settings: SshSettingsType, t: TFunction): Ssh
 export function SshSettings() {
   const { t } = useTranslation();
   const sshSettings = useWorkspaceStore((state) => state.sshSettings);
-  const sftpSettings = useWorkspaceStore((state) => state.sftpSettings);
   const setSshSettings = useWorkspaceStore((state) => state.setSshSettings);
-  const setSftpSettings = useWorkspaceStore((state) => state.setSftpSettings);
   const [sshDraft, setSshDraft] = useState(sshSettings);
-  const [sftpDraft, setSftpDraft] = useState(sftpSettings);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-  const hasChanges =
-    JSON.stringify(sshDraft) !== JSON.stringify(sshSettings) ||
-    JSON.stringify(sftpDraft) !== JSON.stringify(sftpSettings);
+  const hasChanges = JSON.stringify(sshDraft) !== JSON.stringify(sshSettings);
 
   useEffect(() => {
     setSshDraft(sshSettings);
   }, [sshSettings]);
-
-  useEffect(() => {
-    setSftpDraft(sftpSettings);
-  }, [sftpSettings]);
 
   async function handleBrowseKeyFile() {
     setStatus("");
@@ -71,24 +58,48 @@ export function SshSettings() {
     }
   }
 
+  async function handleGenerateKeyPair() {
+    const email = window.prompt(t("settings.sshKeyEmailPrompt"))?.trim();
+    if (!email) {
+      return;
+    }
+    try {
+      setError("");
+      setStatus("");
+      const generated = await invokeCommand("generate_ssh_key_pair", {
+        request: { email },
+      });
+      const nextSettings = {
+        ...sshDraft,
+        defaultKeyPath: generated.privateKeyPath,
+      };
+      const normalized = normalizeSshSettingsDraft(nextSettings, t);
+      const saved = isTauriRuntime()
+        ? await invokeCommand("update_ssh_settings", { request: normalized })
+        : normalized;
+      setSshSettings(saved);
+      setSshDraft(saved);
+      setStatus(
+        t("settings.sshKeyGenerated", {
+          privateKeyPath: generated.privateKeyPath,
+          publicKeyPath: generated.publicKeyPath,
+        }),
+      );
+    } catch (generateError) {
+      setError(generateError instanceof Error ? generateError.message : String(generateError));
+    }
+  }
+
   async function handleSave() {
     try {
       setError("");
       setStatus("");
       const nextSshSettings = normalizeSshSettingsDraft(sshDraft, t);
-      const nextSftpSettings: SftpSettingsType = {
-        overwriteBehavior: sftpDraft.overwriteBehavior,
-      };
-      const [savedSshSettings, savedSftpSettings] = isTauriRuntime()
-        ? await Promise.all([
-            invokeCommand("update_ssh_settings", { request: nextSshSettings }),
-            invokeCommand("update_sftp_settings", { request: nextSftpSettings }),
-          ])
-        : [nextSshSettings, nextSftpSettings];
+      const savedSshSettings = isTauriRuntime()
+        ? await invokeCommand("update_ssh_settings", { request: nextSshSettings })
+        : nextSshSettings;
       setSshSettings(savedSshSettings);
-      setSftpSettings(savedSftpSettings);
       setSshDraft(savedSshSettings);
-      setSftpDraft(savedSftpSettings);
       setStatus(t("settings.sshDefaultsSaved"));
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : String(saveError));
@@ -116,7 +127,7 @@ export function SshSettings() {
         </button>
       </div>
 
-      <div className="form-grid three-columns">
+      <div className="form-grid ssh-default-basic-grid">
         <label>
           <span>{t("settings.defaultUser")}</span>
           <input
@@ -150,29 +161,12 @@ export function SshSettings() {
           />
           <small className="field-hint">{t("settings.defaultSshPortHint")}</small>
         </label>
-        <label>
-          <span>{t("settings.sftpOverwrite")}</span>
-          <select
-            onChange={(event) => {
-              const overwriteBehavior = event.currentTarget.value as SftpOverwriteBehavior;
-              setSftpDraft((settings) => ({
-                ...settings,
-                overwriteBehavior,
-              }));
-            }}
-            value={sftpDraft.overwriteBehavior}
-          >
-            <option value="fail">{t("settings.fail")}</option>
-            <option value="overwrite">{t("settings.overwrite")}</option>
-          </select>
-          <small className="field-hint">{t("settings.sftpOverwriteHint")}</small>
-        </label>
       </div>
 
       <div className="form-grid ssh-default-path-grid">
         <label>
           <span>{t("settings.defaultKey")}</span>
-          <div className="input-with-button">
+          <div className="input-with-button ssh-key-input-actions">
             <input
               onChange={(event) => {
                 const defaultKeyPath = event.currentTarget.value;
@@ -191,6 +185,14 @@ export function SshSettings() {
             >
               <FolderOpen size={15} />
               {t("connections.browse")}
+            </button>
+            <button
+              className="toolbar-button"
+              onClick={() => void handleGenerateKeyPair()}
+              type="button"
+            >
+              <KeyRound size={15} />
+              {t("settings.generateSshKey")}
             </button>
           </div>
           <small className="field-hint">{t("settings.defaultKeyHint")}</small>

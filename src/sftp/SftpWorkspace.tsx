@@ -98,7 +98,6 @@ type FilePropertiesState = {
 };
 
 export function SftpWorkspace({ isActive, tab }: { isActive: boolean; tab: WorkspaceTab }) {
-  const sftpSettings = useWorkspaceStore((state) => state.sftpSettings);
   const openTerminalHere = useWorkspaceStore((state) => state.openTerminalHere);
   const connection = tab.connection;
   const workspaceRef = useRef<HTMLElement | null>(null);
@@ -545,7 +544,7 @@ export function SftpWorkspace({ isActive, tab }: { isActive: boolean; tab: Works
     const nextTransfers: TransferRecord[] = [];
 
     for (const file of selected) {
-      let overwriteBehavior: SftpSettings["overwriteBehavior"] = sftpSettings.overwriteBehavior;
+      let overwriteBehavior: SftpSettings["overwriteBehavior"] = "fail";
       if (destinationHasVisibleConflict(direction, file.name)) {
         if (!batchOverwriteAll) {
           const decision = await promptTransferConflict({

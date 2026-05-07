@@ -11,6 +11,7 @@ mod sessions;
 mod sftp;
 mod ssh;
 mod ssh_config;
+mod ssh_keys;
 mod storage;
 mod telnet;
 mod vnc;
@@ -355,6 +356,24 @@ fn update_ssh_settings(
     request: storage::SshSettings,
 ) -> Result<storage::SshSettings, String> {
     storage.update_ssh_settings(request)
+}
+
+#[tauri::command]
+fn generate_ssh_key_pair(
+    request: ssh_keys::GenerateSshKeyPairRequest,
+) -> Result<ssh_keys::GeneratedSshKeyPair, String> {
+    ssh_keys::generate_key_pair(request)
+}
+
+#[tauri::command]
+async fn transfer_ssh_public_key(
+    app: tauri::AppHandle,
+    request: ssh_keys::TransferSshPublicKeyRequest,
+) -> Result<ssh_keys::TransferSshPublicKeyResult, String> {
+    run_blocking_command("SSH public key transfer", move || {
+        ssh_keys::transfer_public_key(app, request)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -1203,6 +1222,8 @@ pub fn run() {
             list_custom_fonts,
             get_ssh_settings,
             update_ssh_settings,
+            generate_ssh_key_pair,
+            transfer_ssh_public_key,
             get_sftp_settings,
             update_sftp_settings,
             get_ai_provider_settings,

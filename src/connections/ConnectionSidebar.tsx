@@ -1,8 +1,8 @@
 import { ConnectionIcon } from "./ConnectionIcon";
 import { ImportDialog } from "./ImportDialog";
-import { defaultPortForConnectionType, connectionSubtitle, connectionTypeLabel, isRemoteDesktopConnectionType, localShellOptionsForPlatform, uniqueRuntimeId, type LocalShellOption } from "./utils";
+import { confirmTrustedSshHostKey, defaultPortForConnectionType, connectionSubtitle, connectionTypeLabel, isRemoteDesktopConnectionType, localShellOptionsForPlatform, uniqueRuntimeId, type LocalShellOption } from "./utils";
 import { collectConnectionFolderIds, countConnections, countFolders, filterConnectionTree, flattenConnections, flattenFolders, upsertRootConnection, withLiveConnectionStatuses } from "./treeUtils";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronDown, ChevronRight, Download, Folder, FolderPlus, PanelRight, Play, Plus, Save, Search, Server, Terminal, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronDown, ChevronRight, Download, Folder, FolderPlus, KeyRound, PanelRight, Play, Plus, Save, Search, Server, Terminal, X } from "lucide-react";
 import { AddComputer as IconParkAddComputer, CollapseTextInput as IconParkCollapseTextInput, Delete as IconParkDelete, Edit as IconParkEdit, ExpandTextInput as IconParkExpandTextInput, FolderPlus as IconParkFolderPlus, Setting as IconParkSetting } from "@icon-park/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
@@ -70,6 +70,11 @@ type EditConnectionState = {
   folderId?: string;
 };
 
+type TransferSshPublicKeyDialogState = {
+  connection: Connection;
+  keyPath?: string;
+};
+
 type ConnectionDialogRequest = CreateConnectionRequest & {
   password?: string;
   urlCredentialUsername?: string;
@@ -132,6 +137,7 @@ export function ConnectionSidebar({
   const [formMode, setFormMode] = useState<"save" | "quick" | null>(null);
   const [formError, setFormError] = useState("");
   const [treeError, setTreeError] = useState("");
+  const [treeStatus, setTreeStatus] = useState("");
   const [quickConnectMenuOpen, setQuickConnectMenuOpen] = useState(false);
   const [recentConnectionIds, setRecentConnectionIds] = useState(loadRecentConnectionIds);
   const [dropTarget, setDropTarget] = useState("");
@@ -141,6 +147,9 @@ export function ConnectionSidebar({
   const [pendingFolderDraft, setPendingFolderDraft] = useState<PendingFolderDraft | null>(null);
   const [treeContextMenu, setTreeContextMenu] = useState<TreeContextMenuState | null>(null);
   const [editConnection, setEditConnection] = useState<EditConnectionState | null>(null);
+  const [transferSshPublicKeyDialog, setTransferSshPublicKeyDialog] =
+    useState<TransferSshPublicKeyDialogState | null>(null);
+  const [transferSshPublicKeyError, setTransferSshPublicKeyError] = useState("");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<
     | { kind: "connection"; connection: Connection }
@@ -252,6 +261,43 @@ export function ConnectionSidebar({
     }
     rememberConnection(connection);
     addConnectionToTerminalPane(activeTab.id, connection, direction);
+  }
+
+  async function handleTransferSshPublicKey(username: string, password: string) {
+    if (!transferSshPublicKeyDialog) {
+      return;
+    }
+    const { connection, keyPath } = transferSshPublicKeyDialog;
+    setTreeError("");
+    setTreeStatus("");
+    setTransferSshPublicKeyError("");
+    if (connection.proxyJump?.trim()) {
+      setTransferSshPublicKeyError(t("connections.transferSshPublicKeyProxyJumpUnsupported"));
+      return;
+    }
+    try {
+      const hostKeyPreview = await invokeCommand("inspect_ssh_host_key", {
+        request: {
+          host: connection.host,
+          port: connection.port,
+        },
+      });
+      await confirmTrustedSshHostKey(hostKeyPreview);
+      const result = await invokeCommand("transfer_ssh_public_key", {
+        request: {
+          host: connection.host,
+          port: connection.port,
+          username,
+          password,
+          keyPath,
+          proxyJump: connection.proxyJump,
+        },
+      });
+      setTransferSshPublicKeyDialog(null);
+      setTreeStatus(t("connections.transferSshPublicKeyComplete", { path: result.publicKeyPath }));
+    } catch (error) {
+      setTransferSshPublicKeyError(error instanceof Error ? error.message : String(error));
+    }
   }
 
   function handleQuickLocalShell(option: LocalShellOption) {
@@ -963,6 +1009,7 @@ export function ConnectionSidebar({
           <IconParkExpandTextInput size={13} />
         </button>
       </div>
+      {treeStatus ? <p className="tree-status">{treeStatus}</p> : null}
       {treeError ? <p className="form-error tree-error">{treeError}</p> : null}
 
       <div
@@ -1075,6 +1122,19 @@ export function ConnectionSidebar({
               handleAddConnectionToFocusedPane(menu.connection, direction);
             }
           }}
+          onTransferSshPublicKey={() => {
+            const menu = treeContextMenu;
+            setTreeContextMenu(null);
+            if (menu.kind === "connection" && menu.connection.type === "ssh") {
+              setTreeError("");
+              setTreeStatus("");
+              setTransferSshPublicKeyDialog({
+                connection: menu.connection,
+                keyPath: menu.connection.keyPath ?? sshSettings.defaultKeyPath,
+              });
+              setTransferSshPublicKeyError("");
+            }
+          }}
         />
       ) : null}
 
@@ -1141,6 +1201,14 @@ export function ConnectionSidebar({
             }
           }}
           target={confirmDeleteTarget}
+        />
+      ) : null}
+      {transferSshPublicKeyDialog ? (
+        <TransferSshPublicKeyDialog
+          connection={transferSshPublicKeyDialog.connection}
+          error={transferSshPublicKeyError}
+          onCancel={() => setTransferSshPublicKeyDialog(null)}
+          onSubmit={(username, password) => void handleTransferSshPublicKey(username, password)}
         />
       ) : null}
     </aside>
@@ -1395,6 +1463,7 @@ function TreeContextMenu({
   onProperties,
   onRename,
   onAddToPane,
+  onTransferSshPublicKey,
 }: {
   menu: TreeContextMenuState;
   canAddToPane: boolean;
@@ -1405,6 +1474,7 @@ function TreeContextMenu({
   onProperties: () => void;
   onRename: () => void;
   onAddToPane: (direction: SplitDirection) => void;
+  onTransferSshPublicKey: () => void;
 }) {
   const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -1503,6 +1573,12 @@ function TreeContextMenu({
                 </button>
               </div>
             </div>
+          ) : null}
+          {menu.connection.type === "ssh" ? (
+            <button onClick={onTransferSshPublicKey} role="menuitem" type="button">
+              <KeyRound className="menu-item-icon" size={15} />
+              <span>{t("connections.transferSshPublicKey")}</span>
+            </button>
           ) : null}
           <button onClick={onProperties} role="menuitem" type="button">
             <IconParkSetting className="menu-item-icon" size={15} />
@@ -2336,6 +2412,79 @@ function ConfirmDeleteDialog({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function TransferSshPublicKeyDialog({
+  connection,
+  error,
+  onCancel,
+  onSubmit,
+}: {
+  connection: Connection;
+  error: string;
+  onCancel: () => void;
+  onSubmit: (username: string, password: string) => void | Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const [username, setUsername] = useState(connection.user);
+  const [password, setPassword] = useState("");
+  const canSubmit = Boolean(username.trim()) && password.length > 0;
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canSubmit) {
+      return;
+    }
+    void onSubmit(username.trim(), password);
+  }
+
+  return (
+    <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
+      <form className="connection-dialog ssh-public-key-dialog" onSubmit={handleSubmit}>
+        <header className="connection-dialog-header compact">
+          <div>
+            <p className="panel-label">{t("connections.transferSshPublicKey")}</p>
+            <h2>{connection.name}</h2>
+          </div>
+          <button className="icon-button" type="button" aria-label={t("connections.close")} onClick={onCancel}>
+            <X size={15} />
+          </button>
+        </header>
+        <p className="field-hint">{t("connections.transferSshPublicKeyHint")}</p>
+        {error ? <p className="form-error">{error}</p> : null}
+        <div className="form-grid">
+          <label>
+            <span>{t("connections.user")}*</span>
+            <input
+              autoComplete="username"
+              onChange={(event) => setUsername(event.currentTarget.value)}
+              required
+              value={username}
+            />
+          </label>
+          <label>
+            <span>{t("connections.passwordLabel")}*</span>
+            <input
+              autoComplete="current-password"
+              onChange={(event) => setPassword(event.currentTarget.value)}
+              required
+              type="password"
+              value={password}
+            />
+          </label>
+        </div>
+        <div className="dialog-actions">
+          <button className="approve-button" disabled={!canSubmit} type="submit">
+            <KeyRound size={15} />
+            {t("connections.transferSshPublicKeyAction")}
+          </button>
+          <button className="toolbar-button" type="button" onClick={onCancel}>
+            {t("connections.cancel")}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

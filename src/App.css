@@ -4539,6 +4539,10 @@ progress {
   min-width: 0;
 }
 
+.input-with-button.ssh-key-input-actions {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
 .input-with-button .toolbar-button {
   height: 34px;
   padding: 0 12px;
@@ -4696,6 +4700,10 @@ progress {
   grid-template-columns: minmax(280px, 1.35fr) minmax(220px, 0.65fr);
 }
 
+.form-grid.ssh-default-basic-grid {
+  grid-template-columns: minmax(180px, 1fr) minmax(120px, 160px);
+}
+
 .ai-provider-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4727,6 +4735,14 @@ progress {
   color: var(--red);
   font-size: 12px;
   line-height: 1.4;
+}
+
+.tree-status {
+  margin: 0;
+  color: var(--green);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .import-dialog {

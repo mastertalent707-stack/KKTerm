@@ -6,6 +6,16 @@ When a key is translated into every supported locale, remove its entry from this
 
 ## Pending Strings
 
+### settings.sshDefaults
+- **English value:** SSH defaults
+- **Namespace:** `settings`
+- **File/component:** `src/settings/SshSettings.tsx`
+- **UI role:** section heading
+- **Flow/context:** Settings → SSH section heading for default SSH Connection form values. It previously mentioned SFTP, but the SFTP overwrite setting was removed because transfer conflicts now ask at upload/download time.
+- **Tone:** Short settings heading.
+- **Placeholders:** None.
+- **Domain notes:** SSH stays English; this heading no longer covers SFTP behavior.
+
 ### settings.defaultKeyPlaceholder
 - **English value:** C:\Users\ryan\.ssh\id_ed25519
 - **Namespace:** `settings`
@@ -71,10 +81,40 @@ When a key is translated into every supported locale, remove its entry from this
 - **Namespace:** `settings`
 - **File/component:** `src/settings/SshSettings.tsx`
 - **UI role:** success status
-- **Flow/context:** Shown after saving Settings → SSH defaults, including SFTP overwrite behavior if changed.
+- **Flow/context:** Shown after saving Settings → SSH defaults.
 - **Tone:** Brief confirmation.
 - **Placeholders:** None.
 - **Domain notes:** SSH stays English.
+
+### settings.generateSshKey
+- **English value:** Generate key
+- **Namespace:** `settings`
+- **File/component:** `src/settings/SshSettings.tsx`
+- **UI role:** button
+- **Flow/context:** Settings → SSH → Default key; generates a new SSH key pair in the current user's `.ssh` folder and stores the private key path as the default key.
+- **Tone:** Short action label.
+- **Placeholders:** None.
+- **Domain notes:** Means SSH key pair generation, not API keys.
+
+### settings.sshKeyEmailPrompt
+- **English value:** Email for the SSH key comment:
+- **Namespace:** `settings`
+- **File/component:** `src/settings/SshSettings.tsx`
+- **UI role:** prompt
+- **Flow/context:** Browser prompt shown before generating a new SSH key pair; the email becomes the public key comment via `ssh-keygen -C`.
+- **Tone:** Direct prompt.
+- **Placeholders:** None.
+- **Domain notes:** SSH and email address format stay literal.
+
+### settings.sshKeyGenerated
+- **English value:** SSH key generated. Private: {{privateKeyPath}} Public: {{publicKeyPath}}
+- **Namespace:** `settings`
+- **File/component:** `src/settings/SshSettings.tsx`
+- **UI role:** success status
+- **Flow/context:** Shown after generating a key pair and saving the generated private key path as the SSH default key.
+- **Tone:** Concise confirmation with paths.
+- **Placeholders:** `{{privateKeyPath}}` is the generated private key path; `{{publicKeyPath}}` is the generated `.pub` file path.
+- **Domain notes:** SSH stays English. Do not imply the private key content is shown or copied.
 
 ### settings.proxyJumpPlaceholder
 - **English value:** bastion.example.com
@@ -96,15 +136,55 @@ When a key is translated into every supported locale, remove its entry from this
 - **Placeholders:** None.
 - **Domain notes:** Use Connection terminology; ProxyJump and SSH stay English.
 
-### settings.sftpOverwriteHint
-- **English value:** Default behavior when an SFTP upload targets an existing remote file.
-- **Namespace:** `settings`
-- **File/component:** `src/settings/SshSettings.tsx`
-- **UI role:** field hint
-- **Flow/context:** Shown under the SFTP overwrite dropdown in Settings → SSH.
-- **Tone:** Concise explanatory settings text.
+### connections.transferSshPublicKey
+- **English value:** TransferSSH pub key
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ConnectionSidebar.tsx`
+- **UI role:** context menu item and dialog title
+- **Flow/context:** Right-click an SSH Connection in the connection tree to install the selected local public key into the remote user's `authorized_keys`.
+- **Tone:** User-requested label, compact action text.
 - **Placeholders:** None.
-- **Domain notes:** SFTP stays English.
+- **Domain notes:** "pub key" means SSH public key. Keep SSH English; preserve the product label unless intentionally renamed.
+
+### connections.transferSshPublicKeyAction
+- **English value:** Transfer key
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ConnectionSidebar.tsx`
+- **UI role:** dialog submit button
+- **Flow/context:** Submits the username/password prompt to transfer the SSH public key to the selected SSH Connection.
+- **Tone:** Short action label.
+- **Placeholders:** None.
+- **Domain notes:** Only the public key is transferred; private keys must never be copied.
+
+### connections.transferSshPublicKeyHint
+- **English value:** Transfers only the selected public key to the remote user's authorized_keys using password authentication.
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ConnectionSidebar.tsx`
+- **UI role:** dialog hint
+- **Flow/context:** Explains the right-click SSH public key transfer dialog before the user enters a username and password.
+- **Tone:** Clear security note.
+- **Placeholders:** None.
+- **Domain notes:** `authorized_keys` is a literal SSH file name and should stay unchanged.
+
+### connections.transferSshPublicKeyComplete
+- **English value:** SSH public key transferred from {{path}}.
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ConnectionSidebar.tsx`
+- **UI role:** success status
+- **Flow/context:** Shown after the backend installs the public key on the remote host.
+- **Tone:** Brief confirmation.
+- **Placeholders:** `{{path}}` is the local `.pub` path read by the backend.
+- **Domain notes:** SSH stays English. This should never mention private key content.
+
+### connections.transferSshPublicKeyProxyJumpUnsupported
+- **English value:** TransferSSH pub key does not support ProxyJump connections yet.
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ConnectionSidebar.tsx`
+- **UI role:** inline error
+- **Flow/context:** Shown when the selected SSH Connection uses ProxyJump; the transfer flow is blocked instead of attempting a direct connection to the target host.
+- **Tone:** Direct and bounded.
+- **Placeholders:** None.
+- **Domain notes:** "TransferSSH pub key" and ProxyJump are SSH/product terms and should stay recognizable.
 
 ### settings.customFonts
 - **English value:** Custom fonts
