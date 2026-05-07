@@ -8,6 +8,8 @@ pub struct CaptureScreenshotRequest {
     y: f64,
     width: f64,
     height: f64,
+    #[serde(default)]
+    max_dimension: Option<u32>,
 }
 
 #[derive(Serialize)]
@@ -41,11 +43,16 @@ pub fn capture_rect_for_assistant(
     let target = capture_target(app, request)?;
     let dib =
         platform::capture_screen_rect_to_dib(target.x, target.y, target.width, target.height)?;
-    let data_url = platform::dib_to_png_data_url(&dib, target.width as u32, target.height as u32)?;
+    let result = platform::dib_to_jpeg_data_url(
+        &dib,
+        target.width as u32,
+        target.height as u32,
+        request.max_dimension,
+    )?;
     Ok(AssistantScreenshot {
-        data_url,
-        width: target.width as u32,
-        height: target.height as u32,
+        data_url: result.data_url,
+        width: result.width,
+        height: result.height,
     })
 }
 
@@ -111,7 +118,7 @@ mod platform {
     use std::{ffi::c_void, mem, ptr};
 
     use base64::{engine::general_purpose::STANDARD, Engine as _};
-    use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
+    use image::{codecs::jpeg::JpegEncoder, imageops, ColorType, ImageEncoder};
     use windows_sys::Win32::{
         Foundation::{GlobalFree, HANDLE, HWND},
         Graphics::Gdi::{
@@ -176,7 +183,18 @@ mod platform {
         }
     }
 
-    pub fn dib_to_png_data_url(dib: &[u8], width: u32, height: u32) -> Result<String, String> {
+    pub struct JpegResult {
+        pub data_url: String,
+        pub width: u32,
+        pub height: u32,
+    }
+
+    pub fn dib_to_jpeg_data_url(
+        dib: &[u8],
+        width: u32,
+        height: u32,
+        max_dimension: Option<u32>,
+    ) -> Result<JpegResult, String> {
         let header_size = mem::size_of::<BITMAPINFOHEADER>();
         let expected_len = header_size + width as usize * height as usize * 4;
         if dib.len() < expected_len {
@@ -184,19 +202,48 @@ mod platform {
         }
 
         let pixels = &dib[header_size..expected_len];
-        let mut rgba = Vec::with_capacity(width as usize * height as usize * 4);
+        let mut rgb = Vec::with_capacity(width as usize * height as usize * 3);
         for bgra in pixels.chunks_exact(4) {
-            rgba.push(bgra[2]);
-            rgba.push(bgra[1]);
-            rgba.push(bgra[0]);
-            rgba.push(255);
+            rgb.push(bgra[2]);
+            rgb.push(bgra[1]);
+            rgb.push(bgra[0]);
         }
 
-        let mut png = Vec::new();
-        PngEncoder::new(&mut png)
-            .write_image(&rgba, width, height, ColorType::Rgba8.into())
-            .map_err(|error| format!("failed to encode screenshot for AI Assistant: {error}"))?;
-        Ok(format!("data:image/png;base64,{}", STANDARD.encode(png)))
+        if let Some(max_dim) = max_dimension {
+            let longer = width.max(height);
+            if longer > max_dim {
+                let scale = max_dim as f64 / longer as f64;
+                let new_w = ((width as f64) * scale).round() as u32;
+                let new_h = ((height as f64) * scale).round() as u32;
+                let img = image::RgbImage::from_raw(width, height, rgb)
+                    .ok_or("failed to construct image buffer for downscale")?;
+                let resized = imageops::resize(
+                    &img,
+                    new_w,
+                    new_h,
+                    imageops::FilterType::Triangle,
+                );
+                let mut jpeg = Vec::new();
+                JpegEncoder::new_with_quality(&mut jpeg, 75)
+                    .write_image(resized.as_raw(), new_w, new_h, ColorType::Rgb8.into())
+                    .map_err(|error| format!("failed to encode JPEG: {error}"))?;
+                return Ok(JpegResult {
+                    data_url: format!("data:image/jpeg;base64,{}", STANDARD.encode(jpeg)),
+                    width: new_w,
+                    height: new_h,
+                });
+            }
+        }
+
+        let mut jpeg = Vec::new();
+        JpegEncoder::new_with_quality(&mut jpeg, 80)
+            .write_image(&rgb, width, height, ColorType::Rgb8.into())
+            .map_err(|error| format!("failed to encode JPEG: {error}"))?;
+        Ok(JpegResult {
+            data_url: format!("data:image/jpeg;base64,{}", STANDARD.encode(jpeg)),
+            width,
+            height,
+        })
     }
 
     unsafe fn bitmap_to_dib(

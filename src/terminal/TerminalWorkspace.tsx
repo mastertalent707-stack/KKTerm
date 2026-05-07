@@ -759,6 +759,22 @@ function TerminalPaneView({
   }, [actionsMenuOpen, splitMenuOpen]);
 
   useEffect(() => {
+    function handleExternalPointerDown(event: PointerEvent) {
+      const renderer = terminalRendererRef.current;
+      const target = event.target as Node | null;
+      if (!renderer || !target || paneRef.current?.contains(target)) {
+        return;
+      }
+
+      renderer.blur();
+      focusExternalPointerTarget(target);
+    }
+
+    document.addEventListener("pointerdown", handleExternalPointerDown, true);
+    return () => document.removeEventListener("pointerdown", handleExternalPointerDown, true);
+  }, []);
+
+  useEffect(() => {
     const element = terminalElementRef.current;
     const connection = pane.connection;
     if (!element || !connection || startedRef.current) {
@@ -770,7 +786,7 @@ function TerminalPaneView({
     terminalRendererRef.current = terminal;
     terminal.open(element);
     terminal.fit();
-    terminal.focus();
+    focusTerminalUnlessExternalInputIsActive(terminal, paneRef.current);
     terminal.attachCustomKeyEventHandler((event) => {
       if (event.type !== "keydown" || !event.ctrlKey) {
         return true;
@@ -823,7 +839,6 @@ function TerminalPaneView({
       void invokeCommand("write_terminal_input", {
         request: { sessionId, data: encodeTerminalInput(data) },
       });
-      terminal.focus();
     };
     registerPaneInputWriter(pane.id, writeInputToSession);
     const dataDisposable = terminal.onData((data) => {
@@ -1070,7 +1085,7 @@ function TerminalPaneView({
       }
 
       fitAndResizeRef.current();
-      renderer.focus();
+      focusTerminalUnlessExternalInputIsActive(renderer, paneRef.current);
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -1651,6 +1666,109 @@ function terminalSessionTypeFor(connection: Connection): "local" | "ssh" | "teln
     connection.type === "serial"
     ? connection.type
     : "ssh";
+}
+
+function focusTerminalUnlessExternalInputIsActive(
+  renderer: TerminalRenderer,
+  paneElement: HTMLElement | null,
+) {
+  if (shouldPreserveExternalFocus(paneElement)) {
+    return;
+  }
+
+  renderer.focus();
+}
+
+function shouldPreserveExternalFocus(paneElement: HTMLElement | null) {
+  const activeElement = document.activeElement;
+  if (!(activeElement instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (activeElement === document.body || activeElement === document.documentElement) {
+    return false;
+  }
+
+  if (paneElement?.contains(activeElement)) {
+    return false;
+  }
+
+  if (activeElement.closest(".assistant-panel")) {
+    return true;
+  }
+
+  return isEditableElement(activeElement);
+}
+
+function isEditableElement(element: HTMLElement) {
+  if (element.isContentEditable) {
+    return true;
+  }
+
+  return (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement
+  );
+}
+
+function focusExternalPointerTarget(target: Node) {
+  const focusTarget = focusableElementForPointerTarget(target);
+  if (!focusTarget) {
+    return;
+  }
+
+  const focus = () => {
+    if (!focusTarget.isConnected || document.activeElement === focusTarget) {
+      return;
+    }
+
+    focusTarget.focus({ preventScroll: true });
+  };
+
+  queueMicrotask(focus);
+  window.requestAnimationFrame(focus);
+}
+
+function focusableElementForPointerTarget(target: Node) {
+  const element = target instanceof HTMLElement ? target : target.parentElement;
+  if (!element) {
+    return null;
+  }
+
+  if (isFocusableElement(element)) {
+    return element;
+  }
+
+  const label = element.closest("label");
+  if (label instanceof HTMLLabelElement && label.control instanceof HTMLElement) {
+    return label.control;
+  }
+
+  return element.closest<HTMLElement>(
+    'input, textarea, select, button, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]',
+  );
+}
+
+function isFocusableElement(element: HTMLElement) {
+  if (element instanceof HTMLButtonElement) {
+    return !element.disabled;
+  }
+
+  if (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement
+  ) {
+    return !element.disabled;
+  }
+
+  if (element.isContentEditable) {
+    return true;
+  }
+
+  const tabIndex = element.getAttribute("tabindex");
+  return tabIndex !== null && tabIndex !== "-1";
 }
 
 function normalizeAssistantContextText(text: string) {

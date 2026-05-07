@@ -464,6 +464,7 @@ interface WorkspaceState {
   aiProviderSettings: AiProviderSettings;
   aiProviderHasApiKey: boolean;
   assistantContextSnippet?: AssistantContextSnippet;
+  rdpPreCaptureSignal: number;
   activeSessionCounts: Record<string, number>;
   performanceMetrics: PerformanceMetrics;
   setQuery: (query: string) => void;
@@ -476,6 +477,7 @@ interface WorkspaceState {
   setAiProviderHasApiKey: (hasApiKey: boolean) => void;
   setAssistantContextSnippet: (snippet: AssistantContextSnippet) => void;
   clearAssistantContextSnippet: () => void;
+  requestRdpPreCapture: () => void;
   setFrontendLaunchMs: (frontendLaunchMs: number) => void;
   setPerformanceSnapshot: (snapshot: PerformanceSnapshot) => void;
   recordTerminalStartMetric: (metric: TerminalStartMetric) => void;
@@ -527,6 +529,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   aiProviderSettings: defaultAiProviderSettings,
   aiProviderHasApiKey: false,
   assistantContextSnippet: undefined,
+  rdpPreCaptureSignal: 0,
   activeSessionCounts: {},
   performanceMetrics: {},
   setQuery: (query) => set({ query }),
@@ -541,6 +544,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({ assistantContextSnippet }),
   clearAssistantContextSnippet: () =>
     set({ assistantContextSnippet: undefined }),
+  requestRdpPreCapture: () =>
+    set((state) => ({ rdpPreCaptureSignal: state.rdpPreCaptureSignal + 1 })),
   setFrontendLaunchMs: (frontendLaunchMs) =>
     set((state) => ({
       performanceMetrics: {

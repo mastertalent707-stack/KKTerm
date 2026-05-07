@@ -36,6 +36,7 @@ export interface TerminalRenderer {
   readonly backend: TerminalRendererBackend;
   readonly capabilities: readonly TerminalRendererCapability[];
   readonly dimensions: TerminalDimensions;
+  blur: () => void;
   clearSearch: () => void;
   dispose: () => void;
   fit: () => TerminalDimensions;
@@ -153,6 +154,10 @@ class XtermTerminalRenderer implements TerminalRenderer {
 
   focus() {
     this.terminal.focus();
+  }
+
+  blur() {
+    this.terminal.blur();
   }
 
   attachCustomKeyEventHandler(handler: (event: KeyboardEvent) => boolean) {

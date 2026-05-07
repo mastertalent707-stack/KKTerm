@@ -20,10 +20,12 @@ export function ScreenshotMenu({
   buttonClassName = "icon-button",
   targetRef,
   targetLabel,
+  onPreCapture,
 }: {
   buttonClassName?: string;
   targetRef: RefObject<HTMLElement | null>;
   targetLabel?: string;
+  onPreCapture?: () => void;
 }) {
   const { t } = useTranslation();
   const setAssistantContextSnippet = useWorkspaceStore(
@@ -208,6 +210,7 @@ export function ScreenshotMenu({
           {...menuButtonAria(menuOpen)}
           className={buttonClassName}
           onClick={handleButtonClick}
+          onMouseEnter={() => onPreCapture?.()}
           title={copiedStatus || t("workspace.takeScreenshot")}
           type="button"
         >

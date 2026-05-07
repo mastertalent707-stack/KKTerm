@@ -365,6 +365,7 @@ function normalizeDateString(value: unknown) {
 const ASSISTANT_CHAT_HISTORY_KEY = "admindeck.aiAssistant.chatHistory.v1";
 
 export function AssistantPanel({
+  collapsed,
   onOpenSettings,
   onToggleCollapsed,
 }: {
@@ -376,6 +377,7 @@ export function AssistantPanel({
   const activeTab = useWorkspaceStore((state) =>
     state.tabs.find((tab) => tab.id === state.activeTabId),
   );
+  const requestRdpPreCapture = useWorkspaceStore((state) => state.requestRdpPreCapture);
   const assistantContextSnippet = useWorkspaceStore((state) => state.assistantContextSnippet);
   const clearAssistantContextSnippet = useWorkspaceStore(
     (state) => state.clearAssistantContextSnippet,
@@ -400,6 +402,7 @@ export function AssistantPanel({
   const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const addContextMenuRef = useRef<HTMLDivElement | null>(null);
   const activeAssistantRequestIdRef = useRef(0);
+  const wasCollapsedRef = useRef(collapsed);
   const contextLabel = activeTab
     ? `${activeTab.title} - ${workspaceKindLabel(activeTab)}`
     : t("ai.noActiveSession");
@@ -440,6 +443,20 @@ export function AssistantPanel({
   useEffect(() => {
     writeAssistantChatHistory(chatHistory);
   }, [chatHistory]);
+
+  useEffect(() => {
+    const wasCollapsed = wasCollapsedRef.current;
+    wasCollapsedRef.current = collapsed;
+    if (!wasCollapsed || collapsed || isSendingPrompt) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      composerTextareaRef.current?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [collapsed, isSendingPrompt]);
 
   useEffect(() => {
     if (currentModelSupportsImageInput) {
@@ -1156,6 +1173,14 @@ export function AssistantPanel({
               className="assistant-plus-button"
               disabled={isSendingPrompt}
               onClick={() => setAddContextMenuOpen((open) => !open)}
+              onMouseEnter={() => {
+                if (
+                  activeTab?.kind === "remoteDesktop" &&
+                  activeTab.connection?.type === "rdp"
+                ) {
+                  requestRdpPreCapture();
+                }
+              }}
               type="button"
               aria-label={t("ai.addContext")}
               title={t("ai.addContext")}
