@@ -347,8 +347,8 @@ fn parse_rdcman(text: &str) -> ImportFilePreview {
     let mut warnings: Vec<String> = Vec::new();
 
     let mut folder_stack: Vec<String> = Vec::new();
-    let mut group_pending_name = false;
-    let mut server_pending_name = false;
+    let mut group_in_properties = false;
+    let mut group_property_tag: Option<String> = None;
     let mut in_server = false;
     let mut current_server: Option<RdcmanServer> = None;
 
@@ -359,27 +359,32 @@ fn parse_rdcman(text: &str) -> ImportFilePreview {
                 if self_closing {
                     continue;
                 }
-                if tag == "group" {
+                if tag == "group" || tag == "ruggedizedgroup" || tag == "smartgroup" {
                     folder_stack.push(String::new());
-                    group_pending_name = true;
                 } else if tag == "server" {
                     in_server = true;
                     current_server = Some(RdcmanServer::default());
-                } else if tag == "properties" && (group_pending_name || in_server) {
+                } else if tag == "properties" {
                     if in_server {
-                        server_pending_name = true;
+                        // server's <properties>: tag tracking handled below
+                    } else if !folder_stack.is_empty() {
+                        group_in_properties = true;
                     }
                 } else if in_server {
                     if let Some(ref mut server) = current_server {
                         server.current_tag = Some(tag);
                     }
+                } else if group_in_properties {
+                    group_property_tag = Some(tag);
                 }
             }
             XmlEvent::Text(text) => {
-                if group_pending_name {
-                    if let Some(slot) = folder_stack.last_mut() {
-                        if slot.is_empty() {
-                            *slot = text.trim().to_string();
+                if group_in_properties {
+                    if group_property_tag.as_deref() == Some("name") {
+                        if let Some(slot) = folder_stack.last_mut() {
+                            if slot.is_empty() {
+                                *slot = text.trim().to_string();
+                            }
                         }
                     }
                 } else if in_server {
@@ -393,13 +398,11 @@ fn parse_rdcman(text: &str) -> ImportFilePreview {
             XmlEvent::CloseTag { name } => {
                 let tag = name.to_ascii_lowercase();
                 if tag == "properties" {
-                    if group_pending_name {
-                        group_pending_name = false;
+                    if group_in_properties {
+                        group_in_properties = false;
+                        group_property_tag = None;
                     }
-                    if server_pending_name {
-                        server_pending_name = false;
-                    }
-                } else if tag == "group" {
+                } else if tag == "group" || tag == "ruggedizedgroup" || tag == "smartgroup" {
                     if !folder_stack.is_empty() {
                         folder_stack.pop();
                     }
@@ -415,6 +418,8 @@ fn parse_rdcman(text: &str) -> ImportFilePreview {
                     if let Some(ref mut server) = current_server {
                         server.current_tag = None;
                     }
+                } else if group_in_properties {
+                    group_property_tag = None;
                 }
             }
         }
@@ -1137,6 +1142,62 @@ mod tests {
         assert_eq!(draft.port, Some(3390));
         assert_eq!(draft.connection_type, "rdp");
         assert_eq!(draft.folder_path, vec!["Production".to_string()]);
+    }
+
+    #[test]
+    fn parses_rdcman_nested_groups_with_expanded_property_first() {
+        let text = r#"<?xml version="1.0" encoding="utf-8"?>
+<RDCMan>
+  <file>
+    <properties><expanded>True</expanded><name>RootFile</name></properties>
+    <group>
+      <properties>
+        <expanded>True</expanded>
+        <name>Production</name>
+        <comment />
+      </properties>
+      <group>
+        <properties>
+          <expanded>False</expanded>
+          <name>Web Tier</name>
+        </properties>
+        <server>
+          <properties>
+            <displayName>Web 01</displayName>
+            <name>web01.example.com</name>
+          </properties>
+        </server>
+      </group>
+      <server>
+        <properties>
+          <displayName>DB 01</displayName>
+          <name>db01.example.com</name>
+        </properties>
+      </server>
+    </group>
+  </file>
+</RDCMan>"#;
+        let preview = parse_rdcman(text);
+        assert_eq!(preview.drafts.len(), 2);
+        assert!(preview
+            .drafts
+            .iter()
+            .all(|draft| !draft.folder_path.iter().any(|segment| segment == "True")));
+        let web = preview
+            .drafts
+            .iter()
+            .find(|draft| draft.host == "web01.example.com")
+            .expect("web01 draft missing");
+        assert_eq!(
+            web.folder_path,
+            vec!["Production".to_string(), "Web Tier".to_string()]
+        );
+        let db = preview
+            .drafts
+            .iter()
+            .find(|draft| draft.host == "db01.example.com")
+            .expect("db01 draft missing");
+        assert_eq!(db.folder_path, vec!["Production".to_string()]);
     }
 
     #[test]

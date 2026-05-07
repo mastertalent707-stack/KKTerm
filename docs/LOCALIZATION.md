@@ -45,3 +45,73 @@ When a key is translated into every supported locale, remove its entry from this
 - **Tone:** Helpful empty state.
 - **Placeholders:** None.
 - **Domain notes:** Keep file extensions verbatim and mention the literal `fonts` folder.
+
+### connections.import.setUsernameButton
+- **English value:** Set username
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ImportDialog.tsx` Bulk credential toolbar
+- **UI role:** Button
+- **Flow/context:** Connection import preview: opens a popover to enter a username and apply it to selected rows.
+- **Tone:** Concise, imperative.
+- **Placeholders:** None.
+- **Domain notes:** Replaces a denser inline form. Pairs with `setPasswordButton`.
+
+### connections.import.setPasswordButton
+- **English value:** Set password
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ImportDialog.tsx` Bulk credential toolbar
+- **UI role:** Button
+- **Flow/context:** Mirrors the username flow; applies a password to selected rows.
+- **Tone:** Concise, imperative.
+- **Placeholders:** None.
+- **Domain notes:** Pairs with `setUsernameButton`.
+
+### connections.import.bulkScopeAll
+- **English value:** Apply to all selected
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ImportDialog.tsx` Bulk credential popover
+- **UI role:** Radio label
+- **Flow/context:** Choice within the Set username / Set password popover that overwrites every selected row.
+- **Tone:** Plain.
+- **Placeholders:** None.
+- **Domain notes:** Mutually exclusive with `bulkScopeUnfilled`.
+
+### connections.import.bulkScopeUnfilled
+- **English value:** Only fill unfilled entries
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ImportDialog.tsx` Bulk credential popover
+- **UI role:** Radio label
+- **Flow/context:** Sibling of `bulkScopeAll`; only writes to selected rows whose value is empty.
+- **Tone:** Plain.
+- **Placeholders:** None.
+- **Domain notes:** "Entry" here means a selected import row.
+
+### connections.import.bulkApply
+- **English value:** Apply
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ImportDialog.tsx` Bulk credential popover
+- **UI role:** Button
+- **Flow/context:** Confirms the bulk username/password assignment.
+- **Tone:** Concise, imperative.
+- **Placeholders:** None.
+- **Domain notes:** Differs from generic Save/OK; specific to the popover.
+
+### connections.import.bulkCancel
+- **English value:** Cancel
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ImportDialog.tsx` Bulk credential popover
+- **UI role:** Button
+- **Flow/context:** Dismisses the popover without applying.
+- **Tone:** Concise, imperative.
+- **Placeholders:** None.
+- **Domain notes:** Maps to the standard cancel verb.
+
+### connections.import.bulkPasswordRequired
+- **English value:** Enter a password to apply.
+- **Namespace:** `connections`
+- **File/component:** `src/connections/ImportDialog.tsx` Bulk credential popover
+- **UI role:** Inline error
+- **Flow/context:** Shown when the user clicks Apply without entering a password.
+- **Tone:** Plain, instructive.
+- **Placeholders:** None.
+- **Domain notes:** Mirrors `bulkUserRequired`.

@@ -471,8 +471,9 @@ function ImportPreviewSection({
   const [newFolderName, setNewFolderName] = useState(
     suggestFolderName(format),
   );
-  const [bulkUser, setBulkUser] = useState("");
-  const [bulkPassword, setBulkPassword] = useState("");
+  const [bulkField, setBulkField] = useState<"user" | "password" | null>(null);
+  const [bulkValue, setBulkValue] = useState("");
+  const [bulkScope, setBulkScope] = useState<"all" | "empty">("empty");
   const [importing, setImporting] = useState(false);
 
   const folderOptions = useMemo(() => flattenFolders(tree.folders), [tree]);
@@ -490,28 +491,57 @@ function ImportPreviewSection({
     );
   }
 
-  function setSelectedUsers(mode: "empty" | "all") {
-    const user = bulkUser.trim();
-    if (!user) {
-      onError(t("connections.import.bulkUserRequired"));
-      return;
-    }
-    onCandidatesChange(
-      candidates.map((row) => {
-        if (!row.selected || (mode === "empty" && row.user.trim())) {
-          return row;
-        }
-        return { ...row, user };
-      }),
-    );
+  function openBulkField(field: "user" | "password") {
+    onError("");
+    setBulkField(field);
+    setBulkValue("");
+    setBulkScope("empty");
   }
 
-  function setSelectedPasswords() {
-    onCandidatesChange(
-      candidates.map((row) =>
-        row.selected ? { ...row, password: bulkPassword } : row,
-      ),
-    );
+  function closeBulkField() {
+    setBulkField(null);
+    setBulkValue("");
+  }
+
+  function applyBulkField() {
+    if (!bulkField) {
+      return;
+    }
+    if (bulkField === "user") {
+      const user = bulkValue.trim();
+      if (!user) {
+        onError(t("connections.import.bulkUserRequired"));
+        return;
+      }
+      onCandidatesChange(
+        candidates.map((row) => {
+          if (!row.selected) {
+            return row;
+          }
+          if (bulkScope === "empty" && row.user.trim()) {
+            return row;
+          }
+          return { ...row, user };
+        }),
+      );
+    } else {
+      if (!bulkValue) {
+        onError(t("connections.import.bulkPasswordRequired"));
+        return;
+      }
+      onCandidatesChange(
+        candidates.map((row) => {
+          if (!row.selected) {
+            return row;
+          }
+          if (bulkScope === "empty" && row.password) {
+            return row;
+          }
+          return { ...row, password: bulkValue };
+        }),
+      );
+    }
+    closeBulkField();
   }
 
   async function resolveFolderPath(
@@ -648,49 +678,107 @@ function ImportPreviewSection({
       </div>
 
       <div className="import-bulk-actions">
-        <label className="import-field import-bulk-field">
-          <span>{t("connections.import.bulkUserLabel")}</span>
-          <input
-            onChange={(event) => setBulkUser(event.currentTarget.value)}
-            placeholder={t("connections.import.bulkUserPlaceholder")}
-            type="text"
-            value={bulkUser}
-          />
-        </label>
         <button
+          aria-expanded={bulkField === "user"}
           className="toolbar-button"
           disabled={selectedCount === 0}
-          onClick={() => setSelectedUsers("empty")}
+          onClick={() =>
+            bulkField === "user" ? closeBulkField() : openBulkField("user")
+          }
           type="button"
         >
-          {t("connections.import.fillEmptyUsers")}
+          {t("connections.import.setUsernameButton")}
         </button>
         <button
+          aria-expanded={bulkField === "password"}
           className="toolbar-button"
           disabled={selectedCount === 0}
-          onClick={() => setSelectedUsers("all")}
+          onClick={() =>
+            bulkField === "password"
+              ? closeBulkField()
+              : openBulkField("password")
+          }
           type="button"
         >
-          {t("connections.import.setSelectedUsers")}
-        </button>
-        <label className="import-field import-bulk-field">
-          <span>{t("connections.import.bulkPasswordLabel")}</span>
-          <input
-            onChange={(event) => setBulkPassword(event.currentTarget.value)}
-            placeholder={t("connections.import.bulkPasswordPlaceholder")}
-            type="password"
-            value={bulkPassword}
-          />
-        </label>
-        <button
-          className="toolbar-button"
-          disabled={selectedCount === 0}
-          onClick={setSelectedPasswords}
-          type="button"
-        >
-          {t("connections.import.setSelectedPasswords")}
+          {t("connections.import.setPasswordButton")}
         </button>
       </div>
+
+      {bulkField ? (
+        <div
+          className="import-bulk-popover"
+          role="group"
+          aria-label={
+            bulkField === "user"
+              ? t("connections.import.setUsernameButton")
+              : t("connections.import.setPasswordButton")
+          }
+        >
+          <label className="import-field import-bulk-field">
+            <span>
+              {bulkField === "user"
+                ? t("connections.import.bulkUserLabel")
+                : t("connections.import.bulkPasswordLabel")}
+            </span>
+            <input
+              autoFocus
+              onChange={(event) => setBulkValue(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyBulkField();
+                } else if (event.key === "Escape") {
+                  event.preventDefault();
+                  closeBulkField();
+                }
+              }}
+              placeholder={
+                bulkField === "user"
+                  ? t("connections.import.bulkUserPlaceholder")
+                  : t("connections.import.bulkPasswordPlaceholder")
+              }
+              type={bulkField === "user" ? "text" : "password"}
+              value={bulkValue}
+            />
+          </label>
+          <div className="import-bulk-scope" role="radiogroup">
+            <label className="import-bulk-scope-option">
+              <input
+                checked={bulkScope === "empty"}
+                name="import-bulk-scope"
+                onChange={() => setBulkScope("empty")}
+                type="radio"
+              />
+              <span>{t("connections.import.bulkScopeUnfilled")}</span>
+            </label>
+            <label className="import-bulk-scope-option">
+              <input
+                checked={bulkScope === "all"}
+                name="import-bulk-scope"
+                onChange={() => setBulkScope("all")}
+                type="radio"
+              />
+              <span>{t("connections.import.bulkScopeAll")}</span>
+            </label>
+          </div>
+          <div className="import-bulk-popover-actions">
+            <button
+              className="approve-button"
+              onClick={applyBulkField}
+              type="button"
+            >
+              {t("connections.import.bulkApply")}
+            </button>
+            <button
+              className="toolbar-button"
+              onClick={closeBulkField}
+              type="button"
+            >
+              {t("connections.import.bulkCancel")}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="import-preview-table-wrapper">
         <table className="import-preview-table">

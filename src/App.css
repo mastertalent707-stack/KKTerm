@@ -210,8 +210,10 @@ button {
     )
     minmax(0, 1fr) var(--ai-resize-width, 1px)
     var(--ai-panel-width, 334px);
+  grid-template-rows: minmax(0, 1fr);
   height: 100vh;
   min-width: 1120px;
+  overflow: hidden;
   color: var(--text);
   font-family: var(--app-ui-font-family);
   background: var(--app-bg);
@@ -300,6 +302,7 @@ button {
 .connection-sidebar,
 .assistant-panel {
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
   background: var(--chrome);
   border-right: 1px solid var(--border);
@@ -310,7 +313,9 @@ button {
   flex-direction: column;
   position: relative;
   z-index: 70;
-  overflow: visible;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
   padding: 18px 14px;
 }
 
@@ -334,7 +339,7 @@ button {
   place-items: center;
   min-width: 1px;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   padding: 0;
   color: var(--text-faint);
   background: var(--border);
@@ -343,7 +348,7 @@ button {
 
 .connection-collapsed-separator {
   width: 1px;
-  height: 100vh;
+  height: 100%;
   background: var(--border);
 }
 
@@ -993,6 +998,8 @@ h2 {
   display: grid;
   grid-template-rows: 38px minmax(0, 1fr) 28px;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   background: var(--chrome-strong);
 }
 
@@ -4923,12 +4930,27 @@ progress {
 }
 
 .import-bulk-actions {
-  display: grid;
-  grid-template-columns: minmax(150px, 1fr) auto auto minmax(150px, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  align-items: end;
+  align-items: center;
   padding: 10px;
   background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.import-bulk-actions .toolbar-button {
+  white-space: nowrap;
+}
+
+.import-bulk-popover {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 10px 12px;
+  align-items: end;
+  padding: 12px;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 7px;
 }
@@ -4941,10 +4963,36 @@ progress {
   width: 100%;
 }
 
-@media (max-width: 900px) {
-  .import-bulk-actions {
+.import-bulk-scope {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+
+.import-bulk-scope-option {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.import-bulk-popover-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-self: end;
+}
+
+@media (max-width: 720px) {
+  .import-bulk-popover {
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .import-bulk-popover-actions {
+    justify-self: stretch;
   }
 }
 
