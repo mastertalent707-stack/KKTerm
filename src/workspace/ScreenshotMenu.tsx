@@ -4,13 +4,11 @@ import type { KeyboardEvent, PointerEvent as ReactPointerEvent, RefObject } from
 import { useTranslation } from "react-i18next";
 import { menuButtonAria } from "../lib/aria";
 import { invokeCommand, isTauriRuntime, type CaptureScreenshotRequest } from "../lib/tauri";
-import { useWorkspaceStore } from "../store";
 
 type ScreenshotRect = CaptureScreenshotRequest;
 
 type ScreenshotRegionState = {
   bounds: DOMRect;
-  destination: "assistant" | "clipboard";
   pointerId?: number;
   start?: { x: number; y: number };
   current?: { x: number; y: number };
@@ -19,7 +17,7 @@ type ScreenshotRegionState = {
 export function ScreenshotMenu({
   buttonClassName = "icon-button",
   targetRef,
-  targetLabel,
+  targetLabel: _targetLabel,
   onPreCapture,
 }: {
   buttonClassName?: string;
@@ -28,16 +26,12 @@ export function ScreenshotMenu({
   onPreCapture?: () => void;
 }) {
   const { t } = useTranslation();
-  const setAssistantContextSnippet = useWorkspaceStore(
-    (state) => state.setAssistantContextSnippet,
-  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [regionState, setRegionState] = useState<ScreenshotRegionState | null>(null);
   const [copiedStatus, setCopiedStatus] = useState("");
   const menuRef = useRef<HTMLDivElement | null>(null);
   const regionTargetRef = useRef<HTMLDivElement | null>(null);
   const regionSelectionRef = useRef<HTMLDivElement | null>(null);
-  const resolvedTargetLabel = targetLabel ?? t("workspace.workspaceSurface");
 
   useEffect(() => {
     if (!menuOpen) {
@@ -53,7 +47,7 @@ export function ScreenshotMenu({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [menuOpen]);
 
-  async function captureRect(rect: ScreenshotRect, destination: "assistant" | "clipboard") {
+  async function captureRect(rect: ScreenshotRect) {
     if (!isTauriRuntime()) {
       window.alert(t("workspace.screenshotsRequireRuntime"));
       return;
@@ -61,24 +55,8 @@ export function ScreenshotMenu({
 
     try {
       await waitForScreenshotSurface();
-      if (destination === "assistant") {
-        const screenshot = await invokeCommand("capture_screenshot_for_assistant", {
-          request: rect,
-        });
-        setAssistantContextSnippet({
-          id: `screenshot-${Date.now()}`,
-          kind: "screenshot",
-          sourceLabel: `${resolvedTargetLabel} ${t("workspace.screenshot")}`,
-          imageDataUrl: screenshot.dataUrl,
-          width: screenshot.width,
-          height: screenshot.height,
-          capturedAt: new Date().toISOString(),
-        });
-        setCopiedStatus(t("workspace.sentToAi"));
-      } else {
-        await invokeCommand("capture_screenshot_to_clipboard", { request: rect });
-        setCopiedStatus(t("workspace.copied"));
-      }
+      await invokeCommand("capture_screenshot_to_clipboard", { request: rect });
+      setCopiedStatus(t("workspace.copied"));
       window.setTimeout(() => setCopiedStatus(""), 1600);
     } catch (error) {
       window.alert(
@@ -101,22 +79,22 @@ export function ScreenshotMenu({
     return bounds;
   }
 
-  function handleEntirePanel(destination: "assistant" | "clipboard") {
+  function handleEntirePanel() {
     setMenuOpen(false);
     const bounds = targetBounds();
     if (!bounds) {
       return;
     }
-    void captureRect(rectFromBounds(bounds), destination);
+    void captureRect(rectFromBounds(bounds));
   }
 
-  function handleRegion(destination: "assistant" | "clipboard") {
+  function handleRegion() {
     setMenuOpen(false);
     const bounds = targetBounds();
     if (!bounds) {
       return;
     }
-    setRegionState({ bounds, destination });
+    setRegionState({ bounds });
   }
 
   function handleButtonClick() {
@@ -158,7 +136,7 @@ export function ScreenshotMenu({
     if (rect.width < 4 || rect.height < 4) {
       return;
     }
-    void captureRect(rect, regionState.destination);
+    void captureRect(rect);
   }
 
   function handleRegionKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -220,7 +198,7 @@ export function ScreenshotMenu({
           <div className="terminal-menu screenshot-menu" role="menu">
             <button
               className="terminal-menu-item"
-              onClick={() => handleRegion("clipboard")}
+              onClick={handleRegion}
               role="menuitem"
               type="button"
             >
@@ -228,27 +206,11 @@ export function ScreenshotMenu({
             </button>
             <button
               className="terminal-menu-item"
-              onClick={() => handleEntirePanel("clipboard")}
+              onClick={handleEntirePanel}
               role="menuitem"
               type="button"
             >
               {t("workspace.copyEntirePanel")}
-            </button>
-            <button
-              className="terminal-menu-item"
-              onClick={() => handleRegion("assistant")}
-              role="menuitem"
-              type="button"
-            >
-              {t("workspace.sendRegionToAi")}
-            </button>
-            <button
-              className="terminal-menu-item"
-              onClick={() => handleEntirePanel("assistant")}
-              role="menuitem"
-              type="button"
-            >
-              {t("workspace.sendEntirePanelToAi")}
             </button>
           </div>
         ) : null}

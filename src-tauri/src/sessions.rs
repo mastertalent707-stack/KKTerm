@@ -870,10 +870,13 @@ fn tmux_close_command(tmux_session_id: &str) -> String {
     )
 }
 
+const DEFAULT_TMUX_CAPTURE_HISTORY_LINES: u32 = 5_000;
+
 fn tmux_capture_pane_command(tmux_session_id: &str) -> String {
     format!(
-        "if ! command -v tmux >/dev/null 2>&1; then printf 'tmux is not available on the remote host\\n' >&2; exit 127; fi; tmux capture-pane -p -S - -t {}:",
-        shell_single_quote(tmux_session_id)
+        "if ! command -v tmux >/dev/null 2>&1; then printf 'tmux is not available on the remote host\\n' >&2; exit 127; fi; tmux capture-pane -p -S -{} -t {}:",
+        DEFAULT_TMUX_CAPTURE_HISTORY_LINES,
+        shell_single_quote(tmux_session_id),
     )
 }
 
@@ -1243,7 +1246,7 @@ mod tests {
     fn tmux_capture_pane_command_targets_session_history() {
         assert_eq!(
             tmux_capture_pane_command("admindeck-test"),
-            "if ! command -v tmux >/dev/null 2>&1; then printf 'tmux is not available on the remote host\\n' >&2; exit 127; fi; tmux capture-pane -p -S - -t 'admindeck-test':"
+            "if ! command -v tmux >/dev/null 2>&1; then printf 'tmux is not available on the remote host\\n' >&2; exit 127; fi; tmux capture-pane -p -S -5000 -t 'admindeck-test':"
         );
     }
 
@@ -1251,7 +1254,7 @@ mod tests {
     fn tmux_capture_pane_command_quotes_session_id() {
         assert_eq!(
             tmux_capture_pane_command("admindeck-test'quoted"),
-            "if ! command -v tmux >/dev/null 2>&1; then printf 'tmux is not available on the remote host\\n' >&2; exit 127; fi; tmux capture-pane -p -S - -t 'admindeck-test'\\''quoted':"
+            "if ! command -v tmux >/dev/null 2>&1; then printf 'tmux is not available on the remote host\\n' >&2; exit 127; fi; tmux capture-pane -p -S -5000 -t 'admindeck-test'\\''quoted':"
         );
     }
 }

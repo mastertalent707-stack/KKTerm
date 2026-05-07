@@ -735,7 +735,7 @@ pub(crate) fn remote_tmux_resume_command(
         .map(|directory| format!("cd -- {} && ", shell_single_quote(directory)))
         .unwrap_or_default();
     format!(
-        "if command -v tmux >/dev/null 2>&1; then {cd_command}exec tmux new-session -A -s {} \\; set-option mouse on; else {cd_command}printf '\\r\\n[AdminDeck: tmux not found, using normal shell]\\r\\n'; exec \"${{SHELL:-sh}}\" -i; fi",
+        "if command -v tmux >/dev/null 2>&1; then {cd_command}exec tmux new-session -A -s {} \\; set-option mouse on \\; set-option history-limit 5000; else {cd_command}printf '\\r\\n[AdminDeck: tmux not found, using normal shell]\\r\\n'; exec \"${{SHELL:-sh}}\" -i; fi",
         shell_single_quote(session_id)
     )
 }
@@ -1202,6 +1202,15 @@ mod tests {
         assert!(
             cmd.contains("\\; set-option mouse on"),
             "command must enable tmux mouse mode even with initial directory: {cmd}"
+        );
+    }
+
+    #[test]
+    fn tmux_resume_command_sets_default_history_limit() {
+        let cmd = remote_tmux_resume_command(None, "admindeck-test");
+        assert!(
+            cmd.contains("\\; set-option history-limit 5000"),
+            "command must keep tmux pane history aligned with AdminDeck's default terminal buffer: {cmd}"
         );
     }
 

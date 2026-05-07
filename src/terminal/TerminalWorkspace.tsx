@@ -24,7 +24,6 @@ type TerminalContextMenuState = {
   hasSelection: boolean;
 };
 
-const ASSISTANT_CONTEXT_MAX_CHARS = 4000;
 const terminalInputEncoder = new TextEncoder();
 
 function normalizeFilenamePart(value: string) {
@@ -1158,17 +1157,17 @@ function TerminalPaneView({
     });
   }
 
-  function handleSendSelectionToAssistant() {
-    const text = normalizeAssistantContextText(selectedTerminalText);
+  async function handleSendBufferToAssistant() {
+    const text = (await terminalBufferForAssistant(pane, terminalRendererRef.current)).trim();
     if (!text) {
       return;
     }
 
     const sourceLabel = pane.connection
-      ? `${pane.connection.name} terminal selection`
-      : `${pane.title} terminal selection`;
+      ? `${pane.connection.name} ${t("terminal.terminalBuffer")}`
+      : `${pane.title} ${t("terminal.terminalBuffer")}`;
     setAssistantContextSnippet({
-      id: `terminal-selection-${Date.now()}`,
+      id: `terminal-buffer-${Date.now()}`,
       kind: "text",
       sourceLabel,
       text,
@@ -1375,9 +1374,8 @@ function TerminalPaneView({
           <button
             className="terminal-pane-action"
             aria-label={t("terminal.sendToAi")}
-            disabled={!selectedTerminalText}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={handleSendSelectionToAssistant}
+            onClick={() => void handleSendBufferToAssistant()}
             title={t("terminal.sendToAi")}
             type="button"
           >
@@ -1649,6 +1647,26 @@ function terminalSessionTypeFor(connection: Connection): "local" | "ssh" | "teln
     : "ssh";
 }
 
+async function terminalBufferForAssistant(
+  pane: TerminalPane,
+  renderer: TerminalRenderer | null,
+) {
+  if (pane.connection?.type === "ssh" && pane.tmuxSessionId) {
+    try {
+      return await invokeCommand("capture_tmux_pane", {
+        request: {
+          ...tmuxConnectionRequest(pane.connection),
+          tmuxSessionId: pane.tmuxSessionId,
+        },
+      });
+    } catch (error) {
+      console.warn("Falling back to local terminal buffer after tmux capture failed.", error);
+    }
+  }
+
+  return renderer?.getBufferText() ?? "";
+}
+
 function isRemoteInitialDirectory(cwd: string) {
   const trimmed = cwd.trim();
   if (!trimmed || trimmed === "~") {
@@ -1759,13 +1777,4 @@ function isFocusableElement(element: HTMLElement) {
 
   const tabIndex = element.getAttribute("tabindex");
   return tabIndex !== null && tabIndex !== "-1";
-}
-
-function normalizeAssistantContextText(text: string) {
-  const normalized = text.trim();
-  if (normalized.length <= ASSISTANT_CONTEXT_MAX_CHARS) {
-    return normalized;
-  }
-
-  return `${normalized.slice(0, ASSISTANT_CONTEXT_MAX_CHARS)}\n[Selection truncated before adding to AI Assistant context.]`;
 }

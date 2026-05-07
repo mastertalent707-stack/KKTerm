@@ -26,7 +26,7 @@ export const defaultTerminalSettings: TerminalSettings = {
   fontSize: 12,
   lineHeight: 1.25,
   cursorStyle: "block",
-  scrollbackLines: 10000,
+  scrollbackLines: 5000,
   copyOnSelect: false,
   confirmMultilinePaste: true,
   defaultShell: "powershell.exe",

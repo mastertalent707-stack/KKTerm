@@ -2796,7 +2796,7 @@ fn default_terminal_settings() -> TerminalSettings {
         font_size: 12,
         line_height: 1.25,
         cursor_style: "block".to_string(),
-        scrollback_lines: 10_000,
+        scrollback_lines: 5_000,
         copy_on_select: false,
         confirm_multiline_paste: true,
         default_shell: if cfg!(target_os = "windows") {
@@ -4000,6 +4000,7 @@ mod tests {
             .terminal_settings()
             .expect("default terminal settings load");
         assert_eq!(defaults.font_size, 12);
+        assert_eq!(defaults.scrollback_lines, 5_000);
         assert!(defaults.confirm_multiline_paste);
 
         let updated = storage
@@ -4008,7 +4009,7 @@ mod tests {
                 font_size: 14,
                 line_height: 1.35,
                 cursor_style: "bar".to_string(),
-                scrollback_lines: 10_000,
+                scrollback_lines: 5_000,
                 copy_on_select: true,
                 confirm_multiline_paste: false,
                 default_shell: "pwsh.exe".to_string(),

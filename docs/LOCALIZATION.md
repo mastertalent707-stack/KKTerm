@@ -6,6 +6,39 @@ When a key is translated into every supported locale, remove its entry from this
 
 ## Pending Strings
 
+### terminal.sendToAi
+
+- English value: "Send terminal buffer to AI Assistant"
+- Namespace: `terminal`
+- File/component: `src/terminal/TerminalWorkspace.tsx`
+- UI role: toolbar button label/tooltip
+- Surrounding user flow: The AI robot icon in a terminal or SSH Pane toolbar attaches the terminal buffer text to the AI Assistant context.
+- Tone: direct action label.
+- Placeholder details: none.
+- Domain notes: For regular terminal panes this is AdminDeck's xterm scrollback buffer. For tmux-backed SSH panes this uses tmux capture-pane history when available. AI Assistant can remain English where locales already use that product term.
+
+### terminal.terminalBuffer
+
+- English value: "terminal buffer"
+- Namespace: `terminal`
+- File/component: `src/terminal/TerminalWorkspace.tsx`
+- UI role: AI Assistant context source label fragment
+- Surrounding user flow: Appears as part of the context source label after a user clicks the AI robot icon in a terminal or SSH Pane toolbar.
+- Tone: compact descriptive fragment, lower-case because it follows the Connection or Pane title.
+- Placeholder details: none.
+- Domain notes: Refers to terminal scrollback or tmux pane history, depending on the active Pane transport.
+
+### settings.scrollbackHint
+
+- English value: "Default is 5,000. Valid range is 100 to 100,000."
+- Namespace: `settings`
+- File/component: `src/settings/TerminalSettings.tsx`
+- UI role: helper text
+- Surrounding user flow: Settings -> Terminal -> Scrollback lines explains the default and valid range for terminal buffer/scrollback size.
+- Tone: concise settings helper.
+- Placeholder details: none.
+- Domain notes: The default changed from 10,000 to 5,000 lines; the valid range did not change.
+
 ### settings.sshKeyEmailDialogTitle
 
 - English value: "Generate SSH key"
