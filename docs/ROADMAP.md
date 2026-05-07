@@ -132,7 +132,7 @@ Latest validation on May 7, 2026: `npm run check`, `npm run build`, `cargo check
 - [ ] Implement AI Assistant composer context attachments for files/photos, screenshots, and terminal buffer snippets from the `+` menu.
 - [ ] Support asking the AI Assistant to create installable extensions against the approved extension platform architecture.
 - [ ] Keep extension-generation flows approval-based before installing or running generated code.
-- [ ] Language output setting for UI assistant - follow UI language or specific language.
+- [x] Language output setting for UI assistant - follow UI language or specific language.
 - [ ] Expand AI Assistant orchestration so it can (with explicit approval) automate more workflows: import Connection entries from multiple formats, monitor existing Connections, rename/reorganize layouts, help create plugins, assist with wiki workflows (once wiki ships), and optionally relay remote-assistant interactions through Telegram/WhatsApp/LINE integrations.
 
 ### UI Customization
@@ -141,8 +141,8 @@ Latest validation on May 7, 2026: `npm run check`, `npm run build`, `cargo check
 - [ ] Simplify common workflows and reduce unnecessary visual or interaction complexity.
 - [ ] Review navigation, workspace layout, settings, connection management, terminal panes, SFTP flows, and AI Assistant entry points for clarity.
 - [ ] Add a more colorful default UI while preserving dense, professional workspace ergonomics.
-- [ ] Implement Color Scheme settings for app chrome and workspace surfaces.
-- [ ] Implement Language (i18n) settings.
+- [x] Implement Color Scheme settings for app chrome and workspace surfaces.
+- [x] Implement Language (i18n) settings.
 - [ ] Reintroduce diagnostics, editable SSH/SFTP defaults, SSH config import, update, and keybinding controls in Settings where they still fit.
 - [ ] Add editable keybindings.
 
@@ -195,6 +195,7 @@ Latest validation on May 7, 2026: `npm run check`, `npm run build`, `cargo check
 - [ ] Allow AI Assistant to read the current active Connection text buffer.
 - [ ] Allow AI Assistant to reference previous session text buffers via RAG/agentic search.
 - [ ] Add voice input for AI Assistant with local model support.
+- [ ] Add MCP (Model Context Protocol) server support so the AI Assistant and external agents can automate AdminDeck workflows through the MCP protocol.
 
 ### Session Logging and Universal Search
 
@@ -224,3 +225,11 @@ Latest validation on May 7, 2026: `npm run check`, `npm run build`, `cargo check
 - [ ] Add AI-enabled triggers that watch terminal output, SFTP changes, or scheduled probes and propose follow-up workflow runs through the AI Assistant approval flow.
 - [ ] Add a workflow library with reusable steps (run command, copy file via SFTP, wait, conditional branch) and durable run history, scoped to local-first storage with no telemetry.
 - [ ] Decide credential, secret-redaction, and audit-log boundaries for workflow execution before enabling general operator use.
+
+### Content Comparison and Sync
+
+- [ ] Add a Beyond Compare-like diff/merge tool for side-by-side file and directory comparison, with sync and merge actions across local and remote (SFTP) paths.
+
+### System Utilities
+
+- [ ] Add a "Don't Sleep" tool that, when enabled, prevents Windows from sleeping, suspending, hibernating, or shutting down.
