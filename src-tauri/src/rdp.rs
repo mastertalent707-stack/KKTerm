@@ -49,6 +49,7 @@ mod platform {
     const RDP_MIN_DESKTOP_HEIGHT: i32 = 480;
     const RDP_DISPLAY_ORIENTATION_LANDSCAPE: i32 = 0;
     const RDP_DISPLAY_SCALE_FACTOR_PERCENT: i32 = 100;
+    const RDP_CONNECTED_STATE: i32 = 1;
     const VK_CONTROL_KEY: usize = 0x11;
     const VK_ALT_KEY: usize = 0x12;
     const VK_END_KEY: usize = 0x23;
@@ -1444,7 +1445,7 @@ mod platform {
     }
 
     fn is_rdp_connected_state(connection_state: i32) -> bool {
-        connection_state != 0
+        connection_state == RDP_CONNECTED_STATE
     }
 
     fn run_on_main_thread<F, T>(app: AppHandle, f: F) -> Result<T, String>
@@ -1650,10 +1651,10 @@ mod platform {
         }
 
         #[test]
-        fn treats_zero_rdp_connected_state_as_disconnected() {
+        fn treats_only_connected_rdp_state_as_connected() {
             assert!(!is_rdp_connected_state(0));
             assert!(is_rdp_connected_state(1));
-            assert!(is_rdp_connected_state(2));
+            assert!(!is_rdp_connected_state(2));
         }
     }
 }
@@ -1852,7 +1853,7 @@ mod platform {
     }
 
     fn is_rdp_connected_state(connection_state: i32) -> bool {
-        connection_state != 0
+        connection_state == 1
     }
 
     impl StartRdpSessionRequest {

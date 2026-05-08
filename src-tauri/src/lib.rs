@@ -1040,22 +1040,25 @@ fn send_rdp_text(
 }
 
 #[tauri::command]
-fn start_vnc_session(
+async fn start_vnc_session(
     app: tauri::AppHandle,
-    vnc_sessions: tauri::State<'_, vnc::VncSessionManager>,
-    secrets: tauri::State<'_, secrets::Secrets>,
     mut request: vnc::StartVncSessionRequest,
 ) -> Result<vnc::VncSessionStarted, String> {
-    if request.password().is_none() {
-        if let Some(owner_id) = request.secret_owner_id().map(str::to_string) {
-            request.set_password(
-                secrets
-                    .read_connection_password(owner_id)
-                    .map_err(|error| format!("failed to read VNC password: {error}"))?,
-            );
+    run_blocking_command("VNC startup", move || {
+        let vnc_sessions = app.state::<vnc::VncSessionManager>();
+        let secrets = app.state::<secrets::Secrets>();
+        if request.password().is_none() {
+            if let Some(owner_id) = request.secret_owner_id().map(str::to_string) {
+                request.set_password(
+                    secrets
+                        .read_connection_password(owner_id)
+                        .map_err(|error| format!("failed to read VNC password: {error}"))?,
+                );
+            }
         }
-    }
-    vnc_sessions.start_session(app, request)
+        vnc_sessions.start_session(app.clone(), request)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -1083,11 +1086,15 @@ fn refresh_vnc_session(
 }
 
 #[tauri::command]
-fn close_vnc_session(
-    vnc_sessions: tauri::State<'_, vnc::VncSessionManager>,
+async fn close_vnc_session(
+    app: tauri::AppHandle,
     request: vnc::VncSimpleRequest,
 ) -> Result<(), String> {
-    vnc_sessions.close_session(request)
+    run_blocking_command("VNC close", move || {
+        let vnc_sessions = app.state::<vnc::VncSessionManager>();
+        vnc_sessions.close_session(request)
+    })
+    .await
 }
 
 #[tauri::command]

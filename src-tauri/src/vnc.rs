@@ -19,6 +19,8 @@ use vnc::{
 
 const DEFAULT_VNC_PORT: u16 = 5900;
 const REFRESH_INTERVAL: Duration = Duration::from_millis(16);
+const VNC_RESOLVE_TIMEOUT: Duration = Duration::from_secs(5);
+const VNC_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const X11_CONTROL_LEFT: u32 = 0xffe3;
 const X11_ALT_LEFT: u32 = 0xffe9;
 const X11_DELETE: u32 = 0xffff;
@@ -293,8 +295,9 @@ impl StartVncSessionRequest {
 }
 
 async fn resolve_vnc_address(host: &str, port: u16) -> Result<SocketAddr, String> {
-    let mut addresses = lookup_host((host, port))
+    let mut addresses = time::timeout(VNC_RESOLVE_TIMEOUT, lookup_host((host, port)))
         .await
+        .map_err(|_| format!("timed out resolving VNC host '{host}'"))?
         .map_err(|error| format!("failed to resolve VNC host '{host}': {error}"))?;
     addresses
         .next()
@@ -302,6 +305,23 @@ async fn resolve_vnc_address(host: &str, port: u16) -> Result<SocketAddr, String
 }
 
 async fn connect_vnc(
+    address: SocketAddr,
+    password: Option<String>,
+) -> Result<vnc::VncClient, String> {
+    connect_vnc_with_timeout(address, password, VNC_CONNECT_TIMEOUT).await
+}
+
+async fn connect_vnc_with_timeout(
+    address: SocketAddr,
+    password: Option<String>,
+    timeout: Duration,
+) -> Result<vnc::VncClient, String> {
+    time::timeout(timeout, connect_vnc_unbounded(address, password))
+        .await
+        .map_err(|_| format!("timed out connecting to VNC server {address}"))?
+}
+
+async fn connect_vnc_unbounded(
     address: SocketAddr,
     password: Option<String>,
 ) -> Result<vnc::VncClient, String> {
@@ -536,6 +556,29 @@ mod tests {
     #[test]
     fn uses_standard_vnc_port_when_missing() {
         assert_eq!(DEFAULT_VNC_PORT, 5900);
+    }
+
+    #[test]
+    fn vnc_connect_timeout_covers_unresponsive_server() {
+        let runtime = Runtime::new().expect("runtime starts");
+        runtime.block_on(async {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+                .await
+                .expect("listener binds");
+            let address = listener.local_addr().expect("listener has address");
+            let server = tokio::spawn(async move {
+                let _accepted = listener.accept().await;
+                time::sleep(Duration::from_millis(250)).await;
+            });
+
+            let result = connect_vnc_with_timeout(address, None, Duration::from_millis(25)).await;
+            server.abort();
+
+            assert_eq!(
+                result.as_ref().map(|_| ()),
+                Err(&format!("timed out connecting to VNC server {address}"))
+            );
+        });
     }
 
     #[test]

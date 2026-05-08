@@ -52,6 +52,8 @@ type VncSessionEvent =
   | { kind: "error"; sessionId: string; message: string }
   | { kind: "disconnected"; sessionId: string };
 
+const RDP_ESTABLISHING_STATE = 2;
+
 export function RemoteDesktopWorkspace({
   isActive,
   tab,
@@ -69,6 +71,7 @@ export function RemoteDesktopWorkspace({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sessionStartedRef = useRef(false);
   const sessionStartingRef = useRef(false);
+  const rdpConnectionCountedRef = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
   const lastBoundsRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -123,6 +126,33 @@ export function RemoteDesktopWorkspace({
     first.y === second.y &&
     first.width === second.width &&
     first.height === second.height;
+
+  const markRdpConnectionStarted = () => {
+    if (!connection || rdpConnectionCountedRef.current) {
+      return;
+    }
+    rdpConnectionCountedRef.current = true;
+    markConnectionSessionStarted(connection.id);
+  };
+
+  const markRdpConnectionEnded = () => {
+    if (!connection || !rdpConnectionCountedRef.current) {
+      return;
+    }
+    rdpConnectionCountedRef.current = false;
+    markConnectionSessionEnded(connection.id);
+  };
+
+  const handleRdpDisconnectedStatus = (connectionState: number) => {
+    markRdpConnectionEnded();
+    displayReadyRef.current = false;
+    rdpVisibleRef.current = false;
+    setRdpStatus(
+      connectionState === RDP_ESTABLISHING_STATE
+        ? t("remoteDesktop.connecting")
+        : t("remoteDesktop.disconnected"),
+    );
+  };
 
   const readSettledBounds = () =>
     new Promise<{ x: number; y: number; width: number; height: number } | null>((resolve) => {
@@ -311,12 +341,16 @@ export function RemoteDesktopWorkspace({
           return;
         }
         if (result.displaySynced) {
+          markRdpConnectionStarted();
           displayReadyRef.current = true;
           lastBoundsRef.current = bounds;
           setRdpStatus(t("remoteDesktop.connected"));
           pushRdpVisibility();
         } else if (result.connected) {
+          markRdpConnectionStarted();
           setRdpStatus(t("remoteDesktop.preparingDisplay"));
+        } else {
+          handleRdpDisconnectedStatus(result.connectionState);
         }
       })
       .catch((error) => {
@@ -334,6 +368,7 @@ export function RemoteDesktopWorkspace({
     }
     sessionStartedRef.current = false;
     sessionStartingRef.current = false;
+    rdpConnectionCountedRef.current = false;
     sessionIdRef.current = null;
     lastBoundsRef.current = null;
     displayReadyRef.current = false;
@@ -367,7 +402,9 @@ export function RemoteDesktopWorkspace({
       return;
     }
     const sessionId = sessionIdRef.current;
-    const hadStartedSession = sessionStartedRef.current;
+    const hadCountedSession = canStartRdp
+      ? rdpConnectionCountedRef.current
+      : sessionStartedRef.current;
     const ownedSession = sessionStartingRef.current || sessionStartedRef.current;
     if (canStartVnc) {
       resetVncSessionRefs();
@@ -381,7 +418,7 @@ export function RemoteDesktopWorkspace({
         request: { sessionId },
       });
     }
-    if (hadStartedSession) {
+    if (hadCountedSession) {
       markConnectionSessionEnded(connection.id);
     }
     setRdpStartKey((key) => key + 1);
@@ -500,7 +537,6 @@ export function RemoteDesktopWorkspace({
           sessionStartedRef.current = true;
           rdpControlRef.current = started.control;
           setRdpStatus(t("remoteDesktop.preparingDisplay"));
-          markConnectionSessionStarted(connection.id);
           if (rdpPaneId) {
             const startedSessionId = started.sessionId;
             registeredRdpSender = async (text, pressEnter) => {
@@ -534,8 +570,9 @@ export function RemoteDesktopWorkspace({
       }
       const ownsSession = sessionStartingRef.current || sessionStartedRef.current;
       sessionStartingRef.current = false;
-      const started = sessionStartedRef.current;
+      const counted = rdpConnectionCountedRef.current;
       sessionStartedRef.current = false;
+      rdpConnectionCountedRef.current = false;
       displayReadyRef.current = false;
       displaySyncInFlightRef.current = false;
       rdpVisibleRef.current = false;
@@ -549,7 +586,7 @@ export function RemoteDesktopWorkspace({
       if (ownsSession) {
         void invokeCommand("close_rdp_session", { request: { sessionId } });
       }
-      if (started) {
+      if (counted) {
         markConnectionSessionEnded(connection.id);
       }
     };
@@ -744,10 +781,13 @@ export function RemoteDesktopWorkspace({
           if (!displayReadyRef.current) {
             attemptRdpDisplaySync();
           }
-          if (!status.connected && sessionIdRef.current === status.sessionId) {
-            displayReadyRef.current = false;
-            rdpVisibleRef.current = false;
-            setRdpStatus(t("remoteDesktop.disconnected"));
+          if (sessionIdRef.current !== status.sessionId) {
+            return;
+          }
+          if (status.connected) {
+            markRdpConnectionStarted();
+          } else {
+            handleRdpDisconnectedStatus(status.connectionState);
           }
         })
         .catch((error) => {

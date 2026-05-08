@@ -276,6 +276,10 @@ button {
   border-top: 1px solid var(--border);
 }
 
+.app-shell.panel-animating {
+  transition: grid-template-columns 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .workspace-page {
   display: contents;
 }
@@ -287,6 +291,8 @@ button {
 
 .activity-rail {
   display: flex;
+  position: relative;
+  z-index: 120;
   flex-direction: column;
   gap: 6px;
   align-items: center;
@@ -316,6 +322,7 @@ button {
 
 .rail-connected-connections {
   display: grid;
+  position: relative;
   gap: 6px;
   justify-items: center;
   width: 100%;
@@ -330,6 +337,38 @@ button {
 
 .rail-button-connection.dragging {
   opacity: 0.48;
+}
+
+.rail-button-connection {
+  touch-action: none;
+}
+
+.rail-button-connection.rail-drop-before::before,
+.rail-button-connection.rail-drop-after::after,
+.rail-connected-connections.rail-drop-end::after {
+  content: "";
+  display: block;
+  justify-self: center;
+  width: 24px;
+  height: 2px;
+  pointer-events: none;
+  background: rgb(245 193 80 / 72%);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 18%);
+}
+
+.rail-button-connection.rail-drop-before::before,
+.rail-button-connection.rail-drop-after::after {
+  position: absolute;
+  left: 4px;
+}
+
+.rail-button-connection.rail-drop-before::before {
+  top: -4px;
+}
+
+.rail-button-connection.rail-drop-after::after {
+  bottom: -4px;
 }
 
 .rail-button-dont-sleep {
@@ -362,22 +401,22 @@ button {
   position: absolute;
   left: calc(100% + 9px);
   top: 50%;
-  z-index: 30;
-  padding: 5px 8px;
-  color: var(--nav-toolbar-tooltip-text);
+  z-index: 140;
+  padding: 4px 10px;
+  color: #111;
   white-space: nowrap;
   pointer-events: none;
-  background: var(--nav-toolbar-tooltip-bg);
-  border: 1px solid var(--nav-toolbar-tooltip-border);
-  border-radius: 5px;
-  box-shadow: var(--shadow);
+  background: #fffdf6;
+  border: 1px solid #111;
+  border-radius: 0;
+  box-shadow: none;
   opacity: 0;
   transform: translateY(-50%) translateX(-2px);
   transition:
     opacity 140ms ease,
     transform 140ms ease;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .rail-button:hover .rail-tooltip,
@@ -394,6 +433,8 @@ button {
   overflow: hidden;
   background: var(--chrome);
   border-right: 1px solid var(--border);
+  opacity: 1;
+  transition: opacity 300ms ease-out;
 }
 
 .connection-sidebar {
@@ -413,11 +454,10 @@ button {
 
 .connections-collapsed .connection-sidebar,
 .ai-assist-collapsed .assistant-panel {
-  padding-right: 0;
-  padding-left: 0;
-  border: 0;
+  opacity: 0;
+  border-right: 0;
   pointer-events: none;
-  visibility: hidden;
+  transition: opacity 150ms ease-in;
 }
 
 .panel-resize-handle {
@@ -3913,6 +3953,17 @@ progress {
   .status-notification.is-entering,
   .status-notification.is-exiting {
     animation: none;
+  }
+
+  .app-shell.panel-animating {
+    transition: none;
+  }
+
+  .connection-sidebar,
+  .assistant-panel,
+  .connections-collapsed .connection-sidebar,
+  .ai-assist-collapsed .assistant-panel {
+    transition: none;
   }
 }
 

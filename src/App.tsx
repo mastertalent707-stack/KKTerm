@@ -8,10 +8,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type {
-  DragEvent as ReactDragEvent,
-  PointerEvent as ReactPointerEvent,
-} from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { invokeCommand, isTauriRuntime } from "./lib/tauri";
 import { useBootstrapSettings } from "./lib/settings";
@@ -55,6 +52,18 @@ const CONNECTION_RAIL_ORDER_KEY = "admindeck.connectionRail.order.v1";
 type ConnectedRailItem = {
   connection: Connection;
   tabId: string;
+};
+
+type ConnectionRailDragState = {
+  connectionId: string;
+  pointerId: number;
+  startY: number;
+  moved: boolean;
+};
+
+type ConnectionRailDropTarget = {
+  connectionId: string | null;
+  position: "before" | "after" | "end";
 };
 
 const defaultConnectionPanelLayout: PanelLayoutState = {
@@ -122,6 +131,14 @@ function persistConnectionRailOrder(order: string[]) {
   } catch {
     // Ordering is a convenience preference; fail silently if storage is unavailable.
   }
+}
+
+function RailTooltip({ label }: { label: string }) {
+  return (
+    <span className="rail-tooltip" role="tooltip">
+      {label}
+    </span>
+  );
 }
 
 function persistPanelLayout(key: string, layout: PanelLayoutState) {
@@ -194,7 +211,41 @@ function App() {
     persistPanelLayout(AI_PANEL_LAYOUT_KEY, aiPanelLayout);
   }, [aiPanelLayout]);
 
+  const [panelAnimating, setPanelAnimating] = useState(false);
+  const prefersReducedMotion = useMemo(
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    [],
+  );
+
+  useEffect(() => {
+    if (!panelAnimating) return;
+    const timer = setTimeout(() => setPanelAnimating(false), 500);
+    return () => clearTimeout(timer);
+  }, [panelAnimating]);
+
+  function toggleConnectionPanel() {
+    if (!prefersReducedMotion) {
+      setPanelAnimating(true);
+    }
+    setConnectionPanelLayout((layout) => ({ ...layout, collapsed: !layout.collapsed }));
+  }
+
+  function toggleAiPanel() {
+    if (!prefersReducedMotion) {
+      setPanelAnimating(true);
+    }
+    setAiPanelLayout((layout) => ({ ...layout, collapsed: !layout.collapsed }));
+  }
+
+  function expandAiPanel() {
+    if (!prefersReducedMotion) {
+      setPanelAnimating(true);
+    }
+    setAiPanelLayout((layout) => ({ ...layout, collapsed: false }));
+  }
+
   function handleConnectionPanelResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    setPanelAnimating(false);
     const startX = event.clientX;
     const startWidth = connectionPanelLayout.collapsed
       ? 0
@@ -214,6 +265,7 @@ function App() {
   }
 
   function handleAiPanelResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    setPanelAnimating(false);
     const startX = event.clientX;
     const startWidth = aiPanelLayout.collapsed ? 0 : aiPanelLayout.width;
 
@@ -314,19 +366,16 @@ function App() {
   return (
     <div
       ref={appShellRef}
-      className={`app-shell ${activePage === "settings" ? "settings-mode" : ""} ${
+      className={`app-shell ${panelAnimating ? "panel-animating" : ""} ${
+        activePage === "settings" ? "settings-mode" : ""
+      } ${
         connectionPanelLayout.collapsed ? "connections-collapsed" : ""
       } ${aiPanelLayout.collapsed ? "ai-assist-collapsed" : ""}`}
     >
       <ActivityRail
         activePage={activePage}
         connectionsCollapsed={connectionPanelLayout.collapsed}
-        onConnectionsToggle={() =>
-          setConnectionPanelLayout((layout) => ({
-            ...layout,
-            collapsed: !layout.collapsed,
-          }))
-        }
+        onConnectionsToggle={toggleConnectionPanel}
         onNavigate={(page) => {
           if (page !== "wiki") {
             setWikiInitialPageId(null);
@@ -337,12 +386,7 @@ function App() {
       <div className="workspace-page" aria-hidden={activePage !== "workspace"}>
         <ConnectionSidebar
           collapsed={connectionPanelLayout.collapsed}
-          onToggleCollapsed={() =>
-            setConnectionPanelLayout((layout) => ({
-              ...layout,
-              collapsed: !layout.collapsed,
-            }))
-          }
+          onToggleCollapsed={toggleConnectionPanel}
         />
         {connectionPanelLayout.collapsed ? (
           <div className="connection-collapsed-separator" aria-hidden="true" />
@@ -363,22 +407,13 @@ function App() {
           side="right"
           collapsed={aiPanelLayout.collapsed}
           collapsedLabel={t("app.aiAssistant")}
-          onClick={() =>
-            aiPanelLayout.collapsed
-              ? setAiPanelLayout((layout) => ({ ...layout, collapsed: false }))
-              : undefined
-          }
+          onClick={aiPanelLayout.collapsed ? expandAiPanel : undefined}
           onPointerDown={handleAiPanelResize}
         />
         <AssistantPanel
           collapsed={aiPanelLayout.collapsed}
           onOpenSettings={() => setActivePage("settings")}
-          onToggleCollapsed={() =>
-            setAiPanelLayout((layout) => ({
-              ...layout,
-              collapsed: !layout.collapsed,
-            }))
-          }
+          onToggleCollapsed={toggleAiPanel}
         />
       </div>
       {activePage === "wiki" ? (
@@ -482,6 +517,11 @@ function ActivityRail({
   const [draggedConnectionId, setDraggedConnectionId] = useState<string | null>(
     null,
   );
+  const [connectionRailDropTarget, setConnectionRailDropTarget] =
+    useState<ConnectionRailDropTarget | null>(null);
+  const connectionRailDragRef = useRef<ConnectionRailDragState | null>(null);
+  const connectionRailListRef = useRef<HTMLDivElement | null>(null);
+  const suppressConnectionClickRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -560,14 +600,14 @@ function ActivityRail({
 
   function reorderConnectedRailItem(
     sourceConnectionId: string,
-    targetConnectionId: string | null,
+    dropTarget: ConnectionRailDropTarget,
   ) {
     const visibleConnectionIds = connectedRailItems.map(
       (item) => item.connection.id,
     );
     if (
       !visibleConnectionIds.includes(sourceConnectionId) ||
-      sourceConnectionId === targetConnectionId
+      sourceConnectionId === dropTarget.connectionId
     ) {
       return;
     }
@@ -582,48 +622,131 @@ function ActivityRail({
         ),
       ].filter((connectionId) => connectionId !== sourceConnectionId);
 
-      const targetIndex = targetConnectionId
-        ? nextOrder.indexOf(targetConnectionId)
+      const targetIndex = dropTarget.connectionId
+        ? nextOrder.indexOf(dropTarget.connectionId)
         : -1;
       if (targetIndex === -1) {
         nextOrder.push(sourceConnectionId);
       } else {
-        nextOrder.splice(targetIndex, 0, sourceConnectionId);
+        nextOrder.splice(
+          dropTarget.position === "after" ? targetIndex + 1 : targetIndex,
+          0,
+          sourceConnectionId,
+        );
       }
       persistConnectionRailOrder(nextOrder);
       return nextOrder;
     });
   }
 
-  function handleConnectedRailDragStart(
-    event: ReactDragEvent<HTMLButtonElement>,
+  function getConnectionRailDropTarget(
+    clientX: number,
+    clientY: number,
+  ): ConnectionRailDropTarget {
+    const list = connectionRailListRef.current;
+    if (!list) {
+      return { connectionId: null, position: "end" };
+    }
+
+    const target = document.elementFromPoint(clientX, clientY);
+    const button = target?.closest?.("[data-rail-connection-id]");
+    if (button instanceof HTMLElement && list.contains(button)) {
+      const rect = button.getBoundingClientRect();
+      return {
+        connectionId: button.dataset.railConnectionId ?? null,
+        position: clientY < rect.top + rect.height / 2 ? "before" : "after",
+      };
+    }
+
+    const firstButton = list.querySelector<HTMLElement>(
+      "[data-rail-connection-id]",
+    );
+    if (firstButton) {
+      const rect = firstButton.getBoundingClientRect();
+      if (clientY < rect.top) {
+        return {
+          connectionId: firstButton.dataset.railConnectionId ?? null,
+          position: "before",
+        };
+      }
+    }
+
+    return { connectionId: null, position: "end" };
+  }
+
+  function handleConnectedRailPointerDown(
+    event: ReactPointerEvent<HTMLButtonElement>,
     connectionId: string,
   ) {
-    setDraggedConnectionId(connectionId);
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", connectionId);
-  }
-
-  function handleConnectedRailDragOver(event: ReactDragEvent<HTMLElement>) {
-    if (!draggedConnectionId) {
+    if (event.button !== 0) {
       return;
     }
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+    connectionRailDragRef.current = {
+      connectionId,
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      moved: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  function handleConnectedRailDrop(
-    event: ReactDragEvent<HTMLElement>,
-    targetConnectionId: string | null,
+  function handleConnectedRailPointerMove(
+    event: ReactPointerEvent<HTMLButtonElement>,
   ) {
-    event.preventDefault();
-    event.stopPropagation();
-    const sourceConnectionId =
-      draggedConnectionId || event.dataTransfer.getData("text/plain");
-    if (sourceConnectionId) {
-      reorderConnectedRailItem(sourceConnectionId, targetConnectionId);
+    const drag = connectionRailDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) {
+      return;
     }
+
+    if (!drag.moved && Math.abs(event.clientY - drag.startY) < 5) {
+      return;
+    }
+
+    drag.moved = true;
+    setDraggedConnectionId(drag.connectionId);
+    event.preventDefault();
+
+    const targetConnectionId = getConnectionRailDropTarget(
+      event.clientX,
+      event.clientY,
+    );
+    setConnectionRailDropTarget(targetConnectionId);
+    if (targetConnectionId.connectionId !== drag.connectionId) {
+      reorderConnectedRailItem(drag.connectionId, targetConnectionId);
+    }
+  }
+
+  function handleConnectedRailPointerEnd(
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) {
+    const drag = connectionRailDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (drag.moved) {
+      const targetConnectionId = getConnectionRailDropTarget(
+        event.clientX,
+        event.clientY,
+      );
+      reorderConnectedRailItem(drag.connectionId, targetConnectionId);
+      suppressConnectionClickRef.current = drag.connectionId;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    connectionRailDragRef.current = null;
     setDraggedConnectionId(null);
+    setConnectionRailDropTarget(null);
+  }
+
+  function handleConnectedConnectionButtonClick(tabId: string, connectionId: string) {
+    if (suppressConnectionClickRef.current === connectionId) {
+      suppressConnectionClickRef.current = null;
+      return;
+    }
+    handleConnectedConnectionClick(tabId);
   }
 
   async function handleDontSleepClick() {
@@ -666,9 +789,7 @@ function ActivityRail({
         onClick={handleConnectionsClick}
       >
         <LayoutDashboard size={18} />
-        <span className="rail-tooltip" role="tooltip">
-          {t("workspace.workspace")}
-        </span>
+        <RailTooltip label={t("workspace.workspace")} />
       </button>
       <button
         className={`rail-button ${activePage === "wiki" ? "active" : ""}`}
@@ -676,47 +797,59 @@ function ActivityRail({
         onClick={() => onNavigate("wiki")}
       >
         <BookOpen size={18} />
-        <span className="rail-tooltip" role="tooltip">
-          {t("app.wiki")}
-        </span>
+        <RailTooltip label={t("app.wiki")} />
       </button>
       {connectedRailItems.length > 0 ? (
         <div
-          className="rail-connected-connections"
+          ref={connectionRailListRef}
+          className={`rail-connected-connections ${
+            draggedConnectionId &&
+            connectionRailDropTarget?.position === "end"
+              ? "rail-drop-end"
+              : ""
+          }`}
           aria-label={t("app.connectedConnectionsRail")}
-          onDragOver={handleConnectedRailDragOver}
-          onDrop={(event) => handleConnectedRailDrop(event, null)}
         >
           {connectedRailItems.map(({ connection, tabId }) => (
             <button
               key={connection.id}
+              data-rail-connection-id={connection.id}
               className={`rail-button rail-button-connection ${
                 activePage === "workspace" && activeTabConnectionId === connection.id
                   ? "active"
                   : ""
-              } ${draggedConnectionId === connection.id ? "dragging" : ""}`}
+              } ${draggedConnectionId === connection.id ? "dragging" : ""} ${
+                draggedConnectionId &&
+                connectionRailDropTarget?.connectionId === connection.id &&
+                connectionRailDropTarget.position === "before"
+                  ? "rail-drop-before"
+                  : ""
+              } ${
+                draggedConnectionId &&
+                connectionRailDropTarget?.connectionId === connection.id &&
+                connectionRailDropTarget.position === "after"
+                  ? "rail-drop-after"
+                  : ""
+              }`}
               aria-label={t("app.openConnectedConnection", {
                 name: connection.name,
               })}
-              draggable
-              onDragEnd={() => setDraggedConnectionId(null)}
-              onDragOver={handleConnectedRailDragOver}
-              onDragStart={(event) =>
-                handleConnectedRailDragStart(event, connection.id)
+              onClick={() =>
+                handleConnectedConnectionButtonClick(tabId, connection.id)
               }
-              onDrop={(event) =>
-                handleConnectedRailDrop(event, connection.id)
+              onPointerCancel={handleConnectedRailPointerEnd}
+              onPointerDown={(event) =>
+                handleConnectedRailPointerDown(event, connection.id)
               }
-              onClick={() => handleConnectedConnectionClick(tabId)}
+              onPointerMove={handleConnectedRailPointerMove}
+              onPointerUp={handleConnectedRailPointerEnd}
             >
               <ConnectionIcon
                 localShell={connection.localShell}
                 size={18}
                 type={connection.type}
               />
-              <span className="rail-tooltip" role="tooltip">
-                {connection.name}
-              </span>
+              <RailTooltip label={connection.name} />
             </button>
           ))}
         </div>
@@ -729,12 +862,9 @@ function ActivityRail({
         aria-pressed={dontSleepEnabled}
         disabled={dontSleepUpdating}
         onClick={() => void handleDontSleepClick()}
-        title={dontSleepLabel}
       >
         <DontSleepIcon size={18} />
-        <span className="rail-tooltip" role="tooltip">
-          {t("app.dontSleep")}
-        </span>
+        <RailTooltip label={t("app.dontSleep")} />
       </button>
       <button
         className={`rail-button rail-button-settings ${activePage === "settings" ? "active" : ""}`}
@@ -742,9 +872,7 @@ function ActivityRail({
         onClick={() => onNavigate("settings")}
       >
         <Settings size={18} />
-        <span className="rail-tooltip" role="tooltip">
-          {t("app.settings")}
-        </span>
+        <RailTooltip label={t("app.settings")} />
       </button>
     </nav>
   );
