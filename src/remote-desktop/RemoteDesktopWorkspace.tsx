@@ -344,7 +344,11 @@ export function RemoteDesktopWorkspace({
           markRdpConnectionStarted();
           displayReadyRef.current = true;
           lastBoundsRef.current = bounds;
-          setRdpStatus(t("remoteDesktop.connected"));
+          setRdpStatus(
+            result.connectionState === RDP_ESTABLISHING_STATE
+              ? t("remoteDesktop.connecting")
+              : t("remoteDesktop.connected"),
+          );
           pushRdpVisibility();
         } else if (result.connected) {
           markRdpConnectionStarted();
@@ -786,6 +790,9 @@ export function RemoteDesktopWorkspace({
           }
           if (status.connected) {
             markRdpConnectionStarted();
+            if (displayReadyRef.current) {
+              setRdpStatus(t("remoteDesktop.connected"));
+            }
           } else {
             handleRdpDisconnectedStatus(status.connectionState);
           }

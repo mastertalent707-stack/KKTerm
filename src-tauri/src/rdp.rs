@@ -50,6 +50,7 @@ mod platform {
     const RDP_DISPLAY_ORIENTATION_LANDSCAPE: i32 = 0;
     const RDP_DISPLAY_SCALE_FACTOR_PERCENT: i32 = 100;
     const RDP_CONNECTED_STATE: i32 = 1;
+    const RDP_ESTABLISHING_STATE: i32 = 2;
     const VK_CONTROL_KEY: usize = 0x11;
     const VK_ALT_KEY: usize = 0x12;
     const VK_END_KEY: usize = 0x23;
@@ -384,7 +385,7 @@ mod platform {
                 let desktop_height = desktop_height_for(rect.3);
                 let connection_state = get_property_i32(&session.dispatch, "Connected")?;
                 let connected = is_rdp_connected_state(connection_state);
-                let display_synced = connected
+                let display_synced = is_rdp_displayable_state(connection_state)
                     && sync_remote_desktop_size(session, desktop_width, desktop_height, true);
                 Ok(RdpDisplaySizeSync {
                     session_id: request.session_id,
@@ -1448,6 +1449,10 @@ mod platform {
         connection_state == RDP_CONNECTED_STATE
     }
 
+    fn is_rdp_displayable_state(connection_state: i32) -> bool {
+        connection_state == RDP_CONNECTED_STATE || connection_state == RDP_ESTABLISHING_STATE
+    }
+
     fn run_on_main_thread<F, T>(app: AppHandle, f: F) -> Result<T, String>
     where
         F: FnOnce(AppHandle) -> Result<T, String> + Send + 'static,
@@ -1656,6 +1661,13 @@ mod platform {
             assert!(is_rdp_connected_state(1));
             assert!(!is_rdp_connected_state(2));
         }
+
+        #[test]
+        fn treats_establishing_rdp_state_as_displayable() {
+            assert!(!is_rdp_displayable_state(0));
+            assert!(is_rdp_displayable_state(1));
+            assert!(is_rdp_displayable_state(2));
+        }
     }
 }
 
@@ -1854,6 +1866,10 @@ mod platform {
 
     fn is_rdp_connected_state(connection_state: i32) -> bool {
         connection_state == 1
+    }
+
+    fn is_rdp_displayable_state(connection_state: i32) -> bool {
+        connection_state == 1 || connection_state == 2
     }
 
     impl StartRdpSessionRequest {
