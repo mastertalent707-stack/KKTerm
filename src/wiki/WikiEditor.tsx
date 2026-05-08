@@ -16,8 +16,7 @@ import type { DecorationSet, ViewUpdate } from "@codemirror/view";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-const WIKI_LINK_REGEX = /\[\[([^\]\n]+)\]\]/g;
-const CONNECTION_EMBED_REGEX = /\{\{connection:([^}\s]+)\}\}/g;
+const WIKI_TOKEN_REGEX = /\[\[\[([^\]\n]+)\]\]\]|\[\[([^\]\n]+)\]\]|(^|[\s(])#([A-Za-z0-9][A-Za-z0-9_-]*)\b/gm;
 
 const wikiTokenPlugin = ViewPlugin.fromClass(
   class {
@@ -40,8 +39,7 @@ function buildDecorations(view: EditorView): DecorationSet {
   const builder: Array<{ from: number; to: number; value: Decoration }> = [];
   for (const { from, to } of view.visibleRanges) {
     const text = view.state.sliceDoc(from, to);
-    pushMatches(WIKI_LINK_REGEX, text, from, "cm-wiki-link", builder);
-    pushMatches(CONNECTION_EMBED_REGEX, text, from, "cm-wiki-connection", builder);
+    pushTokenMatches(text, from, builder);
   }
   builder.sort((a, b) => a.from - b.from || a.to - b.to);
   const set = Decoration.none.update({
@@ -50,20 +48,24 @@ function buildDecorations(view: EditorView): DecorationSet {
   return set;
 }
 
-function pushMatches(
-  pattern: RegExp,
+function pushTokenMatches(
   text: string,
   base: number,
-  className: string,
   out: Array<{ from: number; to: number; value: Decoration }>,
 ) {
-  pattern.lastIndex = 0;
-  let match: RegExpExecArray | null = pattern.exec(text);
+  WIKI_TOKEN_REGEX.lastIndex = 0;
+  let match: RegExpExecArray | null = WIKI_TOKEN_REGEX.exec(text);
   while (match) {
-    const from = base + match.index;
-    const to = from + match[0].length;
+    const tagPrefix = match[3] ?? "";
+    const from = base + match.index + tagPrefix.length;
+    const to = base + match.index + match[0].length;
+    const className = match[1] !== undefined
+      ? "cm-wiki-connection"
+      : match[4] !== undefined
+        ? "cm-wiki-tag"
+        : "cm-wiki-link";
     out.push({ from, to, value: Decoration.mark({ class: className }) });
-    match = pattern.exec(text);
+    match = WIKI_TOKEN_REGEX.exec(text);
   }
 }
 
@@ -71,7 +73,7 @@ const wikiTheme = EditorView.theme({
   "&": {
     height: "100%",
     fontSize: "14px",
-    backgroundColor: "var(--wiki-editor-bg, var(--chrome, #ffffff))",
+    backgroundColor: "var(--wiki-editor-bg, var(--chrome))",
     color: "var(--text)",
   },
   ".cm-scroller": {
@@ -81,18 +83,22 @@ const wikiTheme = EditorView.theme({
   ".cm-gutters": {
     backgroundColor: "transparent",
     border: "none",
-    color: "color-mix(in srgb, var(--text) 40%, transparent)",
+    color: "var(--wiki-faint, var(--text-faint))",
   },
   ".cm-activeLine": {
-    backgroundColor: "color-mix(in srgb, var(--accent, #6366f1) 8%, transparent)",
+    backgroundColor: "var(--wiki-accent-soft, var(--accent-soft, transparent))",
   },
   ".cm-wiki-link": {
-    color: "var(--accent, #6366f1)",
+    color: "var(--accent)",
     fontWeight: 500,
   },
   ".cm-wiki-connection": {
-    color: "color-mix(in srgb, var(--accent, #6366f1) 70%, var(--text))",
+    color: "var(--wiki-connection, var(--accent))",
     fontStyle: "italic",
+  },
+  ".cm-wiki-tag": {
+    color: "var(--wiki-tag, var(--green))",
+    fontWeight: 600,
   },
 });
 

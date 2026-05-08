@@ -1,9 +1,20 @@
 import {
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Columns3,
   Download,
   FileText,
+  Link2,
   Loader2,
+  Network,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
   Paperclip,
   Search,
+  Tags,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -15,6 +26,9 @@ import { WikiPreview } from "./WikiPreview";
 import { WikiTree as WikiTreeView } from "./WikiTree";
 import {
   buildPageLookup,
+  extractConnectionLinkTargets,
+  extractWikiLinkTargets,
+  findConnectionByWikiTarget,
   flattenWikiTree,
 } from "./wikiMarkdown";
 import {
@@ -30,7 +44,7 @@ import {
   updateWikiPage,
 } from "./wikiCommands";
 
-type ViewMode = "edit" | "view";
+type ViewMode = "edit" | "split" | "view";
 
 interface WikiWorkspaceProps {
   active: boolean;
@@ -39,7 +53,7 @@ interface WikiWorkspaceProps {
 }
 
 const SAVE_DEBOUNCE_MS = 800;
-const SEARCH_DEBOUNCE_MS = 250;
+const SEARCH_DEBOUNCE_MS = 180;
 
 export function WikiWorkspace({ active, initialPageId, onOpenConnection }: WikiWorkspaceProps) {
   const { t } = useTranslation();
@@ -49,7 +63,9 @@ export function WikiWorkspace({ active, initialPageId, onOpenConnection }: WikiW
   const [pageDraft, setPageDraft] = useState<{ title: string; body: string } | null>(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("edit");
+  const [viewMode, setViewMode] = useState<ViewMode>("split");
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHits, setSearchHits] = useState<WikiSearchHit[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +79,6 @@ export function WikiWorkspace({ active, initialPageId, onOpenConnection }: WikiW
     () => flattenWikiTree(tree.roots as ReadonlyArray<WikiPageNode> as never),
     [tree],
   );
-
   const pageLookup = useMemo(() => buildPageLookup(flatPages), [flatPages]);
 
   const connectionsById = useMemo(() => {
@@ -78,6 +93,12 @@ export function WikiWorkspace({ active, initialPageId, onOpenConnection }: WikiW
     () => ({ pages: pageLookup, connectionsById }),
     [pageLookup, connectionsById],
   );
+
+  const currentStats = useMemo(() => {
+    const body = pageDraft?.body ?? "";
+    const words = body.trim() ? body.trim().split(/\s+/).length : 0;
+    return { words, characters: body.length };
+  }, [pageDraft?.body]);
 
   const refreshTree = useCallback(async () => {
     if (!isTauriRuntime()) {
@@ -96,6 +117,12 @@ export function WikiWorkspace({ active, initialPageId, onOpenConnection }: WikiW
       void refreshTree();
     }
   }, [active, refreshTree]);
+
+  useEffect(() => {
+    if (initialPageId) {
+      setSelectedId(initialPageId);
+    }
+  }, [initialPageId]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -132,13 +159,15 @@ export function WikiWorkspace({ active, initialPageId, onOpenConnection }: WikiW
       }
       const title = override?.title ?? pageDraft.title;
       const body = override?.body ?? pageDraft.body;
+      const connectionIds = override?.connectionIds
+        ?? mergeConnectionIdsFromBody(body, page.connectionIds, allConnections);
       setSaving(true);
       try {
         const updated = await updateWikiPage({
           id: page.id,
           title,
           bodyMd: body,
-          connectionIds: override?.connectionIds ?? page.connectionIds,
+          connectionIds,
         });
         setPage(updated);
         setPageDraft({ title: updated.title, body: updated.bodyMd });
@@ -150,7 +179,7 @@ export function WikiWorkspace({ active, initialPageId, onOpenConnection }: WikiW
         setSaving(false);
       }
     },
-    [page, pageDraft, refreshTree, t],
+    [allConnections, page, pageDraft, refreshTree, t],
   );
 
   useEffect(() => {
@@ -171,10 +200,10 @@ export function WikiWorkspace({ active, initialPageId, onOpenConnection }: WikiW
   }, [dirty, performSave]);
 
   const handleCreate = useCallback(
-    async (parentId: string | null) => {
+    async (parentId: string | null, title?: string) => {
       try {
         const created = await createWikiPage({
-          title: t("wiki.untitled"),
+          title: title?.trim() || t("wiki.untitled"),
           parentId,
         });
         await refreshTree();
@@ -297,65 +326,67 @@ export function WikiWorkspace({ active, initialPageId, onOpenConnection }: WikiW
     };
   }, [searchQuery, t]);
 
-  const handleEditorChange = useCallback(
-    (next: string) => {
-      setPageDraft((current) => {
-        if (!current) {
-          return current;
-        }
-        if (current.body === next) {
-          return current;
-        }
-        return { ...current, body: next };
-      });
-      setDirty(true);
-    },
-    [],
-  );
-
-  const handleTitleChange = useCallback(
-    (next: string) => {
-      setPageDraft((current) => {
-        if (!current) {
-          return current;
-        }
-        if (current.title === next) {
-          return current;
-        }
-        return { ...current, title: next };
-      });
-      setDirty(true);
-    },
-    [],
-  );
-
-  const handleOpenWikiLink = useCallback((pageId: string) => {
-    setSelectedId(pageId);
+  const handleEditorChange = useCallback((next: string) => {
+    setPageDraft((current) => (
+      current && current.body !== next ? { ...current, body: next } : current
+    ));
+    setDirty(true);
   }, []);
+
+  const handleTitleChange = useCallback((next: string) => {
+    setPageDraft((current) => (
+      current && current.title !== next ? { ...current, title: next } : current
+    ));
+    setDirty(true);
+  }, []);
+
+  const handleOpenWikiLink = useCallback(
+    async (target: string) => {
+      const existing = resolvePageTarget(target, flatPages);
+      if (existing) {
+        setSelectedId(existing.id);
+        return;
+      }
+      await handleCreate(null, target);
+    },
+    [flatPages, handleCreate],
+  );
 
   return (
     <div
-      className="wiki-workspace relative flex h-full min-h-0 flex-1"
+      className={`wiki-workspace ${leftCollapsed ? "wiki-left-collapsed" : ""} ${
+        rightCollapsed ? "wiki-right-collapsed" : ""
+      } relative flex h-full min-h-0 flex-1`}
       role="region"
       aria-label={t("wiki.title")}
     >
-      <aside className="wiki-tree-pane flex w-64 min-w-[200px] shrink-0 flex-col border-r border-black/10">
-        <div className="wiki-search relative px-2 pt-2">
-          <Search size={12} className="absolute left-4 top-[14px] opacity-60" />
+      <aside className="wiki-tree-pane flex min-h-0 shrink-0 flex-col">
+        <div className="wiki-side-header">
+          <div className="wiki-side-title">
+            <BookOpen size={15} />
+            <span>{t("wiki.title")}</span>
+          </div>
+          <button
+            type="button"
+            className="wiki-icon-button"
+            onClick={() => setLeftCollapsed(true)}
+            aria-label={t("wiki.collapseExplorer")}
+          >
+            <PanelLeftClose size={15} />
+          </button>
+        </div>
+        <div className="wiki-search">
+          <Search size={13} aria-hidden="true" />
           <input
             type="text"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder={t("wiki.searchPlaceholder")}
-            className="w-full rounded border border-black/10 bg-white/40 py-1 pl-6 pr-2 text-xs"
             aria-label={t("wiki.searchPlaceholder")}
           />
         </div>
         {searchQuery.trim() ? (
-          <SearchResultsList
-            hits={searchHits}
-            onSelect={(id) => setSelectedId(id)}
-          />
+          <SearchResultsList hits={searchHits} onSelect={setSelectedId} />
         ) : (
           <div className="wiki-tree-scroll min-h-0 flex-1 overflow-y-auto py-1">
             <WikiTreeView
@@ -368,123 +399,155 @@ export function WikiWorkspace({ active, initialPageId, onOpenConnection }: WikiW
           </div>
         )}
       </aside>
+
+      {leftCollapsed ? (
+        <button
+          type="button"
+          className="wiki-floating-toggle wiki-floating-toggle-left"
+          onClick={() => setLeftCollapsed(false)}
+          aria-label={t("wiki.expandExplorer")}
+        >
+          <PanelLeftOpen size={15} />
+        </button>
+      ) : null}
+
       {pendingDeleteId ? (
         <DeletePageDialog
           onCancel={() => setPendingDeleteId(null)}
           onConfirm={() => void confirmDelete()}
         />
       ) : null}
-      <section className="wiki-detail flex min-w-0 flex-1 flex-col">
-        <div className="wiki-toolbar flex items-center gap-2 border-b border-black/10 px-3 py-2 text-sm">
-          <span className="wiki-status flex items-center gap-1 text-xs opacity-70">
-            {saving ? <Loader2 size={12} className="animate-spin" /> : null}
+
+      <main className="wiki-detail flex min-w-0 flex-1 flex-col">
+        <div className="wiki-toolbar flex items-center gap-2">
+          <span className="wiki-status flex items-center gap-1">
+            {saving ? <Loader2 size={13} className="animate-spin" /> : null}
             {dirty ? t("wiki.unsaved") : page ? t("wiki.saved") : null}
           </span>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-2">
             <ViewModeToggle current={viewMode} onChange={setViewMode} />
             <button
               type="button"
-              className="wiki-toolbar-button inline-flex items-center gap-1 rounded border border-black/10 px-2 py-1 text-xs hover:bg-black/5"
+              className="wiki-toolbar-button"
               onClick={() => void handleExport()}
             >
-              <Download size={12} />
-              {t("wiki.export")}
+              <Download size={14} />
+              <span className="wiki-toolbar-button-label">{t("wiki.export")}</span>
             </button>
           </div>
         </div>
+
         {error ? (
           <Banner kind="error" message={error} onDismiss={() => setError(null)} />
         ) : null}
         {info ? (
           <Banner kind="info" message={info} onDismiss={() => setInfo(null)} />
         ) : null}
+
         {!page || !pageDraft ? (
-          <div className="wiki-empty flex flex-1 items-center justify-center text-sm opacity-70">
-            {t("wiki.noSelection")}
+          <div className="wiki-empty flex flex-1 items-center justify-center">
+            <div>
+              <BookOpen size={34} />
+              <p>{t("wiki.noSelection")}</p>
+              <button
+                type="button"
+                className="wiki-primary-button"
+                onClick={() => void handleCreate(null)}
+              >
+                {t("wiki.createFirstPage")}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="wiki-editor-frame flex min-h-0 flex-1 flex-col">
-            <div className="wiki-title-row flex items-center gap-2 px-3 pt-3">
-              <FileText size={14} className="opacity-60" />
+            <div className="wiki-title-row">
+              <FileText size={16} />
               <input
                 type="text"
                 value={pageDraft.title}
                 onChange={(event) => handleTitleChange(event.target.value)}
                 placeholder={t("wiki.pageTitlePlaceholder")}
-                className="w-full bg-transparent text-lg font-semibold focus:outline-none"
                 aria-label={t("wiki.pageTitlePlaceholder")}
               />
             </div>
-            <div className="wiki-edit-area flex min-h-0 flex-1">
-              {viewMode === "edit" ? (
-                <div className="wiki-edit-pane flex min-h-0 flex-1 flex-col px-3 pb-3 pt-2">
+            <div className={`wiki-edit-area wiki-mode-${viewMode} flex min-h-0 flex-1`}>
+              {viewMode !== "view" ? (
+                <section className="wiki-edit-pane" aria-label={t("wiki.editor")}>
                   <WikiEditor
                     value={pageDraft.body}
                     onChange={handleEditorChange}
                     ariaLabel={t("wiki.editor")}
                     placeholderText={t("wiki.bodyPlaceholder")}
                   />
-                </div>
-              ) : (
-                <div className="wiki-view-pane flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4">
+                </section>
+              ) : null}
+              {viewMode !== "edit" ? (
+                <section className="wiki-view-pane" aria-label={t("wiki.preview")}>
                   <WikiPreview
                     body={pageDraft.body}
                     context={previewContext}
-                    onOpenWikiLink={handleOpenWikiLink}
+                    onOpenWikiLink={(id) => void handleOpenWikiLink(id)}
                     onOpenConnection={onOpenConnection}
+                    onSelectTag={(tag) => setSearchQuery(`#${tag}`)}
                   />
-                </div>
-              )}
+                </section>
+              ) : null}
             </div>
-            <PageSidebar
-              page={page}
-              allConnections={allConnections}
-              onAttach={handleAttach}
-              onAttachmentRemove={handleAttachmentRemove}
-              onConnectionsChange={handleConnectionsChange}
-              onOpenBacklink={handleOpenWikiLink}
-              onSelectTag={(tag) => setSearchQuery(`#${tag}`)}
-            />
+            <div className="wiki-bottom-status">
+              <span>{t("wiki.backlinkCount", { count: page.backlinks.length })}</span>
+              <span>{t("wiki.wordCount", { count: currentStats.words })}</span>
+              <span>{t("wiki.characterCount", { count: currentStats.characters })}</span>
+            </div>
           </div>
         )}
-      </section>
+      </main>
+
+      {page && pageDraft && !rightCollapsed ? (
+        <PageInspector
+          page={page}
+          body={pageDraft.body}
+          pages={flatPages}
+          allConnections={allConnections}
+          onAttach={handleAttach}
+          onAttachmentRemove={handleAttachmentRemove}
+          onConnectionsChange={handleConnectionsChange}
+          onOpenBacklink={(id) => void handleOpenWikiLink(id)}
+          onSelectTag={(tag) => setSearchQuery(`#${tag}`)}
+          onCollapse={() => setRightCollapsed(true)}
+        />
+      ) : null}
+
+      {rightCollapsed ? (
+        <button
+          type="button"
+          className="wiki-floating-toggle wiki-floating-toggle-right"
+          onClick={() => setRightCollapsed(false)}
+          aria-label={t("wiki.expandInspector")}
+        >
+          <PanelRightOpen size={15} />
+        </button>
+      ) : null}
     </div>
   );
 }
 
-function DeletePageDialog({
-  onCancel,
-  onConfirm,
-}: {
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
+function DeletePageDialog({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="wiki-delete-dialog absolute inset-0 z-20 flex items-center justify-center bg-black/30 p-4">
+    <div className="wiki-delete-dialog absolute inset-0 z-20 flex items-center justify-center p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="wiki-delete-dialog-title"
-        className="w-full max-w-sm rounded-lg border border-black/10 bg-[var(--chrome)] p-4 shadow-xl"
+        className="wiki-dialog"
       >
-        <h3 id="wiki-delete-dialog-title" className="text-sm font-semibold">
-          {t("wiki.deletePageTitle")}
-        </h3>
-        <p className="mt-2 text-sm opacity-80">{t("wiki.deleteConfirm")}</p>
-        <div className="mt-4 flex justify-end gap-2 text-sm">
-          <button
-            type="button"
-            className="rounded border border-black/10 px-3 py-1 hover:bg-black/5"
-            onClick={onCancel}
-          >
+        <h3 id="wiki-delete-dialog-title">{t("wiki.deletePageTitle")}</h3>
+        <p>{t("wiki.deleteConfirm")}</p>
+        <div className="wiki-dialog-actions">
+          <button type="button" className="wiki-secondary-button" onClick={onCancel}>
             {t("common.cancel")}
           </button>
-          <button
-            type="button"
-            className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
-            onClick={onConfirm}
-          >
+          <button type="button" className="wiki-danger-button" onClick={onConfirm}>
             {t("common.delete")}
           </button>
         </div>
@@ -493,30 +556,24 @@ function DeletePageDialog({
   );
 }
 
-function ViewModeToggle({
-  current,
-  onChange,
-}: {
-  current: ViewMode;
-  onChange: (next: ViewMode) => void;
-}) {
+function ViewModeToggle({ current, onChange }: { current: ViewMode; onChange: (next: ViewMode) => void }) {
   const { t } = useTranslation();
-  const options: Array<{ key: ViewMode; label: string }> = [
-    { key: "edit", label: t("wiki.editorMode") },
-    { key: "view", label: t("wiki.viewMode") },
+  const options: Array<{ key: ViewMode; label: string; icon: React.ReactNode }> = [
+    { key: "edit", label: t("wiki.editorMode"), icon: <ChevronLeft size={13} /> },
+    { key: "split", label: t("wiki.splitMode"), icon: <Columns3 size={13} /> },
+    { key: "view", label: t("wiki.viewMode"), icon: <ChevronRight size={13} /> },
   ];
   return (
-    <div className="wiki-viewmode inline-flex rounded border border-black/10 text-xs">
+    <div className="wiki-viewmode" aria-label={t("wiki.viewModeLabel")}>
       {options.map((option) => (
         <button
           key={option.key}
           type="button"
-          className={`wiki-viewmode-button inline-flex items-center gap-1 px-2 py-1 ${
-            current === option.key ? "bg-black/10 font-medium" : "hover:bg-black/5"
-          }`}
+          className={current === option.key ? "active" : ""}
           onClick={() => onChange(option.key)}
           aria-pressed={current === option.key}
         >
+          {option.icon}
           <span>{option.label}</span>
         </button>
       ))}
@@ -524,33 +581,19 @@ function ViewModeToggle({
   );
 }
 
-function SearchResultsList({
-  hits,
-  onSelect,
-}: {
-  hits: WikiSearchHit[];
-  onSelect: (id: string) => void;
-}) {
+function SearchResultsList({ hits, onSelect }: { hits: WikiSearchHit[]; onSelect: (id: string) => void }) {
   const { t } = useTranslation();
   if (hits.length === 0) {
-    return (
-      <div className="wiki-search-empty p-3 text-xs opacity-70">
-        {t("wiki.searchEmpty")}
-      </div>
-    );
+    return <div className="wiki-search-empty">{t("wiki.searchEmpty")}</div>;
   }
   return (
-    <ul className="wiki-search-results min-h-0 flex-1 overflow-y-auto p-2 text-xs">
+    <ul className="wiki-search-results min-h-0 flex-1 overflow-y-auto">
       {hits.map((hit) => (
         <li key={hit.id}>
-          <button
-            type="button"
-            className="wiki-search-hit w-full rounded p-2 text-left hover:bg-black/5"
-            onClick={() => onSelect(hit.id)}
-          >
-            <div className="wiki-search-hit-title font-medium">{hit.title}</div>
-            <div
-              className="wiki-search-hit-snippet mt-1 opacity-70"
+          <button type="button" className="wiki-search-hit" onClick={() => onSelect(hit.id)}>
+            <span className="wiki-search-hit-title">{hit.title}</span>
+            <span
+              className="wiki-search-hit-snippet"
               dangerouslySetInnerHTML={{ __html: highlightSnippet(hit.snippet) }}
             />
           </button>
@@ -560,45 +603,110 @@ function SearchResultsList({
   );
 }
 
-function highlightSnippet(snippet: string): string {
-  const escaped = snippet
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-  return escaped.replace(/&lt;&lt;/g, "<mark>").replace(/&gt;&gt;/g, "</mark>");
-}
-
-function PageSidebar({
+function PageInspector({
   page,
+  body,
+  pages,
   allConnections,
   onAttach,
   onAttachmentRemove,
   onConnectionsChange,
   onOpenBacklink,
   onSelectTag,
+  onCollapse,
 }: {
   page: WikiPage;
+  body: string;
+  pages: Array<{ id: string; title: string; slug: string }>;
   allConnections: Connection[];
   onAttach: (files: FileList | null) => void;
   onAttachmentRemove: (attachmentId: string) => void;
   onConnectionsChange: (nextIds: string[]) => void;
   onOpenBacklink: (pageId: string) => void;
   onSelectTag: (tag: string) => void;
+  onCollapse: () => void;
 }) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
   return (
-    <div className="wiki-page-sidebar grid grid-cols-4 gap-3 border-t border-black/10 p-3 text-xs">
-      <section className="wiki-attachments">
-        <div className="flex items-center justify-between">
-          <h4 className="font-medium">{t("wiki.attachments")}</h4>
+    <aside className="wiki-inspector flex min-h-0 shrink-0 flex-col">
+      <div className="wiki-side-header">
+        <div className="wiki-side-title">
+          <Network size={15} />
+          <span>{t("wiki.inspector")}</span>
+        </div>
+        <button
+          type="button"
+          className="wiki-icon-button"
+          onClick={onCollapse}
+          aria-label={t("wiki.collapseInspector")}
+        >
+          <PanelRightClose size={15} />
+        </button>
+      </div>
+      <div className="wiki-inspector-scroll">
+        <section className="wiki-inspector-section wiki-graph-section">
+          <h4>
+            <Network size={13} />
+            {t("wiki.graph")}
+          </h4>
+          <MiniGraph page={page} body={body} pages={pages} connections={allConnections} />
+        </section>
+
+        <section className="wiki-inspector-section">
+          <h4>
+            <Link2 size={13} />
+            {t("wiki.backlinks")}
+          </h4>
+          {page.backlinks.length === 0 ? (
+            <p className="wiki-muted">{t("wiki.noBacklinks")}</p>
+          ) : (
+            <ul className="wiki-link-list">
+              {page.backlinks.map((backlink) => (
+                <li key={backlink.id}>
+                  <button type="button" onClick={() => onOpenBacklink(backlink.id)}>
+                    {backlink.title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="wiki-inspector-section">
+          <h4>
+            <Tags size={13} />
+            {t("wiki.tags")}
+          </h4>
+          {page.tags.length === 0 ? (
+            <p className="wiki-muted">{t("wiki.noTags")}</p>
+          ) : (
+            <div className="wiki-tag-cloud">
+              {page.tags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => onSelectTag(tag)}
+                  aria-label={t("wiki.filterByTag", { tag })}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="wiki-inspector-section">
+          <h4>
+            <Paperclip size={13} />
+            {t("wiki.attachments")}
+          </h4>
           <button
             type="button"
-            className="inline-flex items-center gap-1 rounded border border-black/10 px-2 py-0.5 hover:bg-black/5"
+            className="wiki-secondary-button wiki-attach-button"
             onClick={() => fileInputRef.current?.click()}
           >
-            <Paperclip size={11} />
+            <Paperclip size={12} />
             {t("wiki.attach")}
           </button>
           <input
@@ -608,110 +716,122 @@ function PageSidebar({
             className="hidden"
             onChange={(event) => onAttach(event.target.files)}
           />
-        </div>
-        <ul className="mt-2 space-y-1">
-          {page.attachments.length === 0 ? (
-            <li className="opacity-60">—</li>
-          ) : (
-            page.attachments.map((attachment) => (
-              <li
-                key={attachment.id}
-                className="flex items-center justify-between rounded border border-black/5 px-2 py-1"
-              >
-                <span className="truncate" title={attachment.filename}>
-                  {attachment.filename}
-                </span>
-                <button
-                  type="button"
-                  className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded hover:bg-red-500/15"
-                  onClick={() => onAttachmentRemove(attachment.id)}
-                  aria-label={t("wiki.attachmentRemove")}
-                  title={t("wiki.attachmentRemove")}
-                >
-                  <X size={11} />
-                </button>
-              </li>
-            ))
-          )}
-        </ul>
-      </section>
-      <section className="wiki-page-backlinks">
-        <h4 className="font-medium">{t("wiki.backlinks")}</h4>
-        {page.backlinks.length === 0 ? (
-          <p className="mt-2 opacity-60">{t("wiki.noBacklinks")}</p>
-        ) : (
-          <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto">
-            {page.backlinks.map((backlink) => (
-              <li key={backlink.id}>
-                <button
-                  type="button"
-                  className="w-full truncate rounded border border-black/5 px-2 py-1 text-left hover:bg-black/5"
-                  onClick={() => onOpenBacklink(backlink.id)}
-                  title={backlink.title}
-                >
-                  {backlink.title}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-      <section className="wiki-page-tags">
-        <h4 className="font-medium">{t("wiki.tags")}</h4>
-        {page.tags.length === 0 ? (
-          <p className="mt-2 opacity-60">{t("wiki.noTags")}</p>
-        ) : (
-          <div className="mt-2 flex max-h-32 flex-wrap gap-1 overflow-y-auto">
-            {page.tags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                className="rounded-full border border-black/10 px-2 py-0.5 hover:bg-black/5"
-                onClick={() => onSelectTag(tag)}
-                title={t("wiki.filterByTag", { tag })}
-                aria-label={t("wiki.filterByTag", { tag })}
-              >
-                #{tag}
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
-      <section className="wiki-page-connections">
-        <h4 className="font-medium">{t("wiki.connectionsLabel")}</h4>
-        {allConnections.length === 0 ? (
-          <p className="mt-2 opacity-60">{t("wiki.noConnections")}</p>
-        ) : (
-          <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto">
-            {allConnections.map((connection) => {
-              const checked = page.connectionIds.includes(connection.id);
-              return (
-                <li key={connection.id} className="flex items-center gap-2">
-                  <input
-                    id={`wiki-conn-${connection.id}`}
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(event) => {
-                      const nextIds = event.target.checked
-                        ? Array.from(new Set([...page.connectionIds, connection.id]))
-                        : page.connectionIds.filter((id) => id !== connection.id);
-                      onConnectionsChange(nextIds);
-                    }}
-                  />
-                  <label
-                    htmlFor={`wiki-conn-${connection.id}`}
-                    className="truncate"
-                    title={`${connection.name} (${connection.type})`}
+          <ul className="wiki-attachment-list">
+            {page.attachments.length === 0 ? (
+              <li className="wiki-muted">{t("wiki.noAttachments")}</li>
+            ) : (
+              page.attachments.map((attachment) => (
+                <li key={attachment.id}>
+                  <span>{attachment.filename}</span>
+                  <button
+                    type="button"
+                    onClick={() => onAttachmentRemove(attachment.id)}
+                    aria-label={t("wiki.attachmentRemove")}
                   >
-                    {connection.name}
-                  </label>
+                    <X size={12} />
+                  </button>
                 </li>
-              );
-            })}
+              ))
+            )}
           </ul>
-        )}
-      </section>
-    </div>
+        </section>
+
+        <section className="wiki-inspector-section">
+          <h4>
+            <Link2 size={13} />
+            {t("wiki.connectionsLabel")}
+          </h4>
+          {allConnections.length === 0 ? (
+            <p className="wiki-muted">{t("wiki.noConnections")}</p>
+          ) : (
+            <ul className="wiki-connection-list">
+              {allConnections.map((connection) => {
+                const checked = page.connectionIds.includes(connection.id);
+                return (
+                  <li key={connection.id}>
+                    <input
+                      id={`wiki-conn-${connection.id}`}
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(event) => {
+                        const nextIds = event.target.checked
+                          ? Array.from(new Set([...page.connectionIds, connection.id]))
+                          : page.connectionIds.filter((id) => id !== connection.id);
+                        onConnectionsChange(nextIds);
+                      }}
+                    />
+                    <label htmlFor={`wiki-conn-${connection.id}`}>
+                      <span>{connection.name}</span>
+                      <small>{connection.type}</small>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
+    </aside>
+  );
+}
+
+function MiniGraph({
+  page,
+  body,
+  pages,
+  connections,
+}: {
+  page: WikiPage;
+  body: string;
+  pages: Array<{ id: string; title: string; slug: string }>;
+  connections: Connection[];
+}) {
+  const { t } = useTranslation();
+  const outgoingPages = extractWikiLinkTargets(body)
+    .map((target) => resolvePageTarget(target, pages))
+    .filter((target): target is { id: string; title: string; slug: string } => Boolean(target))
+    .filter((target) => target.id !== page.id);
+  const outgoingConnections = extractConnectionLinkTargets(body)
+    .map((target) => findConnectionByWikiTarget(target, connections))
+    .filter((target): target is Connection => Boolean(target));
+  const nodes = [
+    ...page.backlinks.slice(0, 4).map((node) => ({ id: `back-${node.id}`, label: node.title, kind: "back" })),
+    ...outgoingPages.slice(0, 4).map((node) => ({ id: `page-${node.id}`, label: node.title, kind: "page" })),
+    ...outgoingConnections.slice(0, 3).map((node) => ({ id: `conn-${node.id}`, label: node.name, kind: "connection" })),
+  ];
+  if (nodes.length === 0) {
+    return <p className="wiki-muted">{t("wiki.graphEmpty")}</p>;
+  }
+  const center = { x: 132, y: 92 };
+  const radius = 68;
+  return (
+    <svg className="wiki-mini-graph" viewBox="0 0 264 184" role="img" aria-label={t("wiki.graph")}>
+      {nodes.map((node, index) => {
+        const angle = (Math.PI * 2 * index) / nodes.length - Math.PI / 2;
+        const x = center.x + Math.cos(angle) * radius;
+        const y = center.y + Math.sin(angle) * radius;
+        return (
+          <g key={`edge-${node.id}`}>
+            <line x1={center.x} y1={center.y} x2={x} y2={y} />
+          </g>
+        );
+      })}
+      <circle className="wiki-graph-node-current" cx={center.x} cy={center.y} r="13" />
+      <text className="wiki-graph-label-current" x={center.x} y={center.y + 27} textAnchor="middle">
+        {truncateLabel(page.title, 18)}
+      </text>
+      {nodes.map((node, index) => {
+        const angle = (Math.PI * 2 * index) / nodes.length - Math.PI / 2;
+        const x = center.x + Math.cos(angle) * radius;
+        const y = center.y + Math.sin(angle) * radius;
+        return (
+          <g key={node.id} className={`wiki-graph-node wiki-graph-node-${node.kind}`}>
+            <circle cx={x} cy={y} r="9" />
+            <text x={x} y={y + 22} textAnchor="middle">{truncateLabel(node.label, 14)}</text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
@@ -726,25 +846,54 @@ function Banner({
 }) {
   const { t } = useTranslation();
   return (
-    <div
-      role="status"
-      className={`wiki-banner flex items-center gap-2 px-3 py-1 text-xs ${
-        kind === "error"
-          ? "wiki-banner-error bg-red-500/10 text-red-700"
-          : "wiki-banner-info bg-blue-500/10 text-blue-700"
-      }`}
-    >
-      <span className="flex-1">{message}</span>
-      <button
-        type="button"
-        className="inline-flex h-5 w-5 items-center justify-center rounded hover:bg-black/10"
-        onClick={onDismiss}
-        aria-label={t("common.close")}
-      >
-        <X size={11} />
+    <div role="status" className={`wiki-banner wiki-banner-${kind}`}>
+      <span>{message}</span>
+      <button type="button" onClick={onDismiss} aria-label={t("common.close")}>
+        <X size={12} />
       </button>
     </div>
   );
+}
+
+function highlightSnippet(snippet: string): string {
+  const escaped = snippet
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return escaped.replace(/&lt;&lt;/g, "<mark>").replace(/&gt;&gt;/g, "</mark>");
+}
+
+function mergeConnectionIdsFromBody(
+  body: string,
+  existingIds: string[],
+  connections: ReadonlyArray<Connection>,
+): string[] {
+  const ids = new Set(existingIds);
+  for (const target of extractConnectionLinkTargets(body)) {
+    const connection = findConnectionByWikiTarget(target, connections);
+    if (connection) {
+      ids.add(connection.id);
+    }
+  }
+  return Array.from(ids);
+}
+
+function resolvePageTarget<T extends { id: string; title: string; slug: string }>(
+  target: string,
+  pages: ReadonlyArray<T>,
+): T | undefined {
+  const normalized = normalizeTitle(target);
+  return pages.find((page) => (
+    page.id === target || page.slug === target || normalizeTitle(page.title) === normalized
+  ));
+}
+
+function normalizeTitle(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+function truncateLabel(value: string, max: number): string {
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
 function useGlobalConnections(): Connection[] {
@@ -800,4 +949,3 @@ function formatError(error: unknown): string {
     return String(error);
   }
 }
-

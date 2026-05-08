@@ -8,13 +8,13 @@
     "aiAssistant": "Assistente IA",
     "wiki": "Wiki",
     "dontSleep": "Don't Sleep",
-    "dontSleepEnable": "Enable Don't Sleep mode",
-    "dontSleepDisable": "Disable Don't Sleep mode",
-    "dontSleepEnabled": "Don't Sleep mode enabled.",
-    "dontSleepDisabled": "Don't Sleep mode disabled.",
-    "dontSleepError": "Could not change Don't Sleep mode: {{message}}",
-    "connectedConnectionsRail": "Connected Connections",
-    "openConnectedConnection": "Open {{name}}"
+    "dontSleepEnable": "Ativar modo Não dormir",
+    "dontSleepDisable": "Desativar modo Não dormir",
+    "dontSleepEnabled": "Modo Não dormir ativado.",
+    "dontSleepDisabled": "Modo Não dormir desativado.",
+    "dontSleepError": "Não foi possível alterar o modo Não dormir: {{message}}",
+    "connectedConnectionsRail": "Conexões conectadas",
+    "openConnectedConnection": "Abrir {{name}}"
   },
   "settings": {
     "title": "Configurações",
@@ -113,7 +113,7 @@
     "wsl": "WSL",
     "copyOnSelect": "Copiar texto selecionado do terminal automaticamente",
     "confirmMultilinePaste": "Confirmar colagem multilinha",
-    "scrollbackHint": "O padrão é 10.000. O intervalo válido é de 100 a 100.000.",
+    "scrollbackHint": "O padrão é 5.000. O intervalo válido é de 100 a 100.000.",
     "qualityDefaults": "Padrões de qualidade",
     "resolution": "Resolução",
     "colorDepth": "Profundidade de cor",
@@ -187,52 +187,61 @@
     "urlDataShardConnectionCountPlural": "{{count}} conexões URL",
     "clearShard": "Limpar partição",
     "urlDataShardCleared": "Partição de dados URL {{name}} limpa.",
-    "navToolbar": "Nav toolbar",
-    "toolbarText": "Toolbar text",
-    "sshBufferLines": "SSH buffer lines",
-    "sshBufferHint": "Default is 5,000. Used for SSH terminal scrollback and tmux pane history.",
-    "sshBufferRange": "SSH buffer must be between 100 and 100000 lines.",
-    "sshKeyEmailDialogTitle": "Generate SSH key",
-    "sshKeyEmailDialogHint": "Add an email address as the public key comment so the key is easy to recognize later.",
-    "sshKeyEmailPlaceholder": "admin@example.com",
-    "sshKeyGenerating": "Generating...",
-    "urlSecurity": "URL security",
-    "urlSecurityHint": "Controls certificate handling for URL Connections. Keep bypass off unless you trust the internal site and network.",
-    "ignoreCertificateErrors": "Ignore invalid HTTPS certificates",
-    "ignoreCertificateErrorsHint": "Loads URL Connections with self-signed or untrusted certificates without the browser warning. Applies to newly opened URL tabs.",
-    "urlSettingsSaved": "URL settings saved.",
-    "aiToolsTitle": "Assistant tools",
-    "aiToolsDescription": "Choose which built-in tools the AI Assistant may call while answering. Keep risky tools off unless you need them.",
-    "aiToolsSafety": "Safeguards: file tools are confined to AdminDeck app data, shell commands run from app data only, and deletion/destructive requests are blocked until a future explicit approval prompt can review them.",
+    "navToolbar": "Barra de navegação",
+    "toolbarText": "Texto da barra",
+    "urlSecurity": "Segurança de URL",
+    "urlSecurityHint": "Controla o manuseio de certificados para Conexões URL. Mantenha a omissão desativada a menos que confie no site e na rede internos.",
+    "ignoreCertificateErrors": "Ignorar certificados HTTPS inválidos",
+    "ignoreCertificateErrorsHint": "Carrega Conexões URL com certificados autoassinados ou não confiáveis sem o aviso do navegador. Aplica-se a abas URL recém-abertas.",
+    "allowClipboardRead": "Permitir leitura da área de transferência para colar",
+    "allowClipboardReadHint": "Permite que as superfícies WebView2 do AdminDeck usem a permissão de leitura da área de transferência sem o aviso nativo de colagem.",
+    "clipboardReadSaved": "Configuração de leitura da área de transferência salva.",
+    "urlSettingsSaved": "Configurações de URL salvas.",
+    "sshBufferLines": "Linhas do buffer SSH",
+    "sshBufferHint": "O padrão é 5.000. Usado para o retrocesso do terminal SSH e histórico do painel tmux.",
+    "sshBufferRange": "O buffer SSH deve estar entre 100 e 100000 linhas.",
+    "portRedirect": "Redirecionamento de portas",
+    "portRedirectHint": "Controla quais portas de loopback remoto aparecem no menu de redirecionamento de portas do terminal SSH.",
+    "hideCommonPortRedirects": "Ocultar portas comuns exceto 80/443",
+    "hideCommonPortRedirectsHint": "Quando ativado, as portas remotas abaixo de 1024 são ocultadas a menos que sejam 80 ou 443.",
+    "allowLocalOsc52Clipboard": "Permitir gravações OSC 52 da área de transferência no terminal local",
+    "allowSshOsc52Clipboard": "Permitir gravações OSC 52 da área de transferência no SSH",
+    "sshKeyEmailDialogTitle": "Gerar chave SSH",
+    "sshKeyEmailDialogHint": "Adicione um endereço de e-mail como comentário da chave pública para que a chave seja fácil de reconhecer depois.",
+    "sshKeyEmailPlaceholder": "admin@exemplo.com",
+    "sshKeyGenerating": "Gerando...",
+    "aiToolsTitle": "Ferramentas do assistente",
+    "aiToolsDescription": "Escolha quais ferramentas integradas o Assistente IA pode usar ao responder. Mantenha as ferramentas arriscadas desativadas a menos que precise delas.",
+    "aiToolsSafety": "Proteções: as ferramentas de arquivo são limitadas aos dados do aplicativo AdminDeck, os comandos de shell são executados apenas a partir dos dados do aplicativo, e as solicitações de exclusão/destrutivas são bloqueadas até que um futuro aviso de aprovação explícita possa revisá-las.",
     "aiTools": {
       "currentTime": {
-        "label": "Current time",
-        "description": "Get the current local and UTC time for scheduling and log correlation."
+        "label": "Hora atual",
+        "description": "Obter a hora local e UTC atual para agendamento e correlação de registros."
       },
       "webSearch": {
-        "label": "Web search",
-        "description": "Search the web and return compact result titles, links, and snippets."
+        "label": "Busca na web",
+        "description": "Buscar na web e retornar títulos de resultados, links e trechos compactos."
       },
       "webFetch": {
-        "label": "Fetch web page",
-        "description": "Read a single http/https page and summarize text-sized content."
+        "label": "Obter página web",
+        "description": "Ler uma única página http/https e resumir conteúdo de tamanho textual."
       },
       "appDataFileSearch": {
-        "label": "Search app data files",
-        "description": "Find files by name inside AdminDeck-owned app data only."
+        "label": "Buscar arquivos de dados do app",
+        "description": "Encontrar arquivos por nome apenas dentro dos dados do aplicativo AdminDeck."
       },
       "appDataFileRead": {
-        "label": "Read app data file",
-        "description": "Read small text files inside AdminDeck-owned app data only."
+        "label": "Ler arquivo de dados do app",
+        "description": "Ler arquivos de texto pequenos apenas dentro dos dados do aplicativo AdminDeck."
       },
       "shellCommand": {
-        "label": "PowerShell / batch commands",
-        "description": "Run non-destructive PowerShell or batch commands from AdminDeck app data only."
+        "label": "Comandos PowerShell / batch",
+        "description": "Executar comandos PowerShell ou batch não destrutivos apenas a partir dos dados do aplicativo AdminDeck."
       }
     },
-    "connectedConnectionsRail": "Show connected Connection icons in the left rail",
-    "connectedConnectionsRailHint": "Adds an icon for each connected Connection to the left rail so you can switch back to it quickly.",
-    "connectedConnectionsRailSaved": "Connected Connection icons setting saved."
+    "connectedConnectionsRail": "Mostrar Conexão na barra esquerda",
+    "connectedConnectionsRailHint": "Adiciona um ícone para cada Conexão conectada à barra esquerda para que você possa voltar a ela rapidamente.",
+    "connectedConnectionsRailSaved": "Configuração de Mostrar Conexão na barra esquerda salva."
   },
   "connections": {
     "title": "Conexões",
@@ -389,24 +398,24 @@
       "folderNameRequired": "Digite um nome para a pasta.",
       "noneSelected": "Selecione pelo menos uma linha para importar.",
       "importCount": "Importar {{count}}",
-      "importFileComplete": "Imported {{count}} Connections from file.",
-      "importScanComplete": "Imported {{count}} Connections from scan.",
-      "bookmarksTitle": "Import browser bookmarks",
-      "bookmarksSubtitle": "Edge, Chrome, Firefox URL bookmarks",
-      "bookmarksLoading": "Looking for browser bookmark sources...",
-      "bookmarksNoSources": "No Edge, Chrome, or Firefox bookmark sources were found on this device.",
-      "bookmarksSourceLabel": "Browser profile",
-      "bookmarksSourcePath": "Source file: {{path}}",
-      "bookmarksTreeLabel": "Bookmark folders and links",
-      "bookmarksPreview": "Preview {{count}} selected",
-      "bookmarksSourceRequired": "Choose a browser bookmark source.",
-      "bookmarksSelectionRequired": "Select at least one folder or bookmark to import.",
-      "bookmarksNoImportable": "The selected bookmarks did not include any http or https URLs.",
-      "bookmarkFallbackName": "Imported bookmark",
-      "importBookmarksComplete": "Imported {{count}} Connections from bookmarks."
+      "importFileComplete": "Importadas {{count}} Conexões do arquivo.",
+      "importScanComplete": "Importadas {{count}} Conexões da varredura.",
+      "bookmarksTitle": "Importar favoritos do navegador",
+      "bookmarksSubtitle": "Favoritos URL do Edge, Chrome, Firefox",
+      "bookmarksLoading": "Procurando fontes de favoritos do navegador...",
+      "bookmarksNoSources": "Nenhuma fonte de favoritos do Edge, Chrome ou Firefox foi encontrada neste dispositivo.",
+      "bookmarksSourceLabel": "Perfil do navegador",
+      "bookmarksSourcePath": "Arquivo de origem: {{path}}",
+      "bookmarksTreeLabel": "Pastas e links de favoritos",
+      "bookmarksPreview": "Pré-visualizar {{count}} selecionados",
+      "bookmarksSourceRequired": "Escolha uma fonte de favoritos do navegador.",
+      "bookmarksSelectionRequired": "Selecione pelo menos uma pasta ou favorito para importar.",
+      "bookmarksNoImportable": "Os favoritos selecionados não incluíam nenhuma URL http ou https.",
+      "bookmarkFallbackName": "Favorito importado",
+      "importBookmarksComplete": "Importadas {{count}} Conexões dos favoritos."
     },
-    "createConnectionComplete": "Connection \"{{name}}\" added.",
-    "deleteConnectionComplete": "Connection \"{{name}}\" deleted."
+    "createConnectionComplete": "Conexão «{{name}}» adicionada.",
+    "deleteConnectionComplete": "Conexão «{{name}}» excluída."
   },
   "terminal": {
     "openSftp": "Abrir navegador SFTP",
@@ -434,8 +443,8 @@
     "noResults": "Nenhum resultado",
     "findInScrollback": "Buscar no histórico do terminal",
     "closeSearch": "Fechar busca do terminal",
-    "copySelection": "Copiar seleção do terminal (Ctrl+Insert)",
-    "sendToAi": "Enviar seleção ao Assistente IA",
+    "copySelection": "Copiar seleção do terminal (Ctrl+Shift+C)",
+    "sendToAi": "Enviar buffer do terminal ao Assistente IA",
     "detachTmux": "Desanexar sessão tmux",
     "closePane": "Fechar painel",
     "closePaneTitle": "Fechar",
@@ -472,7 +481,16 @@
     "textFiles": "Arquivos de texto",
     "tauriRequired": "Ambiente Tauri indisponível",
     "noSaveDialog": "Nenhum diálogo de salvamento disponível neste ambiente",
-    "terminalBuffer": "terminal buffer"
+    "terminalBuffer": "buffer do terminal",
+    "copyShortcut": "Ctrl+Shift+C",
+    "sshPortRedirect": "Redirecionamento de porta SSH",
+    "remoteLoopbackPorts": "Portas remotas 127.0.0.1",
+    "refreshPorts": "Atualizar portas",
+    "scanningPorts": "Escaneando portas...",
+    "noRemoteLoopbackPorts": "Nenhuma porta ouvindo encontrada no loopback remoto.",
+    "remoteLoopbackPort": "127.0.0.1:{{port}}",
+    "openPortInBrowser": "Abrir 127.0.0.1:{{port}} no navegador",
+    "sshPortForwardOpened": "Redirecionamento de porta SSH aberto para a porta remota {{port}}."
   },
   "sftp": {
     "connecting": "Conectando",
@@ -995,13 +1013,13 @@
     "workspace": "Área de trabalho",
     "terminal": "Terminal",
     "connectionKind": "Conexão {{type}}",
-    "hostUsage": "Host usage",
+    "hostUsage": "Uso do host",
     "cpu": "CPU",
-    "cpuUsage": "CPU usage",
+    "cpuUsage": "Uso de CPU",
     "ram": "RAM",
-    "ramUsage": "RAM usage",
-    "network": "Network",
-    "networkUsage": "Network throughput"
+    "ramUsage": "Uso de RAM",
+    "network": "Rede",
+    "networkUsage": "Taxa de rede"
   },
   "common": {
     "save": "Salvar",
@@ -1098,12 +1116,26 @@
     "createFirstPage": "Criar sua primeira página",
     "movePage": "Mover",
     "noConnections": "Nenhuma conexão disponível",
-    "deletePageTitle": "Delete wiki page?",
-    "backlinks": "Backlinks",
-    "noBacklinks": "No backlinks yet.",
+    "deletePageTitle": "Excluir página da wiki?",
+    "backlinks": "Links de retorno",
+    "noBacklinks": "Nenhum link de retorno ainda.",
     "tags": "Tags",
-    "noTags": "No tags in this page.",
-    "filterByTag": "Filter wiki by #{{tag}}",
-    "viewMode": "View"
+    "noTags": "Nenhuma tag nesta página.",
+    "filterByTag": "Filtrar wiki por #{{tag}}",
+    "bodyPlaceholder": "Escreva em Markdown. Use [[Nome da página]] para vincular páginas, #tags para organizar notas e {{connection:id}} para incorporar uma conexão.",
+    "viewMode": "Visualizar",
+    "backlinkCount": "{{count}} links de retorno",
+    "noAttachments": "Nenhum anexo ainda.",
+    "collapseExplorer": "Recolher explorador de arquivos",
+    "expandExplorer": "Expandir explorador de arquivos",
+    "collapseInspector": "Recolher inspetor de notas",
+    "expandInspector": "Expandir inspetor de notas",
+    "splitMode": "Dividir",
+    "viewModeLabel": "Modo de visualização do editor",
+    "inspector": "Inspetor",
+    "graph": "Grafo",
+    "graphEmpty": "Os links que você criar aparecerão aqui.",
+    "wordCount": "{{count}} palavras",
+    "characterCount": "{{count}} caracteres"
   }
 }

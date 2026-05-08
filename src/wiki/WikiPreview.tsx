@@ -7,6 +7,7 @@ interface WikiPreviewProps {
   context: WikiPreviewContext;
   onOpenWikiLink?: (pageId: string) => void;
   onOpenConnection?: (connectionId: string) => void;
+  onSelectTag?: (tag: string) => void;
 }
 
 export function WikiPreview({
@@ -14,6 +15,7 @@ export function WikiPreview({
   context,
   onOpenWikiLink,
   onOpenConnection,
+  onSelectTag,
 }: WikiPreviewProps) {
   const html = useMemo(() => renderWikiMarkdown(body, context), [body, context]);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -44,11 +46,20 @@ export function WikiPreview({
         if (id) {
           onOpenConnection(id);
         }
+        return;
+      }
+      const tag = target.closest<HTMLElement>("[data-wiki-tag]");
+      if (tag && onSelectTag) {
+        event.preventDefault();
+        const value = tag.getAttribute("data-wiki-tag");
+        if (value) {
+          onSelectTag(value);
+        }
       }
     };
     host.addEventListener("click", handleClick);
     return () => host.removeEventListener("click", handleClick);
-  }, [onOpenWikiLink, onOpenConnection]);
+  }, [onOpenWikiLink, onOpenConnection, onSelectTag]);
 
   return (
     <div

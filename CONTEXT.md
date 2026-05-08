@@ -43,6 +43,14 @@ _Avoid_: Connection, profile, tab
 A frontend workspace container that presents one session or a set of related panes.
 _Avoid_: Session, connection, backend tab
 
+**Wiki Page**:
+A durable Markdown knowledge item stored in the local AdminDeck wiki. Wiki Pages may be nested under other Wiki Pages for organization, may link to other Wiki Pages with `[[Page Name]]`, may link to durable Connections with `[[[Connection Name]]]`, and may carry attachments and `#tags`.
+_Avoid_: Session, tab, profile
+
+**Backlink**:
+A derived reference from one Wiki Page to another Wiki Page that links to it. Backlinks are calculated from wiki link syntax and describe knowledge relationships only; they do not imply a live Session or a durable Connection relationship.
+_Avoid_: connection dependency, session reference
+
 **Pane**:
 A subdivision of a tab that presents one terminal surface or workspace view.
 _Avoid_: Session, split
@@ -95,6 +103,8 @@ _Avoid_: settings nav, settings menu
 - A **Quick Connect** starts exactly one **Session** unless the user saves it as a **Connection**.
 - A **Session** may be presented by one **Tab**.
 - A terminal **Tab** may contain one or more **Panes**.
+- A **Wiki Page** may reference another **Wiki Page** through a wiki link, creating a derived **Backlink** on the target page.
+- A **Wiki Page** may reference a durable **Connection** through a Connection wiki link; opening that reference starts from the existing Connection workflow rather than creating a wiki-owned Session.
 - A tmux-enabled SSH terminal **Pane** may start or attach to a named remote tmux session. If `tmux` is unavailable on the remote host, the Pane falls back to the normal remote shell.
 - A **Tab** is UI state only and is not the durable backend model.
 - Switching the active **Tab** does not end, disconnect, or recreate its **Session**.

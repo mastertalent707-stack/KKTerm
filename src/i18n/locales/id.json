@@ -7,14 +7,14 @@
     "resizeAiAssistant": "Ubah ukuran panel AI Assistant",
     "aiAssistant": "AI Assistant",
     "wiki": "Wiki",
-    "dontSleep": "Don't Sleep",
-    "dontSleepEnable": "Enable Don't Sleep mode",
-    "dontSleepDisable": "Disable Don't Sleep mode",
-    "dontSleepEnabled": "Don't Sleep mode enabled.",
-    "dontSleepDisabled": "Don't Sleep mode disabled.",
-    "dontSleepError": "Could not change Don't Sleep mode: {{message}}",
-    "connectedConnectionsRail": "Connected Connections",
-    "openConnectedConnection": "Open {{name}}"
+    "dontSleep": "Jangan Tidur",
+    "dontSleepEnable": "Aktifkan mode Jangan Tidur",
+    "dontSleepDisable": "Nonaktifkan mode Jangan Tidur",
+    "dontSleepEnabled": "Mode Jangan Tidur diaktifkan.",
+    "dontSleepDisabled": "Mode Jangan Tidur dinonaktifkan.",
+    "dontSleepError": "Tidak dapat mengubah mode Jangan Tidur: {{message}}",
+    "connectedConnectionsRail": "Koneksi Terhubung",
+    "openConnectedConnection": "Buka {{name}}"
   },
   "settings": {
     "title": "Pengaturan",
@@ -113,7 +113,7 @@
     "wsl": "WSL",
     "copyOnSelect": "Salin teks terminal otomatis saat dipilih",
     "confirmMultilinePaste": "Konfirmasi tempel multiline",
-    "scrollbackHint": "Default adalah 10.000. Rentang valid adalah 100 hingga 100.000.",
+    "scrollbackHint": "Default adalah 5.000. Rentang valid adalah 100 hingga 100.000.",
     "qualityDefaults": "Default kualitas",
     "resolution": "Resolusi",
     "colorDepth": "Kedalaman warna",
@@ -187,52 +187,61 @@
     "urlDataShardConnectionCountPlural": "{{count}} koneksi URL",
     "clearShard": "Bersihkan shard",
     "urlDataShardCleared": "Shard data URL {{name}} dibersihkan.",
-    "navToolbar": "Nav toolbar",
-    "toolbarText": "Toolbar text",
-    "sshBufferLines": "SSH buffer lines",
-    "sshBufferHint": "Default is 5,000. Used for SSH terminal scrollback and tmux pane history.",
-    "sshBufferRange": "SSH buffer must be between 100 and 100000 lines.",
-    "sshKeyEmailDialogTitle": "Generate SSH key",
-    "sshKeyEmailDialogHint": "Add an email address as the public key comment so the key is easy to recognize later.",
+    "navToolbar": "Bilah navigasi",
+    "toolbarText": "Teks bilah alat",
+    "sshBufferLines": "Baris buffer SSH",
+    "sshBufferHint": "Default adalah 5.000. Digunakan untuk scrollback terminal SSH dan riwayat panel tmux.",
+    "sshBufferRange": "Buffer SSH harus antara 100 dan 100000 baris.",
+    "sshKeyEmailDialogTitle": "Buat kunci SSH",
+    "sshKeyEmailDialogHint": "Tambahkan alamat email sebagai komentar kunci publik agar kunci mudah dikenali nanti.",
     "sshKeyEmailPlaceholder": "admin@example.com",
-    "sshKeyGenerating": "Generating...",
-    "urlSecurity": "URL security",
-    "urlSecurityHint": "Controls certificate handling for URL Connections. Keep bypass off unless you trust the internal site and network.",
-    "ignoreCertificateErrors": "Ignore invalid HTTPS certificates",
-    "ignoreCertificateErrorsHint": "Loads URL Connections with self-signed or untrusted certificates without the browser warning. Applies to newly opened URL tabs.",
-    "urlSettingsSaved": "URL settings saved.",
-    "aiToolsTitle": "Assistant tools",
-    "aiToolsDescription": "Choose which built-in tools the AI Assistant may call while answering. Keep risky tools off unless you need them.",
-    "aiToolsSafety": "Safeguards: file tools are confined to AdminDeck app data, shell commands run from app data only, and deletion/destructive requests are blocked until a future explicit approval prompt can review them.",
+    "sshKeyGenerating": "Membuat...",
+    "urlSecurity": "Keamanan URL",
+    "urlSecurityHint": "Mengontrol penanganan sertifikat untuk Koneksi URL. Matikan bypass kecuali Anda memercayai situs dan jaringan internal.",
+    "ignoreCertificateErrors": "Abaikan sertifikat HTTPS tidak valid",
+    "ignoreCertificateErrorsHint": "Memuat Koneksi URL dengan sertifikat self-signed atau tidak tepercaya tanpa peringatan browser. Berlaku untuk tab URL yang baru dibuka.",
+    "urlSettingsSaved": "Pengaturan URL disimpan.",
+    "aiToolsTitle": "Alat asisten",
+    "aiToolsDescription": "Pilih alat bawaan mana yang dapat dipanggil AI Assistant saat menjawab. Matikan alat berisiko kecuali Anda membutuhkannya.",
+    "aiToolsSafety": "Perlindungan: alat file terbatas pada data aplikasi AdminDeck, perintah shell hanya berjalan dari data aplikasi, dan permintaan penghapusan/destruktif diblokir hingga prompt persetujuan eksplisit di masa mendatang dapat meninjaunya.",
     "aiTools": {
-      "currentTime": {
-        "label": "Current time",
-        "description": "Get the current local and UTC time for scheduling and log correlation."
-      },
-      "webSearch": {
-        "label": "Web search",
-        "description": "Search the web and return compact result titles, links, and snippets."
-      },
-      "webFetch": {
-        "label": "Fetch web page",
-        "description": "Read a single http/https page and summarize text-sized content."
-      },
-      "appDataFileSearch": {
-        "label": "Search app data files",
-        "description": "Find files by name inside AdminDeck-owned app data only."
-      },
-      "appDataFileRead": {
-        "label": "Read app data file",
-        "description": "Read small text files inside AdminDeck-owned app data only."
-      },
-      "shellCommand": {
-        "label": "PowerShell / batch commands",
-        "description": "Run non-destructive PowerShell or batch commands from AdminDeck app data only."
-      }
+       "currentTime": {
+         "label": "Waktu saat ini",
+         "description": "Dapatkan waktu lokal dan UTC saat ini untuk penjadwalan dan korelasi log."
+       },
+       "webSearch": {
+         "label": "Pencarian web",
+         "description": "Cari web dan kembalikan judul hasil, tautan, dan cuplikan ringkas."
+       },
+       "webFetch": {
+         "label": "Ambil halaman web",
+         "description": "Baca satu halaman http/https dan ringkas konten seukuran teks."
+       },
+       "appDataFileSearch": {
+         "label": "Cari file data aplikasi",
+         "description": "Temukan file berdasarkan nama di dalam data aplikasi milik AdminDeck saja."
+       },
+       "appDataFileRead": {
+         "label": "Baca file data aplikasi",
+         "description": "Baca file teks kecil di dalam data aplikasi milik AdminDeck saja."
+       },
+       "shellCommand": {
+         "label": "Perintah PowerShell / batch",
+         "description": "Jalankan perintah PowerShell atau batch non-destruktif dari data aplikasi AdminDeck saja."
+       }
     },
-    "connectedConnectionsRail": "Show connected Connection icons in the left rail",
-    "connectedConnectionsRailHint": "Adds an icon for each connected Connection to the left rail so you can switch back to it quickly.",
-    "connectedConnectionsRailSaved": "Connected Connection icons setting saved."
+    "portRedirect": "Pengalihan Port",
+    "portRedirectHint": "Mengontrol port loopback jarak jauh mana yang muncul di menu pengalihan port terminal SSH.",
+    "hideCommonPortRedirects": "Sembunyikan port umum kecuali 80/443",
+    "hideCommonPortRedirectsHint": "Saat diaktifkan, port jarak jauh di bawah 1024 disembunyikan kecuali port 80 atau 443.",
+    "allowLocalOsc52Clipboard": "Izinkan penulisan clipboard OSC 52 terminal lokal",
+    "allowSshOsc52Clipboard": "Izinkan penulisan clipboard OSC 52 SSH",
+    "allowClipboardRead": "Izinkan pembacaan clipboard untuk tempel",
+    "allowClipboardReadHint": "Mengizinkan permukaan WebView2 AdminDeck menggunakan izin clipboard-read tanpa prompt tempel native.",
+    "clipboardReadSaved": "Pengaturan pembacaan clipboard disimpan.",
+    "connectedConnectionsRail": "Tampilkan Koneksi di Rel Kiri",
+    "connectedConnectionsRailHint": "Menambahkan ikon untuk setiap Koneksi yang terhubung ke Rel Kiri sehingga Anda dapat beralih kembali dengan cepat.",
+    "connectedConnectionsRailSaved": "Pengaturan Tampilkan Koneksi di Rel Kiri disimpan."
   },
   "connections": {
     "title": "Koneksi",
@@ -389,24 +398,24 @@
       "folderNameRequired": "Masukkan nama folder.",
       "noneSelected": "Pilih setidaknya satu baris untuk diimpor.",
       "importCount": "Impor {{count}}",
-      "importFileComplete": "Imported {{count}} Connections from file.",
-      "importScanComplete": "Imported {{count}} Connections from scan.",
-      "bookmarksTitle": "Import browser bookmarks",
-      "bookmarksSubtitle": "Edge, Chrome, Firefox URL bookmarks",
-      "bookmarksLoading": "Looking for browser bookmark sources...",
-      "bookmarksNoSources": "No Edge, Chrome, or Firefox bookmark sources were found on this device.",
-      "bookmarksSourceLabel": "Browser profile",
-      "bookmarksSourcePath": "Source file: {{path}}",
-      "bookmarksTreeLabel": "Bookmark folders and links",
-      "bookmarksPreview": "Preview {{count}} selected",
-      "bookmarksSourceRequired": "Choose a browser bookmark source.",
-      "bookmarksSelectionRequired": "Select at least one folder or bookmark to import.",
-      "bookmarksNoImportable": "The selected bookmarks did not include any http or https URLs.",
-      "bookmarkFallbackName": "Imported bookmark",
-      "importBookmarksComplete": "Imported {{count}} Connections from bookmarks."
+       "importFileComplete": "Mengimpor {{count}} Koneksi dari file.",
+       "importScanComplete": "Mengimpor {{count}} Koneksi dari pemindaian.",
+       "bookmarksTitle": "Impor bookmark browser",
+       "bookmarksSubtitle": "Bookmark URL Edge, Chrome, Firefox",
+       "bookmarksLoading": "Mencari sumber bookmark browser...",
+       "bookmarksNoSources": "Tidak ditemukan sumber bookmark Edge, Chrome, atau Firefox di perangkat ini.",
+       "bookmarksSourceLabel": "Profil browser",
+       "bookmarksSourcePath": "File sumber: {{path}}",
+       "bookmarksTreeLabel": "Folder dan tautan bookmark",
+       "bookmarksPreview": "Pratinjau {{count}} dipilih",
+       "bookmarksSourceRequired": "Pilih sumber bookmark browser.",
+       "bookmarksSelectionRequired": "Pilih setidaknya satu folder atau bookmark untuk diimpor.",
+       "bookmarksNoImportable": "Bookmark yang dipilih tidak mencakup URL http atau https.",
+       "bookmarkFallbackName": "Bookmark yang diimpor",
+       "importBookmarksComplete": "Mengimpor {{count}} Koneksi dari bookmark."
     },
-    "createConnectionComplete": "Connection \"{{name}}\" added.",
-    "deleteConnectionComplete": "Connection \"{{name}}\" deleted."
+    "createConnectionComplete": "Koneksi \"{{name}}\" ditambahkan.",
+    "deleteConnectionComplete": "Koneksi \"{{name}}\" dihapus."
   },
   "terminal": {
     "openSftp": "Buka browser SFTP",
@@ -434,8 +443,9 @@
     "noResults": "Tidak ada hasil",
     "findInScrollback": "Cari di scrollback terminal",
     "closeSearch": "Tutup pencarian terminal",
-    "copySelection": "Salin pilihan terminal (Ctrl+Insert)",
-    "sendToAi": "Kirim pilihan ke AI Assistant",
+    "copySelection": "Salin pilihan terminal (Ctrl+Shift+C)",
+    "copyShortcut": "Ctrl+Shift+C",
+    "sendToAi": "Kirim buffer terminal ke AI Assistant",
     "detachTmux": "Lepas sesi tmux",
     "closePane": "Tutup panel",
     "closePaneTitle": "Tutup",
@@ -472,7 +482,15 @@
     "textFiles": "File teks",
     "tauriRequired": "Runtime Tauri tidak tersedia",
     "noSaveDialog": "Tidak ada dialog simpan di runtime ini",
-    "terminalBuffer": "terminal buffer"
+    "terminalBuffer": "buffer terminal",
+    "sshPortRedirect": "Pengalihan port SSH",
+    "remoteLoopbackPorts": "Port 127.0.0.1 jarak jauh",
+    "refreshPorts": "Segarkan port",
+    "scanningPorts": "Memindai port...",
+    "noRemoteLoopbackPorts": "Tidak ditemukan port yang mendengarkan di loopback jarak jauh.",
+    "remoteLoopbackPort": "127.0.0.1:{{port}}",
+    "openPortInBrowser": "Buka 127.0.0.1:{{port}} di browser",
+    "sshPortForwardOpened": "Pengalihan port SSH dibuka untuk port jarak jauh {{port}}."
   },
   "sftp": {
     "connecting": "Menghubungkan",
@@ -995,13 +1013,13 @@
     "workspace": "Ruang kerja",
     "terminal": "Terminal",
     "connectionKind": "Koneksi {{type}}",
-    "hostUsage": "Host usage",
+    "hostUsage": "Penggunaan host",
     "cpu": "CPU",
-    "cpuUsage": "CPU usage",
+    "cpuUsage": "Penggunaan CPU",
     "ram": "RAM",
-    "ramUsage": "RAM usage",
-    "network": "Network",
-    "networkUsage": "Network throughput"
+    "ramUsage": "Penggunaan RAM",
+    "network": "Jaringan",
+    "networkUsage": "Throughput jaringan"
   },
   "common": {
     "save": "Simpan",
@@ -1077,7 +1095,7 @@
     "saved": "Tersimpan",
     "savePage": "Simpan",
     "pageTitlePlaceholder": "Judul halaman",
-    "bodyPlaceholder": "Tulis dalam Markdown. Gunakan [[page-id]] untuk menautkan halaman dan {{connection:id}} untuk menyematkan koneksi.",
+    "bodyPlaceholder": "Tulis dalam Markdown. Gunakan [[Page Name]] untuk menautkan halaman, #tags untuk mengatur catatan, dan {{connection:id}} untuk menyematkan koneksi.",
     "createFailed": "Gagal membuat halaman: {{error}}",
     "saveFailed": "Gagal menyimpan halaman: {{error}}",
     "deleteFailed": "Gagal menghapus halaman: {{error}}",
@@ -1098,12 +1116,25 @@
     "createFirstPage": "Buat halaman pertama Anda",
     "movePage": "Pindahkan",
     "noConnections": "Tidak ada koneksi tersedia",
-    "deletePageTitle": "Delete wiki page?",
-    "backlinks": "Backlinks",
-    "noBacklinks": "No backlinks yet.",
-    "tags": "Tags",
-    "noTags": "No tags in this page.",
-    "filterByTag": "Filter wiki by #{{tag}}",
-    "viewMode": "View"
+    "deletePageTitle": "Hapus halaman wiki?",
+    "backlinks": "Taut balik",
+    "noBacklinks": "Belum ada taut balik.",
+    "tags": "Tag",
+    "noTags": "Tidak ada tag di halaman ini.",
+    "filterByTag": "Filter wiki berdasarkan #{{tag}}",
+    "viewMode": "Lihat",
+    "backlinkCount": "{{count}} taut balik",
+    "noAttachments": "Belum ada lampiran.",
+    "collapseExplorer": "Lipat penjelajah file",
+    "expandExplorer": "Bentang penjelajah file",
+    "collapseInspector": "Lipat inspektur catatan",
+    "expandInspector": "Bentang inspektur catatan",
+    "splitMode": "Bagi",
+    "viewModeLabel": "Mode tampilan editor",
+    "inspector": "Inspektur",
+    "graph": "Graf",
+    "graphEmpty": "Tautan yang Anda buat akan muncul di sini.",
+    "wordCount": "{{count}} kata",
+    "characterCount": "{{count}} karakter"
   }
 }

@@ -1006,10 +1006,18 @@ fn ceil_char_boundary(value: &str, mut index: usize) -> usize {
 
 fn extract_wiki_link_targets(body: &str) -> Vec<String> {
     // Recognizes [[Page Name]], [[page-id]], [[slug]], and [[target|label]] forms.
+    // Triple-bracket tokens are reserved for Connection links and must not become page links.
     let mut results = Vec::new();
     for (start, _) in body.match_indices("[[") {
+        if start > 0 && body[..start].ends_with('[') {
+            continue;
+        }
         let after_open = start + 2;
         if let Some(relative_end) = body[after_open..].find("]]") {
+            let after_close = after_open + relative_end + 2;
+            if body[after_close..].starts_with(']') {
+                continue;
+            }
             let inner = &body[after_open..after_open + relative_end];
             let target = inner.split('|').next().unwrap_or("").trim();
             if !target.is_empty() {
@@ -1195,4 +1203,18 @@ fn base64_decode(value: &str) -> Result<Vec<u8>, String> {
 
 fn to_wiki_error(error: rusqlite::Error) -> String {
     format!("wiki storage error: {error}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wiki_link_extraction_ignores_triple_bracket_connection_links() {
+        let targets = extract_wiki_link_targets(
+            "See [[Runbook]] and [[[Production Bastion]]] plus [[Incident Notes|notes]].",
+        );
+
+        assert_eq!(targets, vec!["Runbook", "Incident Notes"]);
+    }
 }

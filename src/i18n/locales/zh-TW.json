@@ -1104,6 +1104,19 @@
     "tags": "標籤",
     "noTags": "此頁面中尚無標籤。",
     "filterByTag": "依 #{{tag}} 篩選 Wiki",
-    "viewMode": "檢視"
+    "viewMode": "檢視",
+    "backlinkCount": "{{count}} 個反向連結",
+    "noAttachments": "尚無附件。",
+    "collapseExplorer": "摺疊檔案瀏覽器",
+    "expandExplorer": "展開檔案瀏覽器",
+    "collapseInspector": "摺疊筆記檢查器",
+    "expandInspector": "展開筆記檢查器",
+    "splitMode": "分割",
+    "viewModeLabel": "編輯器檢視模式",
+    "inspector": "檢查器",
+    "graph": "圖譜",
+    "graphEmpty": "您建立的連結將顯示在此處。",
+    "wordCount": "{{count}} 字",
+    "characterCount": "{{count}} 字元"
   }
 }
