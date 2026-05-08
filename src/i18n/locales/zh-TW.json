@@ -8,13 +8,13 @@
     "aiAssistant": "AI 助理",
     "wiki": "Wiki",
     "dontSleep": "不讓你睡！",
-    "dontSleepEnable": "Enable Don't Sleep mode",
-    "dontSleepDisable": "Disable Don't Sleep mode",
-    "dontSleepEnabled": "Don't Sleep mode enabled.",
-    "dontSleepDisabled": "Don't Sleep mode disabled.",
-    "dontSleepError": "Could not change Don't Sleep mode: {{message}}",
-    "connectedConnectionsRail": "Connected Connections",
-    "openConnectedConnection": "Open {{name}}"
+    "dontSleepEnable": "啟用不讓你睡模式",
+    "dontSleepDisable": "停用不讓你睡模式",
+    "dontSleepEnabled": "不讓你睡模式已啟用。",
+    "dontSleepDisabled": "不讓你睡模式已停用。",
+    "dontSleepError": "無法變更不讓你睡模式：{{message}}",
+    "connectedConnectionsRail": "已連線的連線",
+    "openConnectedConnection": "開啟 {{name}}"
   },
   "settings": {
     "title": "設定",
@@ -113,7 +113,7 @@
     "wsl": "WSL",
     "copyOnSelect": "選取時自動複製終端機文字",
     "confirmMultilinePaste": "確認多行貼上",
-    "scrollbackHint": "預設值為 10,000。有效範圍為 100 至 100,000。",
+    "scrollbackHint": "預設值為 5,000。有效範圍為 100 至 100,000。",
     "qualityDefaults": "品質預設值",
     "resolution": "解析度",
     "colorDepth": "色彩深度",
@@ -187,52 +187,52 @@
     "urlDataShardConnectionCountPlural": "{{count}} 個 URL 連線",
     "clearShard": "清除分區",
     "urlDataShardCleared": "已清除 URL 資料分區 {{name}}。",
-    "navToolbar": "Nav toolbar",
-    "toolbarText": "Toolbar text",
-    "sshBufferLines": "SSH buffer lines",
-    "sshBufferHint": "Default is 5,000. Used for SSH terminal scrollback and tmux pane history.",
-    "sshBufferRange": "SSH buffer must be between 100 and 100000 lines.",
-    "sshKeyEmailDialogTitle": "Generate SSH key",
-    "sshKeyEmailDialogHint": "Add an email address as the public key comment so the key is easy to recognize later.",
+    "navToolbar": "導覽工具列",
+    "toolbarText": "工具列文字",
+    "sshBufferLines": "SSH 緩衝區行數",
+    "sshBufferHint": "預設值為 5,000。用於 SSH 終端機回溯及 tmux 窗格歷史記錄。",
+    "sshBufferRange": "SSH 緩衝區必須介於 100 到 100,000 行之間。",
+    "sshKeyEmailDialogTitle": "產生 SSH 金鑰",
+    "sshKeyEmailDialogHint": "新增電子郵件地址作為公開金鑰註解，以便日後辨識。",
     "sshKeyEmailPlaceholder": "admin@example.com",
-    "sshKeyGenerating": "Generating...",
-    "urlSecurity": "URL security",
-    "urlSecurityHint": "Controls certificate handling for URL Connections. Keep bypass off unless you trust the internal site and network.",
-    "ignoreCertificateErrors": "Ignore invalid HTTPS certificates",
-    "ignoreCertificateErrorsHint": "Loads URL Connections with self-signed or untrusted certificates without the browser warning. Applies to newly opened URL tabs.",
-    "urlSettingsSaved": "URL settings saved.",
-    "aiToolsTitle": "Assistant tools",
-    "aiToolsDescription": "Choose which built-in tools the AI Assistant may call while answering. Keep risky tools off unless you need them.",
-    "aiToolsSafety": "Safeguards: file tools are confined to AdminDeck app data, shell commands run from app data only, and deletion/destructive requests are blocked until a future explicit approval prompt can review them.",
+    "sshKeyGenerating": "產生中…",
+    "urlSecurity": "URL 安全性",
+    "urlSecurityHint": "控制 URL 連線的憑證處理。除非信任內部網站及網路，否則請勿關閉繞過。",
+    "ignoreCertificateErrors": "忽略無效的 HTTPS 憑證",
+    "ignoreCertificateErrorsHint": "載入使用自簽或不受信任憑證的 URL 連線，不會顯示瀏覽器警告。僅對新開啟的 URL 分頁生效。",
+    "urlSettingsSaved": "URL 設定已儲存。",
+    "aiToolsTitle": "助理工具",
+    "aiToolsDescription": "選擇 AI 助理在回答時可呼叫的內建工具。除非需要，否則請勿開啟高風險工具。",
+    "aiToolsSafety": "安全措施：檔案工具僅限於 AdminDeck 應用程式資料、Shell 命令僅從應用程式資料執行，且刪除／破壞性請求會遭封鎖，直到未來的明確核准提示可以審核為止。",
     "aiTools": {
       "currentTime": {
-        "label": "Current time",
-        "description": "Get the current local and UTC time for scheduling and log correlation."
+        "label": "目前時間",
+        "description": "取得目前本地及 UTC 時間，用於排程及記錄關聯。"
       },
       "webSearch": {
-        "label": "Web search",
-        "description": "Search the web and return compact result titles, links, and snippets."
+        "label": "網頁搜尋",
+        "description": "搜尋網路並回傳精簡的結果標題、連結及摘要。"
       },
       "webFetch": {
-        "label": "Fetch web page",
-        "description": "Read a single http/https page and summarize text-sized content."
+        "label": "擷取網頁",
+        "description": "讀取單一 http/https 頁面並摘要文字大小的內容。"
       },
       "appDataFileSearch": {
-        "label": "Search app data files",
-        "description": "Find files by name inside AdminDeck-owned app data only."
+        "label": "搜尋應用程式資料檔案",
+        "description": "僅在 AdminDeck 擁有的應用程式資料中依名稱尋找檔案。"
       },
       "appDataFileRead": {
-        "label": "Read app data file",
-        "description": "Read small text files inside AdminDeck-owned app data only."
+        "label": "讀取應用程式資料檔案",
+        "description": "僅在 AdminDeck 擁有的應用程式資料中讀取小型文字檔案。"
       },
       "shellCommand": {
-        "label": "PowerShell / batch commands",
-        "description": "Run non-destructive PowerShell or batch commands from AdminDeck app data only."
+        "label": "PowerShell / 批次命令",
+        "description": "僅從 AdminDeck 應用程式資料執行非破壞性的 PowerShell 或批次命令。"
       }
     },
-    "connectedConnectionsRail": "Show connected Connection icons in the left rail",
-    "connectedConnectionsRailHint": "Adds an icon for each connected Connection to the left rail so you can switch back to it quickly.",
-    "connectedConnectionsRailSaved": "Connected Connection icons setting saved."
+    "connectedConnectionsRail": "在左側導覽列顯示已連線的連線圖示",
+    "connectedConnectionsRailHint": "對每個已連線的連線在左側導覽列新增圖示，方便您快速切換回去。",
+    "connectedConnectionsRailSaved": "已連線的連線圖示顯示設定已儲存。"
   },
   "connections": {
     "title": "連線",
@@ -389,24 +389,24 @@
       "folderNameRequired": "請輸入資料夾名稱。",
       "noneSelected": "請至少選擇一列以匯入。",
       "importCount": "匯入 {{count}} 個",
-      "importFileComplete": "Imported {{count}} Connections from file.",
-      "importScanComplete": "Imported {{count}} Connections from scan.",
-      "bookmarksTitle": "Import browser bookmarks",
-      "bookmarksSubtitle": "Edge, Chrome, Firefox URL bookmarks",
-      "bookmarksLoading": "Looking for browser bookmark sources...",
-      "bookmarksNoSources": "No Edge, Chrome, or Firefox bookmark sources were found on this device.",
-      "bookmarksSourceLabel": "Browser profile",
-      "bookmarksSourcePath": "Source file: {{path}}",
-      "bookmarksTreeLabel": "Bookmark folders and links",
-      "bookmarksPreview": "Preview {{count}} selected",
-      "bookmarksSourceRequired": "Choose a browser bookmark source.",
-      "bookmarksSelectionRequired": "Select at least one folder or bookmark to import.",
-      "bookmarksNoImportable": "The selected bookmarks did not include any http or https URLs.",
-      "bookmarkFallbackName": "Imported bookmark",
-      "importBookmarksComplete": "Imported {{count}} Connections from bookmarks."
+       "importFileComplete": "已從檔案匯入 {{count}} 個連線。",
+       "importScanComplete": "已從掃描匯入 {{count}} 個連線。",
+       "bookmarksTitle": "匯入瀏覽器書籤",
+       "bookmarksSubtitle": "Edge、Chrome、Firefox 的 URL 書籤",
+       "bookmarksLoading": "正在尋找瀏覽器書籤來源…",
+       "bookmarksNoSources": "在此裝置上找不到 Edge、Chrome 或 Firefox 的書籤來源。",
+       "bookmarksSourceLabel": "瀏覽器設定檔",
+       "bookmarksSourcePath": "來源檔案：{{path}}",
+       "bookmarksTreeLabel": "書籤資料夾與連結",
+       "bookmarksPreview": "預覽已選取 {{count}} 個",
+       "bookmarksSourceRequired": "請選擇瀏覽器書籤來源。",
+       "bookmarksSelectionRequired": "請至少選取一個資料夾或書籤以匯入。",
+       "bookmarksNoImportable": "選取的書籤中未包含任何 http 或 https 網址。",
+       "bookmarkFallbackName": "已匯入的書籤",
+       "importBookmarksComplete": "已從書籤匯入 {{count}} 個連線。"
     },
-    "createConnectionComplete": "Connection \"{{name}}\" added.",
-    "deleteConnectionComplete": "Connection \"{{name}}\" deleted."
+    "createConnectionComplete": "連線「{{name}}」已新增。",
+    "deleteConnectionComplete": "連線「{{name}}」已刪除。"
   },
   "terminal": {
     "openSftp": "開啟 SFTP 瀏覽器",
@@ -472,7 +472,7 @@
     "textFiles": "文字檔",
     "tauriRequired": "無法使用 Tauri 執行環境",
     "noSaveDialog": "此執行環境中無可用儲存對話框",
-    "terminalBuffer": "terminal buffer"
+    "terminalBuffer": "終端機緩衝區"
   },
   "sftp": {
     "connecting": "正在連線",
@@ -995,13 +995,13 @@
     "workspace": "工作區",
     "terminal": "終端機",
     "connectionKind": "{{type}} 連線",
-    "hostUsage": "Host usage",
+    "hostUsage": "主機使用量",
     "cpu": "CPU",
-    "cpuUsage": "CPU usage",
+    "cpuUsage": "CPU 使用量",
     "ram": "RAM",
-    "ramUsage": "RAM usage",
-    "network": "Network",
-    "networkUsage": "Network throughput"
+    "ramUsage": "RAM 使用量",
+    "network": "網路",
+    "networkUsage": "網路流量"
   },
   "common": {
     "save": "儲存",
@@ -1098,12 +1098,12 @@
     "createFirstPage": "建立第一頁",
     "movePage": "移動",
     "noConnections": "無可用連線",
-    "deletePageTitle": "Delete wiki page?",
-    "backlinks": "Backlinks",
-    "noBacklinks": "No backlinks yet.",
-    "tags": "Tags",
-    "noTags": "No tags in this page.",
-    "filterByTag": "Filter wiki by #{{tag}}",
-    "viewMode": "View"
+    "deletePageTitle": "刪除 Wiki 頁面？",
+    "backlinks": "反向連結",
+    "noBacklinks": "尚無反向連結。",
+    "tags": "標籤",
+    "noTags": "此頁面中尚無標籤。",
+    "filterByTag": "依 #{{tag}} 篩選 Wiki",
+    "viewMode": "檢視"
   }
 }

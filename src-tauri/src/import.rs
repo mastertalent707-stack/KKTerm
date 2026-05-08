@@ -1215,11 +1215,11 @@ fn collect_selected_bookmark_drafts(
     node: &BookmarkTreeNode,
     selected: &std::collections::HashSet<String>,
     folder_path: &mut Vec<String>,
-    _inherited: bool,
+    inherited: bool,
     drafts: &mut Vec<ImportedConnectionDraft>,
 ) {
     if node.node_type == "bookmark" {
-        if selected.contains(&node.id) {
+        if inherited || selected.contains(&node.id) {
             if let Some(url) = node.url.as_deref() {
                 drafts.push(ImportedConnectionDraft {
                     name: node.name.clone(),
@@ -1238,8 +1238,9 @@ fn collect_selected_bookmark_drafts(
     if pushed {
         folder_path.push(node.name.clone());
     }
+    let child_inherited = inherited || selected.contains(&node.id);
     for child in &node.children {
-        collect_selected_bookmark_drafts(child, selected, folder_path, false, drafts);
+        collect_selected_bookmark_drafts(child, selected, folder_path, child_inherited, drafts);
     }
     if pushed {
         folder_path.pop();

@@ -556,6 +556,10 @@ interface WorkspaceState {
   closeTab: (tabId: string) => void;
   openConnection: (connection: Connection) => void;
   openUrlConnection: (connection: Connection) => void;
+  openSshPortForwardBrowser: (
+    sourceConnection: Connection,
+    forward: { forwardId: string; localPort: number; remotePort: number; url: string },
+  ) => void;
   openRemoteDesktopConnection: (connection: Connection) => void;
   openSftpBrowser: (connection: Connection) => void;
   openTerminalHere: (connection: Connection, remotePath: string) => void;
@@ -826,6 +830,52 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     };
     tab.layout = defaultLayoutFor(tab.panes);
     tab.focusedPaneId = tab.panes[0]?.id;
+
+    set((state) => ({
+      tabs: [...state.tabs, tab],
+      activeTabId: tab.id,
+    }));
+  },
+  openSshPortForwardBrowser: (sourceConnection, forward) => {
+    if (sourceConnection.type !== "ssh") {
+      return;
+    }
+
+    const tabId = `tab-${forward.forwardId}`;
+    const title = `${sourceConnection.name} :${forward.remotePort}`;
+    const connection: Connection = {
+      id: forward.forwardId,
+      name: title,
+      host: "127.0.0.1",
+      user: sourceConnection.user,
+      type: "url",
+      status: "idle",
+      url: forward.url,
+    };
+    const pane = {
+      kind: "webview" as const,
+      id: tabId,
+      title,
+      toolbarTitle: title,
+      connection,
+      url: forward.url,
+      sshPortForwardSessionId: forward.forwardId,
+      sshPortForwardRemotePort: forward.remotePort,
+    };
+    const tab: WorkspaceTab = {
+      id: tabId,
+      title,
+      toolbarTitle: title,
+      subtitle: `127.0.0.1:${forward.localPort} -> ${sourceConnection.host}:${forward.remotePort}`,
+      kind: "terminal",
+      panes: [pane],
+      layout: defaultLayoutFor([pane]),
+      focusedPaneId: pane.id,
+      connection,
+      url: forward.url,
+      sshPortForwardSessionId: forward.forwardId,
+      sshPortForwardRemotePort: forward.remotePort,
+    };
 
     set((state) => ({
       tabs: [...state.tabs, tab],

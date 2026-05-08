@@ -111,6 +111,18 @@ export interface TmuxSession {
   internalId?: string;
 }
 
+export interface RemoteLoopbackPort {
+  port: number;
+  address: string;
+}
+
+export interface SshPortForwardStarted {
+  forwardId: string;
+  localPort: number;
+  remotePort: number;
+  url: string;
+}
+
 export interface StartSftpSessionRequest {
   sessionId?: string;
   title: string;
@@ -889,6 +901,39 @@ type CommandMap = {
       };
     };
     result: string;
+  };
+  list_remote_loopback_ports: {
+    args: {
+      request: {
+        host: string;
+        user: string;
+        port?: number;
+        keyPath?: string;
+        proxyJump?: string;
+        authMethod?: "keyFile" | "password" | "agent";
+        secretOwnerId?: string;
+      };
+    };
+    result: RemoteLoopbackPort[];
+  };
+  start_ssh_port_forward: {
+    args: {
+      request: {
+        host: string;
+        user: string;
+        port?: number;
+        keyPath?: string;
+        proxyJump?: string;
+        authMethod?: "keyFile" | "password" | "agent";
+        secretOwnerId?: string;
+        remotePort: number;
+      };
+    };
+    result: SshPortForwardStarted;
+  };
+  close_ssh_port_forward: {
+    args: { request: { forwardId: string } };
+    result: null;
   };
   launch_elevated_terminal: {
     args: { request: { shell: string } };

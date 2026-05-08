@@ -284,6 +284,11 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
       if (ownsSession) {
         releaseWebviewSession(sessionId);
       }
+      if (tab.sshPortForwardSessionId) {
+        void invokeCommand("close_ssh_port_forward", {
+          request: { forwardId: tab.sshPortForwardSessionId },
+        });
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -4,14 +4,14 @@ import { ScreenshotMenu } from "../workspace/ScreenshotMenu";
 import { WikiPagesButton } from "../wiki/WikiPagesButton";
 import { RemoteDesktopWorkspace } from "../remote-desktop/RemoteDesktopWorkspace";
 import { WebViewWorkspace } from "../webview/WebViewWorkspace";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Mouse, ChevronRight, Circle, ClipboardPaste, Columns2, Copy, LayoutDashboard, Menu, RefreshCw, Save, Search, SplitSquareHorizontal, Type, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Mouse, ChevronRight, Circle, ClipboardPaste, Columns2, Copy, Globe2, LayoutDashboard, Menu, Network, RefreshCw, Save, Search, SplitSquareHorizontal, Type, X } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import i18next from "../i18n/config";
 import { dialogButtonAria, menuButtonAria } from "../lib/aria";
-import { invokeCommand, isTauriRuntime, saveTextFile, type TerminalOutput, type TmuxSession } from "../lib/tauri";
+import { invokeCommand, isTauriRuntime, saveTextFile, type RemoteLoopbackPort, type TerminalOutput, type TmuxSession } from "../lib/tauri";
 import { defaultTerminalSettings } from "../app-defaults";
 import { forgetTmuxSessionId, getTmuxSessionLabel, useWorkspaceStore } from "../store";
 import { createTerminalRenderer, type TerminalDimensions, type TerminalRenderer } from "./renderer";
@@ -627,6 +627,140 @@ function tmuxConnectionRequest(connection: Connection) {
     authMethod: connection.authMethod,
     secretOwnerId: connection.id,
   };
+}
+
+function SshPortForwardMenu({ connection }: { connection: Connection }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [ports, setPorts] = useState<RemoteLoopbackPort[]>([]);
+  const [error, setError] = useState("");
+  const [openingPort, setOpeningPort] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const openSshPortForwardBrowser = useWorkspaceStore((state) => state.openSshPortForwardBrowser);
+  const showWorkspaceStatus = useWorkspaceStore((state) => state.showWorkspaceStatus);
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node | null;
+      if (menuRef.current && target && !menuRef.current.contains(target)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  async function loadPorts() {
+    if (!isTauriRuntime()) {
+      setPorts([]);
+      setError(t("terminal.tauriRequired"));
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const result = await invokeCommand("list_remote_loopback_ports", {
+        request: tmuxConnectionRequest(connection),
+      });
+      setPorts(result);
+    } catch (loadError) {
+      setPorts([]);
+      setError(loadError instanceof Error ? loadError.message : String(loadError));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleToggle() {
+    const nextOpen = !open;
+    setOpen(nextOpen);
+    if (nextOpen) {
+      await loadPorts();
+    }
+  }
+
+  async function handleOpenPort(port: number) {
+    setOpeningPort(port);
+    setError("");
+    try {
+      const forward = await invokeCommand("start_ssh_port_forward", {
+        request: {
+          ...tmuxConnectionRequest(connection),
+          remotePort: port,
+        },
+      });
+      openSshPortForwardBrowser(connection, forward);
+      showWorkspaceStatus(t("terminal.sshPortForwardOpened", { port }));
+      setOpen(false);
+    } catch (openError) {
+      setError(openError instanceof Error ? openError.message : String(openError));
+    } finally {
+      setOpeningPort(null);
+    }
+  }
+
+  return (
+    <div className="tmux-session-wrapper" ref={menuRef}>
+      <button
+        className="terminal-pane-action"
+        aria-label={t("terminal.sshPortRedirect")}
+        {...dialogButtonAria(open)}
+        onClick={() => void handleToggle()}
+        title={t("terminal.sshPortRedirect")}
+        type="button"
+      >
+        <Network size={13} />
+      </button>
+      {open ? (
+        <div className="tmux-session-menu ssh-port-menu" role="dialog" aria-label={t("terminal.sshPortRedirect")}>
+          <header>
+            <strong>{t("terminal.remoteLoopbackPorts")}</strong>
+            <button
+              className="terminal-pane-action"
+              aria-label={t("terminal.refreshPorts")}
+              onClick={() => void loadPorts()}
+              title={t("terminal.refreshPorts")}
+              type="button"
+            >
+              <RefreshCw size={13} />
+            </button>
+          </header>
+          {loading ? <p>{t("terminal.scanningPorts")}</p> : null}
+          {error ? <p className="form-error">{error}</p> : null}
+          {!loading && !error && ports.length === 0 ? <p>{t("terminal.noRemoteLoopbackPorts")}</p> : null}
+          <div className="tmux-session-list">
+            {ports.map((entry) => (
+              <div className="tmux-session-row ssh-port-row" key={`${entry.address}-${entry.port}`}>
+                <div className="tmux-session-row-main">
+                  <div className="tmux-session-row-info" aria-label={t("terminal.remoteLoopbackPort", { port: entry.port })}>
+                    <strong>{t("terminal.remoteLoopbackPort", { port: entry.port })}</strong>
+                    <small>{entry.address}</small>
+                  </div>
+                  <button
+                    className="terminal-pane-action"
+                    aria-label={t("terminal.openPortInBrowser", { port: entry.port })}
+                    disabled={openingPort !== null}
+                    onClick={() => void handleOpenPort(entry.port)}
+                    title={t("terminal.openPortInBrowser", { port: entry.port })}
+                    type="button"
+                  >
+                    {openingPort === entry.port ? <RefreshCw size={13} /> : <Globe2 size={13} />}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export async function inspectActiveSshSystemContext(tab: WorkspaceTab | undefined) {
@@ -1314,6 +1448,7 @@ function TerminalPaneView({
               <span>{t("terminal.sftp")}</span>
             </button>
           ) : null}
+          {isSshPane && pane.connection ? <SshPortForwardMenu connection={pane.connection} /> : null}
           <div className="terminal-menu-wrapper" ref={splitMenuRef}>
             <button
               className="terminal-pane-action"

@@ -117,6 +117,8 @@ export interface UrlPane {
   connection: Connection;
   url: string;
   dataPartition?: string;
+  sshPortForwardSessionId?: string;
+  sshPortForwardRemotePort?: number;
 }
 
 export interface RemoteDesktopPane {
@@ -282,6 +284,8 @@ export interface WorkspaceTab {
   connection?: Connection;
   url?: string;
   dataPartition?: string;
+  sshPortForwardSessionId?: string;
+  sshPortForwardRemotePort?: number;
 }
 
 export interface FileEntry {

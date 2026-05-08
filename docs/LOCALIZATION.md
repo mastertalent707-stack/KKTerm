@@ -58,6 +58,14 @@ All keys are structurally present in every locale file (flushed via `scripts/flu
 | connections.import.importBookmarksComplete | connections | Imported {{count}} Connections from bookmarks. |
 | terminal.terminalBuffer | terminal | terminal buffer |
 | terminal.sendToAi | terminal | Send terminal buffer to AI Assistant |
+| terminal.sshPortRedirect | terminal | SSH port redirect |
+| terminal.remoteLoopbackPorts | terminal | Remote 127.0.0.1 ports |
+| terminal.refreshPorts | terminal | Refresh ports |
+| terminal.scanningPorts | terminal | Scanning ports... |
+| terminal.noRemoteLoopbackPorts | terminal | No listening ports found on remote loopback. |
+| terminal.remoteLoopbackPort | terminal | 127.0.0.1:{{port}} |
+| terminal.openPortInBrowser | terminal | Open 127.0.0.1:{{port}} in browser |
+| terminal.sshPortForwardOpened | terminal | Opened SSH port redirect for remote port {{port}}. |
 | workspace.hostUsage | workspace | Host usage |
 | workspace.cpu | workspace | CPU |
 | workspace.cpuUsage | workspace | CPU usage |

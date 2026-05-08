@@ -673,7 +673,7 @@ fn can_resume_tmux_terminal(request: &NativeSshTerminalRequest) -> bool {
             .is_some_and(|session_id| !session_id.is_empty())
 }
 
-async fn disconnect_ssh_session(
+pub(crate) async fn disconnect_ssh_session(
     session: client::Handle<VerifyingClient>,
     reason: &str,
 ) -> Result<(), String> {

@@ -704,6 +704,40 @@ async fn inspect_ssh_system_context(
 }
 
 #[tauri::command]
+async fn list_remote_loopback_ports(
+    app: tauri::AppHandle,
+    request: sessions::TmuxConnectionRequest,
+) -> Result<Vec<sessions::RemoteLoopbackPort>, String> {
+    run_blocking_command("SSH loopback port discovery", move || {
+        let sessions = app.state::<sessions::SessionManager>();
+        let secrets = app.state::<secrets::Secrets>();
+        sessions.list_remote_loopback_ports(app.clone(), &secrets, request)
+    })
+    .await
+}
+
+#[tauri::command]
+async fn start_ssh_port_forward(
+    app: tauri::AppHandle,
+    request: sessions::StartSshPortForwardRequest,
+) -> Result<sessions::SshPortForwardStarted, String> {
+    run_blocking_command("SSH port forward startup", move || {
+        let sessions = app.state::<sessions::SessionManager>();
+        let secrets = app.state::<secrets::Secrets>();
+        sessions.start_ssh_port_forward(app.clone(), &secrets, request)
+    })
+    .await
+}
+
+#[tauri::command]
+fn close_ssh_port_forward(
+    sessions: tauri::State<'_, sessions::SessionManager>,
+    request: sessions::CloseSshPortForwardRequest,
+) -> Result<(), String> {
+    sessions.close_ssh_port_forward(request)
+}
+
+#[tauri::command]
 fn launch_elevated_terminal(
     request: sessions::LaunchElevatedTerminalRequest,
 ) -> Result<(), String> {
@@ -1357,6 +1391,9 @@ pub fn run() {
             set_tmux_mouse,
             capture_tmux_pane,
             inspect_ssh_system_context,
+            list_remote_loopback_ports,
+            start_ssh_port_forward,
+            close_ssh_port_forward,
             launch_elevated_terminal,
             start_sftp_session,
             list_sftp_directory,

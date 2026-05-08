@@ -1725,6 +1725,14 @@ h2 {
   font-size: 11px;
 }
 
+.ssh-port-menu {
+  width: min(300px, 80vw);
+}
+
+.ssh-port-row .tmux-session-row-info {
+  cursor: default;
+}
+
 .tmux-mouse-toggle {
   display: inline-flex;
   align-items: center;
