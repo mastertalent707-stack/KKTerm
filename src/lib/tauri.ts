@@ -74,6 +74,7 @@ export interface StartTerminalSessionRequest {
   type: "local" | "ssh" | "telnet" | "serial";
   host: string;
   user: string;
+  url?: string;
   port?: number;
   keyPath?: string;
   proxyJump?: string;
@@ -115,6 +116,7 @@ export interface StartSftpSessionRequest {
   title: string;
   host: string;
   user: string;
+  url?: string;
   port?: number;
   keyPath?: string;
   proxyJump?: string;
@@ -206,12 +208,13 @@ export interface SshConfigImportPreview {
   unsupportedDirectives: UnsupportedSshDirective[];
 }
 
-export type ImportFileFormat = "csv" | "tsv" | "rdcman" | "mobaxterm" | "putty";
+export type ImportFileFormat = "csv" | "tsv" | "rdcman" | "mobaxterm" | "putty" | "bookmarks";
 
 export interface ImportedConnectionDraft {
   name: string;
   host: string;
   user: string;
+  url?: string;
   port?: number;
   type: "local" | "ssh" | "telnet" | "serial" | "url" | "rdp" | "vnc";
   folderPath: string[];
@@ -221,6 +224,27 @@ export interface ImportFilePreview {
   format: ImportFileFormat;
   drafts: ImportedConnectionDraft[];
   warnings: string[];
+}
+
+export interface BookmarkTreeNode {
+  id: string;
+  name: string;
+  type: "folder" | "bookmark";
+  url?: string;
+  children: BookmarkTreeNode[];
+}
+
+export interface BookmarkImportSource {
+  id: string;
+  label: string;
+  browser: string;
+  path: string;
+  root: BookmarkTreeNode;
+  warnings: string[];
+}
+
+export interface BrowserBookmarkSourcesResponse {
+  sources: BookmarkImportSource[];
 }
 
 export interface ScanResultEntry {
@@ -382,6 +406,7 @@ export interface StartRdpSessionRequest {
   sessionId: string;
   host: string;
   user: string;
+  url?: string;
   port?: number;
   secretOwnerId?: string;
   password?: string;
@@ -726,6 +751,14 @@ type CommandMap = {
   };
   parse_import_file: {
     args: { request: { path: string } };
+    result: ImportFilePreview;
+  };
+  list_browser_bookmark_sources: {
+    args: undefined;
+    result: BrowserBookmarkSourcesResponse;
+  };
+  preview_browser_bookmark_import: {
+    args: { request: { sourceId: string; selectedNodeIds: string[] } };
     result: ImportFilePreview;
   };
   scan_network_for_connections: {
