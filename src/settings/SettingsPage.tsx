@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   ArrowLeft,
   Bot,
-  Camera,
   Info,
   Monitor,
   Globe,
@@ -20,12 +19,9 @@ import { AppearanceSettings } from "./AppearanceSettings";
 import { GeneralSettings } from "./GeneralSettings";
 import { RdpSettings } from "./RdpSettings";
 import { SshSettings } from "./SshSettings";
-import { ScreenshotSettings } from "./ScreenshotSettings";
 import { TerminalSettings as TerminalSettingsPage } from "./TerminalSettings";
 import { UrlSettings } from "./UrlSettings";
 import { VncSettings } from "./VncSettings";
-
-const SCREENSHOTS_SETTINGS_ENABLED = false;
 
 export { AI_PROVIDER_SECRET_OWNER_ID };
 
@@ -35,7 +31,6 @@ type SettingsSectionId =
   | "assistant-settings"
   | "ssh-settings"
   | "terminal-settings"
-  | "screenshot-settings"
   | "url-settings"
   | "rdp-settings"
   | "vnc-settings"
@@ -107,16 +102,6 @@ export function SettingsPage({
             <Terminal size={16} />
             <span>{t("settings.sectionTerminal")}</span>
           </button>
-          {SCREENSHOTS_SETTINGS_ENABLED ? (
-            <button
-              className={settingsNavItemClass("screenshot-settings", activeSectionId)}
-              onClick={() => setActiveSectionId("screenshot-settings")}
-              type="button"
-            >
-              <Camera size={16} />
-              <span>{t("settings.sectionScreenshots")}</span>
-            </button>
-          ) : null}
           <button
             className={settingsNavItemClass("url-settings", activeSectionId)}
             onClick={() => setActiveSectionId("url-settings")}
@@ -159,9 +144,6 @@ export function SettingsPage({
           {activeSectionId === "assistant-settings" && <AiSettings />}
           {activeSectionId === "ssh-settings" && <SshSettings />}
           {activeSectionId === "terminal-settings" && <TerminalSettingsPage />}
-          {SCREENSHOTS_SETTINGS_ENABLED && activeSectionId === "screenshot-settings" && (
-            <ScreenshotSettings />
-          )}
           {activeSectionId === "url-settings" && <UrlSettings />}
           {activeSectionId === "rdp-settings" && <RdpSettings />}
           {activeSectionId === "vnc-settings" && <VncSettings />}

@@ -1,26 +1,19 @@
 import {
   BedSingle,
-  BookOpen,
-  Camera,
   ChevronLeft,
   ChevronRight,
   Coffee,
   LayoutDashboard,
-  Monitor,
-  PanelTop,
   Pin,
   PinOff,
-  ScanLine,
   Settings,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
-  KeyboardEvent,
-  MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { invokeCommand, isTauriRuntime, type CaptureScreenshotRequest } from "./lib/tauri";
+import { invokeCommand, isTauriRuntime } from "./lib/tauri";
 import { useBootstrapSettings } from "./lib/settings";
 import { SettingsPage } from "./settings/SettingsPage";
 import { useWorkspaceStore } from "./store";
@@ -32,11 +25,7 @@ import { ConnectionIcon } from "./connections/ConnectionIcon";
 import { ConnectionSidebar } from "./connections/ConnectionSidebar";
 import { flattenConnections } from "./connections/treeUtils";
 import { StatusBar } from "./workspace/StatusBar";
-import { ScreenshotsPage } from "./workspace/ScreenshotsPage";
 import { TabStrip, WorkspaceCanvas } from "./workspace/WorkspaceCanvas";
-import { addStoredScreenshot, type StoredScreenshotKind } from "./workspace/screenshotLibrary";
-import { WikiWorkspace } from "./wiki/WikiWorkspace";
-import { useOpenWikiListener } from "./wiki/WikiPagesButton";
 import type { Connection } from "./types";
 
 type PanelLayoutState = {
@@ -55,8 +44,6 @@ const AI_PANEL_DEFAULT_WIDTH = 334;
 const AI_PANEL_MIN_WIDTH = 260;
 
 const AI_PANEL_MAX_WIDTH = 1860;
-
-const SCREENSHOTS_RAIL_ENABLED = false;
 
 const CONNECTION_PANEL_LAYOUT_KEY = "kkterm.layout.connectionsPanel.v1";
 
@@ -89,13 +76,6 @@ type RailConnectionMenuState = {
   y: number;
 };
 
-type ScreenshotRegionState = {
-  bounds: DOMRect;
-  pointerId?: number;
-  start?: { x: number; y: number };
-  current?: { x: number; y: number };
-};
-
 const defaultConnectionPanelLayout: PanelLayoutState = {
   collapsed: false,
   width: CONNECTION_PANEL_DEFAULT_WIDTH,
@@ -108,33 +88,6 @@ const defaultAiPanelLayout: PanelLayoutState = {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
-}
-
-function rectFromPoints(
-  start: { x: number; y: number },
-  current: { x: number; y: number },
-): CaptureScreenshotRequest {
-  const x = Math.min(start.x, current.x);
-  const y = Math.min(start.y, current.y);
-  return {
-    x: Math.max(0, Math.round(x)),
-    y: Math.max(0, Math.round(y)),
-    width: Math.max(1, Math.round(Math.abs(current.x - start.x))),
-    height: Math.max(1, Math.round(Math.abs(current.y - start.y))),
-  };
-}
-
-function clampPointToBounds(x: number, y: number, bounds: DOMRect) {
-  return {
-    x: Math.min(Math.max(x, bounds.left), bounds.right),
-    y: Math.min(Math.max(y, bounds.top), bounds.bottom),
-  };
-}
-
-async function waitForScreenshotSurface() {
-  await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-  await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-  await new Promise<void>((resolve) => window.setTimeout(resolve, 90));
 }
 
 function loadPanelLayout(
@@ -225,23 +178,17 @@ function removeLayoutStorageKeys() {
   }
 }
 
-type ActivePage = "workspace" | "wiki" | "screenshots" | "settings";
+type ActivePage = "workspace" | "settings";
 
 function App() {
   const { t } = useTranslation();
   const [activePage, setActivePage] = useState<ActivePage>("workspace");
-  const [wikiInitialPageId, setWikiInitialPageId] = useState<string | null>(null);
   const appearanceSettings = useWorkspaceStore((state) => state.appearanceSettings);
   const setFrontendLaunchMs = useWorkspaceStore((state) => state.setFrontendLaunchMs);
   const setHostUsageSnapshot = useWorkspaceStore((state) => state.setHostUsageSnapshot);
   const appShellRef = useRef<HTMLDivElement | null>(null);
   const resetAllLayouts = useWorkspaceStore((state) => state.resetAllLayouts);
   useBootstrapSettings();
-
-  useOpenWikiListener((pageId) => {
-    setWikiInitialPageId(pageId);
-    setActivePage("wiki");
-  });
 
   const [connectionPanelLayout, setConnectionPanelLayout] = useState(() =>
     loadPanelLayout(
@@ -434,9 +381,6 @@ function App() {
         connectionsCollapsed={connectionPanelLayout.collapsed}
         onConnectionsToggle={toggleConnectionPanel}
         onNavigate={(page) => {
-          if (page !== "wiki") {
-            setWikiInitialPageId(null);
-          }
           setActivePage(page);
         }}
       />
@@ -473,20 +417,6 @@ function App() {
           onToggleCollapsed={toggleAiPanel}
         />
       </div>
-      {activePage === "wiki" ? (
-        <div className="wiki-page" role="region" aria-label={t("wiki.title")}>
-          <WikiWorkspace
-            active={activePage === "wiki"}
-            initialPageId={wikiInitialPageId}
-            onOpenConnection={() => setActivePage("workspace")}
-          />
-        </div>
-      ) : null}
-      {activePage === "screenshots" ? (
-        <div className="screenshots-shell" role="region" aria-label={t("screenshots.title")}>
-          <ScreenshotsPage />
-        </div>
-      ) : null}
       {activePage === "settings" ? (
         <SettingsPage
           onBack={() => setActivePage("workspace")}
@@ -584,15 +514,9 @@ function ActivityRail({
   );
   const [connectionRailDropTarget, setConnectionRailDropTarget] =
     useState<ConnectionRailDropTarget | null>(null);
-  const [screenshotMenu, setScreenshotMenu] = useState<{ x: number; y: number } | null>(null);
   const [railConnectionMenu, setRailConnectionMenu] =
     useState<RailConnectionMenuState | null>(null);
-  const [screenshotRegionState, setScreenshotRegionState] =
-    useState<ScreenshotRegionState | null>(null);
-  const screenshotMenuRef = useRef<HTMLDivElement | null>(null);
   const railConnectionMenuRef = useRef<HTMLDivElement | null>(null);
-  const screenshotRegionTargetRef = useRef<HTMLDivElement | null>(null);
-  const screenshotRegionSelectionRef = useRef<HTMLDivElement | null>(null);
   const connectionRailDragRef = useRef<ConnectionRailDragState | null>(null);
   const connectionRailListRef = useRef<HTMLDivElement | null>(null);
   const suppressConnectionClickRef = useRef<string | null>(null);
@@ -912,33 +836,6 @@ function ActivityRail({
     );
   }
 
-  function openScreenshotMenu(event: ReactMouseEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    setScreenshotMenu({ x: event.clientX, y: event.clientY });
-  }
-
-  useEffect(() => {
-    if (!screenshotMenu) {
-      return;
-    }
-    function closeMenu(event: PointerEvent) {
-      const target = event.target as Node | null;
-      if (target && screenshotMenuRef.current?.contains(target)) {
-        return;
-      }
-      setScreenshotMenu(null);
-    }
-    function closeMenuOnKey() {
-      setScreenshotMenu(null);
-    }
-    window.addEventListener("pointerdown", closeMenu);
-    window.addEventListener("keydown", closeMenuOnKey);
-    return () => {
-      window.removeEventListener("pointerdown", closeMenu);
-      window.removeEventListener("keydown", closeMenuOnKey);
-    };
-  }, [screenshotMenu]);
-
   useEffect(() => {
     if (!railConnectionMenu) {
       return;
@@ -964,15 +861,6 @@ function ActivityRail({
   }, [railConnectionMenu]);
 
   useLayoutEffect(() => {
-    const node = screenshotMenuRef.current;
-    if (!node || !screenshotMenu) {
-      return;
-    }
-    node.style.left = `${screenshotMenu.x}px`;
-    node.style.top = `${screenshotMenu.y}px`;
-  }, [screenshotMenu]);
-
-  useLayoutEffect(() => {
     const node = railConnectionMenuRef.current;
     if (!node || !railConnectionMenu) {
       return;
@@ -981,126 +869,6 @@ function ActivityRail({
     node.style.left = `${Math.max(8, Math.min(railConnectionMenu.x, window.innerWidth - bounds.width - 8))}px`;
     node.style.top = `${Math.max(8, Math.min(railConnectionMenu.y, window.innerHeight - bounds.height - 8))}px`;
   }, [railConnectionMenu]);
-
-  async function captureScreenshot(kind: StoredScreenshotKind, rect?: CaptureScreenshotRequest) {
-    if (!isTauriRuntime()) {
-      showWorkspaceStatus(t("workspace.screenshotsRequireRuntime"), { tone: "warning" });
-      return;
-    }
-
-    try {
-      await waitForScreenshotSurface();
-      await addStoredScreenshot(kind, rect);
-      showWorkspaceStatus(t("screenshots.captureSuccess"), { tone: "success" });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message === "screenshot capture canceled") {
-        return;
-      }
-      showWorkspaceStatus(
-        t("workspace.screenshotCaptureError", {
-          message,
-        }),
-        { tone: "error" },
-      );
-    }
-  }
-
-  function handleCaptureRegion() {
-    setScreenshotMenu(null);
-    void captureScreenshot("region");
-  }
-
-  function handleCaptureWindow() {
-    setScreenshotMenu(null);
-    void captureScreenshot("window");
-  }
-
-  function handleCaptureFullscreen() {
-    setScreenshotMenu(null);
-    void captureScreenshot("fullscreen");
-  }
-
-  function handleRegionPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!screenshotRegionState) {
-      return;
-    }
-    const point = clampPointToBounds(event.clientX, event.clientY, screenshotRegionState.bounds);
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setScreenshotRegionState({
-      ...screenshotRegionState,
-      pointerId: event.pointerId,
-      start: point,
-      current: point,
-    });
-  }
-
-  function handleRegionPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!screenshotRegionState?.start || screenshotRegionState.pointerId !== event.pointerId) {
-      return;
-    }
-    setScreenshotRegionState({
-      ...screenshotRegionState,
-      current: clampPointToBounds(event.clientX, event.clientY, screenshotRegionState.bounds),
-    });
-  }
-
-  function handleRegionPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!screenshotRegionState?.start || screenshotRegionState.pointerId !== event.pointerId) {
-      return;
-    }
-    const current = clampPointToBounds(event.clientX, event.clientY, screenshotRegionState.bounds);
-    const rect = rectFromPoints(screenshotRegionState.start, current);
-    setScreenshotRegionState(null);
-    if (rect.width < 4 || rect.height < 4) {
-      return;
-    }
-    void captureScreenshot("region", rect);
-  }
-
-  function handleRegionKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      setScreenshotRegionState(null);
-    }
-  }
-
-  const screenshotSelectionRect =
-    screenshotRegionState?.start && screenshotRegionState.current
-      ? rectFromPoints(screenshotRegionState.start, screenshotRegionState.current)
-      : null;
-
-  useLayoutEffect(() => {
-    const node = screenshotRegionTargetRef.current;
-    if (!node || !screenshotRegionState) {
-      return;
-    }
-    node.style.height = `${screenshotRegionState.bounds.height}px`;
-    node.style.left = `${screenshotRegionState.bounds.left}px`;
-    node.style.top = `${screenshotRegionState.bounds.top}px`;
-    node.style.width = `${screenshotRegionState.bounds.width}px`;
-  }, [
-    screenshotRegionState?.bounds.height,
-    screenshotRegionState?.bounds.left,
-    screenshotRegionState?.bounds.top,
-    screenshotRegionState?.bounds.width,
-  ]);
-
-  useLayoutEffect(() => {
-    const node = screenshotRegionSelectionRef.current;
-    if (!node || !screenshotSelectionRect) {
-      return;
-    }
-    node.style.height = `${screenshotSelectionRect.height}px`;
-    node.style.left = `${screenshotSelectionRect.x}px`;
-    node.style.top = `${screenshotSelectionRect.y}px`;
-    node.style.width = `${screenshotSelectionRect.width}px`;
-  }, [
-    screenshotSelectionRect?.height,
-    screenshotSelectionRect?.width,
-    screenshotSelectionRect?.x,
-    screenshotSelectionRect?.y,
-  ]);
 
   async function handleDontSleepClick() {
     if (dontSleepUpdating) {
@@ -1144,79 +912,6 @@ function ActivityRail({
         <LayoutDashboard size={18} />
         <RailTooltip label={t("workspace.workspace")} />
       </button>
-      <button
-        className={`rail-button ${activePage === "wiki" ? "active" : ""}`}
-        aria-label={t("app.wiki")}
-        onClick={() => onNavigate("wiki")}
-      >
-        <BookOpen size={18} />
-        <RailTooltip label={t("app.wiki")} />
-      </button>
-      {SCREENSHOTS_RAIL_ENABLED ? (
-        <>
-          <button
-            className={`rail-button ${activePage === "screenshots" ? "active" : ""}`}
-            aria-label={t("screenshots.title")}
-            onClick={() => onNavigate("screenshots")}
-            onContextMenu={openScreenshotMenu}
-          >
-            <Camera size={18} />
-            <RailTooltip label={t("screenshots.title")} />
-          </button>
-          {screenshotMenu ? (
-            <div
-              ref={screenshotMenuRef}
-              className="terminal-menu rail-context-menu screenshot-rail-menu"
-              role="menu"
-            >
-              <button
-                className="terminal-menu-item"
-                onClick={handleCaptureRegion}
-                role="menuitem"
-                type="button"
-              >
-                <ScanLine size={14} />
-                {t("screenshots.captureRegion")}
-              </button>
-              <button
-                className="terminal-menu-item"
-                onClick={handleCaptureFullscreen}
-                role="menuitem"
-                type="button"
-              >
-                <Monitor size={14} />
-                {t("screenshots.captureFullscreen")}
-              </button>
-              <button
-                className="terminal-menu-item"
-                onClick={handleCaptureWindow}
-                role="menuitem"
-                type="button"
-              >
-                <PanelTop size={14} />
-                {t("screenshots.captureWindow")}
-              </button>
-            </div>
-          ) : null}
-        </>
-      ) : null}
-      {screenshotRegionState ? (
-        <div
-          aria-label={t("workspace.selectRegion")}
-          className="screenshot-region-overlay"
-          onKeyDown={handleRegionKeyDown}
-          onPointerDown={handleRegionPointerDown}
-          onPointerMove={handleRegionPointerMove}
-          onPointerUp={handleRegionPointerUp}
-          role="application"
-          tabIndex={-1}
-        >
-          <div className="screenshot-region-target" ref={screenshotRegionTargetRef} />
-          {screenshotSelectionRect ? (
-            <div className="screenshot-region-selection" ref={screenshotRegionSelectionRef} />
-          ) : null}
-        </div>
-      ) : null}
       {connectedRailItems.length > 0 ? (
         <div
           ref={connectionRailListRef}

@@ -1,7 +1,7 @@
 import { confirmTrustedSshHostKey, connectionToolbarTitle, uniqueRuntimeId, usesNativeSshHostKeyVerification } from "../connections/utils";
 import { readFromClipboard, writeToClipboard } from "../lib/clipboard";
 import { ScreenshotMenu } from "../workspace/ScreenshotMenu";
-import { WikiPagesButton } from "../wiki/WikiPagesButton";
+
 import { RemoteDesktopWorkspace } from "../remote-desktop/RemoteDesktopWorkspace";
 import { WebViewWorkspace } from "../webview/WebViewWorkspace";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Mouse, ChevronRight, Circle, ClipboardPaste, Columns2, Copy, Globe2, LayoutDashboard, Menu, Network, RefreshCw, Save, Search, SplitSquareHorizontal, Type, X } from "lucide-react";
@@ -1554,16 +1554,6 @@ function TerminalPaneView({
             </button>
             {actionsMenuOpen ? (
               <div className="terminal-menu" role="menu">
-                {pane.connection ? (
-                  <WikiPagesButton
-                    buttonClassName="terminal-menu-item"
-                    buttonRole="menuitem"
-                    connectionId={pane.connection.id}
-                    iconSize={13}
-                    onPageOpen={() => setActionsMenuOpen(false)}
-                    showLabel
-                  />
-                ) : null}
                 <button
                   className="terminal-menu-item"
                   onClick={handleSaveBuffer}

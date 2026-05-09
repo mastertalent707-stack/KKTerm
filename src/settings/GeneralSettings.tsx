@@ -13,7 +13,6 @@ import {
   defaultAppearanceSettings,
   defaultAiProviderSettings,
   defaultGeneralSettings,
-  defaultScreenshotSettings,
   defaultSftpSettings,
   defaultSshSettings,
   defaultTerminalSettings,
@@ -65,7 +64,6 @@ export function GeneralSettings() {
   );
   const setSshSettings = useWorkspaceStore((state) => state.setSshSettings);
   const setSftpSettings = useWorkspaceStore((state) => state.setSftpSettings);
-  const setScreenshotSettings = useWorkspaceStore((state) => state.setScreenshotSettings);
   const setUrlSettings = useWorkspaceStore((state) => state.setUrlSettings);
   const setAiProviderSettings = useWorkspaceStore(
     (state) => state.setAiProviderSettings,
@@ -156,7 +154,6 @@ export function GeneralSettings() {
       setAppearanceSettings(snapshot.appearanceSettings);
       setSshSettings(snapshot.sshSettings);
       setSftpSettings(snapshot.sftpSettings);
-      setScreenshotSettings(snapshot.screenshotSettings);
       setUrlSettings(snapshot.urlSettings);
       setAiProviderSettings(snapshot.aiProviderSettings);
       window.dispatchEvent(
@@ -191,7 +188,6 @@ export function GeneralSettings() {
           appearance,
           ssh,
           sftp,
-          screenshots,
           url,
           aiProvider,
         ] = await Promise.all([
@@ -206,9 +202,6 @@ export function GeneralSettings() {
           }),
           invokeCommand("update_ssh_settings", { request: defaultSshSettings }),
           invokeCommand("update_sftp_settings", { request: defaultSftpSettings }),
-          invokeCommand("update_screenshot_settings", {
-            request: defaultScreenshotSettings,
-          }),
           invokeCommand("update_url_settings", { request: defaultUrlSettings }),
           invokeCommand("update_ai_provider_settings", {
             request: defaultAiProviderSettings,
@@ -225,7 +218,6 @@ export function GeneralSettings() {
         setAppearanceSettings(appearance);
         setSshSettings(ssh);
         setSftpSettings(sftp);
-        setScreenshotSettings(screenshots);
         setUrlSettings(url);
         setAiProviderSettings(aiProvider);
       } else {
@@ -234,7 +226,6 @@ export function GeneralSettings() {
         setAppearanceSettings(defaultAppearanceSettings);
         setSshSettings(defaultSshSettings);
         setSftpSettings(defaultSftpSettings);
-        setScreenshotSettings(defaultScreenshotSettings);
         setUrlSettings(defaultUrlSettings);
         setAiProviderSettings(defaultAiProviderSettings);
       }

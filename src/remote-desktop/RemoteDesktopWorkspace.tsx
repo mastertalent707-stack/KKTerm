@@ -1,6 +1,6 @@
 import { connectionIconForType, connectionSubtitle, connectionToolbarTitle, connectionTypeLabel } from "../connections/utils";
 import { ScreenshotToolbarButtons } from "../workspace/ScreenshotMenu";
-import { WikiPagesButton } from "../wiki/WikiPagesButton";
+
 import { documentHasWebviewOverlay } from "../workspace/nativeOverlay";
 import { Bot, Keyboard, Monitor, RotateCcw } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
@@ -1109,13 +1109,7 @@ export function RemoteDesktopWorkspace({
               <Bot size={13} />
             </button>
           ) : null}
-          {connection ? (
-            <WikiPagesButton
-              buttonClassName="terminal-pane-action"
-              connectionId={connection.id}
-              iconSize={13}
-            />
-          ) : null}
+        
         </div>
         </header>
       <div

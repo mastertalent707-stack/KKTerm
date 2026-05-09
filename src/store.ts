@@ -4,7 +4,6 @@ import {
   defaultAiProviderSettings,
   defaultSftpSettings,
   defaultSshSettings,
-  defaultScreenshotSettings,
   defaultUrlSettings,
   defaultGeneralSettings,
   defaultTerminalSettings,
@@ -27,7 +26,6 @@ import type {
   PerformanceSnapshot,
   HostUsageSnapshot,
   SftpSettings,
-  ScreenshotSettings,
   SplitDirection,
   UrlSettings,
   SshSettings,
@@ -565,7 +563,6 @@ interface WorkspaceState {
   appearanceSettings: AppearanceSettings;
   sshSettings: SshSettings;
   sftpSettings: SftpSettings;
-  screenshotSettings: ScreenshotSettings;
   urlSettings: UrlSettings;
   aiProviderSettings: AiProviderSettings;
   aiProviderHasApiKey: boolean;
@@ -580,7 +577,6 @@ interface WorkspaceState {
   setAppearanceSettings: (settings: AppearanceSettings) => void;
   setSshSettings: (settings: SshSettings) => void;
   setSftpSettings: (settings: SftpSettings) => void;
-  setScreenshotSettings: (settings: ScreenshotSettings) => void;
   setUrlSettings: (settings: UrlSettings) => void;
   setAiProviderSettings: (settings: AiProviderSettings) => void;
   setAiProviderHasApiKey: (hasApiKey: boolean) => void;
@@ -646,7 +642,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   appearanceSettings: defaultAppearanceSettings,
   sshSettings: defaultSshSettings,
   sftpSettings: defaultSftpSettings,
-  screenshotSettings: defaultScreenshotSettings,
   urlSettings: defaultUrlSettings,
   aiProviderSettings: defaultAiProviderSettings,
   aiProviderHasApiKey: false,
@@ -661,7 +656,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   setAppearanceSettings: (appearanceSettings) => set({ appearanceSettings }),
   setSshSettings: (sshSettings) => set({ sshSettings }),
   setSftpSettings: (sftpSettings) => set({ sftpSettings }),
-  setScreenshotSettings: (screenshotSettings) => set({ screenshotSettings }),
   setUrlSettings: (urlSettings) => set({ urlSettings }),
   setAiProviderSettings: (aiProviderSettings) => set({ aiProviderSettings }),
   setAiProviderHasApiKey: (aiProviderHasApiKey) => set({ aiProviderHasApiKey }),

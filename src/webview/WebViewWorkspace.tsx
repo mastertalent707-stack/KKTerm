@@ -1,5 +1,5 @@
 import { ScreenshotMenu } from "../workspace/ScreenshotMenu";
-import { WikiPagesButton } from "../wiki/WikiPagesButton";
+
 import { documentHasWebviewOverlay } from "../workspace/nativeOverlay";
 import { ArrowLeft, ArrowRight, Globe2, KeyRound, RefreshCw, Save } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
@@ -617,13 +617,6 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
               targetLabel={t("webview.screenshotTarget", { title: tab.title })}
               targetRef={workspaceRef}
             />
-            {tab.connection ? (
-              <WikiPagesButton
-                buttonClassName="terminal-pane-action"
-                connectionId={tab.connection.id}
-                iconSize={13}
-              />
-            ) : null}
           </div>
         </header>
         <div ref={placeholderRef} className="webview-placeholder">

@@ -8,7 +8,9 @@ KKTerm is intended to be a fast, professional desktop workspace for personal/loc
 
 ## Solution
 
-KKTerm v0.1 will be a Windows-first desktop app built with a Rust/Tauri core and a React/TypeScript interface. It will provide a left-side activity rail with Dashboard and Settings entry points, a connection tree, VSCode-style tabs, split terminal panes, local terminal sessions, SSH sessions with optional tmux resume, SFTP dual-pane file management, explicit screenshot capture to clipboard for workspace surfaces, backend SSH config import support, local SQLite connection storage, OS keychain secret storage, and approval-based AI command assistance.
+KKTerm v0.1 will be a Windows-first desktop app built with a Rust/Tauri core and a React/TypeScript interface. It organizes functionality into built-in modules accessible from a left-side activity rail: **Workspace** (remote connection manager with VSCode-style tabs, split terminal panes, local terminal sessions, SSH sessions with optional tmux resume, SFTP dual-pane file management, RDP, VNC, and URL connections), **Dashboard** (dynamic widget playground with prebuilt tools and reports), **App Launcher** (quick-launch pinned desktop applications), and **File Explorer** (lightning-fast alternative local file browser).
+
+Under the hood it provides explicit screenshot capture to clipboard for workspace surfaces, backend SSH config import support, local SQLite connection storage, OS keychain secret storage, and approval-based AI command assistance.
 
 The product will be light chrome with dark terminal panes by default, optimized for dense professional workflows and fast launch. macOS and Linux will follow using the same architecture. Mobile, RDP, VNC, team vaults, and sync are explicitly later-stage work.
 
@@ -108,11 +110,11 @@ The product will be light chrome with dark terminal panes by default, optimized 
 - AI model: approval-based command assist only.
 - AI providers: OpenAI-compatible BYO API key plus Claude Code CLI and Codex CLI adapters.
 - CLI agent integrations: suggest-only/ask-before-execute where possible.
-- UI model: left activity rail with Dashboard and Settings entries, left-side connection manager/tree with root Connections and optional nested folders, main tab/workspace area, optional bottom/output panel, right AI Assistant panel.
+- UI model: left activity rail with Workspace, Dashboard, App Launcher, File Explorer, and Settings entries, left-side connection manager/tree with root Connections and optional nested folders (visible inside the Workspace module), main module content area, right AI Assistant panel, and bottom status bar.
 - Tab model: VSCode-style tabs with split panes inside terminal tabs. Switching Tabs preserves live local terminal, SSH terminal, and SSH-launched SFTP Sessions; only an explicit tab close action should disconnect or tear down the Session owned by that Tab.
 - SSH tmux model: SSH Connections can opt into tmux session launch by default. Each SSH terminal Pane gets a generated friendly tmux session id like `kkterm-cockpit001`, starts or attaches with `tmux new-session -A`, falls back to a normal remote shell if `tmux` is missing, and exposes a Pane-toolbar tag that lists attached and detached remote tmux sessions with explicit close actions. Quiet native SSH Sessions should not disconnect because the app is idle or unfocused; tmux-backed native SSH terminal Sessions may silently make a small bounded attempt to reattach to the same Pane tmux id if the transport breaks.
 - SFTP model: dual-pane file manager with multi-select drag/drop transfer, scoped file actions, remote properties, chmod/chown editing, and transfer queue, opened from an SSH terminal tab rather than saved as a standalone Connection.
-- Screenshot model: explicit user action only. Terminal Panes expose screenshot capture in the Pane toolbar; SFTP, URL, RDP, and VNC workspaces expose it in the top toolbar. Region and Entire Window/Panel captures can be copied to the system clipboard or attached as transient AI Assistant screenshot context. KKTerm does not persist captured screenshots.
+- Screenshot model: explicit user action only. Terminal Panes expose screenshot capture in the Pane toolbar; SFTP, URL, RDP, and VNC workspaces expose it in the top toolbar. Region and Entire Window/Panel captures can be copied to the system clipboard or attached as transient AI Assistant screenshot context. KKTerm does not persist captured screenshots. There is no standalone screenshot gallery page.
 - RDP overlay model: the Windows RDP ActiveX host is a native child HWND and must not be expected to layer beneath React UI through CSS alone. When app-owned DOM overlays such as Add Connection, screenshot menus, or Region selection appear over an active RDP workspace, KKTerm should snapshot the visible RDP view, park/hide the ActiveX host, and show the snapshot beneath the overlay until normal RDP visibility resumes.
 - Extension draft model: the AI Assistant may draft extension designs, manifests, permission requests, and source files when explicitly asked. Until the extension platform exists, this is review-only and must not install, enable, write, run, load, or verify generated extension code.
 - Extension platform model: v0.2 extension support must be manifest-first, permissioned, user-mediated, and isolated. See `docs/ADR/0005-extension-platform-architecture.md` for the initial permission, lifecycle, storage, and trust-boundary decision.
@@ -147,7 +149,6 @@ The product will be light chrome with dark terminal panes by default, optimized 
 
 - Mobile apps for iOS or Android.
 - Additional remote desktop protocols beyond RDP and VNC.
-- Lightweight webview/browser tabs.
 - Team sharing, team vaults, RBAC, SSO, managed cloud services, or paid AI service.
 - Settings sync.
 - Global command palette or command launcher.

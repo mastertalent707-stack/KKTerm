@@ -2,7 +2,7 @@
 
 ## Current Progress
 
-As of May 7, 2026, Milestone A has a usable session spine in place: typed frontend Tauri commands, SQLite-backed durable Connections with optional nested folders, OS keychain operations, connection tree CRUD/search/reorder, quick connect, tabs that preserve live Sessions across tab switching, split terminal panes, xterm-based local terminal sessions, settings storage, a left activity rail with Dashboard and Settings entries, and live status badges derived from active workspace Sessions. The current Settings surface is separated into `src/settings/SettingsPage.tsx` and is ordered as General, Appearance, AI Assistant, SSH, Terminal, Remote Desktop(RDP), VNC, and About, with Language (i18n) in General, SFTP transfer defaults folded into SSH, terminal behavior in Terminal, Color Scheme as an Appearance placeholder, and planned RDP/VNC quality summaries. The New Connection wizard now exposes an **Import** tile that opens a two-mode batch import dialog: file import (CSV/TSV, RDCMan `.rdg`, MobaXterm `.mxtsessions`, PuTTY `.reg`) preserving nested folder paths as ConnectionFolders, or a light TCP port scan over a single host, hyphen range, or CIDR (capped at 1024 hosts per scan, 64 concurrent probes, 500 ms timeout) producing SSH/Telnet/RDP draft Connections. Both flows share an editable preview table with bulk-fill and bulk-overwrite username actions, an optional bulk password action that routes secrets through the existing keychain owner, and a destination picker that creates a new ConnectionFolder, lands at the tree root, or attaches to any existing folder.
+As of May 7, 2026, Milestone A has a usable session spine in place: typed frontend Tauri commands, SQLite-backed durable Connections with optional nested folders, OS keychain operations, connection tree CRUD/search/reorder, quick connect, tabs that preserve live Sessions across tab switching, split terminal panes, xterm-based local terminal sessions, settings storage, a left activity rail with Workspace and Settings entries, and live status badges derived from active workspace Sessions. The current Settings surface is separated into `src/settings/SettingsPage.tsx` and is ordered as General, Appearance, AI Assistant, SSH, Terminal, Remote Desktop(RDP), VNC, and About, with Language (i18n) in General, SFTP transfer defaults folded into SSH, terminal behavior in Terminal, Color Scheme as an Appearance placeholder, and planned RDP/VNC quality summaries. The New Connection wizard now exposes an **Import** tile that opens a two-mode batch import dialog: file import (CSV/TSV, RDCMan `.rdg`, MobaXterm `.mxtsessions`, PuTTY `.reg`) preserving nested folder paths as ConnectionFolders, or a light TCP port scan over a single host, hyphen range, or CIDR (capped at 1024 hosts per scan, 64 concurrent probes, 500 ms timeout) producing SSH/Telnet/RDP draft Connections. Both flows share an editable preview table with bulk-fill and bulk-overwrite username actions, an optional bulk password action that routes secrets through the existing keychain owner, and a destination picker that creates a new ConnectionFolder, lands at the tree root, or attaches to any existing folder.
 
 Milestone B has started with the accepted Rust SSH direction, durable SSH `proxyJump` storage, native `russh` SSH terminal lifecycle for key-file, password, and SSH-agent Connections without `ProxyJump`, app-local known-host verification for native SSH sessions with explicit first-use trust and changed-key blocking, no app-side native SSH idle timeout, bounded silent reattach for tmux-backed native SSH terminal channels that unexpectedly close after startup, system `ssh` debug/fallback support for `ProxyJump` sessions, optional per-SSH-Connection tmux launch with friendly per-Pane tmux session ids and remote list/close actions, an SSH config import command that preserves `HostName`, `User`, `Port`, `IdentityFile`, and `ProxyJump` while reporting unsupported directives, and persisted SSH defaults for new SSH Connections. The previous top chrome import button has been removed, so SSH config import needs a new visible entry point before it is user-facing again.
 
@@ -134,7 +134,7 @@ Latest validation on May 7, 2026: `npm run check`, `npm run build`, `cargo check
 - [ ] Support asking the AI Assistant to create installable extensions against the approved extension platform architecture.
 - [ ] Keep extension-generation flows approval-based before installing or running generated code.
 - [x] Language output setting for UI assistant - follow UI language or specific language.
-- [ ] Expand AI Assistant orchestration so it can (with explicit approval) automate more workflows: import Connection entries from multiple formats, monitor existing Connections, rename/reorganize layouts, help create plugins, assist with wiki workflows (once wiki ships), and optionally relay remote-assistant interactions through Telegram/WhatsApp/LINE integrations.
+- [ ] Expand AI Assistant orchestration so it can (with explicit approval) automate more workflows: import Connection entries from multiple formats, monitor existing Connections, rename/reorganize layouts, help create plugins, and optionally relay remote-assistant interactions through Telegram/WhatsApp/LINE integrations.
 
 ### UI Customization
 
@@ -167,13 +167,12 @@ Latest validation on May 7, 2026: `npm run check`, `npm run build`, `cargo check
 - [x] Add MobaXterm/RDCMan import.
 - [ ] Add SFTP folder sync/diff/resume.
 
-### Personal Markdown Wiki
+### Workspace Modules (Dashboard, App Launcher, File Explorer)
 
-- [ ] Add a fully fledged personal markdown wiki with durable storage, page tree, search, and tagging that lives alongside Connections in the workspace.
-- [ ] Add a markdown text editor with live preview, syntax highlighting, and link-aware editing for wiki pages.
-- [ ] Support deep links from wiki pages into Connections so a page can launch the referenced Connection in the workspace (e.g. open SSH terminal, SFTP, RDP, or VNC tab).
-- [ ] Support backlinks and inter-page links between wiki pages.
-- [ ] Decide wiki storage location (app data vs. user-chosen folder) and document any sync/portability implications before implementation.
+- [ ] Implement the Dashboard module: a dynamic widget playground where users select from prebuilt widgets (hash calculators, IP subnet calculators, quick tools) or reports. Allow the built-in AI Assistant and coding agents to create new widgets.
+- [ ] Implement the App Launcher module: let users pin favorite desktop applications for quick launch from the activity rail.
+- [ ] Implement the File Explorer module: a lightning-fast alternative local file explorer optimized for speed and dense professional workflows.
+- [ ] Wire all four built-in modules (Workspace, Dashboard, App Launcher, File Explorer) into the activity rail as peer top-level entries, each with its own content area and active-page routing.
 
 ### Distribution, Sync, and Trust
 
@@ -203,10 +202,6 @@ Latest validation on May 7, 2026: `npm run check`, `npm run build`, `cargo check
 - [ ] Autosave all SSH/Terminal/Telnet/Serial text buffers to plain-text log files by default, organized by Connection name and random serial number under a sensible folder structure.
 - [ ] Add a button in the Connection pane to browse the session log list for a Connection.
 - [ ] Add universal search across all session logs and Connection items.
-
-### Screenshot Tool
-
-- [ ] Add screenshot tool accessible from system tray right-click that opens a screenshot section in the main interface.
 
 ### Recording
 

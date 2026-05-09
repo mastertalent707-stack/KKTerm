@@ -43,13 +43,21 @@ _Avoid_: Connection, profile, tab
 A frontend workspace container that presents one session or a set of related panes.
 _Avoid_: Session, connection, backend tab
 
-**Wiki Page**:
-A durable Markdown knowledge item stored in the local KKTerm wiki. Wiki Pages may be nested under other Wiki Pages for organization, may link to other Wiki Pages with `[[Page Name]]`, may link to durable Connections with `[[[Connection Name]]]`, and may carry attachments and `#tags`.
-_Avoid_: Session, tab, profile
+**Dashboard Module**:
+A built-in activity-rail module that provides a dynamic widget playground. Users select from prebuilt widgets (hash calculators, IP subnet calculators, quick tools) or reports. The built-in AI Assistant and coding agents can create new widgets.
+_Avoid_: landing page, overview
 
-**Backlink**:
-A derived reference from one Wiki Page to another Wiki Page that links to it. Backlinks are calculated from wiki link syntax and describe knowledge relationships only; they do not imply a live Session or a durable Connection relationship.
-_Avoid_: connection dependency, session reference
+**Default Launch State**:
+The default landing view when no Sessions are open, showing recent Connections and a workspace overview. This replaces the old "Dashboard" concept that was the landing page.
+_Avoid_: dashboard, home
+
+**App Launcher Module**:
+A built-in activity-rail module where users pin favorite desktop applications for quick launch.
+_Avoid_: dock, taskbar
+
+**File Explorer Module**:
+A built-in activity-rail module providing a lightning-fast alternative local file explorer optimized for speed and dense professional workflows. Distinct from the SFTP browser, which handles remote file operations over SSH connections.
+_Avoid_: SFTP browser, remote file pane
 
 **Pane**:
 A subdivision of a tab that presents one terminal surface or workspace view.
@@ -60,22 +68,27 @@ Terminal Panes for tmux-enabled SSH Connections may carry a generated friendly t
 ## UI Layout
 
 **Activity Rail (Left Rail)**:
-The vertical icon bar on the far left of the app. Shows top-level destinations (Workspace, Dashboard, Wiki), connected Connection shortcuts when enabled, and Settings at the bottom. Icons use app-owned delayed hover labels via `RailTooltip`, not native `title` tooltips.
+The vertical icon bar on the far left of the app. Shows top-level built-in modules (Workspace, Dashboard, App Launcher, File Explorer), connected Connection shortcuts when enabled, and Settings at the bottom. Icons use app-owned delayed hover labels via `RailTooltip`, not native `title` tooltips.
 _Avoid_: sidebar, left sidebar, nav bar
 
 **Connection Tree (Connections Panel)**:
-The left-side tree view of saved Connections, folders, and subfolders. Supports search, filtering, drag/drop ordering, rename, delete, duplicate, Quick Connect, and open-Session status badges. Collapsed/expanded state is persisted.
+The left-side tree view of saved Connections, folders, and subfolders. Visible inside the Workspace module. Supports search, filtering, drag/drop ordering, rename, delete, duplicate, Quick Connect, and open-Session status badges. Collapsed/expanded state is persisted.
 _Avoid_: connection sidebar, host list
 
 **AI Assistant Panel**:
 The right-side resizable panel for AI chat interactions. Collapsed/expanded state is workspace-wide.
 _Avoid_: AI sidebar, chat panel
 
-**Dashboard**:
-Top-level destination on the Activity Rail. The default landing view when no Sessions are open, showing recent Connections and workspace overview.
+**Dashboard Widget Playground**:
+The content area of the Dashboard module. Hosts dynamic, user-selectable widgets and reports. The AI Assistant can create new widgets on request.
+_Avoid_: landing page, overview
+
+**Default Launch State**:
+The fallback view shown when no Sessions are open, displaying recent Connections and a brief workspace overview. Not a user-navigable module; it is reached by closing all Tabs.
+_Avoid_: dashboard page, home screen
 
 **Workspace Canvas**:
-The central area containing the Tab Strip, active Tab content (terminals, RDP/VNC surfaces, WebView2 surfaces, SFTP browsers), and optional pane splits.
+The central content area for the active built-in module. Each module (Workspace, Dashboard, App Launcher, File Explorer) owns its own content layout within this area. For the Workspace module, this includes the Tab Strip, active Tab content (terminals, RDP/VNC surfaces, WebView2 surfaces, SFTP browsers), and optional pane splits.
 _Avoid_: main area, content area
 
 **Tab Strip**:
@@ -103,8 +116,6 @@ _Avoid_: settings nav, settings menu
 - A **Quick Connect** starts exactly one **Session** unless the user saves it as a **Connection**.
 - A **Session** may be presented by one **Tab**.
 - A terminal **Tab** may contain one or more **Panes**.
-- A **Wiki Page** may reference another **Wiki Page** through a wiki link, creating a derived **Backlink** on the target page.
-- A **Wiki Page** may reference a durable **Connection** through a Connection wiki link; opening that reference starts from the existing Connection workflow rather than creating a wiki-owned Session.
 - A tmux-enabled SSH terminal **Pane** may start or attach to a named remote tmux session. If `tmux` is unavailable on the remote host, the Pane falls back to the normal remote shell.
 - A **Tab** is UI state only and is not the durable backend model.
 - Switching the active **Tab** does not end, disconnect, or recreate its **Session**.

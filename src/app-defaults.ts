@@ -3,7 +3,6 @@ import type {
   AiProviderSettings,
   ConnectionTree,
   GeneralSettings,
-  ScreenshotSettings,
   SftpSettings,
   SshSettings,
   UrlSettings,
@@ -61,10 +60,6 @@ export const defaultSftpSettings: SftpSettings = {
 
 export const defaultUrlSettings: UrlSettings = {
   ignoreCertificateErrors: false,
-};
-
-export const defaultScreenshotSettings: ScreenshotSettings = {
-  folderPath: "%USERPROFILE%\\Pictures\\Screenshots",
 };
 
 export const defaultAiAssistantToolSettings = {

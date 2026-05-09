@@ -171,7 +171,7 @@ Owns SFTP sessions launched from SSH Connections, local/remote listing, multi-se
 
 Owns explicit user-triggered screenshot capture for active workspace surfaces. Terminal Panes expose the screenshot action in the Pane toolbar; URL, SFTP, RDP, and VNC workspaces expose it in the top workspace toolbar. The frontend owns the menu and Region selection overlay, then calls the typed Tauri command with a client-area rectangle.
 
-The standalone screenshot gallery/tool is intentionally hidden from the Activity Rail and Settings navigation for now. Keep its plumbing in place for future iteration: `src/workspace/ScreenshotsPage.tsx`, `src/workspace/screenshotLibrary.ts`, `src/settings/ScreenshotSettings.tsx`, the typed commands in `src/lib/tauri.ts`, and the persisted/native capture code in `src-tauri/src/screenshot.rs` and `src-tauri/src/storage.rs`. Re-enable the visible rail entry through `SCREENSHOTS_RAIL_ENABLED` in `src/App.tsx`, and the Settings page through `SCREENSHOTS_SETTINGS_ENABLED` in `src/settings/SettingsPage.tsx`, when the product flow is ready again.
+The standalone screenshot gallery page has been removed. Screenshot capture (Region and Entire Window/Panel to clipboard or AI Assistant context) remains available through terminal Pane toolbars and workspace top toolbars. The Rust backend screenshot capture code in `src-tauri/src/screenshot.rs` and `src-tauri/src/storage.rs` is retained for the in-context capture path.
 
 On Windows, the Rust backend translates the requested rectangle into physical screen coordinates and uses GDI capture so native child surfaces such as WebView2 and the RDP ActiveX host are included. Captures can be written directly to the system clipboard as image data, or encoded as a transient PNG data URL and attached to the AI Assistant context through an explicit Send to AI Assistant action. Screenshot capture does not persist image files and does not log terminal contents.
 
@@ -238,9 +238,9 @@ SQLite contains local, non-secret data only. OS keychain contains secrets. Termi
 
 The primary UI is a dense desktop workspace:
 
-- left activity rail with Dashboard and Settings entries
-- left connection tree with root Connections and optional nested folders
-- main tabs/workspace
+- left activity rail with Workspace, Dashboard, App Launcher, File Explorer, and Settings entries
+- left connection tree with root Connections and optional nested folders (inside the Workspace module)
+- main module content area (each module owns its layout: Workspace has tabs/panes, Dashboard has widget grid, etc.)
 - terminal split panes inside terminal tabs
 - tmux session tags and management popovers inside SSH terminal Pane toolbars
 - screenshot Region and Entire Window/Panel actions, shown in terminal Pane toolbars for terminal Sessions and top workspace toolbars for non-terminal surfaces
@@ -250,7 +250,7 @@ The primary UI is a dense desktop workspace:
 
 Default visual direction: quiet productivity light chrome with dark terminal panes.
 
-The activity rail uses icons with delayed app-owned hover labels for top-level destinations and connected Connection shortcuts. Rail labels are rendered through the shared `RailTooltip` helper in `src/App.tsx`; do not add native `title` tooltips because they can appear beside the app tooltip in Tauri/WebView2. Rail tooltips use the same light native-style bordered popup treatment, and connected Connection shortcuts show an insertion separator while being reordered with pointer drag. Wiki, Settings, and any future non-workspace page overlays must stay inset from the 48px rail and below the rail stacking layer so rail hover/focus tooltips keep working when those pages are active. The top built-in rail entries are Workspace and Wiki, followed by connected Connection shortcuts when enabled; Settings remains the bottom destination. The current Settings surface lives in `src/settings/SettingsPage.tsx`; it is ordered as General, Appearance, AI Assistant, SSH, Terminal, URL, Remote Desktop(RDP), VNC, and About. General exposes Language (i18n) as a selectable dropdown plus connected Connection rail shortcuts, minimize-to-tray, and Auto Backup controls, Appearance owns App UI font, layout reset, and Color Scheme as a placeholder, SSH folds in SFTP transfer defaults, Terminal owns editable terminal behavior, and RDP/VNC expose planned quality default summaries.
+The activity rail uses icons with delayed app-owned hover labels for built-in modules and connected Connection shortcuts. Rail labels are rendered through the shared `RailTooltip` helper in `src/App.tsx`; do not add native `title` tooltips because they can appear beside the app tooltip in Tauri/WebView2. Rail tooltips use the same light native-style bordered popup treatment, and connected Connection shortcuts show an insertion separator while being reordered with pointer drag. Non-workspace module pages must stay inset from the 48px rail and below the rail stacking layer so rail hover/focus tooltips keep working when those pages are active. The built-in rail entries are Workspace, Dashboard, App Launcher, and File Explorer, followed by connected Connection shortcuts when enabled; Settings remains the bottom destination.
 
 KKTerm does not include a global command palette in the current product scope; navigation and workflow entry points should stay visible in the Dashboard/connection tree, tab workspace, SFTP toolbar/context actions, assistant panel, and Settings.
 
