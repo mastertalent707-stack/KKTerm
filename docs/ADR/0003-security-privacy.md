@@ -38,8 +38,8 @@ Telemetry decisions:
 
 Licensing decisions:
 
-- AdminDeck app/core uses Apache-2.0.
-- Prefer dependencies compatible with Apache-2.0/MIT/BSD/MPL-style use.
+- AdminDeck app/core uses MIT.
+- Prefer dependencies compatible with MIT/Apache-2.0/BSD/MPL-style use.
 - Avoid GPL dependencies in the core runtime unless explicitly revisited.
 
 ## Consequences

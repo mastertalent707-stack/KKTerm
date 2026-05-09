@@ -13,7 +13,7 @@ debug/fallback path, but the product direction requires AdminDeck to own the
 SSH lifecycle in Rust so host-key prompts, credentials, settings, and SFTP can
 share one local trust model.
 
-The library choice must fit AdminDeck's Apache-2.0 project, avoid GPL runtime
+The library choice must fit AdminDeck's MIT project, avoid GPL runtime
 dependencies, work on Windows first, and leave room for macOS and Linux.
 
 ## Decision

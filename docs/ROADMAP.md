@@ -22,7 +22,7 @@ Latest validation on May 7, 2026: `npm run check`, `npm run build`, `cargo check
 
 - [x] Confirm working product name: AdminDeck.
 - [x] Initialize repository structure.
-- [x] Add Apache-2.0 license.
+- [x] Add MIT license.
 - [x] Add Rust/Tauri/React/Vite scaffold.
 - [x] Add Tailwind design tokens.
 - [x] Add basic app shell with light chrome and dark terminal surface placeholder.

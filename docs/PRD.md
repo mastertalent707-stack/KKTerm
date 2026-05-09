@@ -67,8 +67,8 @@ The product will be light chrome with dark terminal panes by default, optimized 
 48. As a user, I want OpenAI-compatible API configuration, so that I can use my own endpoint, key, and model.
 49. As a user, I want Claude Code CLI and Codex CLI paths configurable, so that local agent tools can be used from AdminDeck.
 50. As a user, I want Claude Code CLI and Codex CLI integrations restricted to suggest/ask-before-execute where possible, so that they respect the product trust model.
-51. As a contributor, I want an Apache-2.0 open-source project, so that licensing is clear and permissive.
-52. As a maintainer, I want dependencies compatible with Apache-2.0/MIT/BSD/MPL-style use, so that runtime licensing stays clean.
+51. As a contributor, I want an MIT open-source project, so that licensing is clear and permissive.
+52. As a maintainer, I want dependencies compatible with MIT/Apache-2.0/BSD/MPL-style use, so that runtime licensing stays clean.
 53. As a maintainer, I want GPL dependencies avoided in the core runtime, so that copyleft obligations are not introduced unintentionally.
 54. As a maintainer, I want performance budgets documented, so that architectural decisions can be judged against measurable targets.
 55. As a Windows user of the installed app, I want update checks to be enabled by default, so that I learn about stable signed releases without manually monitoring GitHub.
@@ -161,6 +161,6 @@ The product will be light chrome with dark terminal panes by default, optimized 
 
 ## Further Notes
 
-AdminDeck is open-source under Apache-2.0. The codebase should prefer deep modules with small, testable interfaces for storage, connections, terminal sessions, SSH/SFTP transport, renderer abstraction, AI provider adapters, command approval, and importers.
+AdminDeck is open-source under MIT. The codebase should prefer deep modules with small, testable interfaces for storage, connections, terminal sessions, SSH/SFTP transport, renderer abstraction, AI provider adapters, command approval, and importers.
 
 The product should feel like a quiet, dense, professional desktop tool. Avoid marketing-style layouts, decorative gradients, oversized cards, or generic admin-dashboard styling.
