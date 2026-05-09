@@ -231,6 +231,36 @@
         "description": "AdminDeck アプリデータからのみ非破壊的な PowerShell またはバッチコマンドを実行します。"
       }
     },
+    "appSlogan": "ローカルファーストの管理ワークスペース。",
+    "capabilityToolCalling": "ツール",
+    "capabilityMcpReady": "MCP対応",
+    "capabilityLocalRuntime": "ローカル",
+    "capabilityOpenAiCompatible": "OpenAI互換",
+    "capabilitySdkOAuth": "SDK OAuth",
+    "rdpResolutionValue": "ワークスペース領域に合わせる",
+    "rdpResolutionHint": "DesktopWidth、DesktopHeight、SmartSizing、およびディスプレイ同期に対応します。",
+    "rdpColorDepthValue": "32ビット",
+    "rdpColorDepthHint": "ActiveXのColorDepthプロパティを使用します。",
+    "rdpBandwidthProfileValue": "自動検出",
+    "rdpBandwidthProfileHint": "生のビットレート上限ではなく、帯域幅検出またはNetworkConnectionTypeクラスを使用します。",
+    "rdpBitmapCacheValue": "永続キャッシュを予定",
+    "rdpBitmapCacheHint": "BitmapPersistenceとCachePersistenceActiveに対応します。",
+    "rdpPerformanceFlagsValue": "バランス",
+    "rdpPerformanceFlagsHint": "壁紙、ウィンドウ全体のドラッグ、メニューアニメーション、テーマ、カーソル、フォントスムージングを制御します。",
+    "rdpEnhancedGraphicsValue": "対応時は優先",
+    "rdpEnhancedGraphicsHint": "対応サーバーでRDPパフォーマンスフラグを使用します。",
+    "vncQualityValue": "自動",
+    "vncQualityHint": "クライアントがリンク速度に合わせてエンコーディングとピクセル形式を適応させます。",
+    "vncPreferredEncodingValue": "Tight、次にZRLE",
+    "vncPreferredEncodingHint": "現在のクライアントはCopyRect、Raw、カーソル、デスクトップサイズのサポートも通知します。",
+    "vncJpegQualityValue": "8 / 9",
+    "vncJpegQualityHint": "Tight/JPEG形式のエンコーディングに役立ちます。",
+    "vncCompressionValue": "2 / 9",
+    "vncCompressionHint": "値を高くすると帯域幅は減りますがCPU負荷が増加します。",
+    "vncColorLevelValue": "フルカラー",
+    "vncColorLevelHint": "低速リンクでは256色、64色、8色に低下させることができます。",
+    "vncRemoteResizeValue": "サーバーサポートに従う",
+    "vncRemoteResizeHint": "VNCサーバーがデスクトップサイズ更新をサポートしているかどうかに依存します。",
     "connectedConnectionsRail": "左レールに接続を表示",
     "connectedConnectionsRailHint": "接続中の各 Connection のアイコンを左レールに追加し、素早く切り替えられるようにします。",
     "connectedConnectionsRailSaved": "左レールに接続を表示する設定を保存しました。",
@@ -413,8 +443,15 @@
     "bookmarksSelectionRequired": "インポートするフォルダまたはブックマークを少なくとも1つ選択してください。",
     "bookmarksNoImportable": "選択したブックマークに http または https の URL が含まれていませんでした。",
     "bookmarkFallbackName": "インポートされたブックマーク",
-    "importBookmarksComplete": "ブックマークから {{count}} 件の接続をインポートしました。"
+    "importBookmarksComplete": "ブックマークから {{count}} 件の接続をインポートしました。",
+    "importedDefault": "インポート済み",
+    "importedFromBookmarks": "ブックマーク",
+    "importedFromMobaxterm": "MobaXterm",
+    "importedFromPutty": "PuTTY",
+    "importedFromRdcman": "RDCMan",
+    "importedFromScan": "スキャン"
     },
+    "quickSessionFallbackName": "クイックセッション",
     "createConnectionComplete": "接続 \"{{name}}\" を追加しました。",
     "deleteConnectionComplete": "接続 \"{{name}}\" を削除しました。"
   },
@@ -483,6 +520,13 @@
     "textFiles": "テキストファイル",
     "tauriRequired": "Tauriランタイムが利用できません",
     "noSaveDialog": "このランタイムでは保存ダイアログが利用できません",
+    "bufferSaveFailed": "ターミナルバッファを保存できませんでした：{{message}}",
+    "connectLabel": "接続：{{name}}",
+    "failedToStartDetail": "セッションの起動に失敗しました：{{message}}",
+    "sshContextUnavailable": "SSHシステムコンテキストが利用できません：{{message}}",
+    "sshHostKeyChangeDetail": "{{host}}のSSHホストキーが変更されました。提示された{{algorithm}} {{fingerprint}}。",
+    "startingSessionFor": "{{name}}の{{type}}セッションを起動中...",
+    "targetLabel": "ターゲット：{{target}}",
     "sshPortRedirect": "SSH ポートリダイレクト",
     "remoteLoopbackPorts": "リモート 127.0.0.1 ポート",
     "refreshPorts": "ポートを更新",
@@ -574,7 +618,31 @@
     "skip": "スキップ",
     "overwrite": "上書き",
     "overwriteAll": "すべて上書き",
-    "extFile": "ファイル"
+    "extFile": "ファイル",
+    "cancelTransferConflict": "転送の競合をキャンセル",
+    "cancelTransferName": "{{name}} をキャンセル",
+    "createFolderAria": "{{pane}} フォルダを作成",
+    "deleteRemoteItemConfirm": "リモート{{kind}}「{{name}}」を削除しますか？",
+    "deleteRemoteItemsMultiple": "{{count}} 件のリモートアイテムを削除しますか？",
+    "deleteSelectedAria": "選択した{{pane}}アイテムを削除",
+    "doubleClickToOpenFile": "ダブルクリックで{{name}}を開く",
+    "fileTypeLabel": "{{ext}}ファイル",
+    "groupMustBeNumber": "グループは0以上の数値でなければなりません",
+    "localFiles": "ローカルファイル",
+    "moreConflictsDetail": "選択された競合がさらに{{count}}件続く可能性があります。",
+    "openParentFolderAria": "親{{pane}}フォルダを開く",
+    "ownerMustBeNumber": "所有者は0以上の数値でなければなりません",
+    "refreshFilesAria": "{{pane}}ファイルを更新",
+    "renameFileAria": "{{name}}の名前を変更",
+    "renameSelectedAria": "選択した{{pane}}アイテムの名前を変更",
+    "screenshotTarget": "{{title}} SFTPビュー",
+    "sessionUnavailable": "SFTPセッションが利用できません",
+    "sortByAria": "{{pane}}ファイルを{{key}}で並べ替え",
+    "sortByTitle": "{{key}}で並べ替え",
+    "targetExistsDetail": "対象の{{kind}}はすでに存在します。{{name}}を上書きするか選択してください。",
+    "transferConflict": "転送の競合",
+    "transferCountActive": "{{count}} 件アクティブ",
+    "waitingToOverwrite": "上書き待ち"
   },
   "webview": {
     "goBack": "戻る",
@@ -979,7 +1047,11 @@
     "removeImageAttachment": "{{label}} を削除",
     "openImagePreview": "{{label}} のプレビューを開く",
     "imagePreviewTitle": "{{label}} のプレビュー",
-    "imageInputNotSupported": "このモデルは画像入力に対応していないため、貼り付けたスクリーンショットは送信されません。"
+    "imageInputNotSupported": "このモデルは画像入力に対応していないため、貼り付けたスクリーンショットは送信されません。",
+    "apiKeyRequired": "{{provider}} は、AIアシスタントがチャットを開始する前にAPIキーが必要です。",
+    "extensionDraftPrompt": "AdminDeck拡張機能のドラフトを作成：",
+    "modelRequired": "モデルは必須です。",
+    "providerEndpointRequired": "プロバイダーエンドポイントは必須です。"
   },
   "workspace": {
     "tabs": "ワークスペースタブ",
@@ -1020,7 +1092,10 @@
     "ram": "RAM",
     "ramUsage": "RAM 使用率",
     "network": "ネットワーク",
-    "networkUsage": "ネットワークスループット"
+    "networkUsage": "ネットワークスループット",
+    "closeTab": "{{title}} を閉じる",
+    "scrollTabsLeft": "タブを左にスクロール",
+    "scrollTabsRight": "タブを右にスクロール"
   },
   "common": {
     "save": "保存",
@@ -1052,7 +1127,9 @@
     "import": "インポート",
     "settings": "設定",
     "help": "ヘルプ",
-    "about": "について"
+    "about": "について",
+    "am": "AM",
+    "pm": "PM"
   },
   "languages": {
     "en": "English",
@@ -1136,6 +1213,7 @@
     "graph": "グラフ",
     "graphEmpty": "作成したリンクがここに表示されます。",
     "wordCount": "{{count}} 語",
-    "characterCount": "{{count}} 文字"
+    "characterCount": "{{count}} 文字",
+    "editorAria": "ウィキエディタ"
   }
 }

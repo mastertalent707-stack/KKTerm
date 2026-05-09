@@ -240,6 +240,36 @@
         "description": "Nicht-destruktive PowerShell- oder Batch-Befehle nur aus AdminDeck-App-Daten ausführen."
       }
     },
+    "appSlogan": "Lokal-zentrierter Administrations-Arbeitsbereich.",
+    "capabilityToolCalling": "Werkzeuge",
+    "capabilityMcpReady": "MCP-bereit",
+    "capabilityLocalRuntime": "lokal",
+    "capabilityOpenAiCompatible": "OpenAI-kompatibel",
+    "capabilitySdkOAuth": "SDK OAuth",
+    "rdpResolutionValue": "An Arbeitsbereichsgrenzen anpassen",
+    "rdpResolutionHint": "Wird DesktopWidth, DesktopHeight, SmartSizing und Anzeigesynchronisierung zugeordnet.",
+    "rdpColorDepthValue": "32-Bit",
+    "rdpColorDepthHint": "Verwendet die ActiveX ColorDepth-Eigenschaft.",
+    "rdpBandwidthProfileValue": "Automatisch erkennen",
+    "rdpBandwidthProfileHint": "Verwendet Bandbreitenerkennung oder NetworkConnectionType-Klassen anstelle einer rohen Bitratenbegrenzung.",
+    "rdpBitmapCacheValue": "Persistenter Cache geplant",
+    "rdpBitmapCacheHint": "Wird BitmapPersistence und CachePersistenceActive zugeordnet.",
+    "rdpPerformanceFlagsValue": "Ausbalanciert",
+    "rdpPerformanceFlagsHint": "Steuert Hintergrundbild, Vollbild-Ziehen, Menüanimationen, Designs, Cursor und Schriftglättung.",
+    "rdpEnhancedGraphicsValue": "Bevorzugen, wenn unterstützt",
+    "rdpEnhancedGraphicsHint": "Verwendet RDP-Leistungsflags auf kompatiblen Servern.",
+    "vncQualityValue": "Auto",
+    "vncQualityHint": "Lässt den Client Kodierung und Pixelformat an die Verbindungsgeschwindigkeit anpassen.",
+    "vncPreferredEncodingValue": "Tight, dann ZRLE",
+    "vncPreferredEncodingHint": "Aktueller Client bietet auch CopyRect, Raw, Cursor und Desktopgrößen-Unterstützung an.",
+    "vncJpegQualityValue": "8 / 9",
+    "vncJpegQualityHint": "Nützlich für Tight/JPEG-ähnliche Kodierungen.",
+    "vncCompressionValue": "2 / 9",
+    "vncCompressionHint": "Höhere Werte reduzieren die Bandbreite auf Kosten der CPU.",
+    "vncColorLevelValue": "Vollfarbe",
+    "vncColorLevelHint": "Kann für langsamere Verbindungen auf 256, 64 oder 8 Farben reduziert werden.",
+    "vncRemoteResizeValue": "Server-Unterstützung folgen",
+    "vncRemoteResizeHint": "Hängt davon ab, ob der VNC-Server Desktopgrößen-Updates unterstützt.",
     "connectedConnectionsRail": "Verbindungen in linker Leiste anzeigen",
     "connectedConnectionsRailHint": "Fügt ein Symbol für jede verbundene Verbindung in der linken Leiste hinzu, um schnell dorthin zurückzukehren.",
     "connectedConnectionsRailSaved": "Einstellung Verbindungen in linker Leiste gespeichert."
@@ -413,8 +443,15 @@
        "bookmarksSelectionRequired": "Wählen Sie mindestens einen Ordner oder ein Lesezeichen zum Importieren.",
        "bookmarksNoImportable": "Die ausgewählten Lesezeichen enthielten keine http- oder https-URLs.",
        "bookmarkFallbackName": "Importiertes Lesezeichen",
-       "importBookmarksComplete": "{{count}} Verbindungen aus Lesezeichen importiert."
+        "importBookmarksComplete": "{{count}} Verbindungen aus Lesezeichen importiert.",
+        "importedDefault": "Importiert",
+        "importedFromBookmarks": "Lesezeichen",
+        "importedFromMobaxterm": "MobaXterm",
+        "importedFromPutty": "PuTTY",
+        "importedFromRdcman": "RDCMan",
+        "importedFromScan": "Scan"
     },
+    "quickSessionFallbackName": "Schnelle Sitzung",
     "createConnectionComplete": "Verbindung \"{{name}}\" hinzugefügt.",
     "deleteConnectionComplete": "Verbindung \"{{name}}\" gelöscht."
   },
@@ -482,6 +519,13 @@
     "textFiles": "Textdateien",
     "tauriRequired": "Tauri-Laufzeit nicht verfügbar",
     "noSaveDialog": "Kein Speicherdialog in dieser Laufzeit verfügbar",
+    "bufferSaveFailed": "Terminalpuffer konnte nicht gespeichert werden: {{message}}",
+    "connectLabel": "Verbindung: {{name}}",
+    "failedToStartDetail": "Starten der Sitzung fehlgeschlagen: {{message}}",
+    "sshContextUnavailable": "SSH-Systemkontext nicht verfügbar: {{message}}",
+    "sshHostKeyChangeDetail": "SSH-Host-Schlüssel für {{host}} hat sich geändert. Vorgelegter {{algorithm}} {{fingerprint}}.",
+    "startingSessionFor": "Starte {{type}}-Sitzung für {{name}}...",
+    "targetLabel": "Ziel: {{target}}",
     "terminalBuffer": "Terminalpuffer",
     "copyShortcut": "Strg+Shift+C",
     "sshPortRedirect": "SSH-Port-Weiterleitung",
@@ -574,7 +618,31 @@
     "skip": "Überspringen",
     "overwrite": "Überschreiben",
     "overwriteAll": "Alle überschreiben",
-    "extFile": "Datei"
+    "extFile": "Datei",
+    "cancelTransferConflict": "Transfer-Konflikt abbrechen",
+    "cancelTransferName": "{{name}} abbrechen",
+    "createFolderAria": "{{pane}}-Ordner erstellen",
+    "deleteRemoteItemConfirm": "Remote-{{kind}} \"{{name}}\" löschen?",
+    "deleteRemoteItemsMultiple": "{{count}} Remote-Elemente löschen?",
+    "deleteSelectedAria": "Ausgewähltes {{pane}}-Element löschen",
+    "doubleClickToOpenFile": "Doppelklick zum Öffnen von {{name}}",
+    "fileTypeLabel": "{{ext}}-Datei",
+    "groupMustBeNumber": "Gruppe muss eine nicht-negative Zahl sein",
+    "localFiles": "Lokale Dateien",
+    "moreConflictsDetail": "{{count}} weitere ausgewählte Konflikt(e) können folgen.",
+    "openParentFolderAria": "Übergeordneten {{pane}}-Ordner öffnen",
+    "ownerMustBeNumber": "Besitzer muss eine nicht-negative Zahl sein",
+    "refreshFilesAria": "{{pane}}-Dateien aktualisieren",
+    "renameFileAria": "{{name}} umbenennen",
+    "renameSelectedAria": "Ausgewähltes {{pane}}-Element umbenennen",
+    "screenshotTarget": "{{title}} SFTP-Ansicht",
+    "sessionUnavailable": "SFTP-Sitzung nicht verfügbar",
+    "sortByAria": "{{pane}}-Dateien nach {{key}} sortieren",
+    "sortByTitle": "Nach {{key}} sortieren",
+    "targetExistsDetail": "Das {{kind}}-Ziel existiert bereits. Wählen Sie, ob {{name}} überschrieben werden soll.",
+    "transferConflict": "Transfer-Konflikt",
+    "transferCountActive": "{{count}} aktiv",
+    "waitingToOverwrite": "Warten auf Überschreiben"
   },
   "webview": {
     "goBack": "Zurück",
@@ -979,7 +1047,11 @@
     "removeImageAttachment": "{{label}} entfernen",
     "openImagePreview": "Vorschau {{label}} öffnen",
     "imagePreviewTitle": "Vorschau {{label}}",
-    "imageInputNotSupported": "Dieses Modell unterstützt keine Bildeingabe; eingefügte Screenshots werden nicht gesendet."
+    "imageInputNotSupported": "Dieses Modell unterstützt keine Bildeingabe; eingefügte Screenshots werden nicht gesendet.",
+    "apiKeyRequired": "{{provider}} benötigt einen API-Schlüssel, bevor der KI-Assistent chatten kann.",
+    "extensionDraftPrompt": "AdminDeck-Erweiterungsentwurf erstellen für: ",
+    "modelRequired": "Modell ist erforderlich.",
+    "providerEndpointRequired": "Anbieter-Endpunkt ist erforderlich."
   },
   "workspace": {
     "tabs": "Arbeitsbereich-Tabs",
@@ -1020,7 +1092,10 @@
     "ram": "RAM",
     "ramUsage": "RAM-Auslastung",
     "network": "Netzwerk",
-    "networkUsage": "Netzwerkdurchsatz"
+    "networkUsage": "Netzwerkdurchsatz",
+    "closeTab": "{{title}} schließen",
+    "scrollTabsLeft": "Tabs nach links scrollen",
+    "scrollTabsRight": "Tabs nach rechts scrollen"
   },
   "common": {
     "save": "Speichern",
@@ -1052,7 +1127,9 @@
     "import": "Importieren",
     "settings": "Einstellungen",
     "help": "Hilfe",
-    "about": "Über"
+    "about": "Über",
+    "am": "AM",
+    "pm": "PM"
   },
   "languages": {
     "en": "English",
@@ -1136,6 +1213,7 @@
     "graph": "Graph",
     "graphEmpty": "Links, die Sie erstellen, erscheinen hier.",
     "wordCount": "{{count}} Wörter",
-    "characterCount": "{{count}} Zeichen"
+    "characterCount": "{{count}} Zeichen",
+    "editorAria": "Wiki-Editor"
   }
 }
