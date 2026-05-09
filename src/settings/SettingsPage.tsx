@@ -25,6 +25,8 @@ import { TerminalSettings as TerminalSettingsPage } from "./TerminalSettings";
 import { UrlSettings } from "./UrlSettings";
 import { VncSettings } from "./VncSettings";
 
+const SCREENSHOTS_SETTINGS_ENABLED = false;
+
 export { AI_PROVIDER_SECRET_OWNER_ID };
 
 type SettingsSectionId =
@@ -105,14 +107,16 @@ export function SettingsPage({
             <Terminal size={16} />
             <span>{t("settings.sectionTerminal")}</span>
           </button>
-          <button
-            className={settingsNavItemClass("screenshot-settings", activeSectionId)}
-            onClick={() => setActiveSectionId("screenshot-settings")}
-            type="button"
-          >
-            <Camera size={16} />
-            <span>{t("settings.sectionScreenshots")}</span>
-          </button>
+          {SCREENSHOTS_SETTINGS_ENABLED ? (
+            <button
+              className={settingsNavItemClass("screenshot-settings", activeSectionId)}
+              onClick={() => setActiveSectionId("screenshot-settings")}
+              type="button"
+            >
+              <Camera size={16} />
+              <span>{t("settings.sectionScreenshots")}</span>
+            </button>
+          ) : null}
           <button
             className={settingsNavItemClass("url-settings", activeSectionId)}
             onClick={() => setActiveSectionId("url-settings")}
@@ -155,7 +159,9 @@ export function SettingsPage({
           {activeSectionId === "assistant-settings" && <AiSettings />}
           {activeSectionId === "ssh-settings" && <SshSettings />}
           {activeSectionId === "terminal-settings" && <TerminalSettingsPage />}
-          {activeSectionId === "screenshot-settings" && <ScreenshotSettings />}
+          {SCREENSHOTS_SETTINGS_ENABLED && activeSectionId === "screenshot-settings" && (
+            <ScreenshotSettings />
+          )}
           {activeSectionId === "url-settings" && <UrlSettings />}
           {activeSectionId === "rdp-settings" && <RdpSettings />}
           {activeSectionId === "vnc-settings" && <VncSettings />}

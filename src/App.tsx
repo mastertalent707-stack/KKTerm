@@ -53,6 +53,8 @@ const AI_PANEL_MIN_WIDTH = 260;
 
 const AI_PANEL_MAX_WIDTH = 1860;
 
+const SCREENSHOTS_RAIL_ENABLED = false;
+
 const CONNECTION_PANEL_LAYOUT_KEY = "admindeck.layout.connectionsPanel.v1";
 
 const AI_PANEL_LAYOUT_KEY = "admindeck.layout.aiAssistPanel.v2";
@@ -1013,49 +1015,53 @@ function ActivityRail({
         <BookOpen size={18} />
         <RailTooltip label={t("app.wiki")} />
       </button>
-      <button
-        className={`rail-button ${activePage === "screenshots" ? "active" : ""}`}
-        aria-label={t("screenshots.title")}
-        onClick={() => onNavigate("screenshots")}
-        onContextMenu={openScreenshotMenu}
-      >
-        <Camera size={18} />
-        <RailTooltip label={t("screenshots.title")} />
-      </button>
-      {screenshotMenu ? (
-        <div
-          ref={screenshotMenuRef}
-          className="terminal-menu rail-context-menu screenshot-rail-menu"
-          role="menu"
-        >
+      {SCREENSHOTS_RAIL_ENABLED ? (
+        <>
           <button
-            className="terminal-menu-item"
-            onClick={handleCaptureRegion}
-            role="menuitem"
-            type="button"
+            className={`rail-button ${activePage === "screenshots" ? "active" : ""}`}
+            aria-label={t("screenshots.title")}
+            onClick={() => onNavigate("screenshots")}
+            onContextMenu={openScreenshotMenu}
           >
-            <ScanLine size={14} />
-            {t("screenshots.captureRegion")}
+            <Camera size={18} />
+            <RailTooltip label={t("screenshots.title")} />
           </button>
-          <button
-            className="terminal-menu-item"
-            onClick={handleCaptureFullscreen}
-            role="menuitem"
-            type="button"
-          >
-            <Monitor size={14} />
-            {t("screenshots.captureFullscreen")}
-          </button>
-          <button
-            className="terminal-menu-item"
-            onClick={handleCaptureWindow}
-            role="menuitem"
-            type="button"
-          >
-            <PanelTop size={14} />
-            {t("screenshots.captureWindow")}
-          </button>
-        </div>
+          {screenshotMenu ? (
+            <div
+              ref={screenshotMenuRef}
+              className="terminal-menu rail-context-menu screenshot-rail-menu"
+              role="menu"
+            >
+              <button
+                className="terminal-menu-item"
+                onClick={handleCaptureRegion}
+                role="menuitem"
+                type="button"
+              >
+                <ScanLine size={14} />
+                {t("screenshots.captureRegion")}
+              </button>
+              <button
+                className="terminal-menu-item"
+                onClick={handleCaptureFullscreen}
+                role="menuitem"
+                type="button"
+              >
+                <Monitor size={14} />
+                {t("screenshots.captureFullscreen")}
+              </button>
+              <button
+                className="terminal-menu-item"
+                onClick={handleCaptureWindow}
+                role="menuitem"
+                type="button"
+              >
+                <PanelTop size={14} />
+                {t("screenshots.captureWindow")}
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : null}
       {screenshotRegionState ? (
         <div
