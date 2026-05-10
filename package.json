@@ -13,6 +13,7 @@
     "release:github": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-github.ps1",
     "smoke:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-installer.ps1",
     "measure:ssh-readiness": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/measure-ssh-readiness.ps1",
+    "codex:ui": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/codex-ui-preview.ps1 -Background",
     "preview": "vite preview",
     "tauri": "tauri"
   },

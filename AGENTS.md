@@ -57,6 +57,10 @@ Stack: **i18next + react-i18next**, in `src/i18n/`. English (`locales/en.json`, 
 ### Namespaces
 `app` (shell, ActivityRail, resize handles), `settings`, `connections` (sidebar, tree, dialogs, Quick Connect, context menus), `terminal` (workspace, toolbar, SSH host key dialogs), `sftp` (browser, transfers, conflicts, properties), `webview` (URL toolbar, credential fill), `remoteDesktop` (RDP/VNC status, toolbar), `ai` (assistant panel, markdown toolbar, chat history, waiting phrases), `workspace` (tab strip, canvas, status bar, screenshot menu), `common` (Save, Cancel, Close, Delete, Copy…), `languages` (native names).
 
+## Codex Desktop UI Review
+
+For frontend-only UI inspection in Codex Desktop, run `npm run codex:ui` and open `http://localhost:1420` in the built-in browser. Use this for screenshots, DOM inspection, and UI-fix comments. Validate native-only behavior in the real Tauri runtime with `npm run tauri dev`, especially local PTY/ConPTY focus, WebView2, RDP/VNC, title-bar close behavior, keychain, dialogs, and OS integration.
+
 ## Checks
 
 Run before handing work back:
