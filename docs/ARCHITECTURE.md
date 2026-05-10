@@ -250,7 +250,7 @@ The primary UI is a dense desktop workspace:
 
 Default visual direction: quiet productivity light chrome with dark terminal panes.
 
-The activity rail uses icons with delayed app-owned hover labels for built-in modules and connected Connection shortcuts. Rail labels are rendered through the shared `RailTooltip` helper in `src/App.tsx`; do not add native `title` tooltips because they can appear beside the app tooltip in Tauri/WebView2. Rail tooltips use the same light native-style bordered popup treatment, and connected Connection shortcuts show an insertion separator while being reordered with pointer drag. Non-workspace module pages must stay inset from the 48px rail and below the rail stacking layer so rail hover/focus tooltips keep working when those pages are active. The built-in rail entries are Workspace, Dashboard, App Launcher, and File Explorer, followed by connected Connection shortcuts when enabled; Settings remains the bottom destination.
+The activity rail uses icons with delayed app-owned hover labels for built-in modules and connected Connection shortcuts. Rail labels are rendered through the shared `RailTooltip` helper in `src/app/RailTooltip.tsx`; do not add native `title` tooltips because they can appear beside the app tooltip in Tauri/WebView2. Rail tooltips use the same light native-style bordered popup treatment, and connected Connection shortcuts show an insertion separator while being reordered with pointer drag. Non-workspace module pages must stay inset from the 48px rail and below the rail stacking layer so rail hover/focus tooltips keep working when those pages are active. The built-in rail entries are Workspace, Dashboard, App Launcher, and File Explorer, followed by connected Connection shortcuts when enabled; Settings remains the bottom destination.
 
 KKTerm does not include a global command palette in the current product scope; navigation and workflow entry points should stay visible in the Dashboard/connection tree, tab workspace, SFTP toolbar/context actions, assistant panel, and Settings.
 
@@ -260,9 +260,13 @@ Workspace chrome layout is global state. Connection-specific live context may ch
 
 ## Frontend Module Map
 
-`src/App.tsx` is intentionally a small shell now. It owns page routing, global left/right panel layout, startup/bootstrap effects, Settings routing, the activity rail, and the low-frequency host-usage polling that feeds the workspace status bar. Workspace surfaces and connection UI live in feature modules so terminal, SFTP, URL, RDP/VNC, assistant, and connection-tree work can proceed independently without repeatedly touching the app shell.
+`src/App.tsx` is intentionally a small shell now. It composes page routing, Settings routing, global Workspace chrome, and startup/bootstrap hooks. Workspace surfaces, Connection UI, Activity Rail internals, and app-shell effects live in feature or app-shell modules so terminal, SFTP, URL, RDP/VNC, assistant, connection-tree, and Activity Rail work can proceed independently without repeatedly touching the root shell.
 
-- `src/App.tsx` — `App`, `ActivityRail`, panel resize handles, global chrome layout persistence, Settings routing, frontend launch timestamping, and host usage polling.
+- `src/App.tsx` — root `App` composition, Workspace/Settings routing, Workspace chrome assembly, settings reset handoff, and startup hook wiring.
+- `src/app/ActivityRail.tsx` — Activity Rail rendering, connected Connection shortcuts, pinned Connection actions, rail context menu, connected Connection drag ordering, and Don't Sleep control.
+- `src/app/RailTooltip.tsx` — shared app-owned Activity Rail tooltip surface; use this instead of browser-native `title` tooltips for rail icon labels.
+- `src/app/workspaceChromeLayout.tsx` — global Workspace chrome panel widths/collapse state, panel resize handles, layout reset, and localStorage persistence for the Connection panel and AI Assistant Panel.
+- `src/app/appShellEffects.ts` — app-shell effects for frontend launch timing, host usage polling, global context-menu suppression, and app-shell CSS variables/color scheme.
 - `src/connections/ConnectionSidebar.tsx` — connection tree, search, drag/drop, CRUD, quick connect, connection dialog, connection glyphs, folder rows, tree context menu.
 - `src/connections/treeUtils.ts` — pure connection tree transforms, filtering, flattening, folder counts, and live status projection.
 - `src/connections/utils.tsx` — connection labels/icons, default ports, Quick Connect runtime ids, local shell options, and SSH host-key confirmation helpers shared by terminal/SFTP.
