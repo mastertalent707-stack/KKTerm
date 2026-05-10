@@ -28,6 +28,7 @@ import type {
 import { useTranslation } from "react-i18next";
 import { dialogButtonAria, menuButtonAria } from "../lib/aria";
 import { invokeCommand, isTauriRuntime } from "../lib/tauri";
+import type { AiStreamEvent, CaptureScreenshotRequest } from "../lib/tauri";
 import {
   getAiProviderDefinition,
   modelSupportsImageInput,
@@ -39,7 +40,7 @@ import { getPaneRenderer, sendTextToRdpPane, writeInputToPane } from "../workspa
 import i18next from "../i18n/config";
 import { prepareAssistantTerminalInput } from "./terminalCommandSend";
 import { marked, type Tokens } from "marked";
-import type { CaptureScreenshotRequest } from "../lib/tauri";
+import { Channel } from "@tauri-apps/api/core";
 
 function resolveAssistantOutputLanguage(outputLanguage: string): string | undefined {
   if (!outputLanguage) {
@@ -60,6 +61,13 @@ type AssistantChatMessage = {
   fileAttachments?: AssistantFileAttachment[];
   intent?: AssistantPromptIntent;
   createdAt: string;
+  toolCalls?: AssistantToolCallStatus[];
+  isStreaming?: boolean;
+};
+
+type AssistantToolCallStatus = {
+  toolId: string;
+  toolName: string;
 };
 
 type AssistantChatThread = {
@@ -1035,7 +1043,62 @@ export function AssistantPanel({
         return;
       }
 
-      const response = await invokeCommand("run_ai_agent", {
+      const streamingMessage = createAssistantChatMessage(
+        "assistant",
+        "",
+        requestIntent,
+      );
+      streamingMessage.isStreaming = true;
+      const messagesWithStreaming = [...nextMessages, streamingMessage];
+      setMessages(messagesWithStreaming);
+
+      const channel = new Channel<AiStreamEvent>();
+      channel.onmessage = (event: AiStreamEvent) => {
+        if (activeAssistantRequestIdRef.current !== requestId) {
+          return;
+        }
+        setMessages((current) => {
+          const lastIndex = current.length - 1;
+          if (lastIndex < 0 || current[lastIndex].id !== streamingMessage.id) {
+            return current;
+          }
+          const updated = [...current];
+          const msg = { ...updated[lastIndex] };
+          switch (event.type) {
+            case "reasoningDelta":
+              msg.reasoningContent = (msg.reasoningContent ?? "") + event.delta;
+              break;
+            case "contentDelta":
+              msg.content += event.delta;
+              break;
+            case "toolCallStart":
+              msg.toolCalls = [
+                ...(msg.toolCalls ?? []),
+                { toolId: event.toolId, toolName: event.toolName },
+              ];
+              break;
+            case "toolCallEnd":
+              msg.toolCalls = (msg.toolCalls ?? []).filter(
+                (tc) => tc.toolId !== event.toolId,
+              );
+              break;
+            case "done":
+              msg.isStreaming = false;
+              break;
+            case "error":
+              msg.isStreaming = false;
+              if (!msg.content) {
+                msg.content = `${t("ai.errorPrefix")}: ${event.message}`;
+              }
+              break;
+          }
+          updated[lastIndex] = msg;
+          return updated;
+        });
+      };
+
+      await invokeCommand("run_ai_agent_streaming", {
+        channel,
         request: {
           prompt: normalizedPrompt,
           contextLabel,
@@ -1055,22 +1118,27 @@ export function AssistantPanel({
           outputLanguage: resolveAssistantOutputLanguage(aiProviderSettings.outputLanguage),
         },
       });
+
       if (activeAssistantRequestIdRef.current !== requestId) {
         return;
       }
 
-      const assistantMessage = createAssistantChatMessage(
-        "assistant",
-        response.content,
-        requestIntent,
-        undefined,
-        undefined,
-        undefined,
-        response.reasoningContent,
+      setMessages((current) => {
+        const updated = [...current];
+        const lastIndex = updated.length - 1;
+        if (lastIndex >= 0) {
+          updated[lastIndex] = { ...updated[lastIndex], isStreaming: false };
+        }
+        return updated;
+      });
+      saveChatMessages(
+        messagesWithStreaming.map((m) =>
+          m.id === streamingMessage.id
+            ? { ...m, isStreaming: false }
+            : m,
+        ),
+        threadTitle,
       );
-      const completedMessages = [...nextMessages, assistantMessage];
-      setMessages(completedMessages);
-      saveChatMessages(completedMessages, threadTitle);
     } catch (error) {
       if (activeAssistantRequestIdRef.current !== requestId) {
         return;
@@ -1791,6 +1859,22 @@ function AssistantMessageView({
               ))}
             </div>
           ) : null}
+          {message.role === "assistant" && message.reasoningContent ? (
+            <ThinkingBubble
+              content={message.reasoningContent}
+              isStreaming={message.isStreaming}
+            />
+          ) : null}
+          {message.role === "assistant" && message.toolCalls?.length ? (
+            <div className="assistant-tool-calls">
+              {message.toolCalls.map((tc) => (
+                <div className="assistant-tool-call" key={tc.toolId}>
+                  <span className="assistant-tool-call-spinner" />
+                  <span>{toolCallLabel(tc.toolName, t)}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <MarkdownContent
             canSendCode={canSendCode}
             content={message.content}
@@ -1899,6 +1983,57 @@ async function waitForScreenshotSurface() {
   await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
   await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
   await new Promise<void>((resolve) => window.setTimeout(resolve, 90));
+}
+
+function toolCallLabel(toolName: string, t: ReturnType<typeof useTranslation>["t"]): string {
+  const labels: Record<string, string> = {
+    web_search: t("ai.toolWebSearch"),
+    web_fetch: t("ai.toolWebFetch"),
+    shell_command: t("ai.toolShellCommand"),
+    app_data_file_search: t("ai.toolFileSearch"),
+    app_data_file_read: t("ai.toolFileRead"),
+    current_time: t("ai.toolCurrentTime"),
+  };
+  return labels[toolName] ?? toolName;
+}
+
+function ThinkingBubble({
+  content,
+  isStreaming,
+}: {
+  content: string;
+  isStreaming?: boolean;
+}) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const isEmpty = !content.trim();
+
+  if (isEmpty) {
+    return null;
+  }
+
+  return (
+    <div className="assistant-thinking-bubble">
+      <button
+        aria-expanded={expanded}
+        className="assistant-thinking-toggle"
+        onClick={() => setExpanded((e) => !e)}
+        type="button"
+      >
+        <span className="assistant-thinking-indicator">
+          {isStreaming ? t("ai.thinking") : t("ai.thoughtFor")}
+        </span>
+        <span className="assistant-thinking-chevron">
+          {expanded ? "\u25B4" : "\u25BE"}
+        </span>
+      </button>
+      {expanded ? (
+        <div className="assistant-thinking-content">
+          {content}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function MarkdownContent({

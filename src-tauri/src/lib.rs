@@ -549,6 +549,21 @@ async fn run_ai_agent(
 }
 
 #[tauri::command]
+async fn run_ai_agent_streaming(
+    app: tauri::AppHandle,
+    storage: tauri::State<'_, storage::Storage>,
+    secrets: tauri::State<'_, secrets::Secrets>,
+    channel: tauri::ipc::Channel<serde_json::Value>,
+    request: ai::AgentRunRequest,
+) -> Result<(), String> {
+    let settings = storage.ai_provider_settings()?;
+    let api_key = secrets
+        .read_ai_api_key("openai-compatible-provider".to_string())
+        .map_err(|error| format!("failed to read AI API key: {error}"))?;
+    ai::run_agent_streaming(app, settings, api_key, request, channel).await
+}
+
+#[tauri::command]
 fn keychain_status(secrets: tauri::State<'_, secrets::Secrets>) -> secrets::KeychainStatus {
     secrets.status()
 }
@@ -1551,6 +1566,7 @@ pub fn run() {
             update_ai_provider_settings,
             plan_command_proposal,
             run_ai_agent,
+            run_ai_agent_streaming,
             keychain_status,
             get_performance_snapshot,
             get_host_usage_snapshot,

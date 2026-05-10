@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, Channel } from "@tauri-apps/api/core";
 import {
   open as openDialog,
   save as saveDialog,
@@ -343,6 +343,14 @@ export interface AgentRunResponse {
   content: string;
   reasoningContent?: string;
 }
+
+export type AiStreamEvent =
+  | { type: "reasoningDelta"; delta: string }
+  | { type: "contentDelta"; delta: string }
+  | { type: "toolCallStart"; toolId: string; toolName: string }
+  | { type: "toolCallEnd"; toolId: string; toolName: string }
+  | { type: "done"; model: string; providerKind: string }
+  | { type: "error"; message: string };
 
 export interface DiagnosticsBundle {
   path: string;
@@ -744,6 +752,10 @@ type CommandMap = {
   run_ai_agent: {
     args: { request: AgentRunRequest };
     result: AgentRunResponse;
+  };
+  run_ai_agent_streaming: {
+    args: { channel: Channel<AiStreamEvent>; request: AgentRunRequest };
+    result: void;
   };
   keychain_status: {
     args: undefined;

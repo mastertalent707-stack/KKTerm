@@ -1,9 +1,12 @@
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use futures::StreamExt;
+use tauri::ipc::Channel;
 use tauri::Manager;
 
 use crate::storage::{AiAssistantToolSettings, AiProviderSettings};
@@ -233,6 +236,17 @@ pub struct AgentRunResponse {
     reasoning_content: Option<String>,
 }
 
+#[derive(Clone, Serialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+enum AiStreamEvent {
+    ReasoningDelta { delta: String },
+    ContentDelta { delta: String },
+    ToolCallStart { tool_id: String, tool_name: String },
+    ToolCallEnd { tool_id: String, tool_name: String },
+    Done { model: String, provider_kind: String },
+    Error { message: String },
+}
+
 pub async fn run_agent(
     app: tauri::AppHandle,
     settings: AiProviderSettings,
@@ -243,6 +257,17 @@ pub async fn run_agent(
     provider.run(app, settings, api_key, request).await
 }
 
+pub async fn run_agent_streaming(
+    app: tauri::AppHandle,
+    settings: AiProviderSettings,
+    api_key: Option<String>,
+    request: AgentRunRequest,
+    channel: Channel<Value>,
+) -> Result<(), String> {
+    let provider = provider_for(settings.provider_kind())?;
+    provider.run_streaming(app, settings, api_key, request, channel).await
+}
+
 trait AgentProvider {
     async fn run(
         &self,
@@ -251,6 +276,15 @@ trait AgentProvider {
         api_key: Option<String>,
         request: AgentRunRequest,
     ) -> Result<AgentRunResponse, String>;
+
+    async fn run_streaming(
+        &self,
+        app: tauri::AppHandle,
+        settings: AiProviderSettings,
+        api_key: Option<String>,
+        request: AgentRunRequest,
+        channel: Channel<Value>,
+    ) -> Result<(), String>;
 }
 
 struct OpenAiCompatibleProvider {
@@ -389,6 +423,339 @@ impl AgentProvider for OpenAiCompatibleProvider {
             OpenAiApiStyle::Responses => self.run_responses(app, settings, api_key, request).await,
         }
     }
+
+    async fn run_streaming(
+        &self,
+        app: tauri::AppHandle,
+        settings: AiProviderSettings,
+        api_key: Option<String>,
+        request: AgentRunRequest,
+        channel: Channel<Value>,
+    ) -> Result<(), String> {
+        let api_key = api_key
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
+        if self.requires_api_key && api_key.is_none() {
+            return Err(format!(
+                "{} needs an API key before AI Assistant can chat.",
+                self.label
+            ));
+        }
+
+        match self.default_api {
+            OpenAiApiStyle::ChatCompletions => {
+                self.run_chat_streaming(app, settings, api_key, request, channel)
+                    .await
+            }
+            OpenAiApiStyle::Responses => {
+                self.run_responses_streaming(app, settings, api_key, request, channel)
+                    .await
+            }
+        }
+    }
+}
+
+#[derive(Deserialize, Default)]
+struct ChatSseChunk {
+    choices: Vec<ChatSseChoice>,
+}
+
+#[derive(Deserialize, Default)]
+struct ChatSseChoice {
+    delta: ChatSseDelta,
+    #[serde(default)]
+    finish_reason: Option<String>,
+}
+
+#[derive(Deserialize, Default)]
+struct ChatSseDelta {
+    #[serde(default)]
+    content: Option<String>,
+    #[serde(default)]
+    reasoning_content: Option<String>,
+    #[serde(default)]
+    tool_calls: Vec<SseToolCallDelta>,
+}
+
+#[derive(Deserialize)]
+struct SseToolCallDelta {
+    index: u32,
+    #[serde(default)]
+    id: Option<String>,
+    #[serde(default)]
+    function: Option<SseToolCallFunctionDelta>,
+}
+
+#[derive(Deserialize, Default)]
+struct SseToolCallFunctionDelta {
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    arguments: Option<String>,
+}
+
+#[derive(Default)]
+struct ToolCallAccumulator {
+    id: String,
+    name: String,
+    arguments: String,
+}
+
+fn emit_stream(channel: &Channel<Value>, event: &AiStreamEvent) -> Result<(), String> {
+    channel
+        .send(serde_json::to_value(event).map_err(|e| e.to_string())?)
+        .map_err(|e| format!("failed to send stream event: {e}"))
+}
+
+async fn stream_chat_completions(
+    response: reqwest::Response,
+    channel: &Channel<Value>,
+) -> Result<(String, Vec<OpenAiToolCall>, Option<String>), String> {
+    let mut content = String::new();
+    let mut reasoning = String::new();
+    let mut tool_call_builders: HashMap<u32, ToolCallAccumulator> = HashMap::new();
+
+    let mut stream = response.bytes_stream();
+    let mut buf = String::new();
+
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| format!("stream read error: {e}"))?;
+        buf.push_str(&String::from_utf8_lossy(&chunk));
+
+        while let Some(nl) = buf.find('\n') {
+            let line = buf[..nl].trim().to_string();
+            buf = buf[nl + 1..].to_string();
+            if line.is_empty() || line.starts_with(':') {
+                continue;
+            }
+            let data = match line.strip_prefix("data: ") {
+                Some(d) => d,
+                None => continue,
+            };
+            if data == "[DONE]" {
+                break;
+            }
+            let chunk: ChatSseChunk =
+                serde_json::from_str(data).map_err(|e| format!("SSE parse error: {e}"))?;
+            for choice in chunk.choices {
+                if let Some(c) = choice.delta.content.as_deref() {
+                    if !c.is_empty() {
+                        content.push_str(c);
+                        emit_stream(
+                            channel,
+                            &AiStreamEvent::ContentDelta {
+                                delta: c.to_string(),
+                            },
+                        )?;
+                    }
+                }
+                if let Some(r) = choice.delta.reasoning_content.as_deref() {
+                    if !r.is_empty() {
+                        reasoning.push_str(r);
+                        emit_stream(
+                            channel,
+                            &AiStreamEvent::ReasoningDelta {
+                                delta: r.to_string(),
+                            },
+                        )?;
+                    }
+                }
+                for tc in &choice.delta.tool_calls {
+                    let acc = tool_call_builders.entry(tc.index).or_default();
+                    if let Some(id) = &tc.id {
+                        acc.id.clone_from(id);
+                    }
+                    if let Some(ref f) = tc.function {
+                        if let Some(name) = &f.name {
+                            acc.name.clone_from(name);
+                        }
+                        if let Some(args) = &f.arguments {
+                            acc.arguments.push_str(args);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let mut tool_calls: Vec<OpenAiToolCall> = Vec::new();
+    let mut indexes: Vec<u32> = tool_call_builders.keys().copied().collect();
+    indexes.sort();
+    for idx in indexes {
+        if let Some(acc) = tool_call_builders.remove(&idx) {
+            if !acc.name.is_empty() {
+                tool_calls.push(OpenAiToolCall {
+                    id: acc.id,
+                    function: OpenAiToolCallFunction {
+                        name: acc.name,
+                        arguments: acc.arguments,
+                    },
+                });
+            }
+        }
+    }
+
+    let reasoning_content = reasoning
+        .trim()
+        .is_empty()
+        .then(|| None)
+        .unwrap_or(Some(reasoning));
+
+    Ok((content, tool_calls, reasoning_content))
+}
+
+async fn stream_responses_completions(
+    response: reqwest::Response,
+    channel: &Channel<Value>,
+) -> Result<(Option<String>, Vec<OpenAiToolCall>, Option<String>), String> {
+    let mut content: Option<String> = None;
+    let mut reasoning = String::new();
+    let mut tool_call_items: HashMap<String, (String, String)> = HashMap::new();
+    let mut current_event = String::new();
+
+    let mut stream = response.bytes_stream();
+    let mut buf = String::new();
+
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| format!("stream read error: {e}"))?;
+        buf.push_str(&String::from_utf8_lossy(&chunk));
+
+        while let Some(nl) = buf.find('\n') {
+            let line = buf[..nl].trim().to_string();
+            buf = buf[nl + 1..].to_string();
+
+            if line.starts_with("event: ") {
+                current_event = line[7..].trim().to_string();
+                continue;
+            }
+
+            let data = match line.strip_prefix("data: ") {
+                Some(d) => d,
+                None => continue,
+            };
+            if data == "[DONE]" {
+                break;
+            }
+
+            let event: Value =
+                serde_json::from_str(data).map_err(|e| format!("SSE parse error: {e}"))?;
+
+            let event_type = event
+                .get("type")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+
+            match event_type {
+                "response.output_text.delta" => {
+                    if let Some(delta) = event.get("delta").and_then(Value::as_str) {
+                        if !delta.is_empty() {
+                            content = Some(
+                                content
+                                    .unwrap_or_default()
+                                    .chars()
+                                    .chain(delta.chars())
+                                    .collect(),
+                            );
+                            emit_stream(
+                                channel,
+                                &AiStreamEvent::ContentDelta {
+                                    delta: delta.to_string(),
+                                },
+                            )?;
+                        }
+                    }
+                }
+                "response.reasoning_text.delta" => {
+                    if let Some(delta) = event.get("delta").and_then(Value::as_str) {
+                        if !delta.is_empty() {
+                            reasoning.push_str(delta);
+                            emit_stream(
+                                channel,
+                                &AiStreamEvent::ReasoningDelta {
+                                    delta: delta.to_string(),
+                                },
+                            )?;
+                        }
+                    }
+                }
+                "response.reasoning_summary_text.delta" => {
+                    if let Some(delta) = event.get("delta").and_then(Value::as_str) {
+                        if !delta.is_empty() {
+                            reasoning.push_str(delta);
+                            emit_stream(
+                                channel,
+                                &AiStreamEvent::ReasoningDelta {
+                                    delta: delta.to_string(),
+                                },
+                            )?;
+                        }
+                    }
+                }
+                "response.output_item.added" => {
+                    if let Some(item) = event.get("item") {
+                        if item.get("type").and_then(Value::as_str) == Some("function_call") {
+                            let item_id = item
+                                .get("id")
+                                .and_then(Value::as_str)
+                                .unwrap_or("")
+                                .to_string();
+                            let name = item
+                                .get("name")
+                                .and_then(Value::as_str)
+                                .unwrap_or("")
+                                .to_string();
+                            tool_call_items.insert(item_id, (name, String::new()));
+                        }
+                    }
+                }
+                "response.function_call_arguments.delta" => {
+                    let item_id = event
+                        .get("item_id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .to_string();
+                    if let Some(delta) = event.get("delta").and_then(Value::as_str) {
+                        if let Some(entry) = tool_call_items.get_mut(&item_id) {
+                            entry.1.push_str(delta);
+                        }
+                    }
+                }
+                "response.function_call_arguments.done" => {
+                    let item_id = event
+                        .get("item_id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .to_string();
+                    if let Some(arguments) = event.get("arguments").and_then(Value::as_str) {
+                        if let Some(entry) = tool_call_items.get_mut(&item_id) {
+                            entry.1 = arguments.to_string();
+                        }
+                    }
+                }
+                _ => {}
+            }
+
+            current_event.clear();
+        }
+    }
+
+    let mut tool_calls: Vec<OpenAiToolCall> = Vec::new();
+    for (item_id, (name, arguments)) in tool_call_items.into_iter() {
+        if !name.is_empty() {
+            tool_calls.push(OpenAiToolCall {
+                id: item_id,
+                function: OpenAiToolCallFunction { name, arguments },
+            });
+        }
+    }
+
+    let reasoning_content = reasoning
+        .trim()
+        .is_empty()
+        .then(|| None)
+        .unwrap_or(Some(reasoning));
+
+    Ok((content, tool_calls, reasoning_content))
 }
 
 impl OpenAiCompatibleProvider {
@@ -707,6 +1074,340 @@ impl OpenAiCompatibleProvider {
         }
 
         finish_agent_response(self, settings.model(), content, reasoning_content)
+    }
+
+    async fn run_chat_streaming(
+        &self,
+        app: tauri::AppHandle,
+        settings: AiProviderSettings,
+        api_key: Option<String>,
+        request: AgentRunRequest,
+        channel: Channel<Value>,
+    ) -> Result<(), String> {
+        let prompt = trim_required("assistant prompt", request.prompt)?;
+        let context_label = trim_required("assistant context", request.context_label)?;
+        let endpoint =
+            chat_completions_endpoint(settings.base_url(), settings.model(), self.endpoint_style)?;
+        let mut messages = build_agent_messages(
+            prompt,
+            context_label,
+            request.intent,
+            settings.reasoning_effort().to_string(),
+            request.system_context,
+            request.selected_output,
+            supports_image_input(self.provider_kind, settings.model()),
+            request.screenshot,
+            request.screenshots,
+            request.messages,
+            request.output_language,
+        );
+        let client = reqwest::Client::new();
+        let tool_definitions = ai_tool_definitions(settings.tools());
+        let app_data_dir = app
+            .path()
+            .app_data_dir()
+            .map_err(|error| format!("failed to locate KKTerm app data: {error}"))?;
+        let model = settings.model().to_string();
+        let exhausted = true;
+
+        for _ in 0..10 {
+            let response = client
+                .post(endpoint.clone())
+                .headers(openai_compatible_headers(
+                    api_key.as_deref(),
+                    self.auth_style,
+                )?)
+                .json(&OpenAiCompatibleChatRequest {
+                    model: model.clone(),
+                    messages: messages.clone(),
+                    stream: true,
+                    tools: tool_definitions.clone(),
+                    tool_choice: (!tool_definitions.is_empty()).then(|| "auto".to_string()),
+                })
+                .send()
+                .await
+                .map_err(|error| format!("failed to reach {}: {error}", self.label))?;
+
+            let status = response.status();
+            if !status.is_success() {
+                let response_text = response
+                    .text()
+                    .await
+                    .map_err(|error| format!("failed to read {} response: {error}", self.label))?;
+                return Err(format!(
+                    "{} returned HTTP {}: {}",
+                    self.label,
+                    status.as_u16(),
+                    truncate_error_body(&response_text)
+                ));
+            }
+
+            let (content, tool_calls, streamed_reasoning) =
+                stream_chat_completions(response, &channel).await?;
+
+            if tool_calls.is_empty() {
+                emit_stream(
+                    &channel,
+                    &AiStreamEvent::Done {
+                        model: model.clone(),
+                        provider_kind: self.provider_kind.to_string(),
+                    },
+                )?;
+                return Ok(());
+            }
+
+            messages.push(OpenAiCompatibleMessage {
+                role: "assistant".to_string(),
+                content: OpenAiCompatibleContent::Text(content.clone()),
+                reasoning_content: streamed_reasoning
+                    .filter(|r| !r.trim().is_empty()),
+                tool_call_id: None,
+                tool_calls: Some(
+                    tool_calls
+                        .iter()
+                        .map(|tool_call| OpenAiAssistantToolCall {
+                            id: tool_call.id.clone(),
+                            tool_type: "function".to_string(),
+                            function: OpenAiAssistantToolCallFunction {
+                                name: tool_call.function.name.clone(),
+                                arguments: tool_call.function.arguments.clone(),
+                            },
+                        })
+                        .collect(),
+                ),
+            });
+            for tool_call in &tool_calls {
+                emit_stream(
+                    &channel,
+                    &AiStreamEvent::ToolCallStart {
+                        tool_id: tool_call.id.clone(),
+                        tool_name: tool_call.function.name.clone(),
+                    },
+                )?;
+                let result = run_ai_tool(settings.tools(), &app_data_dir, tool_call).await;
+                messages.push(OpenAiCompatibleMessage {
+                    role: "tool".to_string(),
+                    content: OpenAiCompatibleContent::Text(result),
+                    reasoning_content: None,
+                    tool_call_id: Some(tool_call.id.clone()),
+                    tool_calls: None,
+                });
+                emit_stream(
+                    &channel,
+                    &AiStreamEvent::ToolCallEnd {
+                        tool_id: tool_call.id.clone(),
+                        tool_name: tool_call.function.name.clone(),
+                    },
+                )?;
+            }
+        }
+
+        if exhausted {
+            let response = client
+                .post(endpoint.clone())
+                .headers(openai_compatible_headers(
+                    api_key.as_deref(),
+                    self.auth_style,
+                )?)
+                .json(&OpenAiCompatibleChatRequest {
+                    model: model.clone(),
+                    messages: messages.clone(),
+                    stream: true,
+                    tools: vec![],
+                    tool_choice: None,
+                })
+                .send()
+                .await
+                .map_err(|error| format!("failed to reach {}: {error}", self.label))?;
+
+            let status = response.status();
+            if !status.is_success() {
+                let response_text = response
+                    .text()
+                    .await
+                    .map_err(|error| format!("failed to read {} response: {error}", self.label))?;
+                return Err(format!(
+                    "{} returned HTTP {}: {}",
+                    self.label,
+                    status.as_u16(),
+                    truncate_error_body(&response_text)
+                ));
+            }
+
+            stream_chat_completions(response, &channel).await?;
+        }
+
+        emit_stream(
+            &channel,
+            &AiStreamEvent::Done {
+                model,
+                provider_kind: self.provider_kind.to_string(),
+            },
+        )
+    }
+
+    async fn run_responses_streaming(
+        &self,
+        app: tauri::AppHandle,
+        settings: AiProviderSettings,
+        api_key: Option<String>,
+        request: AgentRunRequest,
+        channel: Channel<Value>,
+    ) -> Result<(), String> {
+        let prompt = trim_required("assistant prompt", request.prompt)?;
+        let context_label = trim_required("assistant context", request.context_label)?;
+        let endpoint = responses_endpoint(settings.base_url(), self.endpoint_style)?;
+        let messages = build_agent_messages(
+            prompt,
+            context_label,
+            request.intent,
+            settings.reasoning_effort().to_string(),
+            request.system_context,
+            request.selected_output,
+            supports_image_input(self.provider_kind, settings.model()),
+            request.screenshot,
+            request.screenshots,
+            request.messages,
+            request.output_language,
+        );
+        let client = reqwest::Client::new();
+        let tool_definitions = ai_tool_definitions(settings.tools());
+        let app_data_dir = app
+            .path()
+            .app_data_dir()
+            .map_err(|error| format!("failed to locate KKTerm app data: {error}"))?;
+        let model = settings.model().to_string();
+        let exhausted = true;
+
+        let mut input = responses_input_from_messages(messages, request.files);
+        let resp_tool_defs = responses_tool_definitions(&tool_definitions);
+
+        for _ in 0..10 {
+            let response = client
+                .post(endpoint.clone())
+                .headers(openai_compatible_headers(
+                    api_key.as_deref(),
+                    self.auth_style,
+                )?)
+                .json(&OpenAiResponsesRequest {
+                    model: model.clone(),
+                    input: input.clone(),
+                    stream: true,
+                    store: false,
+                    tools: resp_tool_defs.clone(),
+                    tool_choice: (!tool_definitions.is_empty()).then(|| "auto".to_string()),
+                })
+                .send()
+                .await
+                .map_err(|error| format!("failed to reach {}: {error}", self.label))?;
+
+            let status = response.status();
+            if !status.is_success() {
+                let response_text = response
+                    .text()
+                    .await
+                    .map_err(|error| format!("failed to read {} response: {error}", self.label))?;
+                return Err(format!(
+                    "{} returned HTTP {}: {}",
+                    self.label,
+                    status.as_u16(),
+                    truncate_error_body(&response_text)
+                ));
+            }
+
+            let (content, tool_calls, _streamed_reasoning) =
+                stream_responses_completions(response, &channel).await?;
+
+            if let Some(output) = &content {
+                input.push(json!({"type": "output_text", "output_text": output}));
+            }
+
+            if tool_calls.is_empty() {
+                emit_stream(
+                    &channel,
+                    &AiStreamEvent::Done {
+                        model,
+                        provider_kind: self.provider_kind.to_string(),
+                    },
+                )?;
+                return Ok(());
+            }
+
+            for tc in &tool_calls {
+                input.push(json!({
+                    "type": "function_call",
+                    "call_id": tc.id,
+                    "name": tc.function.name,
+                    "arguments": tc.function.arguments,
+                }));
+            }
+            for tool_call in &tool_calls {
+                emit_stream(
+                    &channel,
+                    &AiStreamEvent::ToolCallStart {
+                        tool_id: tool_call.id.clone(),
+                        tool_name: tool_call.function.name.clone(),
+                    },
+                )?;
+                let result = run_ai_tool(settings.tools(), &app_data_dir, tool_call).await;
+                input.push(json!({
+                    "type": "function_call_output",
+                    "call_id": tool_call.id,
+                    "output": result,
+                }));
+                emit_stream(
+                    &channel,
+                    &AiStreamEvent::ToolCallEnd {
+                        tool_id: tool_call.id.clone(),
+                        tool_name: tool_call.function.name.clone(),
+                    },
+                )?;
+            }
+        }
+
+        if exhausted {
+            let response = client
+                .post(endpoint.clone())
+                .headers(openai_compatible_headers(
+                    api_key.as_deref(),
+                    self.auth_style,
+                )?)
+                .json(&OpenAiResponsesRequest {
+                    model: model.clone(),
+                    input: input.clone(),
+                    stream: true,
+                    store: false,
+                    tools: vec![],
+                    tool_choice: None,
+                })
+                .send()
+                .await
+                .map_err(|error| format!("failed to reach {}: {error}", self.label))?;
+
+            let status = response.status();
+            if !status.is_success() {
+                let response_text = response
+                    .text()
+                    .await
+                    .map_err(|error| format!("failed to read {} response: {error}", self.label))?;
+                return Err(format!(
+                    "{} returned HTTP {}: {}",
+                    self.label,
+                    status.as_u16(),
+                    truncate_error_body(&response_text)
+                ));
+            }
+
+            stream_responses_completions(response, &channel).await?;
+        }
+
+        emit_stream(
+            &channel,
+            &AiStreamEvent::Done {
+                model,
+                provider_kind: self.provider_kind.to_string(),
+            },
+        )
     }
 }
 
