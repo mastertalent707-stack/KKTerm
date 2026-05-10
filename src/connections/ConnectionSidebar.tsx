@@ -82,7 +82,7 @@ type ConnectionDialogRequest = CreateConnectionRequest & {
   urlPassword?: string;
 };
 
-type ConnectionTileType = ConnectionType;
+type ConnectionMenuType = ConnectionType;
 
 const RECENT_CONNECTION_STORAGE_KEY = "kkterm.recentConnectionIds";
 
@@ -144,8 +144,10 @@ export function ConnectionSidebar({
   const showWorkspaceStatus = useWorkspaceStore((state) => state.showWorkspaceStatus);
   const [tree, setTree] = useState<ConnectionTree>(connectionTree);
   const [formMode, setFormMode] = useState<"save" | "quick" | null>(null);
+  const [newConnectionType, setNewConnectionType] = useState<ConnectionType | null>(null);
   const [formError, setFormError] = useState("");
   const [treeError, setTreeError] = useState("");
+  const [addConnectionMenuOpen, setAddConnectionMenuOpen] = useState(false);
   const [quickConnectMenuOpen, setQuickConnectMenuOpen] = useState(false);
   const [recentConnectionIds, setRecentConnectionIds] = useState(loadRecentConnectionIds);
   const [dropTarget, setDropTarget] = useState("");
@@ -164,6 +166,7 @@ export function ConnectionSidebar({
     | { kind: "folder"; folder: ConnectionFolder }
     | null
   >(null);
+  const addConnectionRef = useRef<HTMLDivElement | null>(null);
   const quickConnectRef = useRef<HTMLDivElement | null>(null);
   const draggedItemRef = useRef<DraggedTreeItem | null>(null);
   const pointerDragTargetRef = useRef<TreeDropTarget | null>(null);
@@ -185,20 +188,26 @@ export function ConnectionSidebar({
   }, []);
 
   useEffect(() => {
-    if (!quickConnectMenuOpen) {
+    if (!quickConnectMenuOpen && !addConnectionMenuOpen) {
       return;
     }
 
     const handlePointerDown = (event: PointerEvent) => {
-      const node = quickConnectRef.current;
-      if (node && !node.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const quickConnectNode = quickConnectRef.current;
+      const addConnectionNode = addConnectionRef.current;
+      if (quickConnectNode && !quickConnectNode.contains(target)) {
         setQuickConnectMenuOpen(false);
+      }
+      if (addConnectionNode && !addConnectionNode.contains(target)) {
+        setAddConnectionMenuOpen(false);
       }
     };
 
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
         setQuickConnectMenuOpen(false);
+        setAddConnectionMenuOpen(false);
       }
     };
 
@@ -208,7 +217,7 @@ export function ConnectionSidebar({
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [quickConnectMenuOpen]);
+  }, [addConnectionMenuOpen, quickConnectMenuOpen]);
 
   useEffect(
     () => () => {
@@ -233,6 +242,7 @@ export function ConnectionSidebar({
     }
     notifyConnectionTreeInvalidated();
     setFormMode(null);
+    setNewConnectionType(null);
     setFormError("");
     setTreeError("");
   }
@@ -248,8 +258,17 @@ export function ConnectionSidebar({
     rememberConnection(connection);
     openConnection(connection);
     setFormMode(null);
+    setNewConnectionType(null);
     setFormError("");
     setTreeError("");
+  }
+
+  function handleNewConnectionTypeSelected(connectionType: ConnectionType) {
+    setAddConnectionMenuOpen(false);
+    setQuickConnectMenuOpen(false);
+    setFormError("");
+    setNewConnectionType(connectionType);
+    setFormMode("save");
   }
 
   function rememberConnection(connection: Connection) {
@@ -1005,15 +1024,32 @@ export function ConnectionSidebar({
           <h1>{t("connections.title")}</h1>
         </div>
         <div className="sidebar-actions">
-          <button
-            className="icon-button"
-            aria-label={t("connections.addConnection")}
-            title={t("connections.addConnection")}
-            onClick={() => setFormMode("save")}
-            type="button"
-          >
-            <Plus size={16} />
-          </button>
+          <div className="add-connection-anchor" ref={addConnectionRef}>
+            <button
+              {...dialogButtonAria(addConnectionMenuOpen)}
+              className="icon-button"
+              aria-label={t("connections.addConnection")}
+              title={t("connections.addConnection")}
+              onClick={() => {
+                setQuickConnectMenuOpen(false);
+                setAddConnectionMenuOpen((isOpen) => !isOpen);
+              }}
+              type="button"
+            >
+              <Plus size={16} />
+            </button>
+            {addConnectionMenuOpen ? (
+              <AddConnectionMenu
+                onImportRequested={() => {
+                  setAddConnectionMenuOpen(false);
+                  setFormError("");
+                  setNewConnectionType(null);
+                  setImportDialogOpen(true);
+                }}
+                onSelectType={handleNewConnectionTypeSelected}
+              />
+            ) : null}
+          </div>
           <button
             className="icon-button"
             aria-label={t("connections.collapseColumn")}
@@ -1165,7 +1201,7 @@ export function ConnectionSidebar({
           onClose={() => setTreeContextMenu(null)}
           onCreateConnection={() => {
             setTreeContextMenu(null);
-            setFormMode("save");
+            handleNewConnectionTypeSelected("local");
           }}
           onCreateFolder={() => {
             setTreeContextMenu(null);
@@ -1231,22 +1267,15 @@ export function ConnectionSidebar({
       {formMode ? (
         <ConnectionDialog
           error={formError}
+          initialConnectionType={newConnectionType ?? undefined}
           tree={tree}
           mode={formMode}
           sshSettings={sshSettings}
           onCancel={() => {
             setFormMode(null);
+            setNewConnectionType(null);
             setFormError("");
           }}
-          onImportRequested={
-            formMode === "save"
-              ? () => {
-                  setFormMode(null);
-                  setFormError("");
-                  setImportDialogOpen(true);
-                }
-              : undefined
-          }
           onSubmit={handleConnectionSubmit}
         />
       ) : null}
@@ -1844,6 +1873,97 @@ export function QuickConnectMenu({
   );
 }
 
+function connectionTypeSubtitle(type: ConnectionType) {
+  switch (type) {
+    case "local":
+      return i18next.t("connections.localShell");
+    case "ssh":
+      return i18next.t("connections.secureShell");
+    case "telnet":
+      return i18next.t("connections.telnetShell");
+    case "serial":
+      return i18next.t("connections.serialLine");
+    case "url":
+      return i18next.t("connections.embeddedWebApp");
+    case "rdp":
+      return i18next.t("connections.windowsRdp");
+    case "vnc":
+      return i18next.t("connections.screenControl");
+  }
+}
+
+function AddConnectionMenu({
+  onImportRequested,
+  onSelectType,
+}: {
+  onImportRequested: () => void;
+  onSelectType: (connectionType: ConnectionType) => void;
+}) {
+  const { t } = useTranslation();
+  const connectionTypeOptions: Array<{
+    type: ConnectionMenuType;
+    title: string;
+    subtitle: string;
+  }> = [
+    {
+      type: "local",
+      title: t("connections.localTerminal"),
+      subtitle: t("connections.localShell"),
+    },
+    {
+      type: "ssh",
+      title: t("connections.ssh"),
+      subtitle: t("connections.secureShell"),
+    },
+    {
+      type: "telnet",
+      title: t("connections.telnet"),
+      subtitle: t("connections.telnetShell"),
+    },
+    {
+      type: "serial",
+      title: t("connections.serial"),
+      subtitle: t("connections.serialLine"),
+    },
+    {
+      type: "url",
+      title: t("connections.url"),
+      subtitle: t("connections.embeddedWebApp"),
+    },
+    {
+      type: "rdp",
+      title: t("connections.rdp"),
+      subtitle: t("connections.windowsRdp"),
+    },
+    {
+      type: "vnc",
+      title: t("connections.vnc"),
+      subtitle: t("connections.screenControl"),
+    },
+  ];
+
+  return (
+    <div className="add-connection-menu" role="menu" aria-label={t("connections.addConnection")}>
+      {connectionTypeOptions.map((option) => (
+        <button key={option.type} onClick={() => onSelectType(option.type)} role="menuitem" type="button">
+          <ConnectionTypeGlyph className="menu-item-icon" size={15} type={option.type} />
+          <span className="connection-main">
+            <strong>{option.title}</strong>
+            <small>{option.subtitle}</small>
+          </span>
+        </button>
+      ))}
+      <div className="quick-connect-menu-separator" aria-hidden="true" />
+      <button onClick={onImportRequested} role="menuitem" type="button">
+        <Download className="menu-item-icon" size={15} />
+        <span className="connection-main">
+          <strong>{t("connections.import.tileTitle")}</strong>
+          <small>{t("connections.import.tileSubtitle")}</small>
+        </span>
+      </button>
+    </div>
+  );
+}
 
 function ConnectionTypeGlyph({
   className,
@@ -1852,7 +1972,7 @@ function ConnectionTypeGlyph({
 }: {
   className?: string;
   size?: number;
-  type: ConnectionTileType;
+  type: ConnectionMenuType;
 }) {
   return <ConnectionIcon className={className} size={size} type={type} />;
 }
@@ -1925,28 +2045,26 @@ function PasswordField({
 function ConnectionDialog({
   error,
   initialConnection,
+  initialConnectionType,
   initialFolderId,
   tree,
   mode,
   sshSettings,
   onCancel,
-  onImportRequested,
   onSubmit,
 }: {
   error: string;
   initialConnection?: Connection;
+  initialConnectionType?: ConnectionType;
   initialFolderId?: string;
   tree: ConnectionTree;
   mode: "save" | "quick" | "edit";
   sshSettings: SshSettings;
   onCancel: () => void;
-  onImportRequested?: () => void;
   onSubmit: (request: ConnectionDialogRequest) => void | Promise<void>;
 }) {
   const { i18n, t } = useTranslation();
-  const [connectionType, setConnectionType] = useState<ConnectionType | "">(
-    initialConnection?.type ?? "",
-  );
+  const connectionType = initialConnection?.type ?? initialConnectionType ?? "";
   const [authMethod, setAuthMethod] = useState<"keyFile" | "password" | "agent">(
     initialConnection?.authMethod ?? "keyFile",
   );
@@ -1969,47 +2087,6 @@ function ConnectionDialog({
   const localShellOptions = useMemo(() => localShellOptionsForPlatform(), [i18n.language]);
   const isEditMode = mode === "edit";
   const isUrlConnection = connectionType === "url";
-  const connectionTypeOptions: Array<{
-    type: ConnectionTileType;
-    title: string;
-    subtitle: string;
-  }> = [
-    {
-      type: "local",
-      title: t("connections.localTerminal"),
-      subtitle: t("connections.localShell"),
-    },
-    {
-      type: "ssh",
-      title: t("connections.ssh"),
-      subtitle: t("connections.secureShell"),
-    },
-    {
-      type: "telnet",
-      title: t("connections.telnet"),
-      subtitle: t("connections.telnetShell"),
-    },
-    {
-      type: "serial",
-      title: t("connections.serial"),
-      subtitle: t("connections.serialLine"),
-    },
-    {
-      type: "url",
-      title: t("connections.url"),
-      subtitle: t("connections.embeddedWebApp"),
-    },
-    {
-      type: "rdp",
-      title: t("connections.windowsRdp"),
-      subtitle: t("connections.rdp"),
-    },
-    {
-      type: "vnc",
-      title: t("connections.vnc"),
-      subtitle: t("connections.screenControl"),
-    },
-  ];
 
   useEffect(() => {
     if (!isEditMode || !initialConnection || !isTauriRuntime()) {
@@ -2155,56 +2232,23 @@ function ConnectionDialog({
           ) : null}
         </header>
 
-        {isEditMode && initialConnection ? (
+        {connectionType ? (
           <div className="connection-type-summary">
-            <ConnectionGlyph localShell={initialConnection.localShell} size={20} type={initialConnection.type} />
+            <ConnectionGlyph
+              localShell={initialConnection?.localShell}
+              size={20}
+              type={connectionType}
+            />
             <span>
-              <strong>{connectionTypeLabel(initialConnection.type)}</strong>
-              <small>{connectionSubtitle(initialConnection)}</small>
+              <strong>{connectionTypeLabel(connectionType)}</strong>
+              <small>
+                {isEditMode && initialConnection
+                  ? connectionSubtitle(initialConnection)
+                  : connectionTypeSubtitle(connectionType)}
+              </small>
             </span>
           </div>
-        ) : (
-          <fieldset className="connection-type-picker">
-            <legend>{t("connections.type")}</legend>
-            <div className="connection-type-grid">
-              {connectionTypeOptions.map((option) => (
-                <button
-                  aria-pressed={connectionType === option.type}
-                  className={`connection-type-tile ${connectionType === option.type ? "selected" : ""}`}
-                  data-connection-type={option.type}
-                  key={option.type}
-                  onClick={() => setConnectionType(option.type)}
-                  type="button"
-                >
-                  <span className="connection-type-icon">
-                    <ConnectionTypeGlyph size={22} type={option.type} />
-                  </span>
-                  <span className="connection-type-copy">
-                    <strong>{option.title}</strong>
-                    <small>{option.subtitle}</small>
-                  </span>
-                </button>
-              ))}
-              {onImportRequested ? (
-                <button
-                  className="connection-type-tile"
-                  data-connection-type="import"
-                  key="import"
-                  onClick={onImportRequested}
-                  type="button"
-                >
-                  <span className="connection-type-icon">
-                    <Download size={22} />
-                  </span>
-                  <span className="connection-type-copy">
-                    <strong>{t("connections.import.tileTitle")}</strong>
-                    <small>{t("connections.import.tileSubtitle")}</small>
-                  </span>
-                </button>
-              ) : null}
-            </div>
-          </fieldset>
-        )}
+        ) : null}
 
         {connectionType ? (
           <div className="connection-dialog-fields">
