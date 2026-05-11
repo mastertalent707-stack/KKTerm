@@ -1330,6 +1330,8 @@ impl Storage {
         connection
             .execute_batch(&format!("PRAGMA user_version = {SCHEMA_USER_VERSION}"))
             .map_err(to_storage_error)?;
+        crate::dashboard_storage::seed_default(&connection)
+            .map_err(|err| format!("dashboard seed failed: {err:?}"))?;
         Ok(())
     }
 
@@ -2119,6 +2121,14 @@ impl Storage {
     ) -> Result<R, String> {
         let mut connection = self.lock()?;
         body(&mut connection)
+    }
+
+    pub fn with_connection_infallible<R>(
+        &self,
+        f: impl FnOnce(&rusqlite::Connection) -> R,
+    ) -> R {
+        let conn = self.connection.lock().expect("dashboard storage mutex poisoned");
+        f(&*conn)
     }
 }
 
