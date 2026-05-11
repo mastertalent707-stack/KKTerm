@@ -170,6 +170,32 @@ export interface GeneralSettings {
   lastBackupAt?: string | null;
 }
 
+export type AppLauncherLaunchMode = "normal" | "admin" | "differentUser";
+
+export interface AppLauncherEntry {
+  id: string;
+  name: string;
+  path: string;
+  arguments?: string | null;
+  workingDirectory?: string | null;
+  iconDataUrl?: string | null;
+  railPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AppLauncherSettings {
+  entries: AppLauncherEntry[];
+}
+
+export interface PreparedAppLauncherEntry {
+  name: string;
+  path: string;
+  exists: boolean;
+  runnable: boolean;
+  iconDataUrl?: string | null;
+}
+
 export interface DatabaseBackupInfo {
   path: string;
   filename: string;
@@ -180,6 +206,7 @@ export interface ImportedDatabaseSnapshot {
   generalSettings: GeneralSettings;
   terminalSettings: TerminalSettings;
   appearanceSettings: AppearanceSettings;
+  appLauncherSettings: AppLauncherSettings;
   sshSettings: SshSettings;
   sftpSettings: SftpSettings;
   urlSettings: UrlSettings;

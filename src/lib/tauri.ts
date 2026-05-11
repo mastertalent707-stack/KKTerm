@@ -9,6 +9,8 @@ import type {
   AppearanceSettings,
   AiProviderSettings,
   AppBootstrap,
+  AppLauncherLaunchMode,
+  AppLauncherSettings,
   Connection,
   ConnectionFolder,
   ConnectionTree,
@@ -24,6 +26,7 @@ import type {
   MoveConnectionFolderRequest,
   MoveConnectionRequest,
   PerformanceSnapshot,
+  PreparedAppLauncherEntry,
   RenameConnectionFolderRequest,
   RenameConnectionRequest,
   SecretPresence,
@@ -647,6 +650,29 @@ type CommandMap = {
   update_general_settings: {
     args: { request: GeneralSettings };
     result: GeneralSettings;
+  };
+  get_app_launcher_settings: {
+    args: undefined;
+    result: AppLauncherSettings;
+  };
+  update_app_launcher_settings: {
+    args: { request: AppLauncherSettings };
+    result: AppLauncherSettings;
+  };
+  prepare_app_launcher_entry: {
+    args: { request: { path: string } };
+    result: PreparedAppLauncherEntry;
+  };
+  launch_app_launcher_entry: {
+    args: {
+      request: {
+        path: string;
+        arguments?: string | null;
+        workingDirectory?: string | null;
+        mode: AppLauncherLaunchMode;
+      };
+    };
+    result: null;
   };
   import_settings_database: {
     args: { path: string };
@@ -1286,6 +1312,29 @@ export async function selectConnectionImportFile() {
       },
       { name: "All files", extensions: ["*"] },
     ],
+  });
+
+  return typeof selectedPath === "string" ? selectedPath : null;
+}
+
+export async function selectAppLauncherFile(options: {
+  title: string;
+  filterName: string;
+}) {
+  if (!isTauriRuntime()) {
+    return null;
+  }
+
+  const selectedPath = await openDialog({
+    directory: false,
+    filters: [
+      {
+        name: options.filterName,
+        extensions: ["exe", "lnk", "bat", "cmd", "ps1", "*"],
+      },
+    ],
+    multiple: false,
+    title: options.title,
   });
 
   return typeof selectedPath === "string" ? selectedPath : null;

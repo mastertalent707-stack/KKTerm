@@ -456,6 +456,24 @@ button {
   border-top: 1px solid var(--nav-toolbar-tooltip-border);
 }
 
+.rail-app-launcher-shortcuts {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  width: 100%;
+  padding-top: 6px;
+  margin-top: 2px;
+  border-top: 1px solid var(--nav-toolbar-tooltip-border);
+}
+
+.rail-button-app-launcher img,
+.rail-app-launcher-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
 .rail-button-connection .connection-icon-image {
   border-radius: 4px;
 }
@@ -1006,6 +1024,286 @@ button {
 
 .dashboard-dialog-backdrop {
   z-index: 100;
+}
+
+.app-launcher-page {
+  position: relative;
+  grid-column: 2 / 5;
+  grid-row: 1;
+  z-index: 74;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  padding: 18px 20px;
+  background: var(--app-bg);
+}
+
+.app-launcher-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.app-launcher-header > div {
+  min-width: 0;
+}
+
+.app-launcher-header h1 {
+  font-size: 24px;
+}
+
+.app-launcher-header p:not(.panel-label) {
+  max-width: 760px;
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.app-launcher-add {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 7px;
+  align-items: center;
+}
+
+.app-launcher-summary {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.app-launcher-summary > div {
+  display: inline-flex;
+  gap: 7px;
+  align-items: baseline;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.app-launcher-summary strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.app-launcher-summary span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.app-launcher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 3px;
+}
+
+.app-launcher-card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+  padding: 11px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.app-launcher-card.missing {
+  border-color: var(--amber);
+}
+
+.app-launcher-card-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.app-launcher-card-icon img {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.app-launcher-card-main {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.app-launcher-card-main > div:first-child {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+}
+
+.app-launcher-card h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.app-launcher-card-main span {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.app-launcher-card-main p,
+.app-launcher-card-main code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-launcher-card-main p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.app-launcher-card-main code {
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11px;
+}
+
+.app-launcher-warning {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.app-launcher-card-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.app-launcher-card-actions .icon-button {
+  width: 28px;
+  height: 28px;
+}
+
+.app-launcher-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  min-height: 0;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.app-launcher-empty h2,
+.app-launcher-empty p {
+  margin: 0;
+}
+
+.app-launcher-empty p {
+  max-width: 390px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.app-launcher-dialog-backdrop {
+  z-index: 100;
+}
+
+.app-launcher-dialog {
+  display: grid;
+  gap: 12px;
+  width: min(560px, calc(100vw - 96px));
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+  padding: 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.app-launcher-dialog h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.app-launcher-field,
+.app-launcher-checkbox {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.app-launcher-field span,
+.app-launcher-checkbox span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.app-launcher-field input {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  padding: 0 9px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: none;
+  font-size: 12px;
+}
+
+.app-launcher-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.app-launcher-checkbox {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.app-launcher-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.app-launcher-menu {
+  position: fixed;
+  right: auto;
+  z-index: 160;
 }
 
 .dashboard-agent-dialog {

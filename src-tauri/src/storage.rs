@@ -193,6 +193,7 @@ pub struct ImportedDatabaseSnapshot {
     general_settings: GeneralSettings,
     terminal_settings: TerminalSettings,
     appearance_settings: AppearanceSettings,
+    app_launcher_settings: AppLauncherSettings,
     ssh_settings: SshSettings,
     sftp_settings: SftpSettings,
     url_settings: UrlSettings,
@@ -215,6 +216,26 @@ pub struct TerminalSettings {
     allow_osc52_clipboard: bool,
     confirm_multiline_paste: bool,
     default_shell: String,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppLauncherSettings {
+    pub entries: Vec<AppLauncherEntry>,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppLauncherEntry {
+    pub id: String,
+    pub name: String,
+    pub path: String,
+    pub arguments: Option<String>,
+    pub working_directory: Option<String>,
+    pub icon_data_url: Option<String>,
+    pub rail_pinned: bool,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -706,6 +727,7 @@ impl Storage {
             general_settings: self.general_settings()?,
             terminal_settings: self.terminal_settings()?,
             appearance_settings: self.appearance_settings()?,
+            app_launcher_settings: self.app_launcher_settings()?,
             ssh_settings: self.ssh_settings()?,
             sftp_settings: self.sftp_settings()?,
             url_settings: self.url_settings()?,
@@ -755,6 +777,46 @@ impl Storage {
             .execute(
                 "INSERT INTO settings (key, value, updated_at)
                  VALUES ('general', ?1, CURRENT_TIMESTAMP)
+                 ON CONFLICT(key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = CURRENT_TIMESTAMP",
+                params![value],
+            )
+            .map_err(to_storage_error)?;
+        Ok(settings)
+    }
+
+    pub fn app_launcher_settings(&self) -> Result<AppLauncherSettings, String> {
+        let connection = self.lock()?;
+        let value = connection
+            .query_row(
+                "SELECT value FROM settings WHERE key = 'app_launcher'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(to_storage_error)?;
+
+        match value {
+            Some(value) => serde_json::from_str(&value)
+                .map(validate_app_launcher_settings)
+                .map_err(|error| format!("App Launcher settings are invalid: {error}"))?,
+            None => Ok(default_app_launcher_settings()),
+        }
+    }
+
+    pub fn update_app_launcher_settings(
+        &self,
+        request: AppLauncherSettings,
+    ) -> Result<AppLauncherSettings, String> {
+        let settings = validate_app_launcher_settings(request)?;
+        let value = serde_json::to_string(&settings)
+            .map_err(|error| format!("failed to serialize App Launcher settings: {error}"))?;
+        let connection = self.lock()?;
+        connection
+            .execute(
+                "INSERT INTO settings (key, value, updated_at)
+                 VALUES ('app_launcher', ?1, CURRENT_TIMESTAMP)
                  ON CONFLICT(key) DO UPDATE SET
                     value = excluded.value,
                     updated_at = CURRENT_TIMESTAMP",
@@ -1927,6 +1989,7 @@ fn validate_import_database(path: &Path) -> Result<(), String> {
     drop(connection);
     let storage = Storage::open(path.to_path_buf())?;
     storage.general_settings()?;
+    storage.app_launcher_settings()?;
     storage.terminal_settings()?;
     storage.appearance_settings()?;
     storage.ssh_settings()?;
@@ -2560,6 +2623,12 @@ fn default_general_settings() -> GeneralSettings {
     }
 }
 
+fn default_app_launcher_settings() -> AppLauncherSettings {
+    AppLauncherSettings {
+        entries: Vec::new(),
+    }
+}
+
 fn default_show_connected_connections_in_rail() -> bool {
     true
 }
@@ -2753,6 +2822,44 @@ fn default_ai_cli_execution_policy() -> String {
 fn validate_general_settings(mut settings: GeneralSettings) -> Result<GeneralSettings, String> {
     settings.pinned_connection_ids = unique_non_empty_strings(settings.pinned_connection_ids);
     Ok(settings)
+}
+
+fn validate_app_launcher_settings(
+    mut settings: AppLauncherSettings,
+) -> Result<AppLauncherSettings, String> {
+    let mut entries = Vec::new();
+    let mut seen_ids = Vec::new();
+    for mut entry in settings.entries.drain(..) {
+        entry.id = entry.id.trim().to_string();
+        if entry.id.is_empty() || seen_ids.contains(&entry.id) {
+            continue;
+        }
+        seen_ids.push(entry.id.clone());
+        entry.path = required_field("App Launcher path", entry.path)?;
+        entry.name = entry.name.trim().to_string();
+        if entry.name.is_empty() {
+            entry.name = app_launcher_name_from_path(&entry.path);
+        }
+        entry.arguments = trim_optional(entry.arguments);
+        entry.working_directory = trim_optional(entry.working_directory);
+        entry.icon_data_url = trim_optional(entry.icon_data_url);
+        entry.created_at = required_field("App Launcher created timestamp", entry.created_at)?;
+        entry.updated_at = required_field("App Launcher updated timestamp", entry.updated_at)?;
+        entries.push(entry);
+    }
+    settings.entries = entries;
+    Ok(settings)
+}
+
+pub(crate) fn app_launcher_name_from_path(path: &str) -> String {
+    Path::new(path)
+        .file_stem()
+        .and_then(|name| name.to_str())
+        .or_else(|| Path::new(path).file_name().and_then(|name| name.to_str()))
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .unwrap_or("Application")
+        .to_string()
 }
 
 fn validate_terminal_settings(mut settings: TerminalSettings) -> Result<TerminalSettings, String> {
@@ -3762,6 +3869,129 @@ mod tests {
         assert!(!reloaded.allow_clipboard_read);
         assert!(reloaded.minimize_to_tray);
         assert!(reloaded.last_backup_at.is_none());
+    }
+
+    #[test]
+    fn app_launcher_settings_round_trip_and_validation() {
+        let storage = Storage::open(temp_db_path("app-launcher-settings")).expect("storage opens");
+
+        let defaults = storage
+            .app_launcher_settings()
+            .expect("default app launcher settings load");
+        assert!(defaults.entries.is_empty());
+
+        let updated = storage
+            .update_app_launcher_settings(AppLauncherSettings {
+                entries: vec![
+                    AppLauncherEntry {
+                        id: " app-a ".to_string(),
+                        name: " Windows Terminal ".to_string(),
+                        path: " C:\\Program Files\\WindowsApps\\wt.exe ".to_string(),
+                        arguments: Some(" -p PowerShell ".to_string()),
+                        working_directory: Some(" C:\\Users ".to_string()),
+                        icon_data_url: Some(" data:image/png;base64,abc ".to_string()),
+                        rail_pinned: true,
+                        created_at: "2026-05-11T00:00:00Z".to_string(),
+                        updated_at: "2026-05-11T00:00:00Z".to_string(),
+                    },
+                    AppLauncherEntry {
+                        id: "app-a".to_string(),
+                        name: "Duplicate".to_string(),
+                        path: "C:\\Duplicate.exe".to_string(),
+                        arguments: None,
+                        working_directory: None,
+                        icon_data_url: None,
+                        rail_pinned: false,
+                        created_at: "2026-05-11T00:00:00Z".to_string(),
+                        updated_at: "2026-05-11T00:00:00Z".to_string(),
+                    },
+                    AppLauncherEntry {
+                        id: "app-b".to_string(),
+                        name: "  ".to_string(),
+                        path: " C:\\Tools\\tool.exe ".to_string(),
+                        arguments: Some("".to_string()),
+                        working_directory: Some("".to_string()),
+                        icon_data_url: Some("".to_string()),
+                        rail_pinned: false,
+                        created_at: "2026-05-11T00:00:00Z".to_string(),
+                        updated_at: "2026-05-11T00:00:00Z".to_string(),
+                    },
+                    AppLauncherEntry {
+                        id: "".to_string(),
+                        name: "Missing id".to_string(),
+                        path: "C:\\Missing.exe".to_string(),
+                        arguments: None,
+                        working_directory: None,
+                        icon_data_url: None,
+                        rail_pinned: false,
+                        created_at: "2026-05-11T00:00:00Z".to_string(),
+                        updated_at: "2026-05-11T00:00:00Z".to_string(),
+                    },
+                ],
+            })
+            .expect("app launcher settings update");
+
+        assert_eq!(updated.entries.len(), 2);
+        assert_eq!(updated.entries[0].id, "app-a");
+        assert_eq!(updated.entries[0].name, "Windows Terminal");
+        assert_eq!(
+            updated.entries[0].path,
+            "C:\\Program Files\\WindowsApps\\wt.exe"
+        );
+        assert_eq!(updated.entries[0].arguments.as_deref(), Some("-p PowerShell"));
+        assert_eq!(updated.entries[0].working_directory.as_deref(), Some("C:\\Users"));
+        assert_eq!(updated.entries[0].icon_data_url.as_deref(), Some("data:image/png;base64,abc"));
+        assert!(updated.entries[0].rail_pinned);
+        assert_eq!(updated.entries[1].name, "tool");
+        assert_eq!(updated.entries[1].path, "C:\\Tools\\tool.exe");
+        assert!(updated.entries[1].arguments.is_none());
+        assert!(updated.entries[1].working_directory.is_none());
+        assert!(updated.entries[1].icon_data_url.is_none());
+
+        let reloaded = storage
+            .app_launcher_settings()
+            .expect("app launcher settings reload");
+        assert_eq!(reloaded.entries.len(), 2);
+        assert_eq!(reloaded.entries[0].id, "app-a");
+        assert_eq!(reloaded.entries[1].id, "app-b");
+    }
+
+    #[test]
+    fn database_backup_import_restores_app_launcher_settings() {
+        let db_path = temp_db_path("database-export-import-app-launcher");
+        let storage = Storage::open(db_path).expect("storage opens");
+        storage
+            .update_app_launcher_settings(AppLauncherSettings {
+                entries: vec![AppLauncherEntry {
+                    id: "launcher-entry".to_string(),
+                    name: "Portable Tool".to_string(),
+                    path: "Z:\\missing\\tool.exe".to_string(),
+                    arguments: None,
+                    working_directory: None,
+                    icon_data_url: None,
+                    rail_pinned: true,
+                    created_at: "2026-05-11T00:00:00Z".to_string(),
+                    updated_at: "2026-05-11T00:00:00Z".to_string(),
+                }],
+            })
+            .expect("app launcher settings update");
+
+        let backup = storage.backup_database().expect("database backup succeeds");
+        storage
+            .update_app_launcher_settings(AppLauncherSettings { entries: Vec::new() })
+            .expect("app launcher settings changes after export");
+
+        let imported = storage
+            .import_database_zip(PathBuf::from(&backup.path))
+            .expect("database imports");
+
+        assert_eq!(imported.app_launcher_settings.entries.len(), 1);
+        assert_eq!(imported.app_launcher_settings.entries[0].id, "launcher-entry");
+        assert_eq!(
+            imported.app_launcher_settings.entries[0].path,
+            "Z:\\missing\\tool.exe"
+        );
+        assert!(imported.app_launcher_settings.entries[0].rail_pinned);
     }
 
     #[test]

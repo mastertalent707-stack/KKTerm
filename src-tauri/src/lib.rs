@@ -1,4 +1,5 @@
 mod ai;
+mod app_launcher;
 mod app_tray;
 mod diagnostics;
 mod import;
@@ -373,6 +374,36 @@ fn update_general_settings(
     tray_state.set_minimize_to_tray(saved.minimize_to_tray());
     webviews.set_clipboard_read_allowed(saved.allow_clipboard_read());
     Ok(saved)
+}
+
+#[tauri::command]
+fn get_app_launcher_settings(
+    storage: tauri::State<'_, storage::Storage>,
+) -> Result<storage::AppLauncherSettings, String> {
+    storage.app_launcher_settings()
+}
+
+#[tauri::command]
+fn update_app_launcher_settings(
+    storage: tauri::State<'_, storage::Storage>,
+    request: storage::AppLauncherSettings,
+) -> Result<storage::AppLauncherSettings, String> {
+    storage.update_app_launcher_settings(request)
+}
+
+#[tauri::command]
+fn prepare_app_launcher_entry(
+    request: app_launcher::PrepareAppLauncherEntryRequest,
+) -> app_launcher::PreparedAppLauncherEntry {
+    app_launcher::prepare_entry(request)
+}
+
+#[tauri::command]
+fn launch_app_launcher_entry(
+    app: tauri::AppHandle,
+    request: app_launcher::LaunchAppLauncherEntryRequest,
+) -> Result<(), String> {
+    app_launcher::launch_entry(app, request)
 }
 
 #[tauri::command]
@@ -1541,6 +1572,10 @@ pub fn run() {
             clear_url_data_partition,
             get_general_settings,
             update_general_settings,
+            get_app_launcher_settings,
+            update_app_launcher_settings,
+            prepare_app_launcher_entry,
+            launch_app_launcher_entry,
             import_settings_database,
             backup_settings_database,
             get_database_folder,
