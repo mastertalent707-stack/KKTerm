@@ -5,8 +5,11 @@ import { writeToClipboard } from "../lib/clipboard";
 import {
   Bot,
   Camera,
+  ChevronDown,
+  ChevronRight,
   Copy,
   FileImage,
+  LoaderCircle,
   PanelRight,
   Plus,
   RefreshCw,
@@ -62,12 +65,17 @@ type AssistantChatMessage = {
   intent?: AssistantPromptIntent;
   createdAt: string;
   toolCalls?: AssistantToolCallStatus[];
+  workStartedAt?: string;
+  workCompletedAt?: string;
   isStreaming?: boolean;
 };
 
 type AssistantToolCallStatus = {
   toolId: string;
   toolName: string;
+  status: "running" | "completed";
+  startedAt: string;
+  endedAt?: string;
 };
 
 type AssistantChatThread = {
@@ -114,14 +122,6 @@ type ScreenshotRegionState = {
 const ASSISTANT_IMAGE_MAX_EDGE = 1280;
 const ASSISTANT_IMAGE_JPEG_QUALITY = 0.72;
 const ASSISTANT_FILE_MAX_BYTES = 10 * 1024 * 1024;
-
-function randomAssistantWaitingPhrase() {
-  const phrases = i18next.t("ai.waitingPhrases", { returnObjects: true }) as readonly string[];
-  if (!Array.isArray(phrases) || phrases.length === 0) {
-    return i18next.t("ai.chargingBeacon");
-  }
-  return phrases[Math.floor(Math.random() * phrases.length)] ?? i18next.t("ai.chargingBeacon");
-}
 
 function createAssistantChatMessage(
   role: AssistantChatMessage["role"],
@@ -469,8 +469,41 @@ function normalizeAssistantChatMessage(value: unknown): AssistantChatMessage[] {
           ? candidate.intent
           : undefined,
       createdAt: normalizeDateString(candidate.createdAt) ?? new Date().toISOString(),
+      toolCalls: normalizeAssistantToolCalls(candidate.toolCalls),
+      workStartedAt: normalizeDateString(candidate.workStartedAt),
+      workCompletedAt: normalizeDateString(candidate.workCompletedAt),
     },
   ];
+}
+
+function normalizeAssistantToolCalls(value: unknown): AssistantToolCallStatus[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const calls: AssistantToolCallStatus[] = value.flatMap((item) => {
+    if (!item || typeof item !== "object") {
+      return [];
+    }
+    const candidate = item as Partial<AssistantToolCallStatus>;
+    if (
+      typeof candidate.toolId !== "string" ||
+      !candidate.toolId ||
+      typeof candidate.toolName !== "string" ||
+      !candidate.toolName
+    ) {
+      return [];
+    }
+    return [
+      {
+        toolId: candidate.toolId,
+        toolName: candidate.toolName,
+        status: candidate.status === "running" ? "running" : "completed",
+        startedAt: normalizeDateString(candidate.startedAt) ?? new Date().toISOString(),
+        endedAt: normalizeDateString(candidate.endedAt),
+      },
+    ];
+  });
+  return calls.length > 0 ? calls : undefined;
 }
 
 function normalizeDateString(value: unknown) {
@@ -517,8 +550,6 @@ export function AssistantPanel({
   const [chatError, setChatError] = useState("");
   const [isSendingPrompt, setIsSendingPrompt] = useState(false);
   const [assistantIntent, setAssistantIntent] = useState<AssistantPromptIntent>("chat");
-  const [waitingPhrase, setWaitingPhrase] = useState("");
-  const [waitingDots, setWaitingDots] = useState(0);
   const [addContextMenuOpen, setAddContextMenuOpen] = useState(false);
   const [pastedImageContexts, setPastedImageContexts] = useState<AssistantImageAttachment[]>([]);
   const [fileContexts, setFileContexts] = useState<AssistantFileAttachment[]>([]);
@@ -607,35 +638,6 @@ export function AssistantPanel({
   }, [currentModelSupportsImageInput]);
 
   useEffect(() => {
-    if (!isSendingPrompt) {
-      setWaitingDots(0);
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      setWaitingDots((current) => (current + 1) % 4);
-    }, 300);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [isSendingPrompt]);
-
-  useEffect(() => {
-    if (!isSendingPrompt) {
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      setWaitingPhrase(randomAssistantWaitingPhrase());
-    }, 3000);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [isSendingPrompt]);
-
-  useEffect(() => {
     if (!addContextMenuOpen) {
       return;
     }
@@ -691,8 +693,6 @@ export function AssistantPanel({
 
     activeAssistantRequestIdRef.current += 1;
     setIsSendingPrompt(false);
-    setWaitingPhrase("");
-    setWaitingDots(0);
     setChatError("");
     window.requestAnimationFrame(() => {
       composerTextareaRef.current?.focus();
@@ -709,7 +709,6 @@ export function AssistantPanel({
     setCurrentThreadTitle(undefined);
     setPrompt("");
     setChatError("");
-    setWaitingPhrase("");
     setPastedImageContexts([]);
     setFileContexts([]);
     setImagePasteRejected(false);
@@ -750,7 +749,6 @@ export function AssistantPanel({
     setMessages(thread.messages);
     setPrompt("");
     setChatError("");
-    setWaitingPhrase("");
     setPastedImageContexts([]);
     setFileContexts([]);
     setImagePasteRejected(false);
@@ -766,7 +764,6 @@ export function AssistantPanel({
       setCurrentThreadTitle(undefined);
       setPrompt("");
       setChatError("");
-      setWaitingPhrase("");
       setPastedImageContexts([]);
       setFileContexts([]);
       setImagePasteRejected(false);
@@ -1020,10 +1017,10 @@ export function AssistantPanel({
       clearAssistantContextSnippet();
     }
     setChatError("");
-    setWaitingPhrase(randomAssistantWaitingPhrase());
     setIsSendingPrompt(true);
     const requestId = activeAssistantRequestIdRef.current + 1;
     activeAssistantRequestIdRef.current = requestId;
+    const workStartedAt = new Date().toISOString();
     let threadTitle = fallbackTitle;
     try {
       if (isFirstThreadMessage) {
@@ -1049,6 +1046,8 @@ export function AssistantPanel({
         requestIntent,
       );
       streamingMessage.isStreaming = true;
+      streamingMessage.workStartedAt = workStartedAt;
+      let streamingMessageSnapshot = streamingMessage;
       const messagesWithStreaming = [...nextMessages, streamingMessage];
       setMessages(messagesWithStreaming);
 
@@ -1072,27 +1071,48 @@ export function AssistantPanel({
               msg.content += event.delta;
               break;
             case "toolCallStart":
+              msg.workStartedAt = msg.workStartedAt ?? workStartedAt;
               msg.toolCalls = [
-                ...(msg.toolCalls ?? []),
-                { toolId: event.toolId, toolName: event.toolName },
+                ...(msg.toolCalls ?? []).filter((tc) => tc.toolId !== event.toolId),
+                {
+                  toolId: event.toolId,
+                  toolName: event.toolName,
+                  status: "running",
+                  startedAt: new Date().toISOString(),
+                },
               ];
               break;
             case "toolCallEnd":
-              msg.toolCalls = (msg.toolCalls ?? []).filter(
-                (tc) => tc.toolId !== event.toolId,
+              msg.toolCalls = (msg.toolCalls ?? []).map((tc) =>
+                tc.toolId === event.toolId
+                  ? {
+                      ...tc,
+                      toolName: event.toolName,
+                      status: "completed",
+                      endedAt: new Date().toISOString(),
+                    }
+                  : tc,
               );
               break;
             case "done":
               msg.isStreaming = false;
+              msg.workCompletedAt = new Date().toISOString();
+              msg.toolCalls = (msg.toolCalls ?? []).map((tc) =>
+                tc.status === "running"
+                  ? { ...tc, status: "completed", endedAt: new Date().toISOString() }
+                  : tc,
+              );
               break;
             case "error":
               msg.isStreaming = false;
+              msg.workCompletedAt = new Date().toISOString();
               if (!msg.content) {
                 msg.content = `${t("ai.errorPrefix")}: ${event.message}`;
               }
               break;
           }
           updated[lastIndex] = msg;
+          streamingMessageSnapshot = msg;
           return updated;
         });
       };
@@ -1123,22 +1143,21 @@ export function AssistantPanel({
         return;
       }
 
-      setMessages((current) => {
-        const updated = [...current];
-        const lastIndex = updated.length - 1;
-        if (lastIndex >= 0) {
-          updated[lastIndex] = { ...updated[lastIndex], isStreaming: false };
-        }
-        return updated;
-      });
-      saveChatMessages(
-        messagesWithStreaming.map((m) =>
-          m.id === streamingMessage.id
-            ? { ...m, isStreaming: false }
-            : m,
+      const completedAt = new Date().toISOString();
+      streamingMessageSnapshot = {
+        ...streamingMessageSnapshot,
+        isStreaming: false,
+        workCompletedAt: completedAt,
+        toolCalls: (streamingMessageSnapshot.toolCalls ?? []).map((tc) =>
+          tc.status === "running" ? { ...tc, status: "completed", endedAt: completedAt } : tc,
         ),
-        threadTitle,
+      };
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === streamingMessage.id ? streamingMessageSnapshot : message,
+        ),
       );
+      saveChatMessages([...nextMessages, streamingMessageSnapshot], threadTitle);
     } catch (error) {
       if (activeAssistantRequestIdRef.current !== requestId) {
         return;
@@ -1155,7 +1174,6 @@ export function AssistantPanel({
     } finally {
       if (activeAssistantRequestIdRef.current === requestId) {
         setIsSendingPrompt(false);
-        setWaitingPhrase("");
       }
     }
   }
@@ -1380,6 +1398,9 @@ export function AssistantPanel({
     return () => window.cancelAnimationFrame(frame);
   }, [screenshotRegionState]);
 
+  const shouldShowPreStreamWaiting =
+    isSendingPrompt && !messages.some((message) => message.role === "assistant" && message.isStreaming);
+
   return (
     <aside className="assistant-panel">
       <div className="assistant-topbar">
@@ -1526,10 +1547,10 @@ export function AssistantPanel({
             onSendCode={handleSendCodeToTerminal}
           />
         ))}
-        {isSendingPrompt ? (
+        {shouldShowPreStreamWaiting ? (
           <article className="assistant-message assistant-waiting" aria-live="polite">
             <span className="assistant-spinner" aria-hidden="true" />
-            <span>{waitingPhrase || t("ai.chargingBeacon")}<span className="assistant-waiting-dots" aria-hidden="true">{".".repeat(waitingDots)}</span></span>
+            <span>{t("ai.preparingResponse")}</span>
           </article>
         ) : null}
       </div>
@@ -1859,22 +1880,7 @@ function AssistantMessageView({
               ))}
             </div>
           ) : null}
-          {message.role === "assistant" && message.reasoningContent ? (
-            <ThinkingBubble
-              content={message.reasoningContent}
-              isStreaming={message.isStreaming}
-            />
-          ) : null}
-          {message.role === "assistant" && message.toolCalls?.length ? (
-            <div className="assistant-tool-calls">
-              {message.toolCalls.map((tc) => (
-                <div className="assistant-tool-call" key={tc.toolId}>
-                  <span className="assistant-tool-call-spinner" />
-                  <span>{toolCallLabel(tc.toolName, t)}</span>
-                </div>
-              ))}
-            </div>
-          ) : null}
+          {message.role === "assistant" ? <AssistantWorkPanel message={message} /> : null}
           <MarkdownContent
             canSendCode={canSendCode}
             content={message.content}
@@ -1985,8 +1991,12 @@ async function waitForScreenshotSurface() {
   await new Promise<void>((resolve) => window.setTimeout(resolve, 90));
 }
 
-function toolCallLabel(toolName: string, t: ReturnType<typeof useTranslation>["t"]): string {
-  const labels: Record<string, string> = {
+function toolCallLabel(
+  toolName: string,
+  status: AssistantToolCallStatus["status"],
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
+  const runningLabels: Record<string, string> = {
     web_search: t("ai.toolWebSearch"),
     web_fetch: t("ai.toolWebFetch"),
     shell_command: t("ai.toolShellCommand"),
@@ -1994,46 +2004,108 @@ function toolCallLabel(toolName: string, t: ReturnType<typeof useTranslation>["t
     app_data_file_read: t("ai.toolFileRead"),
     current_time: t("ai.toolCurrentTime"),
   };
+  const completedLabels: Record<string, string> = {
+    web_search: t("ai.toolWebSearchDone"),
+    web_fetch: t("ai.toolWebFetchDone"),
+    shell_command: t("ai.toolShellCommandDone"),
+    app_data_file_search: t("ai.toolFileSearchDone"),
+    app_data_file_read: t("ai.toolFileReadDone"),
+    current_time: t("ai.toolCurrentTimeDone"),
+  };
+  const labels = status === "running" ? runningLabels : completedLabels;
   return labels[toolName] ?? toolName;
 }
 
-function ThinkingBubble({
-  content,
-  isStreaming,
-}: {
-  content: string;
-  isStreaming?: boolean;
-}) {
+function AssistantWorkPanel({ message }: { message: AssistantChatMessage }) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-  const isEmpty = !content.trim();
+  const [expanded, setExpanded] = useState(Boolean(message.isStreaming));
+  const reasoningContent = message.reasoningContent?.trim() ?? "";
+  const toolCalls = message.toolCalls ?? [];
+  const hasWork =
+    Boolean(message.workStartedAt) ||
+    Boolean(reasoningContent) ||
+    toolCalls.length > 0 ||
+    Boolean(message.isStreaming);
 
-  if (isEmpty) {
+  useEffect(() => {
+    setExpanded(Boolean(message.isStreaming));
+  }, [message.isStreaming]);
+
+  if (!hasWork) {
     return null;
   }
 
+  const duration =
+    message.workStartedAt && message.workCompletedAt
+      ? formatAssistantWorkDuration(message.workStartedAt, message.workCompletedAt, t)
+      : "";
+  const label = message.isStreaming
+    ? t("ai.working")
+    : t("ai.workedFor", { duration: duration || t("ai.workDurationUnderSecond") });
+  const thinkingStatus = message.isStreaming ? "running" : "completed";
+
   return (
-    <div className="assistant-thinking-bubble">
+    <section className="assistant-work-panel">
       <button
         aria-expanded={expanded}
-        className="assistant-thinking-toggle"
+        className="assistant-work-toggle"
         onClick={() => setExpanded((e) => !e)}
         type="button"
       >
-        <span className="assistant-thinking-indicator">
-          {isStreaming ? t("ai.thinking") : t("ai.thoughtFor")}
-        </span>
-        <span className="assistant-thinking-chevron">
-          {expanded ? "\u25B4" : "\u25BE"}
-        </span>
+        <span>{label}</span>
+        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
       </button>
       {expanded ? (
-        <div className="assistant-thinking-content">
-          {content}
+        <div className="assistant-work-timeline">
+          {reasoningContent || message.isStreaming ? (
+            <div className="assistant-work-step" data-state={thinkingStatus}>
+              <span className="assistant-work-step-icon" aria-hidden="true">
+                {message.isStreaming ? <LoaderCircle size={13} /> : null}
+              </span>
+              <div>
+                <strong>{t("ai.thinkingStep")}</strong>
+                {reasoningContent ? (
+                  <p className="assistant-work-reasoning">{reasoningContent}</p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          {toolCalls.map((toolCall) => (
+            <div className="assistant-work-step" data-state={toolCall.status} key={toolCall.toolId}>
+              <span className="assistant-work-step-icon" aria-hidden="true">
+                {toolCall.status === "running" ? <LoaderCircle size={13} /> : null}
+              </span>
+              <div>
+                <strong>{toolCallLabel(toolCall.toolName, toolCall.status, t)}</strong>
+                <small>
+                  {toolCall.status === "running" ? t("ai.toolCallRunning") : t("ai.toolCallComplete")}
+                </small>
+              </div>
+            </div>
+          ))}
         </div>
       ) : null}
-    </div>
+    </section>
   );
+}
+
+function formatAssistantWorkDuration(
+  startedAt: string,
+  completedAt: string,
+  t: ReturnType<typeof useTranslation>["t"],
+) {
+  const started = new Date(startedAt).getTime();
+  const completed = new Date(completedAt).getTime();
+  if (Number.isNaN(started) || Number.isNaN(completed) || completed <= started) {
+    return t("ai.workDurationUnderSecond");
+  }
+  const totalSeconds = Math.max(1, Math.round((completed - started) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes === 0) {
+    return t("ai.workDurationSeconds", { count: seconds });
+  }
+  return t("ai.workDurationMinutesSeconds", { minutes, seconds });
 }
 
 function MarkdownContent({
