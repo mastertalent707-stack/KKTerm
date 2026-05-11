@@ -26,6 +26,7 @@ import type {
   PerformanceSnapshot,
   RenameConnectionFolderRequest,
   RenameConnectionRequest,
+  RdpSettings,
   SecretPresence,
   SecretReferenceRequest,
   SftpSettings,
@@ -37,6 +38,7 @@ import type {
   UrlCredentialSummary,
   UrlDataPartitionSummary,
   UrlSettings,
+  VncSettings,
   CreateWikiPageRequest,
   DeleteWikiAttachmentRequest,
   MoveWikiPageRequest,
@@ -458,6 +460,7 @@ export interface StartRdpSessionRequest {
   y: number;
   width: number;
   height: number;
+  options?: RdpSettings;
 }
 
 export interface RdpSessionStarted {
@@ -533,6 +536,7 @@ export interface StartVncSessionRequest {
   port?: number;
   secretOwnerId?: string;
   password?: string;
+  options?: VncSettings;
 }
 
 export interface VncSessionStarted {
@@ -732,6 +736,22 @@ type CommandMap = {
   update_url_settings: {
     args: { request: UrlSettings };
     result: UrlSettings;
+  };
+  get_rdp_settings: {
+    args: undefined;
+    result: RdpSettings;
+  };
+  update_rdp_settings: {
+    args: { request: RdpSettings };
+    result: RdpSettings;
+  };
+  get_vnc_settings: {
+    args: undefined;
+    result: VncSettings;
+  };
+  update_vnc_settings: {
+    args: { request: VncSettings };
+    result: VncSettings;
   };
   get_ai_provider_settings: {
     args: undefined;
