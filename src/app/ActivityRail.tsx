@@ -1,13 +1,9 @@
 import {
-  AppWindow,
   Gauge,
   LayoutDashboard,
   Pin,
   PinOff,
-  Play,
-  Shield,
   Settings,
-  UserRound,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
@@ -16,15 +12,10 @@ import { ConnectionIcon } from "../connections/ConnectionIcon";
 import { flattenConnections } from "../connections/treeUtils";
 import { invokeCommand, isTauriRuntime } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
-import type { AppLauncherEntry, AppLauncherLaunchMode, Connection } from "../types";
-import {
-  isRunnablePath,
-  launchAppLauncherEntry,
-  loadAppLauncherSettings,
-} from "../app-launcher/storage";
+import type { Connection } from "../types";
 import { RailTooltip } from "./RailTooltip";
 
-export type ActivePage = "workspace" | "dashboard" | "appLauncher" | "settings";
+export type ActivePage = "workspace" | "dashboard" | "settings";
 
 type ConnectedRailItem = {
   connection: Connection;
@@ -47,12 +38,6 @@ type ConnectionRailDropTarget = {
 type RailConnectionMenuState = {
   connection: Connection;
   pinned: boolean;
-  x: number;
-  y: number;
-};
-
-type RailAppLauncherMenuState = {
-  entry: AppLauncherEntry;
   x: number;
   y: number;
 };
@@ -107,7 +92,6 @@ export function ActivityRail({
   const activateTab = useWorkspaceStore((state) => state.activateTab);
   const openConnection = useWorkspaceStore((state) => state.openConnection);
   const [savedConnections, setSavedConnections] = useState<Connection[]>([]);
-  const [appLauncherEntries, setAppLauncherEntries] = useState<AppLauncherEntry[]>([]);
   const [connectionRailOrder, setConnectionRailOrder] = useState(
     loadConnectionRailOrder,
   );
@@ -118,10 +102,7 @@ export function ActivityRail({
     useState<ConnectionRailDropTarget | null>(null);
   const [railConnectionMenu, setRailConnectionMenu] =
     useState<RailConnectionMenuState | null>(null);
-  const [railAppLauncherMenu, setRailAppLauncherMenu] =
-    useState<RailAppLauncherMenuState | null>(null);
   const railConnectionMenuRef = useRef<HTMLDivElement | null>(null);
-  const railAppLauncherMenuRef = useRef<HTMLDivElement | null>(null);
   const connectionRailDragRef = useRef<ConnectionRailDragState | null>(null);
   const connectionRailListRef = useRef<HTMLDivElement | null>(null);
   const suppressConnectionClickRef = useRef<string | null>(null);
@@ -153,35 +134,6 @@ export function ActivityRail({
     };
   }, []);
 
-  useEffect(() => {
-    let disposed = false;
-
-    async function loadLauncherEntries() {
-      try {
-        const launcherSettings = await loadAppLauncherSettings();
-        if (!disposed) {
-          setAppLauncherEntries(
-            launcherSettings.entries.filter((entry) => entry.railPinned),
-          );
-        }
-      } catch {
-        if (!disposed) {
-          setAppLauncherEntries([]);
-        }
-      }
-    }
-
-    void loadLauncherEntries();
-    const handleLauncherInvalidated = () => {
-      void loadLauncherEntries();
-    };
-    window.addEventListener("kkterm:app-launcher-invalidated", handleLauncherInvalidated);
-    return () => {
-      disposed = true;
-      window.removeEventListener("kkterm:app-launcher-invalidated", handleLauncherInvalidated);
-    };
-  }, []);
-
   function handleConnectionsClick() {
     if (activePage === "workspace") {
       onConnectionsToggle();
@@ -197,23 +149,6 @@ export function ActivityRail({
       return;
     }
     openConnection(item.connection);
-  }
-
-  async function handleRailLauncherClick(
-    entry: AppLauncherEntry,
-    mode: AppLauncherLaunchMode = "normal",
-  ) {
-    try {
-      await launchAppLauncherEntry(entry, mode);
-      showStatusBarNotice(t("appLauncher.launchStatus", { name: entry.name }), {
-        tone: "success",
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      showStatusBarNotice(t("appLauncher.launchError", { message }), {
-        tone: "error",
-      });
-    }
   }
 
   const activeTabConnectionId = useMemo(
@@ -490,30 +425,6 @@ export function ActivityRail({
     };
   }, [railConnectionMenu]);
 
-  useEffect(() => {
-    if (!railAppLauncherMenu) {
-      return;
-    }
-    function closeMenu(event: PointerEvent) {
-      const target = event.target as Node | null;
-      if (target && railAppLauncherMenuRef.current?.contains(target)) {
-        return;
-      }
-      setRailAppLauncherMenu(null);
-    }
-    function closeMenuOnKey(event: globalThis.KeyboardEvent) {
-      if (event.key === "Escape") {
-        setRailAppLauncherMenu(null);
-      }
-    }
-    window.addEventListener("pointerdown", closeMenu);
-    window.addEventListener("keydown", closeMenuOnKey);
-    return () => {
-      window.removeEventListener("pointerdown", closeMenu);
-      window.removeEventListener("keydown", closeMenuOnKey);
-    };
-  }, [railAppLauncherMenu]);
-
   useLayoutEffect(() => {
     const node = railConnectionMenuRef.current;
     if (!node || !railConnectionMenu) {
@@ -523,16 +434,6 @@ export function ActivityRail({
     node.style.left = `${Math.max(8, Math.min(railConnectionMenu.x, window.innerWidth - bounds.width - 8))}px`;
     node.style.top = `${Math.max(8, Math.min(railConnectionMenu.y, window.innerHeight - bounds.height - 8))}px`;
   }, [railConnectionMenu]);
-
-  useLayoutEffect(() => {
-    const node = railAppLauncherMenuRef.current;
-    if (!node || !railAppLauncherMenu) {
-      return;
-    }
-    const bounds = node.getBoundingClientRect();
-    node.style.left = `${Math.max(8, Math.min(railAppLauncherMenu.x, window.innerWidth - bounds.width - 8))}px`;
-    node.style.top = `${Math.max(8, Math.min(railAppLauncherMenu.y, window.innerHeight - bounds.height - 8))}px`;
-  }, [railAppLauncherMenu]);
 
   return (
     <nav className="activity-rail" aria-label={t("app.primaryNav")}>
@@ -554,45 +455,6 @@ export function ActivityRail({
         <Gauge size={18} />
         <RailTooltip label={t("dashboard.title")} />
       </button>
-      <button
-        className={`rail-button ${activePage === "appLauncher" ? "active" : ""}`}
-        aria-label={t("appLauncher.title")}
-        onClick={() => onNavigate("appLauncher")}
-      >
-        <AppWindow size={18} />
-        <RailTooltip label={t("appLauncher.title")} />
-      </button>
-      {appLauncherEntries.length > 0 ? (
-        <div
-          className="rail-app-launcher-shortcuts"
-          aria-label={t("appLauncher.railShortcutsLabel")}
-        >
-          {appLauncherEntries.map((entry) => (
-            <button
-              key={entry.id}
-              className="rail-button rail-button-app-launcher"
-              aria-label={t("appLauncher.launchApp", { name: entry.name })}
-              onClick={() => void handleRailLauncherClick(entry)}
-              onContextMenu={(event) => {
-                event.preventDefault();
-                setRailAppLauncherMenu({
-                  entry,
-                  x: event.clientX,
-                  y: event.clientY,
-                });
-              }}
-              type="button"
-            >
-              {entry.iconDataUrl ? (
-                <img alt="" className="rail-app-launcher-icon" src={entry.iconDataUrl} />
-              ) : (
-                <AppWindow size={18} />
-              )}
-              <RailTooltip label={entry.name} />
-            </button>
-          ))}
-        </div>
-      ) : null}
       {connectedRailItems.length > 0 ? (
         <div
           ref={connectionRailListRef}
@@ -687,56 +549,6 @@ export function ActivityRail({
           >
             {railConnectionMenu.pinned ? <PinOff size={14} /> : <Pin size={14} />}
             {t(railConnectionMenu.pinned ? "connections.unpinFromRail" : "connections.pinToRail")}
-          </button>
-        </div>
-      ) : null}
-      {railAppLauncherMenu ? (
-        <div
-          ref={railAppLauncherMenuRef}
-          className="terminal-menu rail-context-menu rail-app-launcher-menu"
-          onContextMenu={(event) => event.preventDefault()}
-          role="menu"
-        >
-          <button
-            className="terminal-menu-item"
-            onClick={() => {
-              const entry = railAppLauncherMenu.entry;
-              setRailAppLauncherMenu(null);
-              void handleRailLauncherClick(entry, "normal");
-            }}
-            role="menuitem"
-            type="button"
-          >
-            <Play size={14} />
-            {t("appLauncher.runNormal")}
-          </button>
-          <button
-            className="terminal-menu-item"
-            disabled={!isRunnablePath(railAppLauncherMenu.entry.path)}
-            onClick={() => {
-              const entry = railAppLauncherMenu.entry;
-              setRailAppLauncherMenu(null);
-              void handleRailLauncherClick(entry, "admin");
-            }}
-            role="menuitem"
-            type="button"
-          >
-            <Shield size={14} />
-            {t("appLauncher.runAdmin")}
-          </button>
-          <button
-            className="terminal-menu-item"
-            disabled={!isRunnablePath(railAppLauncherMenu.entry.path)}
-            onClick={() => {
-              const entry = railAppLauncherMenu.entry;
-              setRailAppLauncherMenu(null);
-              void handleRailLauncherClick(entry, "differentUser");
-            }}
-            role="menuitem"
-            type="button"
-          >
-            <UserRound size={14} />
-            {t("appLauncher.runAsUser")}
           </button>
         </div>
       ) : null}

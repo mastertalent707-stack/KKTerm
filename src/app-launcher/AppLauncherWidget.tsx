@@ -1,6 +1,5 @@
 import {
-  AlertTriangle,
-  MoreHorizontal,
+  AppWindow,
   Pencil,
   Play,
   Plus,
@@ -8,8 +7,9 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent, ReactNode, RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { FormEvent, KeyboardEvent, ReactNode, RefObject } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { selectAppLauncherFile, isTauriRuntime } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
@@ -34,7 +34,6 @@ type EntryDraft = {
   arguments: string;
   workingDirectory: string;
   iconDataUrl: string;
-  railPinned: boolean;
   createdAt: string;
 };
 
@@ -45,7 +44,7 @@ type MenuState = {
   y: number;
 };
 
-export function AppLauncherPage() {
+export function AppLauncherWidget() {
   const { t } = useTranslation();
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const [settings, setSettings] = useState<AppLauncherSettings>({ entries: [] });
@@ -123,7 +122,7 @@ export function AppLauncherPage() {
       }
       setMenuState(null);
     }
-    function closeMenuOnKey(event: KeyboardEvent) {
+    function closeMenuOnKey(event: globalThis.KeyboardEvent) {
       if (event.key === "Escape") {
         setMenuState(null);
       }
@@ -146,11 +145,6 @@ export function AppLauncherPage() {
     node.style.top = `${Math.max(8, Math.min(menuState.y, window.innerHeight - bounds.height - 8))}px`;
   }, [menuState]);
 
-  const railPinnedCount = useMemo(
-    () => settings.entries.filter((entry) => entry.railPinned).length,
-    [settings.entries],
-  );
-
   async function addEntry() {
     let selectedPath: string | null = null;
     if (isTauriRuntime()) {
@@ -172,7 +166,6 @@ export function AppLauncherPage() {
       arguments: "",
       workingDirectory: "",
       iconDataUrl: prepared?.iconDataUrl ?? "",
-      railPinned: false,
       createdAt: now,
     });
   }
@@ -185,7 +178,6 @@ export function AppLauncherPage() {
       arguments: entry.arguments ?? "",
       workingDirectory: entry.workingDirectory ?? "",
       iconDataUrl: entry.iconDataUrl ?? "",
-      railPinned: entry.railPinned,
       createdAt: entry.createdAt,
     });
   }
@@ -199,7 +191,7 @@ export function AppLauncherPage() {
       arguments: optionalText(draft.arguments),
       workingDirectory: optionalText(draft.workingDirectory),
       iconDataUrl: optionalText(draft.iconDataUrl),
-      railPinned: draft.railPinned,
+      railPinned: false,
       createdAt: draft.createdAt,
       updatedAt: now,
     };
@@ -256,159 +248,110 @@ export function AppLauncherPage() {
   }
 
   return (
-    <main className="app-launcher-page" aria-labelledby="app-launcher-title">
-      <header className="app-launcher-header">
-        <div>
-          <p className="panel-label">{t("appLauncher.moduleLabel")}</p>
-          <h1 id="app-launcher-title">{t("appLauncher.title")}</h1>
-          <p>{t("appLauncher.subtitle")}</p>
-        </div>
-        <button className="primary-button app-launcher-add" onClick={() => void addEntry()} type="button">
-          <Plus size={15} />
+    <div className="dashboard-widget-body app-launcher-widget">
+      <div className="app-launcher-widget-toolbar">
+        <span>{t("appLauncher.entriesLabel")}</span>
+        <button
+          className="secondary-button app-launcher-add"
+          onClick={() => void addEntry()}
+          type="button"
+        >
+          <Plus size={14} />
           {t("appLauncher.addApp")}
         </button>
-      </header>
-      <section className="app-launcher-summary" aria-label={t("appLauncher.summaryLabel")}>
-        <div>
-          <strong>{settings.entries.length}</strong>
-          <span>{t("appLauncher.pinnedApps")}</span>
-        </div>
-        <div>
-          <strong>{railPinnedCount}</strong>
-          <span>{t("appLauncher.railShortcuts")}</span>
-        </div>
-      </section>
+      </div>
       {settings.entries.length > 0 ? (
-        <section className="app-launcher-grid" aria-label={t("appLauncher.entriesLabel")}>
+        <div className="app-launcher-tile-grid" aria-label={t("appLauncher.entriesLabel")}>
           {settings.entries.map((entry) => (
-            <AppLauncherCard
+            <AppLauncherTile
               entry={entry}
               key={entry.id}
-              onEdit={editEntry}
               onLaunch={launch}
               onMenu={(nextMenu) => setMenuState(nextMenu)}
-              onRemove={removeEntry}
               prepared={preparedById[entry.id]}
             />
           ))}
-        </section>
+        </div>
       ) : (
-        <section className="app-launcher-empty">
-          <Plus size={26} />
-          <h2>{loading ? t("appLauncher.loading") : t("appLauncher.emptyTitle")}</h2>
+        <div className="app-launcher-widget-empty">
+          <AppWindow size={24} />
+          <h4>{loading ? t("appLauncher.loading") : t("appLauncher.emptyTitle")}</h4>
           <p>{t("appLauncher.emptyHint")}</p>
-        </section>
+        </div>
       )}
-      {dialogDraft ? (
-        <AppLauncherDialog
-          draft={dialogDraft}
-          onClose={() => setDialogDraft(null)}
-          onSave={saveDraft}
-          onUpdate={setDialogDraft}
-        />
-      ) : null}
-      {menuState ? (
-        <AppLauncherMenu
-          menuRef={menuRef}
-          onClose={() => setMenuState(null)}
-          onEdit={editEntry}
-          onLaunch={launch}
-          onRemove={removeEntry}
-          state={menuState}
-        />
-      ) : null}
-    </main>
+      {dialogDraft
+        ? createAppLauncherPortal(
+            <AppLauncherDialog
+              draft={dialogDraft}
+              onClose={() => setDialogDraft(null)}
+              onSave={saveDraft}
+              onUpdate={setDialogDraft}
+            />,
+          )
+        : null}
+      {menuState
+        ? createAppLauncherPortal(
+            <AppLauncherMenu
+              menuRef={menuRef}
+              onClose={() => setMenuState(null)}
+              onEdit={editEntry}
+              onLaunch={launch}
+              onRemove={removeEntry}
+              state={menuState}
+            />,
+          )
+        : null}
+    </div>
   );
 }
 
-function AppLauncherCard({
+function AppLauncherTile({
   entry,
-  onEdit,
   onLaunch,
   onMenu,
-  onRemove,
   prepared,
 }: {
   entry: AppLauncherEntry;
   prepared?: PreparedAppLauncherEntry;
-  onEdit: (entry: AppLauncherEntry) => void;
   onLaunch: (entry: AppLauncherEntry, mode: AppLauncherLaunchMode) => Promise<void>;
   onMenu: (state: MenuState) => void;
-  onRemove: (entry: AppLauncherEntry) => Promise<void>;
 }) {
   const { t } = useTranslation();
   const missing = prepared?.exists === false;
+
+  function openMenuFromElement(element: HTMLElement) {
+    const bounds = element.getBoundingClientRect();
+    onMenu({ entry, prepared, x: bounds.left, y: bounds.bottom + 4 });
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+      event.preventDefault();
+      openMenuFromElement(event.currentTarget);
+    }
+  }
+
   return (
-    <article
-      className={`app-launcher-card ${missing ? "missing" : ""}`}
+    <button
+      className={`app-launcher-tile ${missing ? "missing" : ""}`}
+      aria-label={t("appLauncher.launchApp", { name: entry.name })}
+      onClick={() => void onLaunch(entry, "normal")}
       onContextMenu={(event) => {
         event.preventDefault();
         onMenu({ entry, prepared, x: event.clientX, y: event.clientY });
       }}
+      onKeyDown={handleKeyDown}
+      type="button"
     >
-      <div className="app-launcher-card-icon">
+      <span className="app-launcher-tile-icon" aria-hidden="true">
         {entry.iconDataUrl || prepared?.iconDataUrl ? (
           <img alt="" src={entry.iconDataUrl ?? prepared?.iconDataUrl ?? undefined} />
         ) : (
-          <Play size={19} />
+          <AppWindow size={20} />
         )}
-      </div>
-      <div className="app-launcher-card-main">
-        <div>
-          <h2>{entry.name}</h2>
-          {entry.railPinned ? <span>{t("appLauncher.railPinned")}</span> : null}
-        </div>
-        <p>{entry.path}</p>
-        {entry.arguments ? <code>{entry.arguments}</code> : null}
-        {missing ? (
-          <div className="app-launcher-warning">
-            <AlertTriangle size={14} />
-            {t("appLauncher.missingPath")}
-          </div>
-        ) : null}
-      </div>
-      <div className="app-launcher-card-actions">
-        <button
-          className="icon-button"
-          aria-label={t("appLauncher.launchApp", { name: entry.name })}
-          onClick={() => void onLaunch(entry, "normal")}
-          type="button"
-        >
-          <Play size={15} />
-        </button>
-        <button
-          className="icon-button"
-          aria-label={t("appLauncher.editApp", { name: entry.name })}
-          onClick={() => onEdit(entry)}
-          type="button"
-        >
-          <Pencil size={15} />
-        </button>
-        <button
-          className="icon-button"
-          aria-label={t("appLauncher.moreActions", { name: entry.name })}
-          onClick={(event) =>
-            onMenu({
-              entry,
-              prepared,
-              x: event.currentTarget.getBoundingClientRect().left,
-              y: event.currentTarget.getBoundingClientRect().bottom + 4,
-            })
-          }
-          type="button"
-        >
-          <MoreHorizontal size={15} />
-        </button>
-        <button
-          className="icon-button danger"
-          aria-label={t("appLauncher.removeApp", { name: entry.name })}
-          onClick={() => void onRemove(entry)}
-          type="button"
-        >
-          <Trash2 size={15} />
-        </button>
-      </div>
-    </article>
+      </span>
+      <span className="app-launcher-tile-label">{entry.name}</span>
+    </button>
   );
 }
 
@@ -478,14 +421,6 @@ function AppLauncherDialog({
             value={draft.workingDirectory}
             onChange={(event) => onUpdate({ ...draft, workingDirectory: event.target.value })}
           />
-        </label>
-        <label className="app-launcher-checkbox">
-          <input
-            checked={draft.railPinned}
-            onChange={(event) => onUpdate({ ...draft, railPinned: event.target.checked })}
-            type="checkbox"
-          />
-          <span>{t("appLauncher.pinToRail")}</span>
         </label>
         <div className="app-launcher-dialog-actions">
           <button className="secondary-button" onClick={onClose} type="button">
@@ -605,4 +540,8 @@ function optionalText(value: string) {
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function createAppLauncherPortal(node: ReactNode) {
+  return typeof document === "undefined" ? node : createPortal(node, document.body);
 }

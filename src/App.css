@@ -456,24 +456,6 @@ button {
   border-top: 1px solid var(--nav-toolbar-tooltip-border);
 }
 
-.rail-app-launcher-shortcuts {
-  display: grid;
-  gap: 6px;
-  justify-items: center;
-  width: 100%;
-  padding-top: 6px;
-  margin-top: 2px;
-  border-top: 1px solid var(--nav-toolbar-tooltip-border);
-}
-
-.rail-button-app-launcher img,
-.rail-app-launcher-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  object-fit: cover;
-}
-
 .rail-button-connection .connection-icon-image {
   border-radius: 4px;
 }
@@ -1026,212 +1008,118 @@ button {
   z-index: 100;
 }
 
-.app-launcher-page {
-  position: relative;
-  grid-column: 2 / 5;
-  grid-row: 1;
-  z-index: 74;
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 14px;
+.app-launcher-widget {
   min-width: 0;
-  height: 100%;
-  overflow: hidden;
-  padding: 18px 20px;
-  background: var(--app-bg);
 }
 
-.app-launcher-header {
+.app-launcher-widget-toolbar {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   align-items: center;
   justify-content: space-between;
   min-width: 0;
 }
 
-.app-launcher-header > div {
+.app-launcher-widget-toolbar > span {
   min-width: 0;
-}
-
-.app-launcher-header h1 {
-  font-size: 24px;
-}
-
-.app-launcher-header p:not(.panel-label) {
-  max-width: 760px;
-  margin: 5px 0 0;
+  overflow: hidden;
   color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .app-launcher-add {
   display: inline-flex;
   flex: 0 0 auto;
-  gap: 7px;
+  gap: 6px;
   align-items: center;
+  height: 28px;
 }
 
-.app-launcher-summary {
-  display: flex;
-  gap: 10px;
-  min-width: 0;
+.app-launcher-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
 }
 
-.app-launcher-summary > div {
-  display: inline-flex;
-  gap: 7px;
-  align-items: baseline;
+.app-launcher-tile {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
   min-width: 0;
-  padding: 8px 10px;
+  min-height: 76px;
+  padding: 9px 7px;
+  color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 7px;
+  cursor: pointer;
 }
 
-.app-launcher-summary strong {
-  color: var(--text);
-  font-size: 18px;
+.app-launcher-tile:hover,
+.app-launcher-tile:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.app-launcher-summary span {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 800;
+.app-launcher-tile.missing {
+  border-color: var(--amber);
 }
 
-.app-launcher-grid {
+.app-launcher-tile-icon {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 10px;
-  min-height: 0;
-  overflow: auto;
-  padding-right: 3px;
-}
-
-.app-launcher-card {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: start;
-  min-width: 0;
-  padding: 11px;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--accent);
   background: var(--surface-muted);
   border: 1px solid var(--border);
   border-radius: 8px;
 }
 
-.app-launcher-card.missing {
-  border-color: var(--amber);
-}
-
-.app-launcher-card-icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  color: var(--accent);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.app-launcher-card-icon img {
-  width: 28px;
-  height: 28px;
+.app-launcher-tile-icon img {
+  width: 26px;
+  height: 26px;
   border-radius: 6px;
   object-fit: cover;
 }
 
-.app-launcher-card-main {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.app-launcher-card-main > div:first-child {
-  display: flex;
-  gap: 7px;
-  align-items: center;
-  min-width: 0;
-}
-
-.app-launcher-card h2 {
-  min-width: 0;
+.app-launcher-tile-label {
+  max-width: 100%;
   overflow: hidden;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
-}
-
-.app-launcher-card-main span {
-  flex: 0 0 auto;
-  padding: 2px 6px;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.app-launcher-card-main p,
-.app-launcher-card-main code {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-launcher-card-main p {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.app-launcher-card-main code {
-  color: var(--text);
-  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 11px;
-}
-
-.app-launcher-warning {
-  display: inline-flex;
-  gap: 5px;
-  align-items: center;
-  color: var(--amber);
   font-size: 12px;
   font-weight: 800;
 }
 
-.app-launcher-card-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.app-launcher-card-actions .icon-button {
-  width: 28px;
-  height: 28px;
-}
-
-.app-launcher-empty {
+.app-launcher-widget-empty {
   display: grid;
   place-items: center;
-  align-content: center;
-  gap: 8px;
-  min-height: 0;
+  gap: 6px;
+  min-height: 120px;
   color: var(--text-muted);
   text-align: center;
 }
 
-.app-launcher-empty h2,
-.app-launcher-empty p {
+.app-launcher-widget-empty h4,
+.app-launcher-widget-empty p {
   margin: 0;
 }
 
-.app-launcher-empty p {
-  max-width: 390px;
+.app-launcher-widget-empty h4 {
+  color: var(--text);
   font-size: 13px;
-  line-height: 1.4;
+}
+
+.app-launcher-widget-empty p {
+  max-width: 300px;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .app-launcher-dialog-backdrop {
@@ -2453,6 +2341,12 @@ h2 {
   border-radius: 7px;
   box-shadow: var(--shadow);
   padding: 4px 0;
+}
+
+.terminal-menu.app-launcher-menu {
+  position: fixed;
+  right: auto;
+  width: max-content;
 }
 
 .terminal-menu-item {

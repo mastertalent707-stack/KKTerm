@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AssistantPanel } from "./ai/AssistantPanel";
 import type { AssistantPageContext } from "./ai/AssistantPanel";
-import { AppLauncherPage } from "./app-launcher/AppLauncherPage";
 import { ActivityRail } from "./app/ActivityRail";
 import type { ActivePage } from "./app/ActivityRail";
 import {
@@ -118,7 +117,6 @@ function App() {
       {activePage === "dashboard" ? (
         <DashboardPage onAssistantContextChange={setDashboardAssistantContext} />
       ) : null}
-      {activePage === "appLauncher" ? <AppLauncherPage /> : null}
       <StatusBar activePage={activePage} />
     </div>
   );

@@ -4,6 +4,7 @@ export type DashboardWidgetKind =
   | "hashCalculator"
   | "subnetCalculator"
   | "quickTools"
+  | "appLauncher"
   | "report"
   | "agent";
 
@@ -78,6 +79,14 @@ export const DASHBOARD_BUILTIN_WIDGETS: DashboardWidgetDefinition[] = [
     category: "quick",
     titleKey: "dashboard.quickToolsTitle",
     summaryKey: "dashboard.quickToolsSummary",
+    createdBy: "builtIn",
+  },
+  {
+    id: "app-launcher",
+    kind: "appLauncher",
+    category: "quick",
+    titleKey: "appLauncher.title",
+    summaryKey: "appLauncher.subtitle",
     createdBy: "builtIn",
   },
   {

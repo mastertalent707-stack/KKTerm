@@ -14,6 +14,7 @@ import { AnimatePresence } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AssistantPageContext } from "../ai/AssistantPanel";
+import { AppLauncherWidget } from "../app-launcher/AppLauncherWidget";
 import { useWorkspaceStore } from "../store";
 import {
   DashboardMotionAside,
@@ -361,6 +362,7 @@ function DashboardWidgetCard({
       {widget.kind === "hashCalculator" ? <HashCalculatorWidget /> : null}
       {widget.kind === "subnetCalculator" ? <SubnetCalculatorWidget /> : null}
       {widget.kind === "quickTools" ? <QuickToolsWidget /> : null}
+      {widget.kind === "appLauncher" ? <AppLauncherWidget /> : null}
       {widget.kind === "report" || widget.kind === "agent" ? (
         <ReportWidget body={widget.body ?? t("dashboard.reportBody")} />
       ) : null}

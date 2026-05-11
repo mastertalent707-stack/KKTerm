@@ -50,6 +50,9 @@ export async function launchAppLauncherEntry(
   entry: AppLauncherEntry,
   mode: AppLauncherLaunchMode,
 ) {
+  if (!isTauriRuntime()) {
+    return;
+  }
   await invokeCommand("launch_app_launcher_entry", {
     request: {
       path: entry.path,

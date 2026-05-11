@@ -143,8 +143,6 @@ function renderModuleStatus(activePage: ActivePage, t: (key: string) => string) 
       return <WorkspaceHostMetrics t={t} />;
     case "dashboard":
       return <span className="status-bar-module-text">{t("dashboard.statusReady")}</span>;
-    case "appLauncher":
-      return <span className="status-bar-module-text">{t("appLauncher.statusReady")}</span>;
     case "settings":
       return null;
   }

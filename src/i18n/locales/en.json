@@ -115,7 +115,7 @@
   "appLauncher": {
     "title": "App Launcher",
     "moduleLabel": "Pinned desktop apps",
-    "subtitle": "Pin local apps, shortcuts, scripts, and files for quick launch from KKTerm.",
+    "subtitle": "Add local apps, shortcuts, scripts, and files for quick launch from a Dashboard widget.",
     "statusReady": "App Launcher pins are local.",
     "summaryLabel": "App Launcher summary",
     "pinnedApps": "Pinned apps",
@@ -127,7 +127,7 @@
     "fileFilter": "Apps, shortcuts, scripts, and files",
     "loading": "Loading apps",
     "emptyTitle": "No apps pinned",
-    "emptyHint": "Add a desktop app, shortcut, script, or file to launch it from this module.",
+    "emptyHint": "Add a desktop app, shortcut, script, or file to launch it from this widget.",
     "dialogLabel": "Launcher entry",
     "dialogTitle": "Edit launcher entry",
     "name": "Name",
