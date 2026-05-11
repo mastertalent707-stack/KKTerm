@@ -12,7 +12,7 @@ use std::{
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
 
-const SCHEMA_USER_VERSION: i32 = 8;
+const SCHEMA_USER_VERSION: i32 = 9;
 
 const CURRENT_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS connection_folders (
@@ -148,6 +148,45 @@ CREATE TABLE IF NOT EXISTS wiki_attachments (
 
 CREATE INDEX IF NOT EXISTS idx_wiki_attachments_page
     ON wiki_attachments(page_id);
+
+CREATE TABLE IF NOT EXISTS dashboard_views (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    grid_density TEXT NOT NULL DEFAULT 'default'
+        CHECK (grid_density IN ('compact', 'default', 'roomy'))
+);
+
+CREATE TABLE IF NOT EXISTS dashboard_custom_widgets (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL CHECK (kind IN ('content', 'script')),
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT '',
+    category TEXT NOT NULL DEFAULT 'custom',
+    body_json TEXT NOT NULL,
+    created_by TEXT NOT NULL CHECK (created_by IN ('user', 'agent')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS dashboard_widget_instances (
+    id TEXT PRIMARY KEY,
+    view_id TEXT NOT NULL REFERENCES dashboard_views(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL CHECK (kind IN ('builtIn', 'content', 'script')),
+    source_id TEXT NOT NULL,
+    preset TEXT NOT NULL,
+    accent_name TEXT NOT NULL,
+    icon_name TEXT NOT NULL,
+    custom_title TEXT,
+    grid_x INTEGER NOT NULL,
+    grid_y INTEGER NOT NULL,
+    grid_w INTEGER NOT NULL,
+    grid_h INTEGER NOT NULL,
+    sort_order INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_dashboard_widget_instances_view
+    ON dashboard_widget_instances(view_id, sort_order);
 "#;
 
 pub struct Storage {
