@@ -44,8 +44,28 @@ A frontend workspace container that presents one session or a set of related pan
 _Avoid_: Session, connection, backend tab
 
 **Dashboard Module**:
-A built-in activity-rail module that provides a dynamic widget playground. Users select from prebuilt widgets (hash calculators, IP subnet calculators, quick tools) or reports. The built-in AI Assistant and coding agents can create new widgets.
+A built-in activity-rail module that provides a dynamic widget playground. Users select from prebuilt widgets (hash calculators, IP subnet calculators, quick tools, maintenance report, App Launcher) or AI-authored custom widgets. The built-in AI Assistant and coding agents create new widgets through atomic Tauri commands; users customize each widget's visual preset, accent, icon, and title and arrange them on a 12-column drag-and-drop grid. See `docs/DASHBOARD.md` for the durable architecture.
 _Avoid_: landing page, overview
+
+**Dashboard View**:
+A durable SQLite-backed tab in the Dashboard module, stored in `dashboard_views`. Each View carries its own ordered set of Widget Instances and a `grid_density` (`compact` / `default` / `roomy`). The first View is named "Default" and is seeded on first run with one App Launcher Widget Instance. Views are not Sessions and not Connections.
+_Avoid_: dashboard page, tab, board
+
+**Dashboard Widget Instance**:
+A placed widget on a Dashboard View, stored in `dashboard_widget_instances`. Carries a `kind` (`builtIn` / `content` / `script`), a `source_id` resolving to a built-in registry entry or a Dashboard Custom Widget, presentation fields (`preset`, `accent_name`, `icon_name`, `custom_title`), and layout coordinates (`grid_x`, `grid_y`, `grid_w`, `grid_h`). Multiple Instances of the same source may coexist with different presets, accents, and sizes.
+_Avoid_: widget, tile, card
+
+**Dashboard Custom Widget**:
+An AI-authored widget definition stored in `dashboard_custom_widgets`. Has `kind` `content` (declarative JSON: markdown/kvList/checklist/stat) or `script` (JavaScript hosted inside an isolated `iframe srcdoc` with declared `network` and `pollSeconds` permissions). Authoring is AI-only in v1; users customize and remove Custom Widgets but do not create them through the UI.
+_Avoid_: plugin, extension, custom tile
+
+**Widget Preset**:
+One of nine visual chrome styles applied per Widget Instance: `panel`, `ambient`, `glass`, `tile`, `hero`, `mono`, `stack`, `action`, `band`. Presets are CSS wrappers that read the Instance's `--w-accent` / `--w-accent-soft` variables; presets do not encode their own palette.
+_Avoid_: theme, style, layout
+
+**Widget Kind**:
+One of `builtIn`, `content`, `script`. Determines the body rendering path: `builtIn` resolves to a TypeScript component in `src/dashboard/widgets/`; `content` renders declarative JSON; `script` mounts a JavaScript body inside an isolated `iframe srcdoc` host.
+_Avoid_: widget type, widget variant
 
 **Default Launch State**:
 The default landing view when no Sessions are open, showing recent Connections and a workspace overview. This replaces the old "Dashboard" concept that was the landing page.

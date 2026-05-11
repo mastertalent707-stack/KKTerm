@@ -40,6 +40,7 @@ Debug-only observability should use local debug logs, console output, or the dia
 
 - `src/settings/GeneralSettings.tsx` — Language (i18n) selector, Auto Backup toggle and last-backup status, connected Connection rail shortcut toggle, minimize-to-tray toggle, settings backup/import actions, database folder opener.
 - `src/settings/AppearanceSettings.tsx` — App UI font family, layout reset, Color Scheme placeholder.
+- `src/settings/DashboardSettings.tsx` — Dashboard-wide preferences: confirm before removing a widget, default landing view. Per-view grid density is owned by the view row and edited from the Dashboard topbar in edit mode, not here. The destructive "Reset Dashboard" action lives in General → Settings data, not in this section.
 - `src/settings/AiSettings.tsx` — AI provider kind, dynamic provider fields, provider-specific model selector, custom model ID input, API key, output language.
 - `src/settings/SshSettings.tsx` — SSH defaults, SSH terminal buffer behavior, SSH port redirect visibility, SSH OSC 52 clipboard policy, and SFTP transfer defaults summary.
 - `src/settings/TerminalSettings.tsx` — Local terminal font, size, line height, scrollback, cursor, default shell, and local terminal toggles. Do not put SSH-only terminal behavior here; SSH terminal behavior belongs in `SshSettings.tsx`.
@@ -79,6 +80,7 @@ Owns current SQLite schema initialization and repositories for:
 - recent sessions
 - non-secret AI provider metadata
 - non-secret SSH tmux launch preferences
+- dashboard views, widget instances, and AI-authored custom widget definitions (see `docs/DASHBOARD.md`)
 
 Secrets are never stored in SQLite.
 
@@ -200,6 +202,28 @@ Secrets boundary: imported passwords are not persisted into SQLite alongside the
 
 Out-of-scope vs. SSH config import: this importer does **not** parse `~/.ssh/config`. SSH config remains the responsibility of the SSH Config Importer described above; the two flows share no parser state.
 
+### Dashboard
+
+The Dashboard module is a built-in activity-rail destination that presents a 12-column drag-and-drop widget grid. Users select widgets from a catalog, customize their visual preset/accent/icon/title per instance, and arrange them freely; the AI Assistant can read the active dashboard and create, modify, or remove widgets through atomic Tauri commands.
+
+The full architecture lives in `docs/DASHBOARD.md`. Summary of the durable shape:
+
+- **Three widget kinds.** `builtIn` (TypeScript components in `src/dashboard/widgets/`, registered in `src/dashboard/registry/builtInRegistry.ts`), `content` (declarative JSON: markdown/kvList/checklist/stat), and `script` (JavaScript executed inside an isolated `iframe srcdoc` host with declared `network` / `pollSeconds` permissions). Built-in widgets ship with the app; `content` and `script` widgets are AI-authored in v1 and stored in `dashboard_custom_widgets`.
+- **Nine visual presets.** `panel`, `ambient`, `glass`, `tile`, `hero`, `mono`, `stack`, `action`, `band`. Each preset is a CSS chrome wrapper that reads the widget's `--w-accent` / `--w-accent-soft` variables; presets do not encode their own palette.
+- **Per-instance customization.** Each widget instance carries `preset`, `accent_name` (palette key, not hex), `icon_name` (curated lucide whitelist), and optional `custom_title`.
+- **Layout** uses `react-grid-layout` with `WidthProvider`, 12 columns, `compactType: 'vertical'`, drag handles restricted to preset headers, debounced batched layout writes through `dashboard_apply_layout`. Per-view `grid_density` (`compact` / `default` / `roomy`) is edited from the topbar in edit mode only.
+- **Persistence** uses three SQLite tables: `dashboard_views`, `dashboard_widget_instances`, `dashboard_custom_widgets`. View delete cascades to instances; custom widget delete cascades through Rust (conditional FK enforced manually). Fresh installs seed a Default view containing one App Launcher widget.
+- **AI Assistant integration** exposes every `dashboard_*` Tauri command as a registered assistant tool with a JSON schema gated by the existing approval flow. The Dashboard page-context payload sent through `onAssistantContextChange` includes a compact snapshot of the active view, its instances, and known custom widgets so the AI does not need an extra tool call to read state.
+- **Theming.** Dashboard chrome consumes existing app CSS variables only; per-widget accent is independent of the active color scheme so a purple widget stays purple across schemes.
+- **Script widget host** is a fault-isolation boundary, not a security boundary. KKTerm is MIT and single-user; the iframe exists so a typo in one widget cannot crash the dashboard and so future Tauri-command exposure is a deliberate per-handler postMessage decision.
+- **Settings → Dashboard** carries cross-widget app preferences (confirm-before-remove, default landing view). Destructive "Reset Dashboard" lives in General → Settings data, not in the Dashboard section.
+
+App Launcher is rendered as a `builtIn` widget hosted by Dashboard; its data model and management UI remain in `src/app-launcher/`. App Launcher is intentionally not a peer Activity Rail entry.
+
+The legacy widget bodies (hash, subnet, quick tools, maintenance report) render through the new preset chrome but keep their existing internals; they are slated for a follow-up redesign.
+
+When `docs/ARCHITECTURE.md` and `docs/DASHBOARD.md` conflict on Dashboard-internal concerns, `docs/DASHBOARD.md` wins.
+
 ### AI Assistant
 
 Owns provider adapters, prompt construction, command proposal, approval flow, command execution handoff, and output capture.
@@ -254,7 +278,7 @@ Default visual direction: quiet productivity light chrome with dark terminal pan
 
 Dashboard motion is centralized in `src/dashboard/motion.tsx` using `motion/react`. Dashboard surfaces should use those wrappers for entry, exit, hover, and layout transitions instead of local one-off animation props. Motion may animate opacity, transforms, scale, and layout only; colors, borders, shadows, and backgrounds must remain owned by CSS classes and the color-scheme variables in `src/App.css`. The Dashboard motion root uses user reduced-motion preferences, so new Dashboard animation should stay inside that root unless there is a product reason to opt out.
 
-The Dashboard module supports multiple local views. The first view is the default view; additional views are local UI state that group selected Dashboard widgets and reports without creating backend Sessions or saved Connections. Dashboard supplies the shared right AI Assistant panel with an active page-context summary for the current view, including selected widgets and report summaries. Keep that context separate from terminal selected-output context in the assistant request model. App Launcher belongs to Dashboard as a widget: users add the widget to a view, then add local app, shortcut, script, or file entries inside it. Each launcher entry should render as only an icon and text label in the widget surface; editing, removal, administrator launch, alternate-user launch, and other management actions must stay in an app-owned right-click context menu.
+The Dashboard module supports multiple views, each a durable SQLite-backed row in `dashboard_views` carrying its own widget instances and `grid_density`. The first view is named "Default" and is seeded on first run with one App Launcher widget. Views do not create backend Sessions or saved Connections. Dashboard supplies the shared right AI Assistant panel with an active page-context summary for the current view, including widget instances and known custom widgets; keep that context separate from terminal selected-output context in the assistant request model. App Launcher belongs to Dashboard as a widget: users add the widget to a view, then add local app, shortcut, script, or file entries inside it. Each launcher entry should render as only an icon and text label in the widget surface; editing, removal, administrator launch, alternate-user launch, and other management actions must stay in an app-owned right-click context menu. See `docs/DASHBOARD.md` for the durable Dashboard architecture, including the three widget kinds, the nine visual presets, drag-and-drop layout, and the AI-Assistant tool surface.
 
 The activity rail uses icons with delayed app-owned hover labels for built-in modules and connected Connection shortcuts. Rail labels are rendered through the shared `RailTooltip` helper in `src/app/RailTooltip.tsx`; do not add native `title` tooltips because they can appear beside the app tooltip in Tauri/WebView2. Rail tooltips use the same light native-style bordered popup treatment, and connected Connection shortcuts show an insertion separator while being reordered with pointer drag. Non-workspace module pages must stay inset from the 48px rail and below the rail stacking layer so rail hover/focus tooltips keep working when those pages are active. The built-in rail entries are Workspace, Dashboard, and File Explorer, followed by connected Connection shortcuts when enabled; Settings remains the bottom destination. App Launcher must not be reintroduced as a peer rail entry.
 
@@ -280,6 +304,22 @@ Workspace chrome layout is global state. Connection-specific live context may ch
 - `src/workspace/ScreenshotMenu.tsx` — screenshot menu, Region overlay, screenshot-to-clipboard, and screenshot-to-AI handoff.
 - `src/workspace/StatusBar.tsx` — bottom app-wide **Status Bar**. It remains visible across current and future modules/pages. The left segment is module-owned: Workspace renders low-frequency host usage metrics as plain icon-plus-value items with fixed-width numeric columns so the row does not shift as values change, while Settings renders no module status for now. The center segment is the universal notifications text area driven by `statusBarNotice`/`showStatusBarNotice`; all modules should use it for transient status and error notices. CPU, RAM, downstream transfer rate, and upstream transfer rate come from low-overhead direct Windows APIs. It should not grow back into a debug timing strip; detailed performance measurements belong in diagnostics, scripts, or explicit release-measurement workflows.
 - `src/workspace/nativeOverlay.ts` — shared overlay suppression detection for native HWND-backed surfaces; update this when a new DOM menu, dialog, or overlay needs to appear above WebView2 or RDP.
+- `src/dashboard/DashboardPage.tsx` — Dashboard shell: topbar, view pills, edit-mode toggle, per-view grid density control. Hosts `DashboardCanvas`.
+- `src/dashboard/state/dashboardStore.ts` — Zustand store: views, widget instances, custom widgets, `activeViewId`, `editMode`, AI-Assistant read projection. The single source of truth for in-memory Dashboard state.
+- `src/dashboard/state/persistence.ts` — typed Tauri command wrappers for every `dashboard_*` command.
+- `src/dashboard/registry/builtInRegistry.ts` — built-in widget registry; the one place to add a new built-in widget along with its default preset/accent/icon/size and Body component.
+- `src/dashboard/registry/presetRegistry.ts` — nine preset chrome components (Panel, Ambient, Glass, Tile, Hero, Mono, Stack, Action, Band). Presets read `--w-accent` / `--w-accent-soft` set by `WidgetFrame`.
+- `src/dashboard/registry/palette.ts` — accent palette table and curated ~50-icon lucide whitelist used by the customize popover and the catalog.
+- `src/dashboard/view/DashboardCanvas.tsx` — `react-grid-layout` host. Owns drag/resize wiring and the debounced batched layout-save pipeline.
+- `src/dashboard/view/WidgetFrame.tsx` — preset chrome wrapper plus edit-mode controls (remove, customize). Sets inline accent CSS variables.
+- `src/dashboard/view/WidgetBody.tsx` — dispatcher: `builtIn` → registry lookup; `content` → `ContentWidgetRenderer`; `script` → `ScriptWidgetHost`.
+- `src/dashboard/widgets/` — one file per built-in widget body (`AppLauncherBody.tsx`, `HashBody.tsx`, `SubnetBody.tsx`, `QuickToolsBody.tsx`, `ReportBody.tsx`). `AppLauncherBody.tsx` delegates to `src/app-launcher/`.
+- `src/dashboard/content/ContentWidgetRenderer.tsx` — declarative `content`-kind renderer; switches over `shape: 'markdown' | 'kvList' | 'checklist' | 'stat'`.
+- `src/dashboard/script/ScriptWidgetHost.tsx` — `iframe srcdoc` host for `script`-kind widgets. Wires the postMessage bridge and applies declared permissions through CSP.
+- `src/dashboard/script/permissions.ts` — script-kind capability validation shared with the Rust validator surface.
+- `src/dashboard/edit/CatalogOverlay.tsx` — "Add widget" modal with search, category tabs, and thumbnail cards.
+- `src/dashboard/edit/CustomizePopover.tsx` — per-instance editor: preset row, accent palette, icon picker, title input, collapsible Advanced section per kind.
+- `src/dashboard/motion.tsx` — centralized motion wrappers for Dashboard surfaces; per the motion rule above.
 - `src/terminal/TerminalWorkspace.tsx` — terminal workspace, split layout view, pane host, tmux session tag/popover, terminal context menu, SSH tmux inspection helpers.
 - `src/terminal/renderer.ts` — renderer abstraction and xterm/WebGL renderer implementation.
 - `src/sftp/SftpWorkspace.tsx` — SFTP dual-pane browser, file panes, transfers, overwrite conflicts, context menu, properties popup.
