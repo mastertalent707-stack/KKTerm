@@ -39,7 +39,7 @@ export function CustomizePopover({ instance, anchorRect, onClose }: CustomizePop
   return (
     <div ref={ref} className="dw-customize" style={{ top, left }}>
       <section>
-        <h4>{t("dashboard.preset")}</h4>
+        <h4>{t("dashboard.presetLabel")}</h4>
         <div className="dw-preset-picker">
           {WIDGET_PRESETS.map((p) => (
             <button

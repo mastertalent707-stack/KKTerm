@@ -1,5 +1,5 @@
 import { Edit3, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AssistantPageContext } from "../ai/AssistantPanel";
 import { CatalogOverlay } from "./edit/CatalogOverlay";
@@ -8,6 +8,21 @@ import "./dashboard.css";
 import { useDashboardStore } from "./state/dashboardStore";
 import type { DashboardWidgetInstance, GridDensity } from "./types";
 import { DashboardCanvas } from "./view/DashboardCanvas";
+
+const SETTINGS_KEY = "kkterm.dashboard.settings";
+
+function readDefaultLandingView(): string {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { defaultLandingView?: string };
+      return parsed.defaultLandingView ?? "lastActive";
+    }
+  } catch {
+    // ignore
+  }
+  return "lastActive";
+}
 
 export function DashboardPage({
   onAssistantContextChange,
@@ -32,10 +47,21 @@ export function DashboardPage({
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [customize, setCustomize] = useState<{ instance: DashboardWidgetInstance; rect: DOMRect } | null>(null);
   const [editingViewId, setEditingViewId] = useState<string | null>(null);
+  const appliedLandingPref = useRef(false);
 
   useEffect(() => {
     if (!ready) void load();
   }, [ready, load]);
+
+  useEffect(() => {
+    if (!ready || views.length === 0 || appliedLandingPref.current) return;
+    appliedLandingPref.current = true;
+    const pref = readDefaultLandingView();
+    if (pref !== "lastActive") {
+      const target = views.find((v) => v.id === pref);
+      if (target) setActiveView(target.id);
+    }
+  }, [ready, views, setActiveView]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

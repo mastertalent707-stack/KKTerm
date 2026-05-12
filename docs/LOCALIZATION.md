@@ -25,7 +25,17 @@ No pending strings — all keys are translated across all 14 supported locales.
 | `dashboard.catalogSearch` | Search widgets… | dashboard | src/dashboard/edit/CatalogOverlay.tsx | placeholder | Widget catalog search input | neutral | none |
 | `dashboard.catalogAll` | All | dashboard | src/dashboard/edit/CatalogOverlay.tsx | label | Widget catalog category filter — all | neutral | none |
 | `dashboard.catalogNoMatches` | No widgets match. | dashboard | src/dashboard/edit/CatalogOverlay.tsx | status | Widget catalog empty search result | neutral | none |
-| `dashboard.preset` | Preset | dashboard | src/dashboard/edit/CustomizePopover.tsx | heading | Widget customize popover preset section | neutral | none |
+| `dashboard.presetLabel` | Style preset | dashboard | src/dashboard/edit/CustomizePopover.tsx | heading | Widget customize popover preset section heading | neutral | none |
+| `dashboard.preset.panel` | Panel | dashboard | src/dashboard/edit/CustomizePopover.tsx | label | Widget style preset option — panel chrome | neutral | none |
+| `dashboard.preset.ambient` | Ambient | dashboard | src/dashboard/edit/CustomizePopover.tsx | label | Widget style preset option — ambient/minimal chrome | neutral | none |
+| `dashboard.preset.glass` | Glass | dashboard | src/dashboard/edit/CustomizePopover.tsx | label | Widget style preset option — frosted glass chrome | neutral | none |
+| `dashboard.preset.tile` | Tile | dashboard | src/dashboard/edit/CustomizePopover.tsx | label | Widget style preset option — tile chrome | neutral | none |
+| `dashboard.preset.hero` | Hero | dashboard | src/dashboard/edit/CustomizePopover.tsx | label | Widget style preset option — hero/large chrome | neutral | none |
+| `dashboard.preset.mono` | Mono | dashboard | src/dashboard/edit/CustomizePopover.tsx | label | Widget style preset option — monochrome chrome | neutral | none |
+| `dashboard.preset.stack` | Stack | dashboard | src/dashboard/edit/CustomizePopover.tsx | label | Widget style preset option — stacked layout chrome | neutral | none |
+| `dashboard.preset.action` | Action | dashboard | src/dashboard/edit/CustomizePopover.tsx | label | Widget style preset option — action/CTA chrome | neutral | none |
+| `dashboard.preset.band` | Band | dashboard | src/dashboard/edit/CustomizePopover.tsx | label | Widget style preset option — band/stripe chrome | neutral | none |
+| `dashboard.removeConfirmHint` | Click again to remove | dashboard | src/dashboard/view/WidgetFrame.tsx | label | Remove widget button — second-click confirmation prompt shown when confirmRemove setting is on | imperative | none |
 | `dashboard.accent` | Accent | dashboard | src/dashboard/edit/CustomizePopover.tsx | heading | Widget customize popover accent section | neutral | none |
 | `dashboard.icon` | Icon | dashboard | src/dashboard/edit/CustomizePopover.tsx | heading | Widget customize popover icon section | neutral | none |
 | `dashboard.titlePlaceholder` | Custom title… | dashboard | src/dashboard/edit/CustomizePopover.tsx | placeholder | Widget customize title input | neutral | none |

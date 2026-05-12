@@ -1,6 +1,7 @@
-import { Settings as SettingsIcon, X as XIcon } from "lucide-react";
+import { Check as CheckIcon, Settings as SettingsIcon, X as XIcon } from "lucide-react";
 import * as Icons from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDashboardStore } from "../state/dashboardStore";
 import { getBuiltInWidget } from "../registry/builtInRegistry";
@@ -8,6 +9,21 @@ import { PRESET_RENDERERS } from "../registry/presetRegistry";
 import { resolveAccent } from "../registry/palette";
 import type { DashboardWidgetInstance } from "../types";
 import { WidgetBody } from "./WidgetBody";
+
+const SETTINGS_KEY = "kkterm.dashboard.settings";
+
+function readConfirmRemove(): boolean {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { confirmRemove?: boolean };
+      return parsed.confirmRemove ?? true;
+    }
+  } catch {
+    // ignore
+  }
+  return true;
+}
 
 export interface WidgetFrameProps {
   instance: DashboardWidgetInstance;
@@ -19,6 +35,8 @@ export function WidgetFrame({ instance, onCustomize }: WidgetFrameProps) {
   const editMode = useDashboardStore((s) => s.editMode);
   const removeInstance = useDashboardStore((s) => s.removeInstance);
   const customWidgets = useDashboardStore((s) => s.customWidgets);
+  const [confirming, setConfirming] = useState(false);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const accent = resolveAccent(instance.accentName);
   const Render = PRESET_RENDERERS[instance.preset];
@@ -35,6 +53,28 @@ export function WidgetFrame({ instance, onCustomize }: WidgetFrameProps) {
 
   const IconCmp = (Icons as unknown as Record<string, React.ComponentType<{ width?: number; height?: number }>>)[instance.iconName] ?? Icons.Hash;
 
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    };
+  }, []);
+
+  function handleRemoveClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!readConfirmRemove()) {
+      void removeInstance(instance.id);
+      return;
+    }
+    if (confirming) {
+      if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+      setConfirming(false);
+      void removeInstance(instance.id);
+    } else {
+      setConfirming(true);
+      confirmTimerRef.current = setTimeout(() => setConfirming(false), 3000);
+    }
+  }
+
   const controls: ReactNode = (
     <span className="dw-controls">
       <button
@@ -46,12 +86,12 @@ export function WidgetFrame({ instance, onCustomize }: WidgetFrameProps) {
         <SettingsIcon width={12} height={12} />
       </button>
       <button
-        className="dw-ctrl danger"
-        onClick={(e) => { e.stopPropagation(); void removeInstance(instance.id); }}
-        aria-label={t("dashboard.removeWidget")}
-        title={t("dashboard.removeWidget")}
+        className={`dw-ctrl danger${confirming ? " confirming" : ""}`}
+        onClick={handleRemoveClick}
+        aria-label={confirming ? t("dashboard.removeConfirmHint") : t("dashboard.removeWidget")}
+        title={confirming ? t("dashboard.removeConfirmHint") : t("dashboard.removeWidget")}
       >
-        <XIcon width={12} height={12} />
+        {confirming ? <CheckIcon width={12} height={12} /> : <XIcon width={12} height={12} />}
       </button>
     </span>
   );
