@@ -12,7 +12,7 @@ use std::{
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
 
-const SCHEMA_USER_VERSION: i32 = 8;
+const SCHEMA_USER_VERSION: i32 = 9;
 
 const CURRENT_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS connection_folders (
@@ -148,6 +148,45 @@ CREATE TABLE IF NOT EXISTS wiki_attachments (
 
 CREATE INDEX IF NOT EXISTS idx_wiki_attachments_page
     ON wiki_attachments(page_id);
+
+CREATE TABLE IF NOT EXISTS dashboard_views (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    grid_density TEXT NOT NULL DEFAULT 'default'
+        CHECK (grid_density IN ('compact', 'default', 'roomy'))
+);
+
+CREATE TABLE IF NOT EXISTS dashboard_custom_widgets (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL CHECK (kind IN ('content', 'script')),
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT '',
+    category TEXT NOT NULL DEFAULT 'custom',
+    body_json TEXT NOT NULL,
+    created_by TEXT NOT NULL CHECK (created_by IN ('user', 'agent')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS dashboard_widget_instances (
+    id TEXT PRIMARY KEY,
+    view_id TEXT NOT NULL REFERENCES dashboard_views(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL CHECK (kind IN ('builtIn', 'content', 'script')),
+    source_id TEXT NOT NULL,
+    preset TEXT NOT NULL,
+    accent_name TEXT NOT NULL,
+    icon_name TEXT NOT NULL,
+    custom_title TEXT,
+    grid_x INTEGER NOT NULL,
+    grid_y INTEGER NOT NULL,
+    grid_w INTEGER NOT NULL,
+    grid_h INTEGER NOT NULL,
+    sort_order INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_dashboard_widget_instances_view
+    ON dashboard_widget_instances(view_id, sort_order);
 "#;
 
 pub struct Storage {
@@ -340,6 +379,8 @@ pub struct AiAssistantToolSettings {
     app_data_file_read: bool,
     #[serde(default = "default_ai_current_time_tool_enabled")]
     current_time: bool,
+    #[serde(default)]
+    dashboard: bool,
 }
 
 impl AiAssistantToolSettings {
@@ -361,6 +402,9 @@ impl AiAssistantToolSettings {
     pub(crate) fn current_time(&self) -> bool {
         self.current_time
     }
+    pub(crate) fn dashboard(&self) -> bool {
+        self.dashboard
+    }
     pub(crate) fn any_enabled(&self) -> bool {
         self.web_search
             || self.web_fetch
@@ -368,6 +412,7 @@ impl AiAssistantToolSettings {
             || self.app_data_file_search
             || self.app_data_file_read
             || self.current_time
+            || self.dashboard
     }
 }
 
@@ -1283,6 +1328,20 @@ impl Storage {
 
     fn initialize_schema(&self) -> Result<(), String> {
         let connection = self.lock()?;
+        let stored_version: i32 = connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .map_err(to_storage_error)?;
+        if stored_version < SCHEMA_USER_VERSION {
+            connection
+                .execute_batch(
+                    r#"
+                    DROP TABLE IF EXISTS dashboard_widget_instances;
+                    DROP TABLE IF EXISTS dashboard_custom_widgets;
+                    DROP TABLE IF EXISTS dashboard_views;
+                "#,
+                )
+                .map_err(to_storage_error)?;
+        }
         connection
             .execute_batch(CURRENT_SCHEMA)
             .map_err(to_storage_error)?;
@@ -1291,6 +1350,8 @@ impl Storage {
         connection
             .execute_batch(&format!("PRAGMA user_version = {SCHEMA_USER_VERSION}"))
             .map_err(to_storage_error)?;
+        crate::dashboard_storage::seed_default(&connection)
+            .map_err(|err| format!("dashboard seed failed: {err:?}"))?;
         Ok(())
     }
 
@@ -2080,6 +2141,14 @@ impl Storage {
     ) -> Result<R, String> {
         let mut connection = self.lock()?;
         body(&mut connection)
+    }
+
+    pub fn with_connection_infallible<R>(
+        &self,
+        f: impl FnOnce(&rusqlite::Connection) -> R,
+    ) -> R {
+        let conn = self.connection.lock().expect("dashboard storage mutex poisoned");
+        f(&*conn)
     }
 }
 
@@ -3126,6 +3195,7 @@ fn default_ai_assistant_tool_settings() -> AiAssistantToolSettings {
         app_data_file_search: false,
         app_data_file_read: false,
         current_time: default_ai_current_time_tool_enabled(),
+        dashboard: false,
     }
 }
 

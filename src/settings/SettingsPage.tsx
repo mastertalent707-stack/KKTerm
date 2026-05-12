@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Bot,
   Info,
+  LayoutDashboard,
   Monitor,
   Globe,
   Network,
@@ -16,6 +17,12 @@ import { AI_PROVIDER_SECRET_OWNER_ID } from "../lib/settings";
 import { AboutSettings } from "./AboutSettings";
 import { AiSettings } from "./AiSettings";
 import { AppearanceSettings } from "./AppearanceSettings";
+import {
+  DashboardSettings,
+  loadDashboardSettingsDraft,
+  saveDashboardSettingsDraft,
+} from "./DashboardSettings";
+import type { DashboardSettingsState } from "./DashboardSettings";
 import { GeneralSettings } from "./GeneralSettings";
 import { RdpSettings } from "./RdpSettings";
 import { SshSettings } from "./SshSettings";
@@ -28,6 +35,7 @@ export { AI_PROVIDER_SECRET_OWNER_ID };
 type SettingsSectionId =
   | "general-settings"
   | "appearance-settings"
+  | "dashboard-settings"
   | "assistant-settings"
   | "ssh-settings"
   | "terminal-settings"
@@ -46,6 +54,12 @@ export function SettingsPage({
   const { t } = useTranslation();
   const [activeSectionId, setActiveSectionId] =
     useState<SettingsSectionId>("general-settings");
+  const [dashboardDraft, setDashboardDraft] = useState<DashboardSettingsState>({
+    confirmRemove: true,
+    defaultLandingView: "lastActive",
+  });
+  useEffect(() => { void loadDashboardSettingsDraft().then(setDashboardDraft); }, []);
+  useEffect(() => { void saveDashboardSettingsDraft(dashboardDraft); }, [dashboardDraft]);
 
   return (
     <main className="settings-page">
@@ -77,6 +91,14 @@ export function SettingsPage({
           >
             <Palette size={16} />
             <span>{t("settings.sectionAppearance")}</span>
+          </button>
+          <button
+            className={settingsNavItemClass("dashboard-settings", activeSectionId)}
+            onClick={() => setActiveSectionId("dashboard-settings")}
+            type="button"
+          >
+            <LayoutDashboard size={16} />
+            <span>{t("settings.sectionDashboard")}</span>
           </button>
           <button
             className={settingsNavItemClass("assistant-settings", activeSectionId)}
@@ -140,6 +162,9 @@ export function SettingsPage({
           {activeSectionId === "general-settings" && <GeneralSettings />}
           {activeSectionId === "appearance-settings" && (
             <AppearanceSettings onResetLayout={onResetLayout} />
+          )}
+          {activeSectionId === "dashboard-settings" && (
+            <DashboardSettings draft={dashboardDraft} onChange={setDashboardDraft} />
           )}
           {activeSectionId === "assistant-settings" && <AiSettings />}
           {activeSectionId === "ssh-settings" && <SshSettings />}
