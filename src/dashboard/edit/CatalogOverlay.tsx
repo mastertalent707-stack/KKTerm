@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -29,8 +29,10 @@ export function CatalogOverlay({ viewId, onClose }: CatalogOverlayProps) {
   const customWidgets = useDashboardStore((s) => s.customWidgets);
   const instances = useDashboardStore((s) => s.instances);
   const addInstance = useDashboardStore((s) => s.addInstance);
+  const removeCustomWidget = useDashboardStore((s) => s.removeCustomWidget);
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState<(typeof CATALOG_GROUPS)[number]>("builtIn");
+  const [deleteTarget, setDeleteTarget] = useState<CatalogEntry | null>(null);
 
   const entries: CatalogEntry[] = useMemo(() => {
     const builtIns: CatalogEntry[] = BUILT_IN_WIDGETS.map((w) => ({
@@ -89,6 +91,12 @@ export function CatalogOverlay({ viewId, onClose }: CatalogOverlayProps) {
     onClose();
   }
 
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    await removeCustomWidget(deleteTarget.id, true);
+    setDeleteTarget(null);
+  }
+
   return (
     <div className="dw-catalog-backdrop" onClick={onClose}>
       <div className="dw-catalog" onClick={(e) => e.stopPropagation()}>
@@ -131,6 +139,27 @@ export function CatalogOverlay({ viewId, onClose }: CatalogOverlayProps) {
                   "--w-accent-soft": accent.soft,
                 } as CSSProperties}
               >
+                {entry.isCustom && (
+                  <span
+                    className="dw-catalog-delete"
+                    aria-label={t("dashboard.deleteCustomWidget", { name: entry.title })}
+                    title={t("dashboard.deleteCustomWidget", { name: entry.title })}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTarget(entry);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.stopPropagation();
+                        setDeleteTarget(entry);
+                      }
+                    }}
+                  >
+                    <X width={12} height={12} />
+                  </span>
+                )}
                 <span className="dw-catalog-thumb" data-preset={entry.defaultPreset} />
                 <h4>{entry.title}</h4>
                 <p>{entry.summary}</p>
@@ -144,6 +173,44 @@ export function CatalogOverlay({ viewId, onClose }: CatalogOverlayProps) {
           })}
           {visible.length === 0 && <p className="dw-empty">{t("dashboard.catalogNoMatches")}</p>}
         </div>
+        {deleteTarget && (
+          <div className="dw-catalog-confirm-backdrop" onClick={() => setDeleteTarget(null)} role="presentation">
+            <div
+              aria-label={t("dashboard.deleteCustomWidgetTitle")}
+              aria-modal="true"
+              className="connection-dialog dw-catalog-confirm-dialog"
+              role="dialog"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <header className="connection-dialog-header compact">
+                <div>
+                  <p className="panel-label">{t("dashboard.catalogGroupCustom")}</p>
+                  <h2>{t("dashboard.deleteCustomWidgetTitle")}</h2>
+                </div>
+              </header>
+              <p className="field-hint">
+                {t("dashboard.deleteCustomWidgetBody", { name: deleteTarget.title })}
+              </p>
+              <div className="dialog-actions">
+                <button
+                  className="secondary-button danger"
+                  onClick={() => void handleDeleteConfirm()}
+                  type="button"
+                >
+                  <Trash2 size={15} />
+                  {t("dashboard.deleteCustomWidgetConfirm")}
+                </button>
+                <button
+                  className="toolbar-button"
+                  onClick={() => setDeleteTarget(null)}
+                  type="button"
+                >
+                  {t("common.cancel")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

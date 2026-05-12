@@ -1151,6 +1151,35 @@ main.dashboard-page {
   text-transform: uppercase;
 }
 
+.dw-catalog-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 1;
+  transition:
+    color 100ms ease,
+    background 100ms ease,
+    border-color 100ms ease;
+}
+
+.dw-catalog-delete:hover,
+.dw-catalog-delete:focus-visible {
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+  border-color: color-mix(in srgb, var(--red) 25%, transparent);
+  outline: none;
+}
+
 .dw-badge {
   padding: 1px 5px;
   color: var(--accent);
@@ -1218,6 +1247,21 @@ main.dashboard-page {
   margin-block: 17px;
   background: var(--w-accent-soft);
   border-color: color-mix(in srgb, var(--w-accent) 30%, transparent);
+}
+
+.dw-catalog-confirm-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.34);
+  border-radius: 16px;
+}
+
+.dw-catalog-confirm-dialog {
+  width: min(420px, 100%);
 }
 
 .app-launcher-widget {
