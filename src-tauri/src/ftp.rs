@@ -609,10 +609,16 @@ async fn connect_and_login(
             (FtpTransport::Tls(secure), welcome)
         }
         (FtpProtocol::Ftps, FtpTlsMode::Implicit) => {
-            return Err(
-                "implicit FTPS (port 990) is not yet wired through this build; use explicit FTPS"
-                    .to_string(),
-            );
+            let connector = build_native_tls_connector(options.ignore_cert_errors)?;
+            let stream = AsyncNativeTlsFtpStream::connect_secure_implicit(
+                addr.as_str(),
+                connector,
+                host,
+            )
+            .await
+            .map_err(|e| format!("failed to connect to implicit FTPS server: {e}"))?;
+            let welcome = stream.get_welcome_msg().map(|s| s.to_string());
+            (FtpTransport::Tls(stream), welcome)
         }
         (FtpProtocol::Sftp, _) => {
             return Err("SFTP not handled by ftp.rs".to_string());

@@ -60,6 +60,9 @@ export function defaultPortForConnectionType(type: ConnectionType, sshSettings: 
   if (type === "telnet") {
     return 23;
   }
+  if (type === "ftp") {
+    return 21;
+  }
   return sshSettings.defaultPort;
 }
 
@@ -79,6 +82,8 @@ export function connectionTypeLabel(type: ConnectionType) {
       return i18next.t("connections.rdp");
     case "vnc":
       return i18next.t("connections.vnc");
+    case "ftp":
+      return i18next.t("connections.ftp");
   }
 }
 

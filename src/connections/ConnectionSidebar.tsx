@@ -1848,6 +1848,7 @@ function ConnectionDialog({
   const usesSshDefaults = connectionType === "ssh";
   const isTelnetConnection = connectionType === "telnet";
   const isSerialConnection = connectionType === "serial";
+  const isFtpConnection = connectionType === "ftp";
   const usesRemoteDesktopFields = connectionType
     ? isRemoteDesktopConnectionType(connectionType)
     : false;
@@ -1981,6 +1982,24 @@ function ConnectionDialog({
               ) as VncSettings["preferredEncoding"],
             }
           : undefined,
+      ftpOptions:
+        connectionType === "ftp"
+          ? {
+              protocol: String(form.get("ftpProtocol") ?? "ftp") as "sftp" | "ftp" | "ftps",
+              mode: String(form.get("ftpMode") ?? "passive") as "passive" | "active",
+              tlsMode:
+                form.get("ftpProtocol") === "ftps"
+                  ? (String(form.get("ftpTlsMode") ?? "explicit") as "explicit" | "implicit")
+                  : undefined,
+              transferType: String(form.get("ftpTransferType") ?? "binary") as
+                | "binary"
+                | "ascii",
+              utf8: form.get("ftpUtf8") === "on",
+              showHidden: form.get("ftpShowHidden") === "on",
+              ignoreCertErrors: form.get("ftpIgnoreCertErrors") === "on",
+              connectTimeoutSecs: 30,
+            }
+          : undefined,
       password:
         isTelnetConnection
           ? password
@@ -1988,7 +2007,9 @@ function ConnectionDialog({
           ? password
           : usesRemoteDesktopFields
             ? password || undefined
-            : undefined,
+            : isFtpConnection
+              ? password || undefined
+              : undefined,
       urlCredentialUsername:
         connectionType === "url"
           ? String(form.get("urlCredentialUsername") ?? "").trim() || undefined
@@ -2320,6 +2341,18 @@ function ConnectionDialog({
                         required={!isEditMode}
                       />
                     ) : null}
+                    {isFtpConnection ? (
+                      <PasswordField
+                        hasStoredSecret={isEditMode && hasStoredConnectionPassword}
+                        label={t("connections.password")}
+                        name="password"
+                        placeholder={
+                          isEditMode
+                            ? t("connections.leaveBlankPassword")
+                            : t("connections.storedInKeychain")
+                        }
+                      />
+                    ) : null}
                   </div>
                 )}
               </>
@@ -2423,6 +2456,80 @@ function ConnectionDialog({
                   <label className="connection-session-toggle">
                     <span>{t("settings.vncViewOnly")}</span>
                     <input name="vncViewOnly" type="checkbox" defaultChecked={initialConnection?.vncOptions?.viewOnly ?? vncSettings.viewOnly} />
+                  </label>
+                </div>
+              </fieldset>
+            ) : null}
+            {isFtpConnection ? (
+              <fieldset className="connection-session-fields">
+                <legend>{t("connections.ftpOptions")}</legend>
+                <div className="connection-option-fields">
+                  <label>
+                    <span>{t("connections.ftpProtocol")}</span>
+                    <select
+                      name="ftpProtocol"
+                      defaultValue={initialConnection?.ftpOptions?.protocol ?? "ftp"}
+                    >
+                      <option value="ftp">{t("connections.ftpProtocolFtp")}</option>
+                      <option value="ftps">{t("connections.ftpProtocolFtps")}</option>
+                      <option value="sftp">{t("connections.ftpProtocolSftp")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>{t("connections.ftpMode")}</span>
+                    <select
+                      name="ftpMode"
+                      defaultValue={initialConnection?.ftpOptions?.mode ?? "passive"}
+                    >
+                      <option value="passive">{t("connections.ftpModePassive")}</option>
+                      <option value="active">{t("connections.ftpModeActive")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>{t("connections.ftpTlsMode")}</span>
+                    <select
+                      name="ftpTlsMode"
+                      defaultValue={initialConnection?.ftpOptions?.tlsMode ?? "explicit"}
+                    >
+                      <option value="explicit">{t("connections.ftpTlsExplicit")}</option>
+                      <option value="implicit">{t("connections.ftpTlsImplicit")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>{t("connections.ftpTransferType")}</span>
+                    <select
+                      name="ftpTransferType"
+                      defaultValue={initialConnection?.ftpOptions?.transferType ?? "binary"}
+                    >
+                      <option value="binary">{t("connections.ftpTransferBinary")}</option>
+                      <option value="ascii">{t("connections.ftpTransferAscii")}</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="connection-session-fields">
+                  <label className="connection-session-toggle">
+                    <span>{t("connections.ftpUtf8")}</span>
+                    <input
+                      name="ftpUtf8"
+                      type="checkbox"
+                      defaultChecked={initialConnection?.ftpOptions?.utf8 ?? true}
+                    />
+                  </label>
+                  <label className="connection-session-toggle">
+                    <span>{t("connections.ftpShowHidden")}</span>
+                    <input
+                      name="ftpShowHidden"
+                      type="checkbox"
+                      defaultChecked={initialConnection?.ftpOptions?.showHidden ?? false}
+                    />
+                  </label>
+                  <label className="connection-session-toggle">
+                    <span>{t("connections.ftpIgnoreCertErrors")}</span>
+                    <input
+                      name="ftpIgnoreCertErrors"
+                      type="checkbox"
+                      defaultChecked={initialConnection?.ftpOptions?.ignoreCertErrors ?? false}
+                    />
                   </label>
                 </div>
               </fieldset>
