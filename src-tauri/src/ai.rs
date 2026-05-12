@@ -224,6 +224,8 @@ pub struct AgentRunRequest {
     prompt: String,
     context_label: String,
     intent: Option<String>,
+    #[serde(default = "default_agent_allow_tools")]
+    allow_tools: bool,
     selected_output: Option<String>,
     screenshot: Option<AgentScreenshotContext>,
     #[serde(default)]
@@ -234,6 +236,10 @@ pub struct AgentRunRequest {
     messages: Vec<AgentChatMessage>,
     output_language: Option<String>,
     page_context: Option<AgentPageContext>,
+}
+
+fn default_agent_allow_tools() -> bool {
+    true
 }
 
 #[derive(Debug, Serialize)]
@@ -795,7 +801,11 @@ impl OpenAiCompatibleProvider {
             request.output_language,
         );
         let client = reqwest::Client::new();
-        let tool_definitions = ai_tool_definitions(settings.tools());
+        let tool_definitions = if request.allow_tools {
+            ai_tool_definitions(settings.tools())
+        } else {
+            Vec::new()
+        };
         let app_data_dir = app
             .path()
             .app_data_dir()
@@ -952,7 +962,11 @@ impl OpenAiCompatibleProvider {
         );
         let mut input = responses_input_from_messages(messages, request.files);
         let client = reqwest::Client::new();
-        let tool_definitions = ai_tool_definitions(settings.tools());
+        let tool_definitions = if request.allow_tools {
+            ai_tool_definitions(settings.tools())
+        } else {
+            Vec::new()
+        };
         let app_data_dir = app
             .path()
             .app_data_dir()
@@ -1115,7 +1129,11 @@ impl OpenAiCompatibleProvider {
             request.output_language,
         );
         let client = reqwest::Client::new();
-        let tool_definitions = ai_tool_definitions(settings.tools());
+        let tool_definitions = if request.allow_tools {
+            ai_tool_definitions(settings.tools())
+        } else {
+            Vec::new()
+        };
         let app_data_dir = app
             .path()
             .app_data_dir()
@@ -1285,7 +1303,11 @@ impl OpenAiCompatibleProvider {
             request.output_language,
         );
         let client = reqwest::Client::new();
-        let tool_definitions = ai_tool_definitions(settings.tools());
+        let tool_definitions = if request.allow_tools {
+            ai_tool_definitions(settings.tools())
+        } else {
+            Vec::new()
+        };
         let app_data_dir = app
             .path()
             .app_data_dir()
@@ -1758,12 +1780,12 @@ fn ai_tool_definitions(settings: &AiAssistantToolSettings) -> Vec<OpenAiToolDefi
         tools.push(tool_definition(
             "dashboard_add_instance",
             "Add a widget instance to a Dashboard view at a specific grid position.",
-            json!({"type":"object","properties":{"viewId":{"type":"string"},"kind":{"type":"string","enum":["builtIn","content","script"]},"sourceId":{"type":"string"},"preset":{"type":"string","enum":["panel","ambient","glass","tile","hero","mono","stack","action","band"]},"accentName":{"type":"string"},"iconName":{"type":"string"},"gridX":{"type":"integer","minimum":0,"maximum":11},"gridY":{"type":"integer","minimum":0},"gridW":{"type":"integer","minimum":1,"maximum":12},"gridH":{"type":"integer","minimum":1}},"required":["viewId","kind","sourceId","preset","accentName","iconName","gridX","gridY","gridW","gridH"]}),
+            json!({"type":"object","properties":{"viewId":{"type":"string"},"kind":{"type":"string","enum":["builtIn","content","script"]},"sourceId":{"type":"string"},"preset":{"type":"string","enum":["panel","ambient","glass","tile","hero","mono","stack","action","band"]},"accentName":{"type":"string","enum":["blue","indigo","teal","green","amber","red","purple","pink","slate","cyan","orange","rose","emerald","sky"]},"iconName":{"type":"string","enum":["Hash","Network","Terminal","Server","Cpu","Activity","Bolt","Sun","Bell","Bot","Wrench","Folder","Clock","Doc","Cloud","Calendar","Database","Globe","Lock","Key","Mail","Mic","Monitor","Music","Package","Phone","Pin","Power","Printer","Radio","Search","Settings","Shield","ShoppingCart","Star","Tag","Tool","Trash","Truck","User","Users","Video","Volume","Watch","Wifi","Wind","Zap","Layers","List","Grid"]},"gridX":{"type":"integer","minimum":0,"maximum":11},"gridY":{"type":"integer","minimum":0},"gridW":{"type":"integer","minimum":1,"maximum":12},"gridH":{"type":"integer","minimum":1}},"required":["viewId","kind","sourceId","preset","accentName","iconName","gridX","gridY","gridW","gridH"]}),
         ));
         tools.push(tool_definition(
             "dashboard_update_instance",
             "Update a widget instance's preset, accent, icon, custom title, or grid position.",
-            json!({"type":"object","properties":{"id":{"type":"string"},"patch":{"type":"object","properties":{"preset":{"type":"string"},"accentName":{"type":"string"},"iconName":{"type":"string"},"customTitle":{"type":["string","null"]},"gridX":{"type":"integer"},"gridY":{"type":"integer"},"gridW":{"type":"integer"},"gridH":{"type":"integer"}}}},"required":["id","patch"]}),
+            json!({"type":"object","properties":{"id":{"type":"string"},"patch":{"type":"object","properties":{"preset":{"type":"string","enum":["panel","ambient","glass","tile","hero","mono","stack","action","band"]},"accentName":{"type":"string","enum":["blue","indigo","teal","green","amber","red","purple","pink","slate","cyan","orange","rose","emerald","sky"]},"iconName":{"type":"string","enum":["Hash","Network","Terminal","Server","Cpu","Activity","Bolt","Sun","Bell","Bot","Wrench","Folder","Clock","Doc","Cloud","Calendar","Database","Globe","Lock","Key","Mail","Mic","Monitor","Music","Package","Phone","Pin","Power","Printer","Radio","Search","Settings","Shield","ShoppingCart","Star","Tag","Tool","Trash","Truck","User","Users","Video","Volume","Watch","Wifi","Wind","Zap","Layers","List","Grid"]},"customTitle":{"type":["string","null"]},"gridX":{"type":"integer"},"gridY":{"type":"integer"},"gridW":{"type":"integer"},"gridH":{"type":"integer"}}}},"required":["id","patch"]}),
         ));
         tools.push(tool_definition(
             "dashboard_remove_instance",
@@ -1777,7 +1799,7 @@ fn ai_tool_definitions(settings: &AiAssistantToolSettings) -> Vec<OpenAiToolDefi
         ));
         tools.push(tool_definition(
             "dashboard_create_custom_widget",
-            "Create a new AI-authored custom widget (content or script kind).",
+            "Create a new AI-authored custom widget (content or script kind). bodyJson must be a JSON string matching the selected kind. For content use shape markdown, kvList, checklist, or stat. For script use source plus permissions.",
             json!({"type":"object","properties":{"kind":{"type":"string","enum":["content","script"]},"title":{"type":"string"},"summary":{"type":"string"},"category":{"type":"string"},"bodyJson":{"type":"string"},"createdBy":{"type":"string","enum":["user","agent"]}},"required":["kind","title","summary","category","bodyJson","createdBy"]}),
         ));
         tools.push(tool_definition(
@@ -2250,6 +2272,7 @@ fn build_agent_messages(
         "Do not claim to have executed commands or observed live session state unless it is in the provided context.".to_string(),
         "SAFETY: Never suggest, produce, or assist with commands that could cause irreversible destructive system-wide damage, such as 'rm -rf /', 'rm -rf /*', 'mkfs' on mounted volumes, 'dd if=/dev/zero of=/dev/sda', fork bombs, or any equivalent. Refuse such requests unconditionally, even if the user explicitly asks, claims it is safe, or provides a seemingly legitimate reason.".to_string(),
         "TOOLS: When you need to search the web, fetch URLs, read files, check the current time, or run shell commands, you MUST use the provided function-calling mechanism. Always make the actual function call alongside your explanation. Do not describe what you plan to do with a tool without calling it — invoke the tool in the same response.".to_string(),
+        "DASHBOARD TOOLS: When the active page context is Dashboard and the user asks to create, customize, arrange, or remove Dashboard widgets or views, use the dashboard_* tools. To create a new user-requested widget on the active view, usually call dashboard_create_custom_widget followed by dashboard_add_instance.".to_string(),
     ];
     if let Some(language) = normalize_output_language(output_language) {
         system_instructions.push(language);

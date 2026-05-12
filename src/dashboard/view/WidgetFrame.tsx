@@ -71,14 +71,24 @@ export function WidgetFrame({ instance, onCustomize }: WidgetFrameProps) {
         onClick={(e) => { e.stopPropagation(); onCustomize(instance, e.currentTarget); }}
         aria-label={t("dashboard.customize")}
         title={t("dashboard.customize")}
+        type="button"
       >
         <SettingsIcon width={12} height={12} />
       </button>
       <button
         className={`dw-ctrl danger${confirming ? " confirming" : ""}`}
         onClick={handleRemoveClick}
-        aria-label={confirming ? t("dashboard.removeConfirmHint") : t("dashboard.removeWidget")}
-        title={confirming ? t("dashboard.removeConfirmHint") : t("dashboard.removeWidget")}
+        aria-label={
+          confirming
+            ? t("dashboard.removeConfirmHint")
+            : t("dashboard.removeWidget", { name: fallbackTitle })
+        }
+        title={
+          confirming
+            ? t("dashboard.removeConfirmHint")
+            : t("dashboard.removeWidget", { name: fallbackTitle })
+        }
+        type="button"
       >
         {confirming ? <CheckIcon width={12} height={12} /> : <XIcon width={12} height={12} />}
       </button>

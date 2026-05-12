@@ -361,6 +361,7 @@ export interface AgentChatMessage {
   systemContext?: string;
   messages: AgentChatMessage[];
   outputLanguage?: string;
+  allowTools?: boolean;
 }
 
 export interface AgentRunResponse {

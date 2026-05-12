@@ -70,7 +70,11 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
     set({ loading: true });
     try {
       const state = await persistence.loadDashboardState();
-      const activeViewId = state.views[0]?.id ?? null;
+      const currentActiveViewId = get().activeViewId;
+      const activeViewId =
+        currentActiveViewId && state.views.some((view) => view.id === currentActiveViewId)
+          ? currentActiveViewId
+          : (state.views[0]?.id ?? null);
       set({ ...state, activeViewId, ready: true, loading: false, lastError: null });
     } catch (e) {
       set({ lastError: String(e), loading: false });

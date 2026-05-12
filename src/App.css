@@ -3589,6 +3589,12 @@ progress {
   border-color: var(--green);
 }
 
+.assistant-dashboard-tools-context {
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-color: var(--amber);
+}
+
 .assistant-setup-hint {
   display: flex;
   gap: 9px;

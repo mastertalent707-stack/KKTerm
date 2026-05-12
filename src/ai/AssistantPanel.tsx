@@ -40,6 +40,7 @@ import {
   validateAiProviderForChat,
 } from "./providers";
 import { useWorkspaceStore } from "../store";
+import { useDashboardStore } from "../dashboard/state/dashboardStore";
 import { getPaneRenderer, sendTextToRdpPane, writeInputToPane } from "../workspace/paneRegistry";
 import i18next from "../i18n/config";
 import { prepareAssistantTerminalInput } from "./terminalCommandSend";
@@ -121,6 +122,7 @@ type ScreenshotRegionState = {
 };
 
 export interface AssistantPageContext {
+  contextKind?: "dashboard";
   contextLabel: string;
   connectionLabel: string;
   sourceLabel: string;
@@ -596,6 +598,8 @@ export function AssistantPanel({
           text: pageContext.text,
         }
       : undefined;
+  const dashboardToolsEnabled =
+    pageContext?.contextKind === "dashboard" && Boolean(aiProviderSettings.tools?.dashboard);
   const providerDefinition = getAiProviderDefinition(aiProviderSettings.providerKind);
   const currentModel = aiProviderSettings.model || providerDefinition.defaultModel;
   const modelOptionIds = useMemo(
@@ -960,6 +964,7 @@ export function AssistantPanel({
         intent: requestIntent,
         messages: [],
         pageContext: pageContextPayload,
+        allowTools: false,
         outputLanguage: resolveAssistantOutputLanguage(aiProviderSettings.outputLanguage),
       },
     });
@@ -1091,6 +1096,9 @@ export function AssistantPanel({
       channel.onmessage = (event: AiStreamEvent) => {
         if (activeAssistantRequestIdRef.current !== requestId) {
           return;
+        }
+        if (event.type === "toolCallEnd" && isDashboardMutatingTool(event.toolName)) {
+          void useDashboardStore.getState().load();
         }
         setMessages((current) => {
           const lastIndex = current.length - 1;
@@ -1502,6 +1510,16 @@ export function AssistantPanel({
           <span>
             <strong>{t("ai.extensionDraft")}</strong>
             <small>{t("ai.extensionReviewOnly")}</small>
+          </span>
+        </div>
+      ) : null}
+
+      {pageContext?.contextKind === "dashboard" && !dashboardToolsEnabled ? (
+        <div className="assistant-context assistant-dashboard-tools-context">
+          <Bot size={16} />
+          <span>
+            <strong>{t("ai.dashboardToolsDisabledTitle")}</strong>
+            <small>{t("ai.dashboardToolsDisabledHint")}</small>
           </span>
         </div>
       ) : null}
@@ -2044,6 +2062,19 @@ function toolCallLabel(
     app_data_file_search: t("ai.toolFileSearch"),
     app_data_file_read: t("ai.toolFileRead"),
     current_time: t("ai.toolCurrentTime"),
+    dashboard_load_state: t("ai.toolDashboard"),
+    dashboard_create_view: t("ai.toolDashboard"),
+    dashboard_update_view: t("ai.toolDashboard"),
+    dashboard_remove_view: t("ai.toolDashboard"),
+    dashboard_reorder_views: t("ai.toolDashboard"),
+    dashboard_add_instance: t("ai.toolDashboard"),
+    dashboard_update_instance: t("ai.toolDashboard"),
+    dashboard_remove_instance: t("ai.toolDashboard"),
+    dashboard_apply_layout: t("ai.toolDashboard"),
+    dashboard_create_custom_widget: t("ai.toolDashboard"),
+    dashboard_update_custom_widget: t("ai.toolDashboard"),
+    dashboard_remove_custom_widget: t("ai.toolDashboard"),
+    dashboard_reset: t("ai.toolDashboard"),
   };
   const completedLabels: Record<string, string> = {
     web_search: t("ai.toolWebSearchDone"),
@@ -2052,9 +2083,26 @@ function toolCallLabel(
     app_data_file_search: t("ai.toolFileSearchDone"),
     app_data_file_read: t("ai.toolFileReadDone"),
     current_time: t("ai.toolCurrentTimeDone"),
+    dashboard_load_state: t("ai.toolDashboardDone"),
+    dashboard_create_view: t("ai.toolDashboardDone"),
+    dashboard_update_view: t("ai.toolDashboardDone"),
+    dashboard_remove_view: t("ai.toolDashboardDone"),
+    dashboard_reorder_views: t("ai.toolDashboardDone"),
+    dashboard_add_instance: t("ai.toolDashboardDone"),
+    dashboard_update_instance: t("ai.toolDashboardDone"),
+    dashboard_remove_instance: t("ai.toolDashboardDone"),
+    dashboard_apply_layout: t("ai.toolDashboardDone"),
+    dashboard_create_custom_widget: t("ai.toolDashboardDone"),
+    dashboard_update_custom_widget: t("ai.toolDashboardDone"),
+    dashboard_remove_custom_widget: t("ai.toolDashboardDone"),
+    dashboard_reset: t("ai.toolDashboardDone"),
   };
   const labels = status === "running" ? runningLabels : completedLabels;
   return labels[toolName] ?? toolName;
+}
+
+function isDashboardMutatingTool(toolName: string) {
+  return toolName.startsWith("dashboard_") && toolName !== "dashboard_load_state";
 }
 
 function AssistantWorkPanel({ message }: { message: AssistantChatMessage }) {

@@ -1,5 +1,5 @@
 import { Edit3, Plus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AssistantPageContext } from "../ai/AssistantPanel";
 import { useWorkspaceStore } from "../store";
@@ -60,24 +60,51 @@ export function DashboardPage({
   }, [editMode, toggleEditMode]);
 
   const activeView = views.find((v) => v.id === activeViewId) ?? views[0];
-  const viewInstances = activeView ? instances.filter((i) => i.viewId === activeView.id) : [];
+  const viewInstances = useMemo(
+    () => (activeView ? instances.filter((i) => i.viewId === activeView.id) : []),
+    [activeView, instances],
+  );
 
   useEffect(() => {
     if (!activeView) return;
-    const widgetLines = viewInstances.length > 0
-      ? viewInstances.map((i) => `- ${i.customTitle ?? i.sourceId} (${i.kind})`)
-      : [`- ${t("dashboard.emptyTitle")}: ${t("dashboard.emptyHint")}`];
+    const dashboardSnapshot = {
+      page: "dashboard",
+      activeView: {
+        id: activeView.id,
+        title: activeView.title,
+        gridDensity: activeView.gridDensity,
+      },
+      instances: viewInstances.map((instance) => ({
+        id: instance.id,
+        kind: instance.kind,
+        sourceId: instance.sourceId,
+        customTitle: instance.customTitle,
+        preset: instance.preset,
+        accentName: instance.accentName,
+        iconName: instance.iconName,
+        gridX: instance.gridX,
+        gridY: instance.gridY,
+        gridW: instance.gridW,
+        gridH: instance.gridH,
+      })),
+      customWidgets: customWidgets.map((widget) => ({
+        id: widget.id,
+        kind: widget.kind,
+        title: widget.title,
+        category: widget.category,
+      })),
+    };
     onAssistantContextChange({
+      contextKind: "dashboard",
       contextLabel: `${t("dashboard.title")} - ${activeView.title}`,
       connectionLabel: t("dashboard.assistantContextLabel"),
       sourceLabel: t("dashboard.assistantContextSource", { view: activeView.title }),
       text: [
-        `${t("dashboard.title")}: ${activeView.title}`,
         t("dashboard.assistantContextIntro"),
+        "For a user request to create a Dashboard widget, use dashboard_create_custom_widget first, then dashboard_add_instance with activeView.id.",
+        "Prefer content widgets for static notes, checklists, stats, and key/value summaries. Use script widgets only when live JavaScript behavior is needed.",
         "",
-        ...widgetLines,
-        "",
-        `customWidgets: ${customWidgets.map((c) => c.title).join(", ") || "none"}`,
+        JSON.stringify(dashboardSnapshot, null, 2),
       ].join("\n"),
     });
   }, [activeView, viewInstances, customWidgets, onAssistantContextChange, t]);
@@ -139,7 +166,7 @@ export function DashboardPage({
           <button
             className="dashboard-pill-add"
             onClick={async () => {
-              const newView = await createView(`View ${views.length + 1}`);
+              const newView = await createView(t("dashboard.newViewName", { count: views.length + 1 }));
               if (newView) setEditingViewId(newView.id);
             }}
           >
