@@ -8,6 +8,7 @@ import {
   defaultUrlSettings,
   defaultVncSettings,
   defaultGeneralSettings,
+  defaultDashboardSettings,
   defaultTerminalSettings,
   initialTabs,
 } from "./app-defaults";
@@ -36,6 +37,7 @@ import type {
   StoredConnectionLayout,
   TerminalPane,
   GeneralSettings,
+  DashboardSettings,
   TerminalSettings,
   TerminalStartMetric,
   WorkspacePane,
@@ -563,6 +565,7 @@ interface WorkspaceState {
   tabs: WorkspaceTab[];
   activeTabId: string;
   generalSettings: GeneralSettings;
+  dashboardSettings: DashboardSettings;
   terminalSettings: TerminalSettings;
   appearanceSettings: AppearanceSettings;
   sshSettings: SshSettings;
@@ -579,6 +582,7 @@ interface WorkspaceState {
   statusBarNotice?: StatusBarNotice;
   setQuery: (query: string) => void;
   setGeneralSettings: (settings: GeneralSettings) => void;
+  setDashboardSettings: (settings: DashboardSettings) => void;
   setTerminalSettings: (settings: TerminalSettings) => void;
   setAppearanceSettings: (settings: AppearanceSettings) => void;
   setSshSettings: (settings: SshSettings) => void;
@@ -646,6 +650,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   tabs: initialTabs,
   activeTabId: initialTabs[0]?.id ?? "",
   generalSettings: defaultGeneralSettings,
+  dashboardSettings: defaultDashboardSettings,
   terminalSettings: defaultTerminalSettings,
   appearanceSettings: defaultAppearanceSettings,
   sshSettings: defaultSshSettings,
@@ -662,6 +667,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   statusBarNotice: undefined,
   setQuery: (query) => set({ query }),
   setGeneralSettings: (generalSettings) => set({ generalSettings }),
+  setDashboardSettings: (dashboardSettings) => set({ dashboardSettings }),
   setTerminalSettings: (terminalSettings) => set({ terminalSettings }),
   setAppearanceSettings: (appearanceSettings) => set({ appearanceSettings }),
   setSshSettings: (sshSettings) => set({ sshSettings }),

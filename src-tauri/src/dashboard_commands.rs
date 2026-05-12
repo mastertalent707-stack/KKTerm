@@ -5,6 +5,7 @@ use crate::dashboard_storage::{
     self as ds, CustomWidgetPatch, DashboardCustomWidget, DashboardLoadState, DashboardView,
     DashboardWidgetInstance, InstancePatch, LayoutEntry, ViewPatch,
 };
+use crate::dashboard_ids::new_dashboard_id;
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -36,13 +37,6 @@ fn storage(app: &AppHandle) -> State<'_, crate::storage::Storage> {
     app.state::<crate::storage::Storage>()
 }
 
-fn new_id(prefix: &str) -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
-    format!("{}-{}", prefix, ts)
-}
-
 #[tauri::command]
 pub fn dashboard_load_state(app: AppHandle) -> Result<DashboardLoadState, DashboardCommandError> {
     storage(&app).with_connection_infallible(|conn| ds::load_state(conn).map_err(Into::into))
@@ -54,7 +48,7 @@ pub fn dashboard_create_view(
     title: String,
     grid_density: Option<String>,
 ) -> Result<DashboardView, DashboardCommandError> {
-    let id = new_id("view");
+    let id = new_dashboard_id("view");
     storage(&app).with_connection_infallible(|conn| {
         ds::create_view(conn, &id, &title, grid_density.as_deref()).map_err(Into::into)
     })
@@ -99,7 +93,7 @@ pub fn dashboard_add_instance(
     grid_w: i64,
     grid_h: i64,
 ) -> Result<DashboardWidgetInstance, DashboardCommandError> {
-    let id = new_id("inst");
+    let id = new_dashboard_id("inst");
     storage(&app).with_connection_infallible(|conn| {
         ds::add_instance(
             conn, &id, &view_id, &kind, &source_id,
@@ -145,7 +139,7 @@ pub fn dashboard_create_custom_widget(
     body_json: String,
     created_by: String,
 ) -> Result<DashboardCustomWidget, DashboardCommandError> {
-    let id = new_id("cw");
+    let id = new_dashboard_id("cw");
     storage(&app).with_connection_infallible(|conn| {
         ds::create_custom_widget(
             conn, &id, &kind, &title, &summary, &category, &body_json, &created_by,

@@ -192,6 +192,11 @@ export interface AppLauncherSettings {
   entries: AppLauncherEntry[];
 }
 
+export interface DashboardSettings {
+  confirmRemove: boolean;
+  defaultLandingView: string;
+}
+
 export interface PreparedAppLauncherEntry {
   name: string;
   path: string;
@@ -211,6 +216,7 @@ export interface ImportedDatabaseSnapshot {
   terminalSettings: TerminalSettings;
   appearanceSettings: AppearanceSettings;
   appLauncherSettings: AppLauncherSettings;
+  dashboardSettings: DashboardSettings;
   sshSettings: SshSettings;
   sftpSettings: SftpSettings;
   urlSettings: UrlSettings;

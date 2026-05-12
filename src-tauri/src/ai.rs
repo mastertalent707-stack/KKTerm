@@ -9,6 +9,7 @@ use futures::StreamExt;
 use tauri::ipc::Channel;
 use tauri::Manager;
 
+use crate::dashboard_ids::new_dashboard_id;
 use crate::dashboard_storage as ds;
 use crate::storage::{AiAssistantToolSettings, AiProviderSettings, Storage};
 
@@ -1983,15 +1984,6 @@ fn dashboard_tool(app: &tauri::AppHandle, name: &str, args: Value) -> String {
         Ok(v) => serde_json::to_string(&v).unwrap_or_else(|_| "{}".to_string()),
         Err(e) => format!("{{\"error\":\"{}\"}}", e.replace('"', "\\\"")),
     }
-}
-
-fn new_dashboard_id(prefix: &str) -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis())
-        .unwrap_or(0);
-    format!("{}-{}", prefix, ts)
 }
 
 fn current_time_tool() -> String {

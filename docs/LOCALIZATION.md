@@ -6,7 +6,7 @@ When a key is translated into every supported locale, remove its entry from this
 
 ## Pending Strings
 
-No pending strings — all keys are translated across all 14 supported locales.
+Pending strings are grouped by feature below.
 
 ## Dashboard redesign (2026-05-11)
 
@@ -45,6 +45,10 @@ No pending strings — all keys are translated across all 14 supported locales.
 | `dashboard.scriptPollSeconds` | Poll interval (seconds) | dashboard | src/dashboard/edit/CustomizePopover.tsx | label | Script widget poll interval input | neutral | none |
 | `dashboard.scriptViewSource` | View source | dashboard | src/dashboard/edit/CustomizePopover.tsx | label | Script widget view-source disclosure | neutral | none |
 | `dashboard.scriptInvalidBody` | Script body is not valid JSON. | dashboard | src/dashboard/edit/CustomizePopover.tsx | status | Script widget JSON validation error | neutral | none |
+| `dashboard.invalidScriptWidgetBody` | Script widget body is not valid JSON. | dashboard | src/dashboard/script/ScriptWidgetHost.tsx | error | Script widget render fallback when stored script JSON cannot be parsed | neutral | none |
+| `dashboard.invalidContentWidgetBody` | Content widget body is not valid JSON. | dashboard | src/dashboard/content/ContentWidgetRenderer.tsx | error | Content widget render fallback when stored content JSON cannot be parsed | neutral | none |
+| `dashboard.missingBuiltInWidget` | Missing built-in widget: {{sourceId}} | dashboard | src/dashboard/view/WidgetBody.tsx | error | Widget instance references a built-in registry id that no longer exists | neutral | `sourceId` is the stored widget source id |
+| `dashboard.missingCustomWidget` | Missing custom widget: {{sourceId}} | dashboard | src/dashboard/view/WidgetBody.tsx | error | Widget instance references a removed/missing custom widget id | neutral | `sourceId` is the stored widget source id |
 | `dashboard.untitledWidget` | Widget | dashboard | src/dashboard/view/WidgetFrame.tsx | label | Widget frame fallback title | neutral | none |
 | `dashboard.customize` | Customize widget | dashboard | src/dashboard/view/WidgetFrame.tsx | label | Widget frame customize button aria-label | imperative | none |
 | `dashboard.cidrInput` | CIDR block | dashboard | src/dashboard/widgets/SubnetBody.tsx | label | Subnet calculator CIDR input label | neutral | none |

@@ -1,12 +1,14 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { ContentBody } from "../types";
 
 export function ContentWidgetRenderer({ bodyJson }: { bodyJson: string }) {
+  const { t } = useTranslation();
   const parsed = useMemo<ContentBody | null>(() => {
     try { return JSON.parse(bodyJson) as ContentBody; } catch { return null; }
   }, [bodyJson]);
 
-  if (!parsed) return <div className="dw-content-error">Invalid content widget body.</div>;
+  if (!parsed) return <div className="dw-content-error">{t("dashboard.invalidContentWidgetBody")}</div>;
 
   switch (parsed.shape) {
     case "markdown":

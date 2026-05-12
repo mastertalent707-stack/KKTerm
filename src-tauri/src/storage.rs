@@ -235,6 +235,7 @@ pub struct ImportedDatabaseSnapshot {
     terminal_settings: TerminalSettings,
     appearance_settings: AppearanceSettings,
     app_launcher_settings: AppLauncherSettings,
+    dashboard_settings: DashboardSettings,
     ssh_settings: SshSettings,
     sftp_settings: SftpSettings,
     url_settings: UrlSettings,
@@ -265,6 +266,13 @@ pub struct TerminalSettings {
 #[serde(rename_all = "camelCase")]
 pub struct AppLauncherSettings {
     pub entries: Vec<AppLauncherEntry>,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DashboardSettings {
+    pub confirm_remove: bool,
+    pub default_landing_view: String,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -843,6 +851,7 @@ impl Storage {
             terminal_settings: self.terminal_settings()?,
             appearance_settings: self.appearance_settings()?,
             app_launcher_settings: self.app_launcher_settings()?,
+            dashboard_settings: self.dashboard_settings()?,
             ssh_settings: self.ssh_settings()?,
             sftp_settings: self.sftp_settings()?,
             url_settings: self.url_settings()?,
@@ -934,6 +943,46 @@ impl Storage {
             .execute(
                 "INSERT INTO settings (key, value, updated_at)
                  VALUES ('app_launcher', ?1, CURRENT_TIMESTAMP)
+                 ON CONFLICT(key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = CURRENT_TIMESTAMP",
+                params![value],
+            )
+            .map_err(to_storage_error)?;
+        Ok(settings)
+    }
+
+    pub fn dashboard_settings(&self) -> Result<DashboardSettings, String> {
+        let connection = self.lock()?;
+        let value = connection
+            .query_row(
+                "SELECT value FROM settings WHERE key = 'dashboard'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(to_storage_error)?;
+
+        match value {
+            Some(value) => serde_json::from_str(&value)
+                .map(validate_dashboard_settings)
+                .map_err(|error| format!("Dashboard settings are invalid: {error}"))?,
+            None => Ok(default_dashboard_settings()),
+        }
+    }
+
+    pub fn update_dashboard_settings(
+        &self,
+        request: DashboardSettings,
+    ) -> Result<DashboardSettings, String> {
+        let settings = validate_dashboard_settings(request)?;
+        let value = serde_json::to_string(&settings)
+            .map_err(|error| format!("failed to serialize Dashboard settings: {error}"))?;
+        let connection = self.lock()?;
+        connection
+            .execute(
+                "INSERT INTO settings (key, value, updated_at)
+                 VALUES ('dashboard', ?1, CURRENT_TIMESTAMP)
                  ON CONFLICT(key) DO UPDATE SET
                     value = excluded.value,
                     updated_at = CURRENT_TIMESTAMP",
@@ -2245,6 +2294,7 @@ fn validate_import_database(path: &Path) -> Result<(), String> {
     let storage = Storage::open(path.to_path_buf())?;
     storage.general_settings()?;
     storage.app_launcher_settings()?;
+    storage.dashboard_settings()?;
     storage.terminal_settings()?;
     storage.appearance_settings()?;
     storage.ssh_settings()?;
@@ -2989,6 +3039,13 @@ fn default_app_launcher_settings() -> AppLauncherSettings {
     }
 }
 
+fn default_dashboard_settings() -> DashboardSettings {
+    DashboardSettings {
+        confirm_remove: true,
+        default_landing_view: "lastActive".to_string(),
+    }
+}
+
 fn default_show_connected_connections_in_rail() -> bool {
     true
 }
@@ -3260,6 +3317,14 @@ pub(crate) fn app_launcher_name_from_path(path: &str) -> String {
         .filter(|name| !name.is_empty())
         .unwrap_or("Application")
         .to_string()
+}
+
+fn validate_dashboard_settings(mut settings: DashboardSettings) -> Result<DashboardSettings, String> {
+    settings.default_landing_view = required_field(
+        "default Dashboard landing view",
+        settings.default_landing_view,
+    )?;
+    Ok(settings)
 }
 
 fn validate_terminal_settings(mut settings: TerminalSettings) -> Result<TerminalSettings, String> {
@@ -4415,6 +4480,32 @@ mod tests {
         assert_eq!(reloaded.entries.len(), 2);
         assert_eq!(reloaded.entries[0].id, "app-a");
         assert_eq!(reloaded.entries[1].id, "app-b");
+    }
+
+    #[test]
+    fn dashboard_settings_round_trip_through_settings_table() {
+        let storage = Storage::open(temp_db_path("dashboard-settings")).expect("storage opens");
+
+        let defaults = storage
+            .dashboard_settings()
+            .expect("default dashboard settings load");
+        assert!(defaults.confirm_remove);
+        assert_eq!(defaults.default_landing_view, "lastActive");
+
+        let updated = storage
+            .update_dashboard_settings(DashboardSettings {
+                confirm_remove: false,
+                default_landing_view: " view-default ".to_string(),
+            })
+            .expect("dashboard settings update");
+        assert!(!updated.confirm_remove);
+        assert_eq!(updated.default_landing_view, "view-default");
+
+        let reloaded = storage
+            .dashboard_settings()
+            .expect("dashboard settings reload");
+        assert!(!reloaded.confirm_remove);
+        assert_eq!(reloaded.default_landing_view, "view-default");
     }
 
     #[test]

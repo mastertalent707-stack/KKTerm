@@ -1,42 +1,8 @@
 import { LayoutDashboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useDashboardStore } from "../dashboard/state/dashboardStore";
+import type { DashboardSettings as DashboardSettingsState } from "../types";
 import { SettingsSectionHeader } from "./shared";
-
-// TODO: Persist via Tauri typed settings command once dashboard_get_settings /
-// dashboard_update_settings commands are added to the backend. For now we use
-// localStorage as a stop-gap.
-const STORAGE_KEY = "kkterm.dashboard.settings";
-
-export interface DashboardSettingsState {
-  confirmRemove: boolean;
-  defaultLandingView: string;
-}
-
-const DEFAULT_DRAFT: DashboardSettingsState = {
-  confirmRemove: true,
-  defaultLandingView: "lastActive",
-};
-
-export async function loadDashboardSettingsDraft(): Promise<DashboardSettingsState> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<DashboardSettingsState>;
-      return {
-        confirmRemove: parsed.confirmRemove ?? DEFAULT_DRAFT.confirmRemove,
-        defaultLandingView: parsed.defaultLandingView ?? DEFAULT_DRAFT.defaultLandingView,
-      };
-    }
-  } catch {
-    // ignore parse errors
-  }
-  return { ...DEFAULT_DRAFT };
-}
-
-export async function saveDashboardSettingsDraft(draft: DashboardSettingsState): Promise<void> {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-}
 
 export function DashboardSettings({
   draft,

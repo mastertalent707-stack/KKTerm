@@ -2,6 +2,7 @@ import type {
   AppearanceSettings,
   AiProviderSettings,
   ConnectionTree,
+  DashboardSettings,
   GeneralSettings,
   RdpSettings,
   SftpSettings,
@@ -26,6 +27,11 @@ export const defaultGeneralSettings: GeneralSettings = {
   allowClipboardRead: true,
   minimizeToTray: false,
   lastBackupAt: null,
+};
+
+export const defaultDashboardSettings: DashboardSettings = {
+  confirmRemove: true,
+  defaultLandingView: "lastActive",
 };
 
 export const defaultTerminalSettings: TerminalSettings = {

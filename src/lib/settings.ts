@@ -21,6 +21,9 @@ export function useBootstrapSettings() {
   const setTerminalSettings = useWorkspaceStore(
     (state) => state.setTerminalSettings,
   );
+  const setDashboardSettings = useWorkspaceStore(
+    (state) => state.setDashboardSettings,
+  );
   const setAppearanceSettings = useWorkspaceStore(
     (state) => state.setAppearanceSettings,
   );
@@ -54,6 +57,12 @@ export function useBootstrapSettings() {
     void invokeCommand("get_terminal_settings")
       .then((settings) => {
         if (!disposed) setTerminalSettings(settings);
+      })
+      .catch(swallow);
+
+    void invokeCommand("get_dashboard_settings")
+      .then((settings) => {
+        if (!disposed) setDashboardSettings(settings);
       })
       .catch(swallow);
 
@@ -120,6 +129,7 @@ export function useBootstrapSettings() {
   }, [
     setAiProviderHasApiKey,
     setAiProviderSettings,
+    setDashboardSettings,
     setGeneralSettings,
     setAppearanceSettings,
     setSftpSettings,

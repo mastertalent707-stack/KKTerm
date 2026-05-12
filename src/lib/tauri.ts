@@ -15,6 +15,7 @@ import type {
   ConnectionFolder,
   ConnectionTree,
   CustomFont,
+  DashboardSettings,
   DatabaseBackupInfo,
   GeneralSettings,
   HostUsageSnapshot,
@@ -678,6 +679,14 @@ type CommandMap = {
   update_app_launcher_settings: {
     args: { request: AppLauncherSettings };
     result: AppLauncherSettings;
+  };
+  get_dashboard_settings: {
+    args: undefined;
+    result: DashboardSettings;
+  };
+  update_dashboard_settings: {
+    args: { request: DashboardSettings };
+    result: DashboardSettings;
   };
   prepare_app_launcher_entry: {
     args: { request: { path: string } };

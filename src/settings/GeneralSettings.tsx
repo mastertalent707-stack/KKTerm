@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import {
   defaultAppearanceSettings,
   defaultAiProviderSettings,
+  defaultDashboardSettings,
   defaultRdpSettings,
   defaultGeneralSettings,
   defaultSftpSettings,
@@ -61,6 +62,9 @@ export function GeneralSettings() {
   );
   const setTerminalSettings = useWorkspaceStore(
     (state) => state.setTerminalSettings,
+  );
+  const setDashboardSettings = useWorkspaceStore(
+    (state) => state.setDashboardSettings,
   );
   const setAppearanceSettings = useWorkspaceStore(
     (state) => state.setAppearanceSettings,
@@ -157,6 +161,7 @@ export function GeneralSettings() {
       });
       setGeneralSettings(snapshot.generalSettings);
       setTerminalSettings(snapshot.terminalSettings);
+      setDashboardSettings(snapshot.dashboardSettings);
       setAppearanceSettings(snapshot.appearanceSettings);
       setSshSettings(snapshot.sshSettings);
       setSftpSettings(snapshot.sftpSettings);
@@ -200,6 +205,7 @@ export function GeneralSettings() {
           rdp,
           vnc,
           aiProvider,
+          dashboardSettings,
         ] = await Promise.all([
           invokeCommand("update_general_settings", {
             request: defaultGeneralSettings,
@@ -218,6 +224,9 @@ export function GeneralSettings() {
           invokeCommand("update_ai_provider_settings", {
             request: defaultAiProviderSettings,
           }),
+          invokeCommand("update_dashboard_settings", {
+            request: defaultDashboardSettings,
+          }),
         ]);
         await invokeCommand("delete_secret", {
           request: {
@@ -234,8 +243,10 @@ export function GeneralSettings() {
         setRdpSettings(rdp);
         setVncSettings(vnc);
         setAiProviderSettings(aiProvider);
+        setDashboardSettings(dashboardSettings);
       } else {
         setGeneralSettings(defaultGeneralSettings);
+        setDashboardSettings(defaultDashboardSettings);
         setTerminalSettings(defaultTerminalSettings);
         setAppearanceSettings(defaultAppearanceSettings);
         setSshSettings(defaultSshSettings);

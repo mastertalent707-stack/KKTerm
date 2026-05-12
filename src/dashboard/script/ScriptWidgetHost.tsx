@@ -1,19 +1,19 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ScriptBody } from "../types";
 import { buildSrcdoc } from "./permissions";
 
 export function ScriptWidgetHost({ bodyJson }: { bodyJson: string }) {
-  const [reloadKey] = useState(0);
+  const { t } = useTranslation();
+  const { key: reloadKey } = useScriptReloadHandle();
   const parsed = useMemo<ScriptBody | null>(() => {
     try { return JSON.parse(bodyJson) as ScriptBody; } catch { return null; }
   }, [bodyJson]);
+  const srcdoc = useMemo(() => (parsed ? buildSrcdoc(parsed) : ""), [parsed]);
 
   if (!parsed) {
-    return <div className="dw-script-error">Invalid script widget body.</div>;
+    return <div className="dw-script-error">{t("dashboard.invalidScriptWidgetBody")}</div>;
   }
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const srcdoc = useMemo(() => buildSrcdoc(parsed), [parsed]);
 
   return (
     <iframe

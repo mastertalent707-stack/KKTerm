@@ -78,6 +78,7 @@
 .dw-tile-body { font-size: 14px; color: var(--text); }
 
 .dw-preset-hero {
+  background: var(--w-accent);
   background: linear-gradient(135deg, var(--w-accent), color-mix(in srgb, var(--w-accent) 70%, black));
   color: #fff;
   border: none;
@@ -127,6 +128,7 @@
   padding: 8px 12px;
   display: flex; align-items: center; gap: 10px;
   background: var(--w-accent-soft);
+  border: 1px solid var(--w-accent);
   border: 1px solid color-mix(in srgb, var(--w-accent) 30%, transparent);
 }
 .dw-band-icon { color: var(--w-accent); display: inline-flex; }

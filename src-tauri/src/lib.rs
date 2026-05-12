@@ -2,6 +2,7 @@ mod ai;
 mod app_launcher;
 mod app_tray;
 mod dashboard_commands;
+mod dashboard_ids;
 mod dashboard_storage;
 mod dashboard_validation;
 mod diagnostics;
@@ -392,6 +393,21 @@ fn update_app_launcher_settings(
     request: storage::AppLauncherSettings,
 ) -> Result<storage::AppLauncherSettings, String> {
     storage.update_app_launcher_settings(request)
+}
+
+#[tauri::command]
+fn get_dashboard_settings(
+    storage: tauri::State<'_, storage::Storage>,
+) -> Result<storage::DashboardSettings, String> {
+    storage.dashboard_settings()
+}
+
+#[tauri::command]
+fn update_dashboard_settings(
+    storage: tauri::State<'_, storage::Storage>,
+    request: storage::DashboardSettings,
+) -> Result<storage::DashboardSettings, String> {
+    storage.update_dashboard_settings(request)
 }
 
 #[tauri::command]
@@ -1607,6 +1623,8 @@ pub fn run() {
             update_general_settings,
             get_app_launcher_settings,
             update_app_launcher_settings,
+            get_dashboard_settings,
+            update_dashboard_settings,
             prepare_app_launcher_entry,
             launch_app_launcher_entry,
             import_settings_database,

@@ -2,27 +2,13 @@ import { Edit3, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AssistantPageContext } from "../ai/AssistantPanel";
+import { useWorkspaceStore } from "../store";
 import { CatalogOverlay } from "./edit/CatalogOverlay";
 import { CustomizePopover } from "./edit/CustomizePopover";
 import "./dashboard.css";
 import { useDashboardStore } from "./state/dashboardStore";
 import type { DashboardWidgetInstance, GridDensity } from "./types";
 import { DashboardCanvas } from "./view/DashboardCanvas";
-
-const SETTINGS_KEY = "kkterm.dashboard.settings";
-
-function readDefaultLandingView(): string {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as { defaultLandingView?: string };
-      return parsed.defaultLandingView ?? "lastActive";
-    }
-  } catch {
-    // ignore
-  }
-  return "lastActive";
-}
 
 export function DashboardPage({
   onAssistantContextChange,
@@ -43,6 +29,7 @@ export function DashboardPage({
   const createView = useDashboardStore((s) => s.createView);
   const renameView = useDashboardStore((s) => s.renameView);
   const removeView = useDashboardStore((s) => s.removeView);
+  const defaultLandingView = useWorkspaceStore((s) => s.dashboardSettings.defaultLandingView);
 
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [customize, setCustomize] = useState<{ instance: DashboardWidgetInstance; rect: DOMRect } | null>(null);
@@ -55,13 +42,14 @@ export function DashboardPage({
 
   useEffect(() => {
     if (!ready || views.length === 0 || appliedLandingPref.current) return;
-    appliedLandingPref.current = true;
-    const pref = readDefaultLandingView();
-    if (pref !== "lastActive") {
-      const target = views.find((v) => v.id === pref);
-      if (target) setActiveView(target.id);
+    if (defaultLandingView !== "lastActive") {
+      const target = views.find((v) => v.id === defaultLandingView);
+      if (target) {
+        appliedLandingPref.current = true;
+        setActiveView(target.id);
+      }
     }
-  }, [ready, views, setActiveView]);
+  }, [defaultLandingView, ready, views, setActiveView]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

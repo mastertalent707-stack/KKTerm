@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ArrowLeft,
   Bot,
@@ -17,12 +17,10 @@ import { AI_PROVIDER_SECRET_OWNER_ID } from "../lib/settings";
 import { AboutSettings } from "./AboutSettings";
 import { AiSettings } from "./AiSettings";
 import { AppearanceSettings } from "./AppearanceSettings";
-import {
-  DashboardSettings,
-  loadDashboardSettingsDraft,
-  saveDashboardSettingsDraft,
-} from "./DashboardSettings";
-import type { DashboardSettingsState } from "./DashboardSettings";
+import { DashboardSettings } from "./DashboardSettings";
+import { invokeCommand, isTauriRuntime } from "../lib/tauri";
+import { useWorkspaceStore } from "../store";
+import type { DashboardSettings as DashboardSettingsState } from "../types";
 import { GeneralSettings } from "./GeneralSettings";
 import { RdpSettings } from "./RdpSettings";
 import { SshSettings } from "./SshSettings";
@@ -54,12 +52,27 @@ export function SettingsPage({
   const { t } = useTranslation();
   const [activeSectionId, setActiveSectionId] =
     useState<SettingsSectionId>("general-settings");
-  const [dashboardDraft, setDashboardDraft] = useState<DashboardSettingsState>({
-    confirmRemove: true,
-    defaultLandingView: "lastActive",
-  });
-  useEffect(() => { void loadDashboardSettingsDraft().then(setDashboardDraft); }, []);
-  useEffect(() => { void saveDashboardSettingsDraft(dashboardDraft); }, [dashboardDraft]);
+  const dashboardSettings = useWorkspaceStore((state) => state.dashboardSettings);
+  const setDashboardSettings = useWorkspaceStore((state) => state.setDashboardSettings);
+
+  async function handleDashboardSettingsChange(next: DashboardSettingsState) {
+    const previous = useWorkspaceStore.getState().dashboardSettings;
+    setDashboardSettings(next);
+    if (!isTauriRuntime()) {
+      return;
+    }
+    try {
+      const saved = await invokeCommand("update_dashboard_settings", { request: next });
+      setDashboardSettings(saved);
+    } catch {
+      try {
+        const current = await invokeCommand("get_dashboard_settings");
+        setDashboardSettings(current);
+      } catch {
+        setDashboardSettings(previous);
+      }
+    }
+  }
 
   return (
     <main className="settings-page">
@@ -164,7 +177,10 @@ export function SettingsPage({
             <AppearanceSettings onResetLayout={onResetLayout} />
           )}
           {activeSectionId === "dashboard-settings" && (
-            <DashboardSettings draft={dashboardDraft} onChange={setDashboardDraft} />
+            <DashboardSettings
+              draft={dashboardSettings}
+              onChange={(next) => void handleDashboardSettingsChange(next)}
+            />
           )}
           {activeSectionId === "assistant-settings" && <AiSettings />}
           {activeSectionId === "ssh-settings" && <SshSettings />}
