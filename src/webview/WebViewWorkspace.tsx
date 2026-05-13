@@ -1,6 +1,6 @@
 import { ScreenshotMenu } from "../workspace/ScreenshotMenu";
 
-import { documentHasWebviewOverlay } from "../workspace/nativeOverlay";
+import { documentHasWebviewBlockingOverlay } from "../workspace/nativeOverlay";
 import { ArrowLeft, ArrowRight, Globe2, KeyRound, RefreshCw, Save } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
@@ -348,7 +348,7 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
     }
 
     const updateSuppression = () => {
-      setWebviewSuppressed(documentHasWebviewOverlay());
+      setWebviewSuppressed(documentHasWebviewBlockingOverlay(placeholderRef.current));
     };
     updateSuppression();
     const observer = new MutationObserver(updateSuppression);

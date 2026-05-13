@@ -5,7 +5,7 @@
 The detailed status for each milestone lives in the checkboxes below. Quick snapshot as of May 12, 2026:
 
 - **Milestones A–F** are in or past usable shape: session spine, native SSH/SFTP, AI command-assist with approval and CLI adapters, performance instrumentation behind a renderer-neutral interface, Windows portable ZIP and unsigned NSIS installer with smoke test.
-- **Milestone G (v0.2)** is in progress: screenshot capture into AI Assistant context, review-only Assistant extension draft mode, accepted extension platform ADR (`docs/ADR/0005-extension-platform-architecture.md`), and the Dashboard redesign (`docs/DASHBOARD.md`) shipped. RDP ActiveX and VNC `vnc-rs` Connections work end-to-end with snapshot/parking for DOM overlays. SSH config import, diagnostics, and updater UI still need user-facing entry points.
+- **Milestone G (v0.2)** is in progress: screenshot capture into AI Assistant context, review-only Assistant extension draft mode, accepted extension platform ADR (`docs/ADR/0005-extension-platform-architecture.md`), and the Dashboard redesign (`docs/DASHBOARD.md`) shipped. RDP ActiveX Connections work end-to-end with geometry-scoped snapshot/parking for intersecting DOM overlays, and VNC `vnc-rs` Connections work end-to-end through the canvas renderer. SSH config import, diagnostics, and updater UI still need user-facing entry points.
 - **Latest validation (May 7, 2026)**: `npm run check`, `npm run build`, `cargo check`, and `cargo test` (103 passed) all clean. `npm run build` still reports Vite's existing chunk-size warning. Previous May 2, 2026 packaging validation passed for `npm run package:portable`, `npm run package:installer`, and `npm run smoke:installer`.
 
 For the operational measurement records (machine specs, numbers vs. budgets) see `docs/PERFORMANCE.md`. For packaging/release artifacts see `docs/RELEASE.md`.
@@ -150,7 +150,7 @@ For the operational measurement records (machine specs, numbers vs. budgets) see
 - [x] Add durable RDP connection type.
 - [x] Add durable VNC connection type.
 - [x] Implement Windows-native RDP session transport with Microsoft RDP ActiveX COM hosting.
-- [x] Add RDP ActiveX snapshot/parking for app-owned DOM overlays so dialogs, screenshot menus, and Region selection are not covered by the native child HWND.
+- [x] Add geometry-scoped RDP ActiveX snapshot/parking for app-owned DOM overlays so dialogs, screenshot menus, Region selection, and menus that intersect the RDP host are not covered by the native child HWND.
 - [x] Add configurable RDP session options (for example: display quality/performance tuning, clipboard mapping, and related redirect/security controls).
 - [x] Implement VNC session transport with `vnc-rs` framebuffer rendering and pointer/key input.
 - [x] Add MobaXterm/RDCMan import.

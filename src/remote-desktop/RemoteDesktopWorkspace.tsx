@@ -1,7 +1,7 @@
 import { connectionIconForType, connectionSubtitle, connectionToolbarTitle, connectionTypeLabel } from "../connections/utils";
 import { ScreenshotToolbarButtons } from "../workspace/ScreenshotMenu";
 
-import { documentHasWebviewOverlay } from "../workspace/nativeOverlay";
+import { documentHasRdpBlockingOverlay } from "../workspace/nativeOverlay";
 import { Bot, Keyboard, Monitor, RotateCcw } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
@@ -721,7 +721,7 @@ export function RemoteDesktopWorkspace({
       return;
     }
     const updateSuppression = () => {
-      if (!documentHasWebviewOverlay()) {
+      if (!documentHasRdpBlockingOverlay(hostRef.current)) {
         rdpSuppressionCaptureInFlightRef.current = false;
         visibilityRef.current = { ...visibilityRef.current, suppressed: false };
         setSuppressed(false);
@@ -733,7 +733,7 @@ export function RemoteDesktopWorkspace({
       const cached = preCachedSnapshotRef.current;
       if (cached) {
         preCachedSnapshotRef.current = null;
-        if (documentHasWebviewOverlay()) {
+        if (documentHasRdpBlockingOverlay(hostRef.current)) {
           setRdpSnapshot(cached);
           visibilityRef.current = { ...visibilityRef.current, suppressed: true };
           setSuppressed(true);
@@ -743,7 +743,7 @@ export function RemoteDesktopWorkspace({
       rdpSuppressionCaptureInFlightRef.current = true;
       void captureVisibleRdpSnapshot()
         .then((snapshot) => {
-          if (!documentHasWebviewOverlay()) {
+          if (!documentHasRdpBlockingOverlay(hostRef.current)) {
             visibilityRef.current = { ...visibilityRef.current, suppressed: false };
             setSuppressed(false);
             return;
@@ -755,7 +755,7 @@ export function RemoteDesktopWorkspace({
           setSuppressed(true);
         })
         .catch(() => {
-          if (documentHasWebviewOverlay()) {
+          if (documentHasRdpBlockingOverlay(hostRef.current)) {
             visibilityRef.current = { ...visibilityRef.current, suppressed: true };
             setSuppressed(true);
           }
