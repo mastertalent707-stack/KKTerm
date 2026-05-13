@@ -152,7 +152,9 @@ async function loadLocale(language: SupportedLanguage): Promise<void> {
 
   try {
     const module = await localeLoaders[language]();
-    i18next.addResourceBundle(language, "translation", module.default ?? module, true, true);
+    const raw: unknown = module.default ?? module;
+    const bundle = Array.isArray(raw) ? raw[0] : raw;
+    i18next.addResourceBundle(language, "translation", bundle, true, true);
   } catch {
     // Fall back to English silently
   }
