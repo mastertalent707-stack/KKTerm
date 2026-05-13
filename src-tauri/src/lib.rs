@@ -1358,6 +1358,7 @@ fn fill_webview_credential(
         password,
         username_selector: credential.username_selector,
         password_selector: credential.password_selector,
+        field_values: credential.field_values,
         automatic: request.automatic.unwrap_or(false),
     })
 }

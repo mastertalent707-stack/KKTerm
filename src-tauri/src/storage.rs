@@ -12,7 +12,7 @@ use std::{
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
 
-const SCHEMA_USER_VERSION: i32 = 10;
+const SCHEMA_USER_VERSION: i32 = 11;
 
 const CURRENT_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS connection_folders (
@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS url_credentials (
     page_url TEXT,
     username_selector TEXT,
     password_selector TEXT,
+    field_values TEXT,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -659,6 +660,8 @@ pub struct UpsertUrlCredentialRequest {
     username_selector: Option<String>,
     #[serde(default)]
     password_selector: Option<String>,
+    #[serde(default)]
+    field_values: Option<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -671,6 +674,7 @@ pub struct UrlCredentialSummary {
     username: String,
     username_selector: Option<String>,
     password_selector: Option<String>,
+    field_values: Option<String>,
     updated_at: String,
 }
 
@@ -686,6 +690,7 @@ pub(crate) struct UrlCredentialFill {
     pub(crate) username: String,
     pub(crate) username_selector: Option<String>,
     pub(crate) password_selector: Option<String>,
+    pub(crate) field_values: Option<String>,
 }
 
 impl Storage {
@@ -1456,6 +1461,7 @@ impl Storage {
         ensure_column(&connection, "connections", "rdp_options", "TEXT")?;
         ensure_column(&connection, "connections", "vnc_options", "TEXT")?;
         ensure_column(&connection, "connections", "ftp_options", "TEXT")?;
+        ensure_column(&connection, "url_credentials", "field_values", "TEXT")?;
         connection
             .execute_batch(&format!("PRAGMA user_version = {SCHEMA_USER_VERSION}"))
             .map_err(to_storage_error)?;
@@ -1728,6 +1734,7 @@ impl Storage {
         let page_url = normalize_optional_text(request.page_url);
         let username_selector = normalize_optional_text(request.username_selector);
         let password_selector = normalize_optional_text(request.password_selector);
+        let field_values = normalize_optional_text(request.field_values);
         let connection = self.lock()?;
         let connection_type = connection
             .query_row(
@@ -1744,15 +1751,16 @@ impl Storage {
 
         connection
             .execute(
-                "INSERT INTO url_credentials (connection_id, username, page_url, username_selector, password_selector, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, CURRENT_TIMESTAMP)
+                "INSERT INTO url_credentials (connection_id, username, page_url, username_selector, password_selector, field_values, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, CURRENT_TIMESTAMP)
                  ON CONFLICT(connection_id) DO UPDATE SET
                     username = excluded.username,
                     page_url = excluded.page_url,
                     username_selector = excluded.username_selector,
                     password_selector = excluded.password_selector,
+                    field_values = excluded.field_values,
                     updated_at = CURRENT_TIMESTAMP",
-                params![&connection_id, &username, page_url, username_selector, password_selector],
+                params![&connection_id, &username, page_url, username_selector, password_selector, field_values],
             )
             .map_err(to_storage_error)?;
 
@@ -1766,13 +1774,14 @@ impl Storage {
         let connection = self.lock()?;
         connection
             .query_row(
-                "SELECT username, username_selector, password_selector FROM url_credentials WHERE connection_id = ?1",
+                "SELECT username, username_selector, password_selector, field_values FROM url_credentials WHERE connection_id = ?1",
                 params![connection_id],
                 |row| {
                     Ok(UrlCredentialFill {
                         username: row.get(0)?,
                         username_selector: row.get(1)?,
                         password_selector: row.get(2)?,
+                        field_values: row.get(3)?,
                     })
                 },
             )
@@ -1785,7 +1794,7 @@ impl Storage {
         let mut statement = connection
             .prepare(
                 "SELECT connections.id, connections.name, connections.url, url_credentials.page_url, url_credentials.username,
-                        url_credentials.username_selector, url_credentials.password_selector, url_credentials.updated_at
+                        url_credentials.username_selector, url_credentials.password_selector, url_credentials.field_values, url_credentials.updated_at
                  FROM url_credentials
                  INNER JOIN connections ON connections.id = url_credentials.connection_id
                  ORDER BY lower(connections.name), lower(url_credentials.username)",
@@ -1801,7 +1810,8 @@ impl Storage {
                     username: row.get(4)?,
                     username_selector: row.get(5)?,
                     password_selector: row.get(6)?,
-                    updated_at: row.get(7)?,
+                    field_values: row.get(7)?,
+                    updated_at: row.get(8)?,
                 })
             })
             .map_err(to_storage_error)?;
@@ -4046,6 +4056,7 @@ mod tests {
                 page_url: None,
                 username_selector: None,
                 password_selector: None,
+                field_values: None,
             })
             .expect("URL credential metadata is stored");
         assert!(updated.has_url_credential);
@@ -4074,6 +4085,7 @@ mod tests {
             page_url: None,
             username_selector: None,
             password_selector: None,
+            field_values: None,
         }) {
             Ok(_) => panic!("SSH connections cannot store URL credentials"),
             Err(error) => error,

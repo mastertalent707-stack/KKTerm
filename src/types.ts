@@ -487,6 +487,7 @@ export interface UrlCredentialSummary {
   username: string;
   usernameSelector?: string;
   passwordSelector?: string;
+  fieldValues?: string;
   updatedAt: string;
 }
 

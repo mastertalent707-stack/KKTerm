@@ -705,6 +705,7 @@ type CommandMap = {
         pageUrl?: string;
         usernameSelector?: string;
         passwordSelector?: string;
+        fieldValues?: string;
       };
     };
     result: Connection;

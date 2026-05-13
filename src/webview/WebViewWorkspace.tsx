@@ -119,6 +119,7 @@ type CapturedCredentialPayload = {
   password?: string;
   usernameSelector?: string;
   passwordSelector?: string;
+  fieldValues?: unknown;
 };
 
 const CREDENTIAL_TITLE_PREFIX = "__KKTERM_URL_CREDENTIAL__";
@@ -151,10 +152,8 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
   const [autoRefreshSeconds, setAutoRefreshSeconds] = useState<AutoRefreshIntervalSeconds>(0);
 
   const initialUrl = tab.url ?? "";
-  const [savedCredentialUsername, setSavedCredentialUsername] = useState(tab.connection?.urlCredentialUsername ?? "");
   const [hasSavedCredential, setHasSavedCredential] = useState(Boolean(tab.connection?.hasUrlCredential));
-  const urlCredentialUsername = savedCredentialUsername || tab.connection?.urlCredentialUsername;
-  const canFillCredential = Boolean(hasSavedCredential && urlCredentialUsername);
+  const canFillCredential = Boolean(hasSavedCredential);
 
   useEffect(() => {
     credentialRef.current = {
@@ -505,10 +504,10 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
           pageUrl: payload.url,
           usernameSelector: payload.usernameSelector,
           passwordSelector: payload.passwordSelector,
+          fieldValues: payload.fieldValues ? JSON.stringify(payload.fieldValues) : undefined,
         },
       }))
       .then(() => {
-        setSavedCredentialUsername(payload.username ?? "");
         setHasSavedCredential(true);
         setFillStatus(t("webview.passwordSaved"));
         window.dispatchEvent(new CustomEvent("kkterm:connection-tree-invalidated"));
