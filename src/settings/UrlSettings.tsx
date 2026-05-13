@@ -17,6 +17,7 @@ interface UrlCredentialEditDraft {
   password: string;
   usernameSelector: string;
   passwordSelector: string;
+  fieldValues: string;
 }
 
 function draftFromCredential(credential: UrlCredentialSummary): UrlCredentialEditDraft {
@@ -25,6 +26,7 @@ function draftFromCredential(credential: UrlCredentialSummary): UrlCredentialEdi
     password: "",
     usernameSelector: credential.usernameSelector ?? "",
     passwordSelector: credential.passwordSelector ?? "",
+    fieldValues: credential.fieldValues ?? "",
   };
 }
 
@@ -129,6 +131,7 @@ export function UrlSettings() {
           pageUrl: credentials.find((credential) => credential.connectionId === connectionId)?.pageUrl,
           usernameSelector: credentialDraft.usernameSelector || undefined,
           passwordSelector: credentialDraft.passwordSelector || undefined,
+          fieldValues: credentialDraft.fieldValues || undefined,
         },
       });
       showStatusBarNotice(t("settings.urlPasswordUpdated"), { tone: "success" });

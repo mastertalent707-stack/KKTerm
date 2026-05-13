@@ -39,11 +39,8 @@ const AUTOFILL_AGENT: &str = r#"
         return;
       }
       const usernameInput = findUsernameInput(passwordInput);
-      const username = usernameInput?.value || "";
-      if (!username) {
-        publish({ ok: false, nonce, reason: "empty-username", url: window.location.href });
-        return;
-      }
+      const fieldValues = captureTextFieldValues(passwordInput);
+      const username = usernameInput?.value || firstSavedFieldValue(fieldValues) || window.location.host || window.location.href;
       publish({
         ok: true,
         nonce,
@@ -52,6 +49,7 @@ const AUTOFILL_AGENT: &str = r#"
         password,
         usernameSelector: usernameInput ? selectorFor(usernameInput) : undefined,
         passwordSelector: selectorFor(passwordInput),
+        fieldValues,
       });
     },
   };
@@ -78,8 +76,15 @@ const AUTOFILL_AGENT: &str = r#"
       return { filled: false, reason: "password-already-entered" };
     }
 
+    const fieldValues = normalizeFieldValues(credential.fieldValues);
+    for (const field of fieldValues) {
+      const input = inputFromSelector(field.selector) || inputFromFieldDescriptor(field);
+      if (input && input !== passwordInput && (!credential.automatic || !input.value)) {
+        setInputValue(input, field.value || "");
+      }
+    }
     const usernameInput = inputFromSelector(credential.usernameSelector) || findUsernameInput(passwordInput);
-    if (usernameInput && credential.username && (!credential.automatic || !usernameInput.value)) {
+    if (usernameInput && credential.username && fieldValues.length === 0 && (!credential.automatic || !usernameInput.value)) {
       setInputValue(usernameInput, credential.username);
     }
     setInputValue(passwordInput, credential.password);
@@ -118,16 +123,51 @@ const AUTOFILL_AGENT: &str = r#"
     }, 10000);
   }
 
+  function normalizeFieldValues(fieldValues) {
+    if (Array.isArray(fieldValues)) {
+      return fieldValues;
+    }
+    if (typeof fieldValues === "string" && fieldValues) {
+      try {
+        const parsed = JSON.parse(fieldValues);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    }
+    return [];
+  }
+
   function inputFromSelector(selector) {
     if (!selector) {
       return undefined;
     }
     try {
       const input = document.querySelector(selector);
-      return isUsableInput(input) ? input : undefined;
+      return isUsableTextControl(input) || isUsableInput(input) ? input : undefined;
     } catch (_) {
       return undefined;
     }
+  }
+
+  function inputFromFieldDescriptor(field) {
+    if (!field) {
+      return undefined;
+    }
+    const controls = textFieldCandidates(document);
+    const stableMatch = controls.find((input) =>
+      field.tagName === input.tagName.toLowerCase() &&
+      (!field.type || field.type === textControlType(input)) &&
+      ((field.name && field.name === input.getAttribute("name")) ||
+        (field.id && field.id === input.id) ||
+        (field.autocomplete && field.autocomplete === input.getAttribute("autocomplete")) ||
+        (field.ariaLabel && field.ariaLabel === input.getAttribute("aria-label")) ||
+        (field.placeholder && field.placeholder === input.getAttribute("placeholder")))
+    );
+    if (stableMatch) {
+      return stableMatch;
+    }
+    return Number.isInteger(field.index) ? controls[field.index] : undefined;
   }
 
   function findPasswordInput(requireValue) {
@@ -139,13 +179,7 @@ const AUTOFILL_AGENT: &str = r#"
 
   function findUsernameInput(passwordInput) {
     const form = passwordInput.form || passwordInput.closest("form") || document;
-    const candidates = Array.from(form.querySelectorAll("input")).filter((input) => {
-      if (!isUsableInput(input) || input === passwordInput) {
-        return false;
-      }
-      const type = (input.getAttribute("type") || "text").toLowerCase();
-      return ["", "text", "email", "tel", "search", "url"].includes(type);
-    });
+    const candidates = textFieldCandidates(form).filter((input) => input !== passwordInput);
     if (candidates.length === 0) {
       return undefined;
     }
@@ -191,22 +225,70 @@ const AUTOFILL_AGENT: &str = r#"
       !input.disabled &&
       !input.readOnly &&
       input.type !== "hidden" &&
-      input.offsetParent !== null;
+      isVisibleElement(input);
+  }
+
+  function isUsableTextControl(input) {
+    if (input instanceof HTMLTextAreaElement) {
+      return !input.disabled && !input.readOnly && isVisibleElement(input);
+    }
+    return isUsableInput(input) && textInputTypes().includes(textControlType(input));
+  }
+
+  function isVisibleElement(input) {
+    const style = window.getComputedStyle(input);
+    return style.visibility !== "hidden" && style.display !== "none" && input.getClientRects().length > 0;
+  }
+
+  function textInputTypes() {
+    return ["", "text", "email", "tel", "search", "url", "number"];
+  }
+
+  function textControlType(input) {
+    return input instanceof HTMLInputElement ? (input.getAttribute("type") || "text").toLowerCase() : "textarea";
+  }
+
+  function textFieldCandidates(root) {
+    return Array.from(root.querySelectorAll("input, textarea")).filter(isUsableTextControl);
+  }
+
+  function captureTextFieldValues(passwordInput) {
+    const candidates = textFieldCandidates(document).filter((input) => input !== passwordInput && input.value);
+    return candidates.map((input) => ({
+      selector: selectorFor(input),
+      value: input.value,
+      tagName: input.tagName.toLowerCase(),
+      type: textControlType(input),
+      id: input.id || undefined,
+      name: input.getAttribute("name") || undefined,
+      autocomplete: input.getAttribute("autocomplete") || undefined,
+      ariaLabel: input.getAttribute("aria-label") || undefined,
+      placeholder: input.getAttribute("placeholder") || undefined,
+      index: textFieldCandidates(document).indexOf(input),
+    }));
+  }
+
+  function firstSavedFieldValue(fieldValues) {
+    return fieldValues.find((field) => field.value)?.value;
   }
 
   function setInputValue(input, value) {
-    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+    const descriptor = Object.getOwnPropertyDescriptor(
+      input instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype,
+      "value"
+    );
     descriptor.set.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
   function selectorFor(input) {
+    const tagName = input.tagName.toLowerCase();
     const stable = ["id", "name", "autocomplete", "aria-label", "placeholder"];
     for (const attr of stable) {
       const value = input.getAttribute(attr);
       if (value) {
-        const selector = `input[${CSS.escape(attr)}=${JSON.stringify(value)}]`;
+        const selector = `${tagName}[${CSS.escape(attr)}=${JSON.stringify(value)}]`;
         try {
           if (document.querySelector(selector) === input) {
             return selector;
@@ -214,10 +296,15 @@ const AUTOFILL_AGENT: &str = r#"
         } catch (_) {}
       }
     }
-    const type = input.getAttribute("type") || "text";
-    const inputs = Array.from(document.querySelectorAll(`input[type='${CSS.escape(type)}']`));
-    const index = inputs.indexOf(input);
-    return index >= 0 ? `input[type='${CSS.escape(type)}']:nth-of-type(${index + 1})` : "input";
+    if (input instanceof HTMLInputElement) {
+      const type = input.getAttribute("type") || "text";
+      const inputs = Array.from(document.querySelectorAll(`input[type='${CSS.escape(type)}']`));
+      const index = inputs.indexOf(input);
+      return index >= 0 ? `input[type='${CSS.escape(type)}']:nth-of-type(${index + 1})` : "input";
+    }
+    const textareas = Array.from(document.querySelectorAll("textarea"));
+    const index = textareas.indexOf(input);
+    return index >= 0 ? `textarea:nth-of-type(${index + 1})` : "textarea";
   }
 
   Object.defineProperty(window, "__KKTERM_URL_AUTOFILL__", {
@@ -301,6 +388,7 @@ pub(crate) struct WebviewFillCredentialRequest {
     pub(crate) password: String,
     pub(crate) username_selector: Option<String>,
     pub(crate) password_selector: Option<String>,
+    pub(crate) field_values: Option<String>,
     pub(crate) automatic: bool,
 }
 
@@ -609,6 +697,7 @@ impl WebviewSessionManager {
             "password": request.password,
             "usernameSelector": request.username_selector,
             "passwordSelector": request.password_selector,
+            "fieldValues": request.field_values,
             "automatic": request.automatic,
         });
         let payload = serde_json::to_string(&payload)
