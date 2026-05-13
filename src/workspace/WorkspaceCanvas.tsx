@@ -1,4 +1,8 @@
 import { connectionTypeForTab } from "../connections/utils";
+import {
+  dispatchConnectionTabContextMenu,
+  isConnectionTabContextMenuConnection,
+} from "../connections/connectionTabContextMenu";
 import { ftpBrowserCommands } from "../lib/fileBrowserCommands";
 import { RemoteDesktopWorkspace } from "../remote-desktop/RemoteDesktopWorkspace";
 import { SftpWorkspace } from "../sftp/SftpWorkspace";
@@ -7,6 +11,7 @@ import { WebViewWorkspace } from "../webview/WebViewWorkspace";
 import { ConnectionIcon } from "../connections/ConnectionIcon";
 import { ChevronLeft, ChevronRight, Terminal, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useWorkspaceStore } from "../store";
 
@@ -64,6 +69,21 @@ export function TabStrip() {
     el.scrollBy({ left: 200, behavior: "smooth" });
   }
 
+  function handleTabContextMenu(tab: (typeof tabs)[number], event: ReactMouseEvent<HTMLElement>) {
+    if (!isConnectionTabContextMenuConnection(tab.connection) || tab.sshPortForwardSessionId) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    activateTab(tab.id);
+    dispatchConnectionTabContextMenu({
+      connection: tab.connection,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  }
+
   return (
     <div className="tab-strip" aria-label={t("workspace.tabs")}>
       {canScrollLeft ? (
@@ -78,7 +98,11 @@ export function TabStrip() {
       ) : null}
       <div className="tab-scroll-container" ref={scrollRef}>
         {tabs.map((tab) => (
-          <div className={tab.id === activeTabId ? "tab active" : "tab"} key={tab.id}>
+          <div
+            className={tab.id === activeTabId ? "tab active" : "tab"}
+            key={tab.id}
+            onContextMenu={(event) => handleTabContextMenu(tab, event)}
+          >
             <button className="tab-button" onClick={() => activateTab(tab.id)} type="button">
               <ConnectionIcon
                 iconDataUrl={connectionTypeForTab(tab).iconDataUrl}

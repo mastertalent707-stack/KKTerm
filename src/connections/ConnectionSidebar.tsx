@@ -1,6 +1,10 @@
 import { ConnectionGlyph, connectionSubtitle, connectionTypeSubtitle } from "./ConnectionGlyph";
 import { AddConnectionMenu, QuickConnectMenu } from "./ConnectionMenus";
 import { ImportDialog } from "./ImportDialog";
+import {
+  CONNECTION_TAB_CONTEXT_MENU_EVENT,
+  type ConnectionTabContextMenuDetail,
+} from "./connectionTabContextMenu";
 import { confirmTrustedSshHostKey, defaultPortForConnectionType, connectionTypeLabel, isRemoteDesktopConnectionType, localShellOptionsForPlatform, uniqueRuntimeId, type LocalShellOption } from "./utils";
 import { RECENT_CONNECTION_LIMIT, createStoredSecretMask, loadCollapsedFolderIds, loadRecentConnectionIds, notifyConnectionTreeInvalidated, saveCollapsedFolderIds, saveRecentConnectionIds } from "./connectionSidebarState";
 import { collectConnectionFolderIds, countConnections, countFolders, filterConnectionTree, flattenConnections, flattenFolders, upsertRootConnection, withLiveConnectionStatuses } from "./treeUtils";
@@ -149,6 +153,26 @@ export function ConnectionSidebar({
     window.addEventListener("kkterm:connection-tree-invalidated", handleTreeInvalidated);
     return () => {
       window.removeEventListener("kkterm:connection-tree-invalidated", handleTreeInvalidated);
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleConnectionTabContextMenu(event: Event) {
+      const detail = (event as CustomEvent<ConnectionTabContextMenuDetail>).detail;
+      if (!detail?.connection) {
+        return;
+      }
+      setTreeContextMenu({
+        kind: "connection",
+        connection: detail.connection,
+        x: detail.x,
+        y: detail.y,
+      });
+    }
+
+    window.addEventListener(CONNECTION_TAB_CONTEXT_MENU_EVENT, handleConnectionTabContextMenu);
+    return () => {
+      window.removeEventListener(CONNECTION_TAB_CONTEXT_MENU_EVENT, handleConnectionTabContextMenu);
     };
   }, []);
 

@@ -2338,6 +2338,12 @@ h2 {
   display: inline-flex;
 }
 
+.terminal-menu > .terminal-menu-wrapper,
+.terminal-menu > .tmux-session-wrapper {
+  display: flex;
+  width: 100%;
+}
+
 .terminal-menu {
   position: absolute;
   top: calc(100% + 4px);
@@ -2636,11 +2642,12 @@ h2 {
   border-radius: 6px;
   display: grid;
   gap: 4px;
+  position: relative;
 }
 
 .tmux-session-row-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(2, auto);
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
   gap: 6px;
   align-items: center;
   justify-self: stretch;
@@ -2687,6 +2694,21 @@ h2 {
 .tmux-session-row small {
   color: #9fb0c6;
   font-size: 11px;
+}
+
+.tmux-session-row .tmux-session-rename {
+  width: 100%;
+}
+
+.tmux-session-row .tmux-session-rename input {
+  width: 100%;
+}
+
+.tmux-session-row .tmux-session-rename-error {
+  position: static;
+  width: auto;
+  margin: 2px 0 0;
+  box-shadow: none;
 }
 
 .ssh-port-menu {

@@ -331,7 +331,7 @@ function TmuxSessionTag({
   const [renameDraft, setRenameDraft] = useState(sessionId ?? "");
   const [renameError, setRenameError] = useState("");
   const [renaming, setRenaming] = useState(false);
-  const [editingSessionName, setEditingSessionName] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [mouseEnabledIds, setMouseEnabledIds] = useState<Set<string>>(
     () => new Set(sessionId ? [sessionId] : []),
@@ -348,8 +348,8 @@ function TmuxSessionTag({
 
   const enabled = connection.type === "ssh" && connection.useTmuxSessions !== false && sessionId;
   const renameInputId = useMemo(
-    () => `tmux-session-name-${tabId}-${sessionId ?? "active"}`.replace(/[^A-Za-z0-9_-]/g, "-"),
-    [sessionId, tabId],
+    () => `tmux-session-name-${tabId}-${editingSessionId ?? sessionId ?? "active"}`.replace(/[^A-Za-z0-9_-]/g, "-"),
+    [editingSessionId, sessionId, tabId],
   );
 
   useEffect(() => {
@@ -367,11 +367,11 @@ function TmuxSessionTag({
   }, [sessionId]);
 
   useEffect(() => {
-    if (!editingSessionName) {
+    if (!editingSessionId) {
       setRenameDraft(sessionId ?? "");
       setRenameError("");
     }
-  }, [editingSessionName, sessionId]);
+  }, [editingSessionId, sessionId]);
 
   useEffect(() => {
     if (!open) {
@@ -466,22 +466,21 @@ function TmuxSessionTag({
     return "";
   }
 
-  function handleStartRename() {
-    setRenameDraft(sessionId ?? "");
+  function handleStartRename(targetSessionId: string) {
+    setRenameDraft(targetSessionId);
     setRenameError("");
-    setOpen(false);
-    setEditingSessionName(true);
+    setEditingSessionId(targetSessionId);
   }
 
   function handleCancelRename() {
-    setEditingSessionName(false);
+    setEditingSessionId(null);
     setRenameDraft(sessionId ?? "");
     setRenameError("");
   }
 
   async function handleRenameSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!sessionId) {
+    if (!editingSessionId) {
       return;
     }
     const nextSessionId = renameDraft.trim();
@@ -490,7 +489,7 @@ function TmuxSessionTag({
       setRenameError(validationError);
       return;
     }
-    if (nextSessionId === sessionId) {
+    if (nextSessionId === editingSessionId) {
       handleCancelRename();
       return;
     }
@@ -500,25 +499,24 @@ function TmuxSessionTag({
       await invokeCommand("rename_tmux_session", {
         request: {
           ...tmuxConnectionRequest(connection),
-          tmuxSessionId: sessionId,
+          tmuxSessionId: editingSessionId,
           newTmuxSessionId: nextSessionId,
         },
       });
-      renameTmuxSessionInOpenPanes(connection.id, sessionId, nextSessionId);
+      renameTmuxSessionInOpenPanes(connection.id, editingSessionId, nextSessionId);
       setMouseEnabledIds((prev) => {
         const next = new Set(prev);
-        if (next.delete(sessionId)) {
+        if (next.delete(editingSessionId)) {
           next.add(nextSessionId);
         }
         return next;
       });
       setSessions((current) =>
         current.map((session) =>
-          session.id === sessionId ? { ...session, id: nextSessionId } : session,
+          session.id === editingSessionId ? { ...session, id: nextSessionId } : session,
         ),
       );
-      setEditingSessionName(false);
-      setOpen(false);
+      setEditingSessionId(null);
       showStatusBarNotice(t("terminal.tmuxSessionRenamed"));
     } catch (renameErrorValue) {
       setRenameError(renameErrorValue instanceof Error ? renameErrorValue.message : String(renameErrorValue));
@@ -573,70 +571,17 @@ function TmuxSessionTag({
 
   return (
     <div className="tmux-session-wrapper" ref={menuRef}>
-      {editingSessionName ? (
-        <form className="tmux-session-rename" onSubmit={(event) => void handleRenameSubmit(event)}>
-          <label className="sr-only" htmlFor={renameInputId}>
-            {t("terminal.tmuxSessionName")}
-          </label>
-          <input
-            autoFocus
-            id={renameInputId}
-            value={renameDraft}
-            onChange={(event) => {
-              setRenameDraft(event.target.value);
-              setRenameError("");
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.preventDefault();
-                handleCancelRename();
-              }
-            }}
-            aria-invalid={renameError ? "true" : undefined}
-          />
-          <button
-            className="terminal-pane-action"
-            aria-label={t("common.save")}
-            disabled={renaming}
-            title={t("common.save")}
-            type="submit"
-          >
-            <Check size={13} />
-          </button>
-          <button
-            className="terminal-pane-action"
-            aria-label={t("common.cancel")}
-            disabled={renaming}
-            onClick={handleCancelRename}
-            title={t("common.cancel")}
-            type="button"
-          >
-            <X size={13} />
-          </button>
-        </form>
-      ) : (
-        <div className="tmux-session-tag-group">
-          <button
-            className="tmux-session-tag"
-            {...dialogButtonAria(open)}
-            onClick={() => void handleToggle()}
-            title={t("terminal.showTmux")}
-            type="button"
-          >
-            tmux {sessionId ? getTmuxSessionLabel(sessionId) : sessionId}
-          </button>
-          <button
-            className="tmux-session-edit-button"
-            aria-label={t("terminal.editTmuxSession")}
-            onClick={handleStartRename}
-            title={t("terminal.editTmuxSession")}
-            type="button"
-          >
-            <Pencil size={12} />
-          </button>
-        </div>
-      )}
-      {renameError ? <p className="tmux-session-rename-error form-error">{renameError}</p> : null}
+      <div className="tmux-session-tag-group">
+        <button
+          className="tmux-session-tag"
+          {...dialogButtonAria(open)}
+          onClick={() => void handleToggle()}
+          title={t("terminal.showTmux")}
+          type="button"
+        >
+          tmux {sessionId ? getTmuxSessionLabel(sessionId) : sessionId}
+        </button>
+      </div>
       {open ? (
         <div className="tmux-session-menu" role="dialog" aria-label={t("terminal.tmuxSessions")}>
           <header>
@@ -659,6 +604,7 @@ function TmuxSessionTag({
               const location = findSessionPane(session.id);
               const isInApp = location !== null;
               const isExpanded = expandedSessionId === session.id;
+              const isRenaming = editingSessionId === session.id;
               const mouseOn = mouseEnabledIds.has(session.id);
               const sessionLabel = getTmuxSessionLabel(session.id);
               const sessionStatus = isInApp
@@ -670,18 +616,71 @@ function TmuxSessionTag({
               return (
                 <div className="tmux-session-row" key={session.id}>
                   <div className="tmux-session-row-main">
+                    {isRenaming ? (
+                      <form className="tmux-session-rename" onSubmit={(event) => void handleRenameSubmit(event)}>
+                        <label className="sr-only" htmlFor={renameInputId}>
+                          {t("terminal.tmuxSessionName")}
+                        </label>
+                        <input
+                          autoFocus
+                          id={renameInputId}
+                          value={renameDraft}
+                          onChange={(event) => {
+                            setRenameDraft(event.target.value);
+                            setRenameError("");
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Escape") {
+                              event.preventDefault();
+                              handleCancelRename();
+                            }
+                          }}
+                          aria-invalid={renameError ? "true" : undefined}
+                        />
+                        <button
+                          className="terminal-pane-action"
+                          aria-label={t("common.save")}
+                          disabled={renaming}
+                          title={t("common.save")}
+                          type="submit"
+                        >
+                          <Check size={13} />
+                        </button>
+                        <button
+                          className="terminal-pane-action"
+                          aria-label={t("common.cancel")}
+                          disabled={renaming}
+                          onClick={handleCancelRename}
+                          title={t("common.cancel")}
+                          type="button"
+                        >
+                          <X size={13} />
+                        </button>
+                      </form>
+                    ) : (
+                      <button
+                        className={`tmux-session-row-info${isInApp ? " in-app" : ""}`}
+                        onClick={() => handleSessionRowClick(session)}
+                        title={isInApp ? t("terminal.focusPane") : t("terminal.openInPane")}
+                        type="button"
+                      >
+                        <strong>{sessionLabel}</strong>
+                        <small>
+                          {sessionStatus}
+                          {" · "}
+                          {session.windows}w
+                        </small>
+                      </button>
+                    )}
                     <button
-                      className={`tmux-session-row-info${isInApp ? " in-app" : ""}`}
-                      onClick={() => handleSessionRowClick(session)}
-                      title={isInApp ? t("terminal.focusPane") : t("terminal.openInPane")}
+                      className="tmux-session-edit-button"
+                      aria-label={`${t("terminal.editTmuxSession")} ${sessionLabel}`}
+                      disabled={renaming}
+                      onClick={() => handleStartRename(session.id)}
+                      title={t("terminal.editTmuxSession")}
                       type="button"
                     >
-                      <strong>{sessionLabel}</strong>
-                      <small>
-                        {sessionStatus}
-                        {" · "}
-                        {session.windows}w
-                      </small>
+                      <Pencil size={12} />
                     </button>
                     <button
                       className={`tmux-mouse-toggle${mouseOn ? " active" : ""}`}
@@ -703,6 +702,7 @@ function TmuxSessionTag({
                       <X size={13} />
                     </button>
                   </div>
+                  {isRenaming && renameError ? <p className="tmux-session-rename-error form-error">{renameError}</p> : null}
                   {!isInApp && isExpanded ? (
                     <div className="tmux-session-directions">
                       <button
@@ -761,7 +761,17 @@ function tmuxConnectionRequest(connection: Connection) {
   };
 }
 
-function SshPortForwardMenu({ connection }: { connection: Connection }) {
+function SshPortForwardMenu({
+  connection,
+  triggerClassName = "terminal-pane-action",
+  triggerLabel,
+  triggerRole,
+}: {
+  connection: Connection;
+  triggerClassName?: string;
+  triggerLabel?: string;
+  triggerRole?: "menuitem";
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ports, setPorts] = useState<RemoteLoopbackPort[]>([]);
@@ -839,16 +849,18 @@ function SshPortForwardMenu({ connection }: { connection: Connection }) {
   }
 
   return (
-    <div className="tmux-session-wrapper" ref={menuRef}>
+    <div className="tmux-session-wrapper" ref={menuRef} role={triggerRole ? "none" : undefined}>
       <button
-        className="terminal-pane-action"
+        className={triggerClassName}
         aria-label={t("terminal.sshPortRedirect")}
         {...dialogButtonAria(open)}
         onClick={() => void handleToggle()}
+        role={triggerRole}
         title={t("terminal.sshPortRedirect")}
         type="button"
       >
         <Network size={13} />
+        {triggerLabel ? <span>{triggerLabel}</span> : null}
       </button>
       {open ? (
         <div className="tmux-session-menu ssh-port-menu" role="dialog" aria-label={t("terminal.sshPortRedirect")}>
@@ -968,11 +980,9 @@ function TerminalPaneView({
     resultCount: number;
     found: boolean;
   }>({ resultIndex: -1, resultCount: 0, found: true });
-  const [splitMenuOpen, setSplitMenuOpen] = useState(false);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [selectedTerminalText, setSelectedTerminalText] = useState("");
   const [contextMenu, setContextMenu] = useState<TerminalContextMenuState | null>(null);
-  const splitMenuRef = useRef<HTMLDivElement | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const terminalSettings = useWorkspaceStore((state) => state.terminalSettings);
   const sshSettings = useWorkspaceStore((state) => state.sshSettings);
@@ -995,15 +1005,12 @@ function TerminalPaneView({
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (!splitMenuOpen && !actionsMenuOpen) {
+    if (!actionsMenuOpen) {
       return;
     }
 
     function onPointerDown(event: PointerEvent) {
       const target = event.target as Node | null;
-      if (splitMenuRef.current && target && !splitMenuRef.current.contains(target)) {
-        setSplitMenuOpen(false);
-      }
       if (actionsMenuRef.current && target && !actionsMenuRef.current.contains(target)) {
         setActionsMenuOpen(false);
       }
@@ -1011,7 +1018,7 @@ function TerminalPaneView({
 
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [actionsMenuOpen, splitMenuOpen]);
+  }, [actionsMenuOpen]);
 
   useEffect(() => {
     function handleExternalPointerDown(event: PointerEvent) {
@@ -1497,13 +1504,18 @@ function TerminalPaneView({
   }
 
   function handleSplit(direction: "right" | "left" | "down" | "up") {
-    setSplitMenuOpen(false);
+    setActionsMenuOpen(false);
     onSplit(pane.id, direction);
   }
 
   function handleSaveBuffer() {
     setActionsMenuOpen(false);
     onSaveBuffer(pane.id);
+  }
+
+  function handleToggleSearch() {
+    setActionsMenuOpen(false);
+    setSearchOpen((open) => !open);
   }
 
   function handleFontChange(delta: number | "reset") {
@@ -1570,69 +1582,6 @@ function TerminalPaneView({
               <span>{t("terminal.sftp")}</span>
             </button>
           ) : null}
-          {isSshPane && pane.connection ? <SshPortForwardMenu connection={pane.connection} /> : null}
-          <div className="terminal-menu-wrapper" ref={splitMenuRef}>
-            <button
-              className="terminal-pane-action"
-              aria-label={t("terminal.splitLayout")}
-              {...menuButtonAria(splitMenuOpen)}
-              disabled={!canSplit}
-              onClick={() => setSplitMenuOpen((open) => !open)}
-              title={t("terminal.splitLayout")}
-              type="button"
-            >
-              <SplitSquareHorizontal size={13} />
-            </button>
-            {splitMenuOpen ? (
-              <div className="terminal-menu" role="menu">
-                <button
-                  className="terminal-menu-item"
-                  onClick={() => handleSplit("right")}
-                  role="menuitem"
-                  type="button"
-                >
-                  <ArrowRight size={13} />
-                  {t("terminal.splitRight")}
-                </button>
-                <button
-                  className="terminal-menu-item"
-                  onClick={() => handleSplit("left")}
-                  role="menuitem"
-                  type="button"
-                >
-                  <ArrowLeft size={13} />
-                  {t("terminal.splitLeft")}
-                </button>
-                <button
-                  className="terminal-menu-item"
-                  onClick={() => handleSplit("down")}
-                  role="menuitem"
-                  type="button"
-                >
-                  <ArrowDown size={13} />
-                  {t("terminal.splitDown")}
-                </button>
-                <button
-                  className="terminal-menu-item"
-                  onClick={() => handleSplit("up")}
-                  role="menuitem"
-                  type="button"
-                >
-                  <ArrowUp size={13} />
-                  {t("terminal.splitUp")}
-                </button>
-              </div>
-            ) : null}
-          </div>
-          <button
-            className="terminal-pane-action"
-            aria-label={t("terminal.findInScrollback")}
-            onClick={() => setSearchOpen((open) => !open)}
-            title={t("terminal.findInScrollback")}
-            type="button"
-          >
-            <Search size={13} />
-          </button>
           <button
             className="terminal-pane-action"
             aria-label={t("terminal.copySelection")}
@@ -1672,6 +1621,77 @@ function TerminalPaneView({
             </button>
             {actionsMenuOpen ? (
               <div className="terminal-menu" role="menu">
+                {isSshPane && pane.connection ? (
+                  <SshPortForwardMenu
+                    connection={pane.connection}
+                    triggerClassName="terminal-menu-item"
+                    triggerLabel={t("terminal.sshPortRedirect")}
+                    triggerRole="menuitem"
+                  />
+                ) : null}
+                <div className="terminal-menu-submenu">
+                  <button
+                    className="terminal-menu-item"
+                    disabled={!canSplit}
+                    role="menuitem"
+                    type="button"
+                  >
+                    <SplitSquareHorizontal size={13} />
+                    {t("terminal.splitLayout")}
+                    <ChevronRight size={13} className="terminal-menu-chevron" />
+                  </button>
+                  <div className="terminal-menu terminal-menu-submenu-panel" role="menu">
+                    <button
+                      className="terminal-menu-item"
+                      disabled={!canSplit}
+                      onClick={() => handleSplit("right")}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <ArrowRight size={13} />
+                      {t("terminal.splitRight")}
+                    </button>
+                    <button
+                      className="terminal-menu-item"
+                      disabled={!canSplit}
+                      onClick={() => handleSplit("left")}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <ArrowLeft size={13} />
+                      {t("terminal.splitLeft")}
+                    </button>
+                    <button
+                      className="terminal-menu-item"
+                      disabled={!canSplit}
+                      onClick={() => handleSplit("down")}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <ArrowDown size={13} />
+                      {t("terminal.splitDown")}
+                    </button>
+                    <button
+                      className="terminal-menu-item"
+                      disabled={!canSplit}
+                      onClick={() => handleSplit("up")}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <ArrowUp size={13} />
+                      {t("terminal.splitUp")}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  className="terminal-menu-item"
+                  onClick={handleToggleSearch}
+                  role="menuitem"
+                  type="button"
+                >
+                  <Search size={13} />
+                  {t("terminal.findInScrollback")}
+                </button>
                 <button
                   className="terminal-menu-item"
                   onClick={handleSaveBuffer}
