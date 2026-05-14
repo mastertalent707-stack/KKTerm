@@ -87,9 +87,20 @@ export function completeAssistantStreamMessageFromResponse<T extends AssistantSt
 ): T {
   return {
     ...message,
-    content: response.content,
+    content: preserveSecretRequestDirectives(message.content, response.content),
     reasoningContent: message.reasoningContent?.trim()
       ? message.reasoningContent
       : response.reasoningContent,
   };
+}
+
+const SECRET_REQUEST_FENCE = /```kkterm-secret-request\s*\n[\s\S]*?```/g;
+
+function preserveSecretRequestDirectives(streamedContent: string, finalContent: string) {
+  const directives = streamedContent.match(SECRET_REQUEST_FENCE) ?? [];
+  const missingDirectives = directives.filter((directive) => !finalContent.includes(directive));
+  if (missingDirectives.length === 0) {
+    return finalContent;
+  }
+  return [finalContent.trimEnd(), ...missingDirectives].filter(Boolean).join("\n\n");
 }

@@ -1235,6 +1235,7 @@
     "toolFileSearch": "Searching files\u2026",
     "toolFileRead": "Reading file\u2026",
     "toolCurrentTime": "Checking current time\u2026",
+    "toolSecretRequest": "Requesting secret entry\u2026",
     "toolDashboard": "Updating Dashboard...",
     "toolWebSearchDone": "Searched the web",
     "toolWebFetchDone": "Fetched web page",
@@ -1242,6 +1243,7 @@
     "toolFileSearchDone": "Searched files",
     "toolFileReadDone": "Read file",
     "toolCurrentTimeDone": "Checked current time",
+    "toolSecretRequestDone": "Requested secret entry",
     "toolDashboardDone": "Updated Dashboard",
     "waitingPhrases": [
       "Compiling the tsundere kernel",

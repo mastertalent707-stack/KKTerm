@@ -913,7 +913,7 @@ impl OpenAiCompatibleProvider {
                 ),
             });
             for tool_call in tool_calls {
-                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, &tool_call).await;
+                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, &tool_call, None).await;
                 messages.push(OpenAiCompatibleMessage {
                     role: "tool".to_string(),
                     content: OpenAiCompatibleContent::Text(result),
@@ -1071,7 +1071,7 @@ impl OpenAiCompatibleProvider {
                 input.extend(output.iter().cloned());
             }
             for tool_call in tool_calls {
-                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, &tool_call).await;
+                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, &tool_call, None).await;
                 input.push(json!({
                     "type": "function_call_output",
                     "call_id": tool_call.id,
@@ -1285,7 +1285,7 @@ impl OpenAiCompatibleProvider {
                         tool_name: tool_call.function.name.clone(),
                     },
                 )?;
-                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, tool_call).await;
+                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, tool_call, Some(&channel)).await;
                 ai_debug!(
                     "tool end provider={} model={} subturn={} id={} name={} result_len={}",
                     self.provider_kind,
@@ -1483,7 +1483,7 @@ impl OpenAiCompatibleProvider {
                         tool_name: tool_call.function.name.clone(),
                     },
                 )?;
-                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, tool_call).await;
+                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, tool_call, Some(&channel)).await;
                 let tool_error = tool_result_error(&result);
                 input.push(json!({
                     "type": "function_call_output",
@@ -1874,6 +1874,11 @@ fn ai_tool_definitions(settings: &AiAssistantToolSettings) -> Vec<OpenAiToolDefi
         return Vec::new();
     }
     let mut tools = Vec::new();
+    tools.push(tool_definition(
+        "request_secret_entry",
+        "Ask KKTerm to render a local secret entry card without exposing the secret to the AI model. Use this for API keys, passwords, tokens, and widget secrets after the owning widget or provider metadata exists.",
+        request_secret_entry_schema(),
+    ).strict());
     if settings.current_time() {
         tools.push(tool_definition(
             "current_time",
@@ -1960,7 +1965,7 @@ fn ai_tool_definitions(settings: &AiAssistantToolSettings) -> Vec<OpenAiToolDefi
         ));
         tools.push(tool_definition(
             "dashboard_create_widget",
-            "Create a validated AI-authored custom widget and place it on the selected Dashboard view in one step. Prefer this for user requests to create a visible widget. Prefer content widgets for static markdown, key/value summaries, checklists, and stats. Use script widgets only when the user explicitly needs live JavaScript behavior. For script widgets that display remote images, fetch remote data, or load external libraries such as Three.js from a CDN, set permissions.network to true; otherwise keep it false. External website links must be normal http/https anchors or call KK.openExternal(url), and KKTerm will open them in the user's external browser. Choose preset, accentName, iconName, and grid size deliberately from the widget purpose: panel for standard tools, tile/stat for compact metrics, mono for terminal/code/system data, action for launch/action surfaces, hero only for rare high-priority summaries. Size widgets generously enough to avoid inner scrollbars: simple timers/counters need at least 4x3, forms or images need 5x4 or larger, lists need height for expected rows. Games, canvas demos, and single-purpose interactive tools should start compact, normally 4-6 columns wide and 4-7 rows tall; do not make them full-width unless the user asks for a wide layout. Prefer calm app-like accents such as blue, teal, slate, emerald, amber for warnings, and red/rose only for destructive or error-oriented widgets. Never set text and background to the same or low-contrast colors; use host CSS variables and compact app-style controls. If the widget needs user-configurable/persistent per-instance options, provide settingsSchema.fields with text, number, boolean, select, or secret fields. Use secret fields for passwords, API keys, tokens, and similar values; SQLite stores only secret references and scripts must call await KK.getSecret('fieldKey') to read the OS-keychain value at runtime. Do not generate full HTML documents; script source should create or update DOM nodes inside the provided root.",
+            "Create a validated AI-authored custom widget and place it on the selected Dashboard view in one step. Prefer this for user requests to create a visible widget. Prefer content widgets for static markdown, key/value summaries, checklists, and stats. Use script widgets only when the user explicitly needs live JavaScript behavior. For script widgets that display remote images, fetch remote data, or load external libraries such as Three.js from a CDN, set permissions.network to true; otherwise keep it false. External website links must be normal http/https anchors or call KK.openExternal(url), and KKTerm will open them in the user's external browser. Choose preset, accentName, iconName, and grid size deliberately from the widget purpose: panel for standard tools, tile/stat for compact metrics, mono for terminal/code/system data, action for launch/action surfaces, hero only for rare high-priority summaries. Size widgets generously enough to avoid inner scrollbars: simple timers/counters need at least 4x3, forms or images need 5x4 or larger, lists need height for expected rows. Games, canvas demos, and single-purpose interactive tools should start compact, normally 4-6 columns wide and 4-7 rows tall; do not make them full-width unless the user asks for a wide layout. Prefer calm app-like accents such as blue, teal, slate, emerald, amber for warnings, and red/rose only for destructive or error-oriented widgets. Never set text and background to the same or low-contrast colors; use host CSS variables and compact app-style controls. If the widget needs user-configurable/persistent per-instance options, provide settingsSchema.fields with text, number, boolean, select, or secret fields. Use secret fields for passwords, API keys, tokens, and similar values; secret fields require type, key, label, and placeholder only, with no defaultValue. SQLite stores only secret references and scripts must call await KK.getSecret('fieldKey') to read the OS-keychain value at runtime. After this tool returns, use the returned instance.id to request any needed widget secret with ownerId dashboard-widget-secret:<instance.id>:<fieldKey>. Do not generate full HTML documents; script source should create or update DOM nodes inside the provided root.",
             dashboard_create_widget_schema(),
         ).strict());
         tools.push(tool_definition(
@@ -1987,6 +1992,22 @@ fn ai_tool_definitions(settings: &AiAssistantToolSettings) -> Vec<OpenAiToolDefi
     tools
 }
 
+fn request_secret_entry_schema() -> Value {
+    json!({
+        "type":"object",
+        "properties":{
+            "kind":{"type":"string","enum":["widgetSecret","aiApiKey"]},
+            "instanceId":{"type":["string","null"]},
+            "fieldKey":{"type":["string","null"]},
+            "label":{"type":"string","minLength":1,"maxLength":80},
+            "description":{"type":["string","null"],"maxLength":240},
+            "placeholder":{"type":["string","null"],"maxLength":120}
+        },
+        "required":["kind","instanceId","fieldKey","label","description","placeholder"],
+        "additionalProperties":false
+    })
+}
+
 
 fn dashboard_create_widget_schema() -> Value {
     json!({
@@ -1997,7 +2018,7 @@ fn dashboard_create_widget_schema() -> Value {
             "title":{"type":"string","minLength":1,"maxLength":120},
             "summary":{"type":"string","maxLength":240},
             "category":{"type":"string","minLength":1,"maxLength":80},
-            "settingsSchema":{"type":["object","null"],"properties":{"fields":{"type":"array","items":{"type":"object","properties":{"type":{"type":"string","enum":["text","number","boolean","select","secret"]},"key":{"type":"string"},"label":{"type":"string"},"placeholder":{"type":["string","null"]},"defaultValue":{"type":["string","number","boolean","null"]},"min":{"type":["number","null"]},"max":{"type":["number","null"]},"step":{"type":["number","null"]},"options":{"type":["array","null"],"items":{"type":"object","properties":{"label":{"type":"string"},"value":{"type":"string"}},"required":["label","value"],"additionalProperties":false}}},"required":["type","key","label","placeholder","defaultValue","min","max","step","options"],"additionalProperties":false}}},"required":["fields"],"additionalProperties":false},
+            "settingsSchema":{"type":["object","null"],"properties":{"fields":{"type":"array","items":dashboard_widget_settings_field_schema()}},"required":["fields"],"additionalProperties":false},
             "body":{
                 "anyOf":[
                     {"type":"object","properties":{"shape":{"type":"string","enum":["markdown"]},"data":{"type":"object","properties":{"source":{"type":"string","minLength":1}},"required":["source"],"additionalProperties":false}},"required":["shape","data"],"additionalProperties":false},
@@ -2017,6 +2038,25 @@ fn dashboard_create_widget_schema() -> Value {
         },
         "required":["viewId","kind","title","summary","category","settingsSchema","body","preset","accentName","iconName","gridX","gridY","gridW","gridH"],
         "additionalProperties":false
+    })
+}
+
+fn dashboard_widget_settings_field_schema() -> Value {
+    let option_schema = json!({
+        "type":"object",
+        "properties":{"label":{"type":"string"},"value":{"type":"string"}},
+        "required":["label","value"],
+        "additionalProperties":false
+    });
+
+    json!({
+        "anyOf":[
+            {"type":"object","properties":{"type":{"type":"string","enum":["text"]},"key":{"type":"string"},"label":{"type":"string"},"placeholder":{"type":["string","null"]},"defaultValue":{"type":["string","null"]}},"required":["type","key","label","placeholder","defaultValue"],"additionalProperties":false},
+            {"type":"object","properties":{"type":{"type":"string","enum":["number"]},"key":{"type":"string"},"label":{"type":"string"},"min":{"type":["number","null"]},"max":{"type":["number","null"]},"step":{"type":["number","null"]},"defaultValue":{"type":["number","null"]}},"required":["type","key","label","min","max","step","defaultValue"],"additionalProperties":false},
+            {"type":"object","properties":{"type":{"type":"string","enum":["boolean"]},"key":{"type":"string"},"label":{"type":"string"},"defaultValue":{"type":["boolean","null"]}},"required":["type","key","label","defaultValue"],"additionalProperties":false},
+            {"type":"object","properties":{"type":{"type":"string","enum":["select"]},"key":{"type":"string"},"label":{"type":"string"},"options":{"type":"array","items":option_schema,"minItems":1},"defaultValue":{"type":["string","null"]}},"required":["type","key","label","options","defaultValue"],"additionalProperties":false},
+            {"type":"object","properties":{"type":{"type":"string","enum":["secret"]},"key":{"type":"string"},"label":{"type":"string"},"placeholder":{"type":["string","null"]}},"required":["type","key","label","placeholder"],"additionalProperties":false}
+        ]
     })
 }
 
@@ -2096,9 +2136,11 @@ async fn run_ai_tool(
     app_data_dir: &Path,
     app: &tauri::AppHandle,
     call: &OpenAiToolCall,
+    stream_channel: Option<&Channel<Value>>,
 ) -> String {
     let args: Value = serde_json::from_str(&call.function.arguments).unwrap_or_else(|_| json!({}));
     match call.function.name.as_str() {
+        "request_secret_entry" => request_secret_entry_tool(args, stream_channel),
         "current_time" if settings.current_time() => current_time_tool(),
         "web_search" if settings.web_search() => web_search_tool(args).await,
         "web_fetch" if settings.web_fetch() => web_fetch_tool(args).await,
@@ -2334,6 +2376,110 @@ fn dashboard_tool(app: &tauri::AppHandle, name: &str, args: Value) -> String {
 
 fn is_dashboard_mutating_tool(name: &str) -> bool {
     name.starts_with("dashboard_") && name != "dashboard_load_state"
+}
+
+const AI_PROVIDER_SECRET_OWNER_ID: &str = "openai-compatible-provider";
+
+fn request_secret_entry_tool(args: Value, stream_channel: Option<&Channel<Value>>) -> String {
+    match build_secret_entry_request(&args) {
+        Ok(request) => {
+            if let Some(channel) = stream_channel {
+                if let Err(error) = emit_stream(
+                    channel,
+                    &AiStreamEvent::ContentDelta {
+                        delta: format!("\n\n{}\n\n", request.markdown),
+                    },
+                ) {
+                    return format!("{{\"error\":\"{}\"}}", error.replace('"', "\\\""));
+                }
+            }
+            serde_json::to_string(&json!({
+                "ok": true,
+                "kind": request.kind,
+                "ownerId": request.owner_id,
+                "label": request.label,
+                "secretRequestMarkdown": request.markdown,
+                "message": "KKTerm is showing a local secret entry card. The secret value is entered locally and is not visible to the AI model."
+            }))
+            .unwrap_or_else(|_| "{}".to_string())
+        }
+        Err(error) => format!("{{\"error\":\"{}\"}}", error.replace('"', "\\\"")),
+    }
+}
+
+struct SecretEntryRequest {
+    kind: String,
+    owner_id: String,
+    label: String,
+    markdown: String,
+}
+
+fn build_secret_entry_request(args: &Value) -> Result<SecretEntryRequest, String> {
+    let kind = arg_string(args, "kind");
+    let label = bounded_required_arg(args, "label", 80)?;
+    let description = bounded_optional_arg(args, "description", 240);
+    let placeholder = bounded_optional_arg(args, "placeholder", 120);
+    let owner_id = match kind.as_str() {
+        "aiApiKey" => AI_PROVIDER_SECRET_OWNER_ID.to_string(),
+        "widgetSecret" => {
+            let instance_id = bounded_required_arg(args, "instanceId", 80)?;
+            let field_key = bounded_required_arg(args, "fieldKey", 64)?;
+            if !valid_secret_owner_component(&instance_id) {
+                return Err("request_secret_entry instanceId is invalid".to_string());
+            }
+            if !valid_secret_field_key(&field_key) {
+                return Err("request_secret_entry fieldKey is invalid".to_string());
+            }
+            format!("dashboard-widget-secret:{instance_id}:{field_key}")
+        }
+        _ => return Err("request_secret_entry kind must be widgetSecret or aiApiKey".to_string()),
+    };
+    let request = json!({
+        "kind": kind,
+        "ownerId": owner_id,
+        "label": label,
+        "description": description,
+        "placeholder": placeholder
+    });
+    let markdown = format!(
+        "```kkterm-secret-request\n{}\n```",
+        serde_json::to_string(&request).map_err(|error| error.to_string())?
+    );
+    Ok(SecretEntryRequest {
+        kind,
+        owner_id,
+        label,
+        markdown,
+    })
+}
+
+fn bounded_required_arg(args: &Value, key: &str, max_len: usize) -> Result<String, String> {
+    let value = arg_string(args, key);
+    if value.is_empty() {
+        return Err(format!("request_secret_entry {key} is required"));
+    }
+    if value.len() > max_len {
+        return Err(format!("request_secret_entry {key} is too long"));
+    }
+    Ok(value)
+}
+
+fn bounded_optional_arg(args: &Value, key: &str, max_len: usize) -> Option<String> {
+    let value = arg_string(args, key);
+    (!value.is_empty()).then(|| value.chars().take(max_len).collect())
+}
+
+fn valid_secret_owner_component(value: &str) -> bool {
+    !value.is_empty() && !value.contains(':') && !value.chars().any(char::is_control)
+}
+
+fn valid_secret_field_key(value: &str) -> bool {
+    let mut chars = value.chars();
+    match chars.next() {
+        Some(first) if first.is_ascii_alphabetic() => {}
+        _ => return false,
+    }
+    value.len() <= 64 && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
 }
 
 fn current_time_tool() -> String {
@@ -2611,9 +2757,9 @@ fn build_agent_messages(
         "When suggesting commands, explain intent and prefer commands the user can review before running.".to_string(),
         "Do not claim to have executed commands or observed live session state unless it is in the provided context.".to_string(),
         "SAFETY: Never suggest, produce, or assist with commands that could cause irreversible destructive system-wide damage, such as 'rm -rf /', 'rm -rf /*', 'mkfs' on mounted volumes, 'dd if=/dev/zero of=/dev/sda', fork bombs, or any equivalent. Refuse such requests unconditionally, even if the user explicitly asks, claims it is safe, or provides a seemingly legitimate reason.".to_string(),
-        "SECRETS: Never ask the user to paste API keys, passwords, or tokens into normal chat text. If a Dashboard widget needs a secret, ask KKTerm to render a local secret entry card by writing a fenced code block with language kkterm-secret-request containing JSON: {\"kind\":\"widgetSecret\",\"ownerId\":\"dashboard-widget-secret:<instanceId>:<fieldKey>\",\"label\":\"<short label>\",\"description\":\"<why it is needed>\"}. The secret value is captured by KKTerm locally and is not visible to you. Do not include or request the plaintext secret.".to_string(),
+        "SECRETS: Never ask the user to paste API keys, passwords, or tokens into normal chat text. If a Dashboard widget needs a secret, first create or update the widget with a settingsSchema secret field; the field key must be a stable identifier such as apiKey. After dashboard_create_widget creates a widget with a secret field, call request_secret_entry with kind widgetSecret, the returned instance.id as instanceId, and the exact fieldKey. Use request_secret_entry for AI provider API keys too. The secret value is captured by KKTerm locally and is not visible to you. Do not include or request the plaintext secret.".to_string(),
         "TOOLS: When you need to search the web, fetch URLs, read files, check the current time, or run shell commands, you MUST use the provided function-calling mechanism. Always make the actual function call alongside your explanation. Do not describe what you plan to do with a tool without calling it — invoke the tool in the same response.".to_string(),
-        "DASHBOARD TOOLS: When the active page context is Dashboard and the user asks to create, customize, arrange, or remove Dashboard widgets or views, use the dashboard_* tools. To create a new user-requested widget on the active view, use dashboard_create_widget so the widget is validated and placed on the selected view in one step. Do not use the separate two-step dashboard_create_custom_widget + dashboard_add_instance for user-visible widget creation. Choose the preset, accent, icon, and grid size to fit the widget's job and KKTerm's quiet desktop style; do not pick decorative colors at random. Be boundary-aware: size simple timers/counters at least 4x3, forms or images at least 5x4, and list widgets tall enough for their expected rows so the initial widget does not show inner scrollbars. Games, canvas demos, and single-purpose interactive tools should start compact, normally 4-6 columns wide and 4-7 rows tall; do not make them full-width unless the user asks for a wide layout. Prefer schema/content widgets when possible, and keep generated script widget UI compact, app-like, readable, high-contrast, and free of full HTML documents or script tags. Use settingsSchema.fields for persistent per-instance custom options; KKTerm renders those settings and scripts can read/write non-secret values through KK.getSettings(), KK.setSetting(), and KK.setSettings(). Passwords, API keys, tokens, and similar sensitive values must use settingsSchema field type secret; SQLite stores only a secretRef, the value lives in OS keychain as widgetSecret, and scripts read it with await KK.getSecret('fieldKey') only when needed. When a widget embeds remote images, fetches remote data, or loads external libraries such as Three.js from a CDN, set script permissions.network=true. External website links should be http/https anchors or KK.openExternal(url); they open in the external browser, not inside the widget iframe.".to_string(),
+        "DASHBOARD TOOLS: When the active page context is Dashboard and the user asks to create, customize, arrange, or remove Dashboard widgets or views, use the dashboard_* tools. To create a new user-requested widget on the active view, use dashboard_create_widget so the widget is validated and placed on the selected view in one step. Do not use the separate two-step dashboard_create_custom_widget + dashboard_add_instance for user-visible widget creation. Choose the preset, accent, icon, and grid size to fit the widget's job and KKTerm's quiet desktop style; do not pick decorative colors at random. Be boundary-aware: size simple timers/counters at least 4x3, forms or images at least 5x4, and list widgets tall enough for their expected rows so the initial widget does not show inner scrollbars. Games, canvas demos, and single-purpose interactive tools should start compact, normally 4-6 columns wide and 4-7 rows tall; do not make them full-width unless the user asks for a wide layout. Prefer schema/content widgets when possible, and keep generated script widget UI compact, app-like, readable, high-contrast, and free of full HTML documents or script tags. Use settingsSchema.fields for persistent per-instance custom options; KKTerm renders those settings and scripts can read/write non-secret values through KK.getSettings(), KK.setSetting(), and KK.setSettings(). Passwords, API keys, tokens, and similar sensitive values must use settingsSchema field type secret with no defaultValue; SQLite stores only a secretRef, the value lives in OS keychain as widgetSecret, and scripts read it with await KK.getSecret('fieldKey') only when needed. After creating a widget with a secret field, call request_secret_entry using the returned widget instance id and the exact secret field key instead of asking the user to paste the secret in chat. When a widget embeds remote images, fetches remote data, or loads external libraries such as Three.js from a CDN, set script permissions.network=true. External website links should be http/https anchors or KK.openExternal(url); they open in the external browser, not inside the widget iframe.".to_string(),
     ];
     if let Some(language) = normalize_output_language(output_language) {
         system_instructions.push(language);
@@ -3586,6 +3732,71 @@ mod tests {
     }
 
     #[test]
+    fn dashboard_create_widget_schema_has_valid_secret_field_branch() {
+        let schema = dashboard_create_widget_schema();
+        let field_branches = schema
+            .pointer("/properties/settingsSchema/properties/fields/items/anyOf")
+            .and_then(Value::as_array)
+            .expect("settings field schema uses per-field branches");
+        let secret_branch = field_branches
+            .iter()
+            .find(|branch| {
+                branch
+                    .pointer("/properties/type/enum")
+                    .and_then(Value::as_array)
+                    .is_some_and(|values| values == &[json!("secret")])
+            })
+            .expect("secret settings field branch is present");
+
+        assert!(!secret_branch
+            .pointer("/properties/defaultValue")
+            .is_some());
+        assert!(!secret_branch
+            .pointer("/required")
+            .and_then(Value::as_array)
+            .expect("secret branch lists required properties")
+            .contains(&json!("defaultValue")));
+    }
+
+    #[test]
+    fn tool_definitions_include_secret_entry_request_tool() {
+        let settings: AiAssistantToolSettings = serde_json::from_value(json!({
+            "dashboard": true
+        }))
+        .expect("tool settings deserialize");
+
+        let tools = ai_tool_definitions(&settings);
+        let tool = tools
+            .iter()
+            .find(|tool| tool.function.name == "request_secret_entry")
+            .expect("secret entry request tool is available");
+
+        assert!(tool.function.description.contains("without exposing the secret"));
+        assert_eq!(
+            tool.function.parameters.pointer("/properties/kind/enum"),
+            Some(&json!(["widgetSecret", "aiApiKey"]))
+        );
+    }
+
+    #[test]
+    fn request_secret_entry_tool_builds_widget_secret_directive() {
+        let result = request_secret_entry_tool(json!({
+            "kind": "widgetSecret",
+            "instanceId": "inst-123",
+            "fieldKey": "apiKey",
+            "label": "API key",
+            "description": "Used to fetch population data",
+            "placeholder": null
+        }), None);
+        let value: Value = serde_json::from_str(&result).expect("tool result is JSON");
+
+        assert_eq!(value["ok"], true);
+        assert_eq!(value["ownerId"], "dashboard-widget-secret:inst-123:apiKey");
+        assert!(value["secretRequestMarkdown"].as_str().unwrap().contains("```kkterm-secret-request"));
+        assert!(!result.contains("secret\":\""));
+    }
+
+    #[test]
     fn agent_messages_include_extension_creation_guardrails() {
         let messages = build_agent_messages(
             "Create a Connection cleanup helper.".to_string(),
@@ -3608,6 +3819,28 @@ mod tests {
         assert!(system_content.contains("Do not say that KKTerm installed"));
         assert!(system_content.contains("require explicit user review"));
         assert!(request_content.contains("Assistant intent: extensionCreation"));
+    }
+
+    #[test]
+    fn agent_messages_explain_widget_secret_request_tool_workflow() {
+        let messages = build_agent_messages(
+            "Create a widget that needs an API key.".to_string(),
+            "Dashboard - Default".to_string(),
+            None,
+            "medium".to_string(),
+            None,
+            None,
+            None,
+            true,
+            None,
+            vec![],
+            vec![],
+            None,
+        );
+
+        let system_content = text_content(&messages[0]);
+        assert!(system_content.contains("After dashboard_create_widget creates a widget with a secret field, call request_secret_entry"));
+        assert!(system_content.contains("the returned instance.id as instanceId"));
     }
 
     #[test]
