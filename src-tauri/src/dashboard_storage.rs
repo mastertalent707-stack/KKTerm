@@ -17,6 +17,26 @@ pub struct DashboardView {
     pub grid_density: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum DashboardBackground {
+    Preset { preset: String },
+    Image { file: String, fit: String, dim: i64 },
+}
+
+impl DashboardBackground {
+    pub fn validate(&self) -> Result<(), ValidationError> {
+        match self {
+            DashboardBackground::Preset { preset } => {
+                crate::dashboard_validation::validate_background_preset(preset)
+            }
+            DashboardBackground::Image { file, fit, dim } => {
+                crate::dashboard_validation::validate_background_image(file, fit, *dim)
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DashboardWidgetInstance {
