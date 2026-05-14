@@ -5917,8 +5917,13 @@ progress {
 
 .connection-icon-picker-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
+}
+
+.connection-icon-picker-actions .toolbar-button {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .connection-icon-file-input {

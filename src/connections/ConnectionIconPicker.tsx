@@ -12,7 +12,7 @@ import { blobToDataUrl, resizeImageBlobToIconDataUrl } from "./iconImage";
 import { ariaPressed, dialogButtonAria } from "../lib/aria";
 import type { ConnectionType } from "../types";
 
-const MAX_SOURCE_ICON_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_SOURCE_ICON_FILE_BYTES = 20 * 1024 * 1024;
 
 export function ConnectionIconPicker({
   customIconDataUrls,
@@ -119,6 +119,31 @@ export function ConnectionIconPicker({
       </button>
       {open ? (
         <div className="connection-icon-popover" role="dialog" aria-label={t("connections.iconPickerLabel")}>
+          {currentIconDataUrl ? (
+            <div className="connection-icon-picker-section">
+              <p>{t("connections.customImage")}</p>
+              <div className="connection-icon-current">
+                <IconChoiceButton
+                  active
+                  ariaLabel={t("connections.currentCustomIcon")}
+                  onClick={() => setOpen(false)}
+                >
+                  <img alt="" aria-hidden="true" src={currentIconDataUrl} />
+                </IconChoiceButton>
+                <button
+                  aria-label={t("connections.removeCustomIcon")}
+                  className="connection-icon-remove-button"
+                  onClick={() => {
+                    onChange(null);
+                    setOpen(false);
+                  }}
+                  type="button"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            </div>
+          ) : null}
           <div className="connection-icon-picker-section">
             <p>{t("connections.predefinedIcons")}</p>
             <div className="connection-icon-grid">
@@ -157,31 +182,6 @@ export function ConnectionIconPicker({
               </IconChoiceButton>
             </div>
           </div>
-          {currentIconDataUrl ? (
-            <div className="connection-icon-picker-section">
-              <p>{t("connections.customImage")}</p>
-              <div className="connection-icon-current">
-                <IconChoiceButton
-                  active
-                  ariaLabel={t("connections.currentCustomIcon")}
-                  onClick={() => setOpen(false)}
-                >
-                  <img alt="" aria-hidden="true" src={currentIconDataUrl} />
-                </IconChoiceButton>
-                <button
-                  aria-label={t("connections.removeCustomIcon")}
-                  className="connection-icon-remove-button"
-                  onClick={() => {
-                    onChange(null);
-                    setOpen(false);
-                  }}
-                  type="button"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            </div>
-          ) : null}
           {reusableIconDataUrls.length > 0 ? (
             <div className="connection-icon-picker-section">
               <p>{t("connections.savedImages")}</p>
@@ -209,7 +209,7 @@ export function ConnectionIconPicker({
             </button>
             <button className="toolbar-button" onClick={() => onChange(null)} type="button">
               <RotateCcw size={15} />
-              {t("connections.useDefaultIcon")}
+              {t("common.reset")}
             </button>
           </div>
           <input
