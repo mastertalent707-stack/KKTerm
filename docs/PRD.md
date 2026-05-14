@@ -108,12 +108,11 @@ The full stack, module map, storage/secrets boundaries, command-runtime rules, R
 - Team sharing, team vaults, RBAC, SSO, managed cloud services, or paid AI service.
 - Settings sync.
 - Global command palette or command launcher.
-- Silent, portable ZIP, rollback/downgrade, preview-channel, managed-server, or cross-platform auto-update behavior.
+- Silent install, rollback/downgrade, preview-channel, managed-server, or cross-platform auto-update behavior.
 - Dynamic inventory from cloud APIs, Terraform, CMDB, or other external sources beyond the supported file imports (CSV/TSV, RDCMan `.rdg`, MobaXterm `.mxtsessions`, PuTTY `.reg`) and the bundled light TCP port scan.
 - Folder sync, diff/compare, transfer resume, archive/extract, and remote file editing in SFTP.
 - Fully autonomous AI agent execution.
 - Editable keybinding UI.
-- Optional encrypted SQLite credential vault for portable mode.
 
 ## Further Notes
 

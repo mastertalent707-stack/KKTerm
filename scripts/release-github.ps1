@@ -107,13 +107,11 @@ try {
     $NextVersion = "$($VersionParts[0]).$($VersionParts[1]).$($VersionParts[2] + 1)"
     $TagName = "v$NextVersion"
     $TargetTriple = "windows-x64"
-    $PortableZip = Join-Path $ResolvedOutputDir "kkterm-$NextVersion-$TargetTriple-portable.zip"
-    $PortableSha = "$PortableZip.sha256"
     $InstallerExe = Join-Path $ResolvedOutputDir "kkterm-$NextVersion-$TargetTriple-setup.exe"
     $InstallerSha = "$InstallerExe.sha256"
     $InstallerSig = "$InstallerExe.sig"
     $LatestJson = Join-Path $ResolvedOutputDir "latest.json"
-    $ReleaseAssets = @($PortableZip, $PortableSha, $InstallerExe, $InstallerSha, $InstallerSig, $LatestJson)
+    $ReleaseAssets = @($InstallerExe, $InstallerSha, $InstallerSig, $LatestJson)
 
     Write-Host "Current version: $CurrentVersion"
     Write-Host "Next version:    $NextVersion"
@@ -149,7 +147,6 @@ try {
     Set-CargoPackageVersion -Path $CargoTomlPath -Version $NextVersion
 
     if (-not $SkipBuild) {
-        Invoke-Checked -FilePath "npm" -ArgumentList @("run", "package:portable") -Action "Build portable package"
         Invoke-Checked -FilePath "npm" -ArgumentList @("run", "package:installer") -Action "Build installer package"
     }
 
@@ -215,10 +212,10 @@ try {
         "release",
         "create",
         $TagName,
-        $PortableZip,
-        $PortableSha,
         $InstallerExe,
         $InstallerSha,
+        $InstallerSig,
+        $LatestJson,
         "--title",
         "KKTerm $TagName",
         "--notes",

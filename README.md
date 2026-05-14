@@ -84,11 +84,10 @@ npm run check        # Type-check everything
 ```
 
 ```bash
-npm run package:portable   # Build a portable ZIP
 npm run package:installer  # Build the NSIS installer
 ```
 
-Both land in `artifacts/` with SHA-256 checksums.
+The installer lands in `artifacts/` with a SHA-256 checksum.
 
 ## Native Debugging
 

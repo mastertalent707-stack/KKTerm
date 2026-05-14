@@ -94,8 +94,6 @@ Owns OS keychain integration:
 
 Secrets include passwords, SSH passphrases, and AI API keys.
 
-Optional future direction: a portable vault mode may add encrypted SQLite credential storage for users who need secrets to travel with a portable install. That mode must be explicit opt-in, derive its encryption key from a user-provided master password or OS-protected material, define lock/unlock and password-change behavior, and remain separate from the default OS keychain path.
-
 ### Connection Model
 
 Represents all openable resources as saved connections. Current connection types:
@@ -260,7 +258,7 @@ Owns update discovery and installation for packaged desktop builds. v0.2 targets
 
 Update checks are enabled by default and may contact the configured GitHub Releases/update metadata endpoint. This network request is part of the updater flow and must be described clearly in Settings as distinct from telemetry. KKTerm must not add analytics or crash upload as part of update checking.
 
-Installation is user-mediated. Settings owns manual update checks and update preferences, while app chrome may show a lightweight update-available notification after a successful check. The first v0.2 updater supports normal forward updates only. Rollback, downgrade, preview channels, managed update servers, silent installs, cross-platform updater support, and portable ZIP self-update are deferred.
+Installation is user-mediated. Settings owns manual update checks and update preferences, while app chrome may show a lightweight update-available notification after a successful check. The first v0.2 updater supports normal forward updates only. Rollback, downgrade, preview channels, managed update servers, silent installs, and cross-platform updater support are deferred.
 
 ## Data Boundaries
 
