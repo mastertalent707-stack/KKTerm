@@ -90,6 +90,18 @@ npm run package:installer  # Build the NSIS installer
 
 Both land in `artifacts/` with SHA-256 checksums.
 
+## Native Debugging
+
+Use the real Tauri desktop runtime for testing and verification:
+
+```bash
+npm run tauri dev
+```
+
+For Rust breakpoints and native debugging on Windows, use VS Code's `Run KKTerm exe` launch configuration. It builds and starts `src-tauri/target/debug/kkterm.exe` with backtraces enabled. Attach `Attach KKTerm WebView2` when frontend debugging needs to inspect the app inside the native WebView2 host.
+
+Standalone Vite/browser preview is not a substitute for validating native behavior such as local ConPTY input, WebView2, RDP/VNC, keychain, dialogs, native menus, or OS integration.
+
 ---
 
 ## Stack

@@ -93,9 +93,9 @@ Stack: **i18next + react-i18next**, in `src/i18n/`. English (`locales/en.json`, 
 
 `app` (shell, ActivityRail, resize handles), `settings`, `connections` (sidebar, tree, dialogs, Quick Connect, context menus), `terminal` (workspace, toolbar, SSH host key dialogs), `sftp` (browser, transfers, conflicts, properties), `webview` (URL toolbar, credential fill), `remoteDesktop` (RDP/VNC status, toolbar), `ai` (assistant panel, markdown toolbar, chat history, waiting phrases), `workspace` (tab strip, canvas, status bar, screenshot menu), `common` (Save, Cancel, Close, Delete, Copy…), `languages` (native names).
 
-## Codex Desktop UI Review
+## Native Debug Verification
 
-For frontend-only UI inspection in Codex Desktop, run `npm run codex:ui` and open `http://localhost:1420` in the built-in browser. Use this for screenshots, DOM inspection, and UI-fix comments. Validate native-only behavior in the real Tauri runtime with `npm run tauri dev`, especially local PTY/ConPTY focus, WebView2, RDP/VNC, title-bar close behavior, keychain, dialogs, and OS integration.
+Use the real Tauri desktop runtime for testing and verification, including UI work. Do not use a standalone Vite/browser preview as the validation path. Run `npm run tauri dev` for manual smoke testing, or use VS Code's `Run KKTerm exe` launch configuration to debug `src-tauri/target/debug/kkterm.exe` with Rust breakpoints and `RUST_BACKTRACE=1`. Use the paired `Attach KKTerm WebView2` launch configuration when frontend DevTools/debugging is needed inside the real WebView2 host. Native behavior that must be validated this way includes local PTY/ConPTY focus, WebView2, RDP/VNC, title-bar close behavior, keychain, dialogs, native context menus, and OS integration.
 
 ## Checks
 

@@ -932,7 +932,7 @@
     "refreshTmux": "Refresh tmux sessions",
     "loading": "Loading...",
     "noTmuxSessions": "No tmux sessions.",
-    "open": "open",
+    "open": "Active",
     "attached": "attached",
     "detached": "detached",
     "focusPane": "Focus pane",
