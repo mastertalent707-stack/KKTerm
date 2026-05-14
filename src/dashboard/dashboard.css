@@ -254,11 +254,12 @@ main.dashboard-page {
   overflow-y: auto;
 }
 
+/* Edit-mode grid lines: a pseudo-element on the canvas that layers above any custom background but below widgets. inset:0 maps to the canvas's bounds; no background-origin needed. */
 .dw-canvas-scroll.is-editing .dw-canvas::before {
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 0; /* deliberate: keep grid lines below positioned widgets */
   pointer-events: none;
   background-image:
     radial-gradient(circle, var(--dw-grid-dot) 1px, transparent 1.4px),
@@ -274,6 +275,7 @@ main.dashboard-page {
   min-height: 100%;
 }
 
+/* Custom per-view background layer: sits behind the widget grid (z-index 0 vs the grid's z-index 1). The renderer sets background/background-image and --dw-bg-dim-color inline. */
 .dw-canvas-bg {
   position: absolute;
   inset: 0;
