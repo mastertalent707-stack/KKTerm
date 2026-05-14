@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use rusqlite::{params, Connection as SqliteConnection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +17,8 @@ pub struct DashboardView {
     pub title: String,
     pub sort_order: i64,
     pub grid_density: String,
+    #[serde(default)]
+    pub background: Option<DashboardBackground>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -33,6 +37,27 @@ impl DashboardBackground {
             DashboardBackground::Image { file, fit, dim } => {
                 crate::dashboard_validation::validate_background_image(file, fit, *dim)
             }
+        }
+    }
+}
+
+fn background_from_json(raw: Option<String>) -> Option<DashboardBackground> {
+    // Defensive on reads: a database written by a different/older KKTerm build
+    // may contain a shape we cannot parse. Treat anything unparseable as
+    // "theme default" rather than failing the whole load.
+    raw.and_then(|json| serde_json::from_str::<DashboardBackground>(&json).ok())
+}
+
+fn background_to_json(
+    background: &Option<DashboardBackground>,
+) -> Result<Option<String>, DashboardStorageError> {
+    match background {
+        None => Ok(None),
+        Some(bg) => {
+            bg.validate()?;
+            serde_json::to_string(bg)
+                .map(Some)
+                .map_err(|_| DashboardStorageError::Validation(ValidationError::InvalidBackground))
         }
     }
 }
@@ -101,6 +126,7 @@ pub struct ViewPatch {
     #[serde(default)] pub title: Option<String>,
     #[serde(default)] pub grid_density: Option<String>,
     #[serde(default)] pub sort_order: Option<i64>,
+    #[serde(default)] pub background: Option<Option<DashboardBackground>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -141,7 +167,7 @@ impl From<ValidationError> for DashboardStorageError {
 
 pub fn load_state(conn: &SqliteConnection) -> Result<DashboardLoadState, DashboardStorageError> {
     let mut views_stmt = conn.prepare(
-        "SELECT id, title, sort_order, grid_density FROM dashboard_views ORDER BY sort_order"
+        "SELECT id, title, sort_order, grid_density, background_json FROM dashboard_views ORDER BY sort_order"
     )?;
     let views = views_stmt
         .query_map([], |row| {
@@ -150,6 +176,7 @@ pub fn load_state(conn: &SqliteConnection) -> Result<DashboardLoadState, Dashboa
                 title: row.get(1)?,
                 sort_order: row.get(2)?,
                 grid_density: row.get(3)?,
+                background: background_from_json(row.get(4)?),
             })
         })?
         .collect::<Result<Vec<_>, _>>()?;
@@ -228,6 +255,7 @@ pub fn create_view(
         title: title.to_string(),
         sort_order: next_sort,
         grid_density: density.to_string(),
+        background: None,
     })
 }
 
@@ -240,13 +268,14 @@ pub fn update_view(
     if let Some(ref d) = patch.grid_density { validate_grid_density(d)?; }
 
     let current: Option<DashboardView> = conn.query_row(
-        "SELECT id, title, sort_order, grid_density FROM dashboard_views WHERE id = ?",
+        "SELECT id, title, sort_order, grid_density, background_json FROM dashboard_views WHERE id = ?",
         params![id],
         |row| Ok(DashboardView {
             id: row.get(0)?,
             title: row.get(1)?,
             sort_order: row.get(2)?,
             grid_density: row.get(3)?,
+            background: background_from_json(row.get(4)?),
         }),
     ).optional()?;
     let mut current = current.ok_or(DashboardStorageError::NotFound)?;
@@ -254,12 +283,34 @@ pub fn update_view(
     if let Some(t) = patch.title.clone()        { current.title = t; }
     if let Some(d) = patch.grid_density.clone() { current.grid_density = d; }
     if let Some(s) = patch.sort_order           { current.sort_order = s; }
+    if let Some(bg) = patch.background.clone()   { current.background = bg; }
+
+    let background_json = background_to_json(&current.background)?;
 
     conn.execute(
-        "UPDATE dashboard_views SET title = ?, sort_order = ?, grid_density = ? WHERE id = ?",
-        params![current.title, current.sort_order, current.grid_density, current.id],
+        "UPDATE dashboard_views SET title = ?, sort_order = ?, grid_density = ?, background_json = ? WHERE id = ?",
+        params![current.title, current.sort_order, current.grid_density, background_json, current.id],
     )?;
     Ok(current)
+}
+
+pub fn referenced_background_image_files(
+    conn: &SqliteConnection,
+) -> Result<HashSet<String>, DashboardStorageError> {
+    let mut stmt = conn.prepare(
+        "SELECT background_json FROM dashboard_views WHERE background_json IS NOT NULL"
+    )?;
+    let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+    let mut files = HashSet::new();
+    for json in rows {
+        let json = json?;
+        if let Ok(DashboardBackground::Image { file, .. }) =
+            serde_json::from_str::<DashboardBackground>(&json)
+        {
+            files.insert(file);
+        }
+    }
+    Ok(files)
 }
 
 pub fn remove_view(conn: &SqliteConnection, id: &str) -> Result<(), DashboardStorageError> {
@@ -666,7 +717,8 @@ mod tests {
             CREATE TABLE dashboard_views (
                 id TEXT PRIMARY KEY, title TEXT NOT NULL, sort_order INTEGER NOT NULL,
                 grid_density TEXT NOT NULL DEFAULT 'default'
-                    CHECK (grid_density IN ('compact', 'default', 'roomy'))
+                    CHECK (grid_density IN ('compact', 'default', 'roomy')),
+                background_json TEXT
             );
             CREATE TABLE dashboard_custom_widgets (
                 id TEXT PRIMARY KEY,
@@ -832,5 +884,98 @@ mod tests {
         let state = load_state(&conn).unwrap();
         let i1 = state.instances.iter().find(|i| i.id == "i1").unwrap();
         assert_eq!((i1.grid_x, i1.grid_y, i1.grid_w, i1.grid_h), (4, 1, 4, 2));
+    }
+
+    #[test]
+    fn new_view_has_no_background() {
+        let conn = open_test_db();
+        let view = create_view(&conn, "v1", "First", None).unwrap();
+        assert_eq!(view.background, None);
+        let state = load_state(&conn).unwrap();
+        assert_eq!(state.views[0].background, None);
+    }
+
+    #[test]
+    fn update_view_sets_and_clears_background() {
+        let conn = open_test_db();
+        create_view(&conn, "v1", "First", None).unwrap();
+
+        let preset = DashboardBackground::Preset { preset: "mist".into() };
+        let updated = update_view(&conn, "v1", &ViewPatch {
+            title: None, grid_density: None, sort_order: None,
+            background: Some(Some(preset.clone())),
+        }).unwrap();
+        assert_eq!(updated.background, Some(preset.clone()));
+        assert_eq!(load_state(&conn).unwrap().views[0].background, Some(preset));
+
+        let cleared = update_view(&conn, "v1", &ViewPatch {
+            title: None, grid_density: None, sort_order: None,
+            background: Some(None),
+        }).unwrap();
+        assert_eq!(cleared.background, None);
+    }
+
+    #[test]
+    fn update_view_rejects_invalid_background() {
+        let conn = open_test_db();
+        create_view(&conn, "v1", "First", None).unwrap();
+        let err = update_view(&conn, "v1", &ViewPatch {
+            title: None, grid_density: None, sort_order: None,
+            background: Some(Some(DashboardBackground::Preset { preset: "not-real".into() })),
+        });
+        assert!(matches!(err, Err(DashboardStorageError::Validation(
+            ValidationError::InvalidBackground
+        ))));
+    }
+
+    #[test]
+    fn update_view_leaves_background_untouched_when_not_patched() {
+        let conn = open_test_db();
+        create_view(&conn, "v1", "First", None).unwrap();
+        let preset = DashboardBackground::Preset { preset: "sky".into() };
+        update_view(&conn, "v1", &ViewPatch {
+            title: None, grid_density: None, sort_order: None,
+            background: Some(Some(preset.clone())),
+        }).unwrap();
+        // Patch only the title; background must survive.
+        let updated = update_view(&conn, "v1", &ViewPatch {
+            title: Some("Renamed".into()), grid_density: None, sort_order: None,
+            background: None,
+        }).unwrap();
+        assert_eq!(updated.background, Some(preset));
+    }
+
+    #[test]
+    fn referenced_background_image_files_collects_image_files_only() {
+        let conn = open_test_db();
+        create_view(&conn, "v1", "First", None).unwrap();
+        create_view(&conn, "v2", "Second", None).unwrap();
+        create_view(&conn, "v3", "Third", None).unwrap();
+        update_view(&conn, "v1", &ViewPatch {
+            title: None, grid_density: None, sort_order: None,
+            background: Some(Some(DashboardBackground::Image {
+                file: "bg-aaa.jpg".into(), fit: "fill".into(), dim: 0,
+            })),
+        }).unwrap();
+        update_view(&conn, "v2", &ViewPatch {
+            title: None, grid_density: None, sort_order: None,
+            background: Some(Some(DashboardBackground::Preset { preset: "mist".into() })),
+        }).unwrap();
+        // v3 left as theme default (NULL).
+        let files = referenced_background_image_files(&conn).unwrap();
+        assert_eq!(files.len(), 1);
+        assert!(files.contains("bg-aaa.jpg"));
+    }
+
+    #[test]
+    fn corrupt_background_json_loads_as_none() {
+        let conn = open_test_db();
+        create_view(&conn, "v1", "First", None).unwrap();
+        conn.execute(
+            "UPDATE dashboard_views SET background_json = ? WHERE id = ?",
+            rusqlite::params!["{not valid json", "v1"],
+        ).unwrap();
+        let state = load_state(&conn).unwrap();
+        assert_eq!(state.views[0].background, None);
     }
 }
