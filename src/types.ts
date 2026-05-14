@@ -367,6 +367,7 @@ export type AiProviderKind =
   | "openai-compatible";
 
 export type AiReasoningEffort = "default" | "low" | "medium" | "high" | "max";
+export type AiToolPermissionMode = "prompt" | "allowAll";
 
 export type AiAssistantToolId =
   | "webSearch"
@@ -375,7 +376,8 @@ export type AiAssistantToolId =
   | "appDataFileSearch"
   | "appDataFileRead"
   | "currentTime"
-  | "dashboard";
+  | "dashboard"
+  | "connections";
 
 export type AiAssistantToolSettings = Record<AiAssistantToolId, boolean>;
 
@@ -387,6 +389,7 @@ export interface AiProviderSettings {
   outputLanguage: string;
   allowInsecureTls: boolean;
   cliExecutionPolicy: "suggestOnly";
+  toolPermissionMode: AiToolPermissionMode;
   claudeCliPath?: string;
   codexCliPath?: string;
   tools: AiAssistantToolSettings;

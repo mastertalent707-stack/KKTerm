@@ -662,6 +662,10 @@
       "dashboard": {
         "label": "Dashboard",
         "description": "Read and modify Dashboard views, widget instances, and custom widgets."
+      },
+      "connections": {
+        "label": "Connections",
+        "description": "List, create, edit, and delete saved Connections."
       }
     },
     "connectedConnectionsRail": "Show connected Connections",
@@ -1185,6 +1189,9 @@
     "fileTooLarge": "{{name}} is larger than 10 MB.",
     "imageInputNotSupported": "This model does not support image input, so pasted screenshots are not sent.",
     "composerPlaceholder": "Ask AI Assistant anything.",
+    "toolPermissionMode": "Tool permissions",
+    "toolPermissionPrompt": "Prompt",
+    "toolPermissionAllowAll": "Allow All",
     "sendMessage": "Send message",
     "stopMessage": "Stop response",
     "copy": "Copy",
@@ -1238,6 +1245,7 @@
     "toolCurrentTime": "Checking current time\u2026",
     "toolSecretRequest": "Requesting secret entry\u2026",
     "toolDashboard": "Updating Dashboard...",
+    "toolConnections": "Managing Connections...",
     "toolWebSearchDone": "Searched the web",
     "toolWebFetchDone": "Fetched web page",
     "toolShellCommandDone": "Ran command",
@@ -1246,6 +1254,7 @@
     "toolCurrentTimeDone": "Checked current time",
     "toolSecretRequestDone": "Requested secret entry",
     "toolDashboardDone": "Updated Dashboard",
+    "toolConnectionsDone": "Managed Connections",
     "waitingPhrases": [
       "Compiling the tsundere kernel",
       "Defragmenting the chakra network",

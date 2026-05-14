@@ -913,7 +913,7 @@ impl OpenAiCompatibleProvider {
                 ),
             });
             for tool_call in tool_calls {
-                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, &tool_call, None).await;
+                let result = run_ai_tool(&settings, &app_data_dir, &app, &tool_call, None).await;
                 messages.push(OpenAiCompatibleMessage {
                     role: "tool".to_string(),
                     content: OpenAiCompatibleContent::Text(result),
@@ -1071,7 +1071,7 @@ impl OpenAiCompatibleProvider {
                 input.extend(output.iter().cloned());
             }
             for tool_call in tool_calls {
-                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, &tool_call, None).await;
+                let result = run_ai_tool(&settings, &app_data_dir, &app, &tool_call, None).await;
                 input.push(json!({
                     "type": "function_call_output",
                     "call_id": tool_call.id,
@@ -1285,7 +1285,7 @@ impl OpenAiCompatibleProvider {
                         tool_name: tool_call.function.name.clone(),
                     },
                 )?;
-                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, tool_call, Some(&channel)).await;
+                let result = run_ai_tool(&settings, &app_data_dir, &app, tool_call, Some(&channel)).await;
                 ai_debug!(
                     "tool end provider={} model={} subturn={} id={} name={} result_len={}",
                     self.provider_kind,
@@ -1483,7 +1483,7 @@ impl OpenAiCompatibleProvider {
                         tool_name: tool_call.function.name.clone(),
                     },
                 )?;
-                let result = run_ai_tool(settings.tools(), &app_data_dir, &app, tool_call, Some(&channel)).await;
+                let result = run_ai_tool(&settings, &app_data_dir, &app, tool_call, Some(&channel)).await;
                 let tool_error = tool_result_error(&result);
                 input.push(json!({
                     "type": "function_call_output",
@@ -1989,7 +1989,76 @@ fn ai_tool_definitions(settings: &AiAssistantToolSettings) -> Vec<OpenAiToolDefi
             json!({"type":"object","properties":{}}),
         ));
     }
+    if settings.connections() {
+        tools.push(tool_definition(
+            "connection_list",
+            "List all saved KKTerm Connections and folders. Connections are durable saved resources, not live Sessions.",
+            json!({"type":"object","properties":{}}),
+        ));
+        tools.push(tool_definition(
+            "connection_create",
+            "Create one saved KKTerm Connection. Secrets are not accepted here; use request_secret_entry or the app-owned secret UI for passwords and tokens.",
+            connection_request_schema(false),
+        ));
+        tools.push(tool_definition(
+            "connection_open",
+            "Open a saved KKTerm Connection in the Workspace by id. Opening a Connection creates a live Session/Tab; it does not mutate the saved Connection.",
+            json!({"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}),
+        ));
+        tools.push(tool_definition(
+            "connection_update",
+            "Update one saved KKTerm Connection. First call connection_list, then submit the full updated Connection fields with the original id and type.",
+            connection_request_schema(true),
+        ));
+        tools.push(tool_definition(
+            "connection_delete",
+            "Delete one saved KKTerm Connection by id. This removes durable Connection data but does not expose or delete secret values directly.",
+            json!({"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}),
+        ));
+    }
     tools
+}
+
+fn connection_request_schema(include_id: bool) -> Value {
+    let mut properties = serde_json::Map::new();
+    if include_id {
+        properties.insert("id".to_string(), json!({"type":"string"}));
+    }
+    properties.extend([
+        ("name".to_string(), json!({"type":"string","minLength":1})),
+        (
+            "type".to_string(),
+            json!({"type":"string","enum":["local","ssh","telnet","serial","url","rdp","vnc","ftp"]}),
+        ),
+        ("folderId".to_string(), json!({"type":["string","null"]})),
+        ("host".to_string(), json!({"type":"string"})),
+        ("user".to_string(), json!({"type":"string"})),
+        ("port".to_string(), json!({"type":["integer","null"],"minimum":1,"maximum":65535})),
+        ("keyPath".to_string(), json!({"type":["string","null"]})),
+        ("proxyJump".to_string(), json!({"type":["string","null"]})),
+        (
+            "authMethod".to_string(),
+            json!({"type":["string","null"],"enum":["keyFile","password","agent",null]}),
+        ),
+        ("localShell".to_string(), json!({"type":["string","null"]})),
+        ("localStartupDirectory".to_string(), json!({"type":["string","null"]})),
+        ("localStartupScript".to_string(), json!({"type":["string","null"]})),
+        ("url".to_string(), json!({"type":["string","null"]})),
+        ("dataPartition".to_string(), json!({"type":["string","null"]})),
+        ("useTmuxSessions".to_string(), json!({"type":["boolean","null"]})),
+        ("serialLine".to_string(), json!({"type":["string","null"]})),
+        ("serialSpeed".to_string(), json!({"type":["integer","null"],"minimum":1})),
+    ]);
+    let mut required = vec![json!("name"), json!("type")];
+    if include_id {
+        required.insert(0, json!("id"));
+    }
+    json!({
+        "type": "object",
+        "properties": properties,
+        "required": required,
+        "additionalProperties": true
+    })
 }
 
 fn request_secret_entry_schema() -> Value {
@@ -2159,29 +2228,111 @@ impl OpenAiToolDefinition {
 }
 
 async fn run_ai_tool(
-    settings: &AiAssistantToolSettings,
+    settings: &AiProviderSettings,
     app_data_dir: &Path,
     app: &tauri::AppHandle,
     call: &OpenAiToolCall,
     stream_channel: Option<&Channel<Value>>,
 ) -> String {
     let args: Value = serde_json::from_str(&call.function.arguments).unwrap_or_else(|_| json!({}));
+    let tool_settings = settings.tools();
+    if tool_requires_allow_all(&call.function.name) && settings.tool_permission_mode() != "allowAll" {
+        return tool_permission_required_result(&call.function.name);
+    }
     match call.function.name.as_str() {
         "request_secret_entry" => request_secret_entry_tool(args, stream_channel),
-        "current_time" if settings.current_time() => current_time_tool(),
-        "web_search" if settings.web_search() => web_search_tool(args).await,
-        "web_fetch" if settings.web_fetch() => web_fetch_tool(args).await,
-        "app_data_file_search" if settings.app_data_file_search() => {
+        "current_time" if tool_settings.current_time() => current_time_tool(),
+        "web_search" if tool_settings.web_search() => web_search_tool(args).await,
+        "web_fetch" if tool_settings.web_fetch() => web_fetch_tool(args).await,
+        "app_data_file_search" if tool_settings.app_data_file_search() => {
             app_data_file_search_tool(app_data_dir, args)
         }
-        "app_data_file_read" if settings.app_data_file_read() => {
+        "app_data_file_read" if tool_settings.app_data_file_read() => {
             app_data_file_read_tool(app_data_dir, args)
         }
-        "shell_command" if settings.shell_command() => shell_command_tool(app_data_dir, args),
-        name if settings.dashboard() && name.starts_with("dashboard_") => {
+        "shell_command" if tool_settings.shell_command() => shell_command_tool(app_data_dir, args),
+        name if tool_settings.dashboard() && name.starts_with("dashboard_") => {
             dashboard_tool(app, name, args)
         }
+        name if tool_settings.connections() && name.starts_with("connection_") => {
+            connection_tool(app, name, args)
+        }
         _ => "Tool is disabled in AI Assistant settings.".to_string(),
+    }
+}
+
+fn tool_requires_allow_all(tool_name: &str) -> bool {
+    tool_name == "shell_command"
+        || (tool_name.starts_with("dashboard_") && tool_name != "dashboard_load_state")
+        || matches!(
+            tool_name,
+            "connection_create" | "connection_update" | "connection_delete"
+                | "connection_open"
+        )
+}
+
+fn tool_permission_required_result(tool_name: &str) -> String {
+    json!({
+        "ok": false,
+        "error": "permissionRequired",
+        "tool": tool_name,
+        "permissionMode": "prompt",
+        "message": "This tool changes KKTerm or the local machine. Ask the user to switch AI Assistant tool permissions to Allow All before calling it."
+    })
+    .to_string()
+}
+
+fn connection_tool(app: &tauri::AppHandle, name: &str, args: Value) -> String {
+    let storage = app.state::<Storage>();
+    let result: Result<Value, String> = match name {
+        "connection_list" => storage
+            .list_connection_tree()
+            .map(|tree| serde_json::to_value(tree).unwrap_or(Value::Null)),
+        "connection_create" => serde_json::from_value::<crate::storage::CreateConnectionRequest>(args)
+            .map_err(|error| format!("invalid connection_create request: {error}"))
+            .and_then(|request| {
+                storage
+                    .create_connection(request)
+                    .map(|connection| serde_json::to_value(connection).unwrap_or(Value::Null))
+            }),
+        "connection_update" => serde_json::from_value::<crate::storage::UpdateConnectionRequest>(args)
+            .map_err(|error| format!("invalid connection_update request: {error}"))
+            .and_then(|request| {
+                storage
+                    .update_connection(request)
+                    .map(|connection| serde_json::to_value(connection).unwrap_or(Value::Null))
+            }),
+        "connection_open" => {
+            let id = arg_string(&args, "id");
+            if id.is_empty() {
+                Err("connection_open requires id".to_string())
+            } else {
+                app.emit("assistant-open-connection", id)
+                    .map(|_| json!({"ok": true}))
+                    .map_err(|error| format!("failed to request Connection open: {error}"))
+            }
+        }
+        "connection_delete" => {
+            let id = arg_string(&args, "id");
+            if id.is_empty() {
+                Err("connection_delete requires id".to_string())
+            } else {
+                storage
+                    .delete_connection(id)
+                    .map(|_| json!({"ok": true}))
+            }
+        }
+        _ => Err("Unknown Connection tool".to_string()),
+    };
+
+    match result {
+        Ok(value) => {
+            if name != "connection_list" {
+                let _ = app.emit("connection-tree-changed", json!({ "source": "aiTool", "tool": name }));
+            }
+            value.to_string()
+        }
+        Err(error) => json!({ "ok": false, "error": error }).to_string(),
     }
 }
 
@@ -3943,6 +4094,43 @@ mod tests {
         assert!(is_destructive_command(r"Remove-Item -Recurse .\logs"));
         assert!(is_destructive_command("del important.txt"));
         assert!(!is_destructive_command("Get-ChildItem ."));
+    }
+
+    #[test]
+    fn prompt_permission_mode_blocks_mutating_tools() {
+        assert!(tool_requires_allow_all("shell_command"));
+        assert!(tool_requires_allow_all("dashboard_create_widget"));
+        assert!(tool_requires_allow_all("dashboard_reset"));
+        assert!(tool_requires_allow_all("connection_create"));
+        assert!(tool_requires_allow_all("connection_open"));
+        assert!(tool_requires_allow_all("connection_update"));
+        assert!(tool_requires_allow_all("connection_delete"));
+        assert!(!tool_requires_allow_all("dashboard_load_state"));
+        assert!(!tool_requires_allow_all("connection_list"));
+        assert!(!tool_requires_allow_all("current_time"));
+
+        let result = tool_permission_required_result("dashboard_reset");
+        let value: Value = serde_json::from_str(&result).expect("permission result is JSON");
+        assert_eq!(value["ok"], false);
+        assert_eq!(value["error"], "permissionRequired");
+        assert_eq!(value["permissionMode"], "prompt");
+    }
+
+    #[test]
+    fn tool_definitions_include_connection_management_tools() {
+        let settings: AiAssistantToolSettings = serde_json::from_value(json!({
+            "connections": true
+        }))
+        .expect("tool settings deserialize");
+
+        let tools = ai_tool_definitions(&settings);
+        let names: Vec<&str> = tools.iter().map(|tool| tool.function.name).collect();
+
+        assert!(names.contains(&"connection_list"));
+        assert!(names.contains(&"connection_create"));
+        assert!(names.contains(&"connection_open"));
+        assert!(names.contains(&"connection_update"));
+        assert!(names.contains(&"connection_delete"));
     }
 
     #[test]

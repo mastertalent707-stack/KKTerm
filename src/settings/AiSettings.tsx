@@ -213,6 +213,7 @@ const AI_ASSISTANT_TOOL_IDS: AiAssistantToolId[] = [
   "appDataFileRead",
   "shellCommand",
   "dashboard",
+  "connections",
 ];
 
 function AiAssistantToolsControl({

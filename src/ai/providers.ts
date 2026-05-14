@@ -24,6 +24,7 @@ export const DEFAULT_AI_ASSISTANT_TOOLS: AiAssistantToolSettings = {
   appDataFileRead: false,
   currentTime: false,
   dashboard: false,
+  connections: true,
 };
 
 export function providerDefaultsFor(kind: AiProviderKind): AiProviderSettings {
@@ -36,6 +37,7 @@ export function providerDefaultsFor(kind: AiProviderKind): AiProviderSettings {
     outputLanguage: "",
     allowInsecureTls: false,
     cliExecutionPolicy: "suggestOnly",
+    toolPermissionMode: "prompt",
     claudeCliPath: "",
     codexCliPath: "",
     tools: DEFAULT_AI_ASSISTANT_TOOLS,
@@ -67,6 +69,7 @@ export function normalizeAiProviderDraft(draft: AiProviderSettings): AiProviderS
     reasoningEffort,
     allowInsecureTls: Boolean(draft.allowInsecureTls),
     cliExecutionPolicy: "suggestOnly",
+    toolPermissionMode: draft.toolPermissionMode === "allowAll" ? "allowAll" : "prompt",
     claudeCliPath: draft.claudeCliPath?.trim() ?? "",
     codexCliPath: draft.codexCliPath?.trim() ?? "",
     tools: { ...DEFAULT_AI_ASSISTANT_TOOLS, ...(draft.tools ?? {}) },

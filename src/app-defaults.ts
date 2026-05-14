@@ -94,6 +94,7 @@ export const defaultAiAssistantToolSettings = {
   appDataFileRead: false,
   currentTime: false,
   dashboard: false,
+  connections: true,
 };
 
 export const defaultAiProviderSettings: AiProviderSettings = {
@@ -104,6 +105,7 @@ export const defaultAiProviderSettings: AiProviderSettings = {
   outputLanguage: "",
   allowInsecureTls: false,
   cliExecutionPolicy: "suggestOnly",
+  toolPermissionMode: "prompt",
   claudeCliPath: "",
   codexCliPath: "",
   tools: defaultAiAssistantToolSettings,

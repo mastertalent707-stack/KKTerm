@@ -400,6 +400,8 @@ pub struct AiAssistantToolSettings {
     current_time: bool,
     #[serde(default = "default_ai_dashboard_tool_enabled")]
     dashboard: bool,
+    #[serde(default = "default_ai_connections_tool_enabled")]
+    connections: bool,
 }
 
 impl AiAssistantToolSettings {
@@ -424,6 +426,9 @@ impl AiAssistantToolSettings {
     pub(crate) fn dashboard(&self) -> bool {
         self.dashboard
     }
+    pub(crate) fn connections(&self) -> bool {
+        self.connections
+    }
     pub(crate) fn any_enabled(&self) -> bool {
         self.web_search
             || self.web_fetch
@@ -432,6 +437,7 @@ impl AiAssistantToolSettings {
             || self.app_data_file_read
             || self.current_time
             || self.dashboard
+            || self.connections
     }
 }
 
@@ -453,6 +459,8 @@ pub struct AiProviderSettings {
     allow_insecure_tls: bool,
     #[serde(default = "default_ai_cli_execution_policy")]
     cli_execution_policy: String,
+    #[serde(default = "default_ai_tool_permission_mode")]
+    tool_permission_mode: String,
     #[serde(default)]
     claude_cli_path: Option<String>,
     #[serde(default)]
@@ -484,6 +492,10 @@ impl AiProviderSettings {
 
     pub(crate) fn tools(&self) -> &AiAssistantToolSettings {
         &self.tools
+    }
+
+    pub(crate) fn tool_permission_mode(&self) -> &str {
+        &self.tool_permission_mode
     }
 }
 
@@ -3745,6 +3757,7 @@ fn default_ai_provider_settings() -> AiProviderSettings {
         output_language: String::new(),
         allow_insecure_tls: false,
         cli_execution_policy: default_ai_cli_execution_policy(),
+        tool_permission_mode: default_ai_tool_permission_mode(),
         claude_cli_path: None,
         codex_cli_path: None,
         tools: default_ai_assistant_tool_settings(),
@@ -3760,6 +3773,7 @@ fn default_ai_assistant_tool_settings() -> AiAssistantToolSettings {
         app_data_file_read: false,
         current_time: default_ai_current_time_tool_enabled(),
         dashboard: default_ai_dashboard_tool_enabled(),
+        connections: default_ai_connections_tool_enabled(),
     }
 }
 
@@ -3768,6 +3782,10 @@ fn default_ai_current_time_tool_enabled() -> bool {
 }
 
 fn default_ai_dashboard_tool_enabled() -> bool {
+    true
+}
+
+fn default_ai_connections_tool_enabled() -> bool {
     true
 }
 
@@ -3785,6 +3803,10 @@ fn default_ai_reasoning_effort() -> String {
 
 fn default_ai_cli_execution_policy() -> String {
     "suggestOnly".to_string()
+}
+
+fn default_ai_tool_permission_mode() -> String {
+    "prompt".to_string()
 }
 
 fn validate_general_settings(mut settings: GeneralSettings) -> Result<GeneralSettings, String> {
@@ -4016,6 +4038,17 @@ fn validate_ai_provider_settings(
                     .to_string(),
             )
         }
+    };
+    settings.tool_permission_mode = match settings
+        .tool_permission_mode
+        .trim()
+        .to_lowercase()
+        .replace(['-', '_', ' '], "")
+        .as_str()
+    {
+        "" | "prompt" => "prompt".to_string(),
+        "allowall" => "allowAll".to_string(),
+        _ => return Err("AI tool permission mode must be prompt or allowAll".to_string()),
     };
     settings.output_language = settings.output_language.trim().to_string();
     settings.claude_cli_path = trim_optional(settings.claude_cli_path);
@@ -5693,6 +5726,7 @@ mod tests {
         assert_eq!(defaults.model, "gpt-5.5");
         assert_eq!(defaults.reasoning_effort, "medium");
         assert_eq!(defaults.cli_execution_policy, "suggestOnly");
+        assert_eq!(defaults.tool_permission_mode, "prompt");
         assert!(!defaults.allow_insecure_tls);
 
         let updated = storage
@@ -5705,6 +5739,7 @@ mod tests {
                 output_language: String::new(),
                 allow_insecure_tls: true,
                 cli_execution_policy: "suggest-only".to_string(),
+                tool_permission_mode: " Allow All ".to_string(),
                 claude_cli_path: Some("  C:\\Tools\\claude.exe  ".to_string()),
                 codex_cli_path: Some("  codex  ".to_string()),
                 tools: default_ai_assistant_tool_settings(),
@@ -5717,6 +5752,7 @@ mod tests {
         assert_eq!(updated.model, "openai/gpt-5.5");
         assert_eq!(updated.reasoning_effort, "max");
         assert_eq!(updated.cli_execution_policy, "suggestOnly");
+        assert_eq!(updated.tool_permission_mode, "allowAll");
         assert!(updated.allow_insecure_tls);
         assert_eq!(
             updated.claude_cli_path.as_deref(),
@@ -5730,7 +5766,36 @@ mod tests {
         assert_eq!(reloaded.base_url, "https://llm-gateway.internal/v1");
         assert_eq!(reloaded.model, "openai/gpt-5.5");
         assert_eq!(reloaded.reasoning_effort, "max");
+        assert_eq!(reloaded.tool_permission_mode, "allowAll");
         assert!(reloaded.allow_insecure_tls);
+    }
+
+    #[test]
+    fn ai_provider_settings_reject_invalid_tool_permission_mode() {
+        let storage =
+            Storage::open(temp_db_path("ai-provider-tool-permission-mode")).expect("storage opens");
+
+        let error = storage
+            .update_ai_provider_settings(AiProviderSettings {
+                enabled: true,
+                provider_kind: "openai".to_string(),
+                base_url: "https://api.openai.com/v1".to_string(),
+                model: "gpt-5.5".to_string(),
+                reasoning_effort: "medium".to_string(),
+                output_language: String::new(),
+                allow_insecure_tls: false,
+                cli_execution_policy: "suggestOnly".to_string(),
+                tool_permission_mode: "autoDeleteEverything".to_string(),
+                claude_cli_path: None,
+                codex_cli_path: None,
+                tools: default_ai_assistant_tool_settings(),
+            })
+            .expect_err("unknown tool permission mode is rejected");
+
+        assert_eq!(
+            error,
+            "AI tool permission mode must be prompt or allowAll"
+        );
     }
 
     #[test]
@@ -5747,6 +5812,7 @@ mod tests {
                 output_language: String::new(),
                 allow_insecure_tls: false,
                 cli_execution_policy: "suggestOnly".to_string(),
+                tool_permission_mode: "prompt".to_string(),
                 claude_cli_path: None,
                 codex_cli_path: None,
                 tools: default_ai_assistant_tool_settings(),
@@ -5774,6 +5840,7 @@ mod tests {
                 output_language: String::new(),
                 allow_insecure_tls: false,
                 cli_execution_policy: "suggestOnly".to_string(),
+                tool_permission_mode: "prompt".to_string(),
                 claude_cli_path: None,
                 codex_cli_path: None,
                 tools: default_ai_assistant_tool_settings(),
@@ -5797,6 +5864,7 @@ mod tests {
                 output_language: String::new(),
                 allow_insecure_tls: false,
                 cli_execution_policy: "executeAutomatically".to_string(),
+                tool_permission_mode: "prompt".to_string(),
                 claude_cli_path: Some("claude".to_string()),
                 codex_cli_path: Some("codex".to_string()),
                 tools: default_ai_assistant_tool_settings(),

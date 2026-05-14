@@ -4547,7 +4547,8 @@ progress {
 }
 
 .assistant-composer-footer span,
-.assistant-model-select {
+.assistant-model-select,
+.assistant-permission-select {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -4555,9 +4556,8 @@ progress {
   white-space: nowrap;
 }
 
-.assistant-model-select {
-  flex: 0 0 30%;
-  width: 30%;
+.assistant-model-select,
+.assistant-permission-select {
   height: 29px;
   padding: 0 2px;
   color: var(--text-faint);
@@ -4570,17 +4570,30 @@ progress {
   font-weight: 600;
 }
 
-.assistant-model-select:hover {
+.assistant-model-select {
+  flex: 0 1 28%;
+  width: 28%;
+}
+
+.assistant-permission-select {
+  flex: 0 0 82px;
+  width: 82px;
+}
+
+.assistant-model-select:hover,
+.assistant-permission-select:hover {
   color: var(--text-muted);
 }
 
-.assistant-model-select:focus {
+.assistant-model-select:focus,
+.assistant-permission-select:focus {
   color: var(--text-muted);
   border-color: var(--accent);
   box-shadow: none;
 }
 
-.assistant-model-select:disabled {
+.assistant-model-select:disabled,
+.assistant-permission-select:disabled {
   cursor: not-allowed;
   opacity: 0.62;
 }

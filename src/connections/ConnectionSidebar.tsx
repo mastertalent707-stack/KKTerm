@@ -164,8 +164,12 @@ export function ConnectionSidebar({
       void reloadConnectionGroups();
     };
     window.addEventListener("kkterm:connection-tree-invalidated", handleTreeInvalidated);
+    const unlistenPromise = isTauriRuntime()
+      ? listen("connection-tree-changed", handleTreeInvalidated)
+      : Promise.resolve(() => {});
     return () => {
       window.removeEventListener("kkterm:connection-tree-invalidated", handleTreeInvalidated);
+      void unlistenPromise.then((unlisten) => unlisten());
     };
   }, []);
 
@@ -786,16 +790,23 @@ export function ConnectionSidebar({
     if (!isTauriRuntime()) {
       return;
     }
-    const unlistenPromise = listen<string>("kkterm://tray-open-connection", (event) => {
+    const openConnectionById = (connectionId: string) => {
       const connection = flattenConnections(treeWithLiveStatuses).find(
-        (candidate) => candidate.id === event.payload,
+        (candidate) => candidate.id === connectionId,
       );
       if (connection) {
         handleOpenConnection(connection);
       }
+    };
+    const unlistenTrayPromise = listen<string>("kkterm://tray-open-connection", (event) => {
+      openConnectionById(event.payload);
+    });
+    const unlistenAssistantPromise = listen<string>("assistant-open-connection", (event) => {
+      openConnectionById(event.payload);
     });
     return () => {
-      void unlistenPromise.then((unlisten) => unlisten());
+      void unlistenTrayPromise.then((unlisten) => unlisten());
+      void unlistenAssistantPromise.then((unlisten) => unlisten());
     };
   }, [treeWithLiveStatuses]);
 

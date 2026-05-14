@@ -60,6 +60,7 @@ import {
   secretRequestStorageNotice,
   type AssistantSecretRequest,
 } from "./secretRequest";
+import type { AiToolPermissionMode } from "../types";
 
 function resolveAssistantOutputLanguage(outputLanguage: string): string | undefined {
   if (!outputLanguage) {
@@ -887,6 +888,30 @@ export function AssistantPanel({
     const nextSettings = normalizeAiProviderDraft({
       ...previousSettings,
       model,
+    });
+    setAiProviderSettings(nextSettings);
+    setChatError("");
+
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    try {
+      const saved = await invokeCommand("update_ai_provider_settings", {
+        request: nextSettings,
+      });
+      setAiProviderSettings(saved);
+    } catch (error) {
+      setAiProviderSettings(previousSettings);
+      setChatError(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function handleToolPermissionModeChange(toolPermissionMode: AiToolPermissionMode) {
+    const previousSettings = aiProviderSettings;
+    const nextSettings = normalizeAiProviderDraft({
+      ...previousSettings,
+      toolPermissionMode,
     });
     setAiProviderSettings(nextSettings);
     setChatError("");
@@ -1863,6 +1888,21 @@ export function AssistantPanel({
               </option>
             ))}
           </select>
+          <select
+            aria-label={t("ai.toolPermissionMode")}
+            className="assistant-permission-select"
+            disabled={isSendingPrompt}
+            onChange={(event) =>
+              void handleToolPermissionModeChange(
+                event.currentTarget.value as AiToolPermissionMode,
+              )
+            }
+            title={t("ai.toolPermissionMode")}
+            value={aiProviderSettings.toolPermissionMode ?? "prompt"}
+          >
+            <option value="prompt">{t("ai.toolPermissionPrompt")}</option>
+            <option value="allowAll">{t("ai.toolPermissionAllowAll")}</option>
+          </select>
           <button
             aria-label={isSendingPrompt ? t("ai.stopMessage") : t("ai.sendMessage")}
             className="assistant-send-button"
@@ -2313,6 +2353,11 @@ function toolCallLabel(
     dashboard_update_custom_widget: t("ai.toolDashboard"),
     dashboard_remove_custom_widget: t("ai.toolDashboard"),
     dashboard_reset: t("ai.toolDashboard"),
+    connection_list: t("ai.toolConnections"),
+    connection_create: t("ai.toolConnections"),
+    connection_open: t("ai.toolConnections"),
+    connection_update: t("ai.toolConnections"),
+    connection_delete: t("ai.toolConnections"),
   };
   const completedLabels: Record<string, string> = {
     web_search: t("ai.toolWebSearchDone"),
@@ -2337,6 +2382,11 @@ function toolCallLabel(
     dashboard_update_custom_widget: t("ai.toolDashboardDone"),
     dashboard_remove_custom_widget: t("ai.toolDashboardDone"),
     dashboard_reset: t("ai.toolDashboardDone"),
+    connection_list: t("ai.toolConnectionsDone"),
+    connection_create: t("ai.toolConnectionsDone"),
+    connection_open: t("ai.toolConnectionsDone"),
+    connection_update: t("ai.toolConnectionsDone"),
+    connection_delete: t("ai.toolConnectionsDone"),
   };
   const labels = status === "running" ? runningLabels : completedLabels;
   return labels[toolName] ?? toolName;
