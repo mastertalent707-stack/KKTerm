@@ -21,6 +21,8 @@ export interface Connection {
   authMethod?: SshAuthMethod;
   hasPassword?: boolean;
   localShell?: string;
+  localStartupDirectory?: string;
+  localStartupScript?: string;
   serialLine?: string;
   serialSpeed?: number;
   url?: string;
@@ -60,6 +62,8 @@ export interface CreateConnectionRequest {
   proxyJump?: string;
   authMethod?: SshAuthMethod;
   localShell?: string;
+  localStartupDirectory?: string;
+  localStartupScript?: string;
   serialLine?: string;
   serialSpeed?: number;
   url?: string;

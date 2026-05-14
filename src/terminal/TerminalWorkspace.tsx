@@ -1245,10 +1245,7 @@ function TerminalPaneView({
             shell,
             serialLine: connection.type === "serial" ? connection.serialLine ?? connection.host : undefined,
             serialSpeed: connection.type === "serial" ? connection.serialSpeed ?? 9600 : undefined,
-            initialDirectory:
-              connection.type === "ssh" && isRemoteInitialDirectory(pane.cwd)
-                ? pane.cwd.trim()
-                : undefined,
+            initialDirectory: initialDirectoryForTerminalSession(connection, pane.cwd),
             cols: terminalDimensions.cols,
             pixelHeight: terminalDimensions.pixelHeight,
             pixelWidth: terminalDimensions.pixelWidth,
@@ -1278,6 +1275,10 @@ function TerminalPaneView({
         }
         sessionIdRef.current = result.sessionId;
         sessionStarted = true;
+        const startupInput = localStartupInputFor(connection);
+        if (startupInput) {
+          writeInputToSession(startupInput);
+        }
         markConnectionSessionStarted(connection.id);
       } catch (error) {
         terminal.writeln("");
@@ -1939,6 +1940,27 @@ function isRemoteInitialDirectory(cwd: string) {
   }
 
   return !/^[A-Za-z]:[\\/]/.test(trimmed);
+}
+
+function initialDirectoryForTerminalSession(connection: Connection, paneCwd: string) {
+  if (connection.type === "local") {
+    return connection.localStartupDirectory?.trim() || undefined;
+  }
+  if (connection.type === "ssh" && isRemoteInitialDirectory(paneCwd)) {
+    return paneCwd.trim();
+  }
+  return undefined;
+}
+
+function localStartupInputFor(connection: Connection) {
+  if (connection.type !== "local") {
+    return "";
+  }
+  const script = connection.localStartupScript?.trim();
+  if (!script) {
+    return "";
+  }
+  return `${script.replace(/\r?\n/g, "\r")}\r`;
 }
 
 function focusTerminalUnlessExternalInputIsActive(

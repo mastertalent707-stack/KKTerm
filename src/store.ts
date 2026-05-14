@@ -507,7 +507,10 @@ function buildPaneForConnection(
 }
 
 function defaultTerminalCwdForConnection(connection: Connection) {
-  return connection.type === "local" ? "." : "~";
+  if (connection.type === "local") {
+    return connection.localStartupDirectory?.trim() || ".";
+  }
+  return "~";
 }
 
 function inheritedTerminalCwdForConnection(

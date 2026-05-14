@@ -6196,6 +6196,7 @@ fieldset.connection-specific-options > legend {
 
 .connection-dialog input,
 .connection-dialog select,
+.connection-dialog textarea,
 .settings-dialog input,
 .settings-dialog select,
 .settings-section input,
@@ -6210,6 +6211,13 @@ fieldset.connection-specific-options > legend {
   border-radius: 6px;
   outline: 0;
   font-size: 13px;
+}
+
+.connection-dialog textarea {
+  height: auto;
+  min-height: 82px;
+  padding: 7px 8px;
+  resize: vertical;
 }
 
 .settings-section label {
@@ -6231,6 +6239,7 @@ fieldset.connection-specific-options > legend {
 
 .connection-dialog input:focus,
 .connection-dialog select:focus,
+.connection-dialog textarea:focus,
 .settings-dialog input:focus,
 .settings-dialog select:focus,
 .settings-section input:focus,

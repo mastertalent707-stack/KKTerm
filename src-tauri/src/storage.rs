@@ -12,7 +12,7 @@ use std::{
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
 
-const SCHEMA_USER_VERSION: i32 = 13;
+const SCHEMA_USER_VERSION: i32 = 14;
 
 const CURRENT_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS connection_folders (
@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS connections (
     proxy_jump TEXT,
     auth_method TEXT NOT NULL DEFAULT 'keyFile',
     local_shell TEXT,
+    local_startup_directory TEXT,
+    local_startup_script TEXT,
     url TEXT,
     data_partition TEXT,
     use_tmux_sessions INTEGER NOT NULL DEFAULT 1,
@@ -513,6 +515,8 @@ pub struct SavedConnection {
     proxy_jump: Option<String>,
     auth_method: String,
     local_shell: Option<String>,
+    local_startup_directory: Option<String>,
+    local_startup_script: Option<String>,
     url: Option<String>,
     data_partition: Option<String>,
     use_tmux_sessions: bool,
@@ -548,6 +552,10 @@ pub struct CreateConnectionRequest {
     proxy_jump: Option<String>,
     auth_method: Option<String>,
     local_shell: Option<String>,
+    #[serde(default)]
+    local_startup_directory: Option<String>,
+    #[serde(default)]
+    local_startup_script: Option<String>,
     url: Option<String>,
     data_partition: Option<String>,
     use_tmux_sessions: Option<bool>,
@@ -576,6 +584,10 @@ pub struct UpdateConnectionRequest {
     proxy_jump: Option<String>,
     auth_method: Option<String>,
     local_shell: Option<String>,
+    #[serde(default)]
+    local_startup_directory: Option<String>,
+    #[serde(default)]
+    local_startup_script: Option<String>,
     url: Option<String>,
     data_partition: Option<String>,
     use_tmux_sessions: Option<bool>,
@@ -1490,6 +1502,8 @@ impl Storage {
         ensure_column(&connection, "connections", "vnc_options", "TEXT")?;
         ensure_column(&connection, "connections", "ftp_options", "TEXT")?;
         ensure_column(&connection, "connections", "icon_data_url", "TEXT")?;
+        ensure_column(&connection, "connections", "local_startup_directory", "TEXT")?;
+        ensure_column(&connection, "connections", "local_startup_script", "TEXT")?;
         ensure_column(&connection, "url_credentials", "field_values", "TEXT")?;
         ensure_column(&connection, "dashboard_custom_widgets", "settings_schema_json", "TEXT NOT NULL DEFAULT '{\"fields\":[]}'")?;
         ensure_column(&connection, "dashboard_widget_instances", "settings_values_json", "TEXT NOT NULL DEFAULT '{}'")?;
@@ -1526,6 +1540,10 @@ impl Storage {
         let proxy_jump = normalize_ssh_optional_field(request.proxy_jump, &connection_type);
         let auth_method = normalize_auth_method(request.auth_method, &connection_type, &key_path)?;
         let local_shell = normalize_local_shell(request.local_shell, &connection_type)?;
+        let local_startup_directory =
+            normalize_local_startup_directory(request.local_startup_directory, &connection_type)?;
+        let local_startup_script =
+            normalize_local_startup_script(request.local_startup_script, &connection_type)?;
         let data_partition = normalize_data_partition(request.data_partition, &connection_type)?;
         let rdp_options = normalize_rdp_connection_options(request.rdp_options, &connection_type)?;
         let vnc_options = normalize_vnc_connection_options(request.vnc_options, &connection_type)?;
@@ -1553,8 +1571,8 @@ impl Storage {
         transaction
             .execute(
                 "INSERT INTO connections (
-                    id, folder_id, name, host, username, port, key_path, proxy_jump, auth_method, local_shell, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, connection_type, status, sort_order
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, 'idle', ?21)",
+                    id, folder_id, name, host, username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, connection_type, status, sort_order
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, 'idle', ?23)",
                 params![
                     id,
                     folder_id,
@@ -1566,6 +1584,8 @@ impl Storage {
                     proxy_jump,
                     auth_method,
                     local_shell,
+                    local_startup_directory,
+                    local_startup_script,
                     url,
                     data_partition,
                     use_tmux_sessions,
@@ -1603,6 +1623,8 @@ impl Storage {
             proxy_jump,
             auth_method,
             local_shell,
+            local_startup_directory,
+            local_startup_script,
             url,
             data_partition,
             use_tmux_sessions,
@@ -1647,6 +1669,10 @@ impl Storage {
         let proxy_jump = normalize_ssh_optional_field(request.proxy_jump, &connection_type);
         let auth_method = normalize_auth_method(request.auth_method, &connection_type, &key_path)?;
         let local_shell = normalize_local_shell(request.local_shell, &connection_type)?;
+        let local_startup_directory =
+            normalize_local_startup_directory(request.local_startup_directory, &connection_type)?;
+        let local_startup_script =
+            normalize_local_startup_script(request.local_startup_script, &connection_type)?;
         let data_partition = normalize_data_partition(request.data_partition, &connection_type)?;
         let rdp_options = normalize_rdp_connection_options(request.rdp_options, &connection_type)?;
         let vnc_options = normalize_vnc_connection_options(request.vnc_options, &connection_type)?;
@@ -1712,17 +1738,19 @@ impl Storage {
                      proxy_jump = ?7,
                      auth_method = ?8,
                      local_shell = ?9,
-                     url = ?10,
-                     data_partition = ?11,
-                     use_tmux_sessions = ?12,
-                     tmux_connection_id = ?13,
-                     serial_line = ?14,
-                     serial_speed = ?15,
-                     rdp_options = ?16,
-                     vnc_options = ?17,
-                     ftp_options = ?18,
-                     sort_order = ?19
-                 WHERE id = ?20",
+                     local_startup_directory = ?10,
+                     local_startup_script = ?11,
+                     url = ?12,
+                     data_partition = ?13,
+                     use_tmux_sessions = ?14,
+                     tmux_connection_id = ?15,
+                     serial_line = ?16,
+                     serial_speed = ?17,
+                     rdp_options = ?18,
+                     vnc_options = ?19,
+                     ftp_options = ?20,
+                     sort_order = ?21
+                 WHERE id = ?22",
                 params![
                     target_folder_id,
                     name,
@@ -1733,6 +1761,8 @@ impl Storage {
                     proxy_jump,
                     auth_method,
                     local_shell,
+                    local_startup_directory,
+                    local_startup_script,
                     url,
                     data_partition,
                     use_tmux_sessions,
@@ -2112,7 +2142,7 @@ impl Storage {
 
         let source = transaction
             .query_row(
-                "SELECT folder_id, name, host, username, port, key_path, proxy_jump, auth_method, local_shell, url, data_partition, use_tmux_sessions, serial_line, serial_speed, connection_type, icon_data_url
+                "SELECT folder_id, name, host, username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, serial_line, serial_speed, connection_type, icon_data_url
                  FROM connections
                  WHERE id = ?1",
                 params![source_id],
@@ -2129,11 +2159,13 @@ impl Storage {
                         row.get::<_, Option<String>>(8)?,
                         row.get::<_, Option<String>>(9)?,
                         row.get::<_, Option<String>>(10)?,
-                        row.get::<_, bool>(11)?,
+                        row.get::<_, Option<String>>(11)?,
                         row.get::<_, Option<String>>(12)?,
-                        optional_serial_speed(row.get::<_, Option<i64>>(13)?)?,
-                        row.get::<_, String>(14)?,
-                        row.get::<_, Option<String>>(15)?,
+                        row.get::<_, bool>(13)?,
+                        row.get::<_, Option<String>>(14)?,
+                        optional_serial_speed(row.get::<_, Option<i64>>(15)?)?,
+                        row.get::<_, String>(16)?,
+                        row.get::<_, Option<String>>(17)?,
                     ))
                 },
             )
@@ -2150,6 +2182,8 @@ impl Storage {
             proxy_jump,
             auth_method,
             local_shell,
+            local_startup_directory,
+            local_startup_script,
             url,
             data_partition,
             use_tmux_sessions,
@@ -2174,8 +2208,8 @@ impl Storage {
         transaction
             .execute(
                 "INSERT INTO connections (
-                    id, folder_id, name, host, username, port, key_path, proxy_jump, auth_method, local_shell, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, status, sort_order
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, 'idle', ?19)",
+                    id, folder_id, name, host, username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, status, sort_order
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, 'idle', ?21)",
                 params![
                     duplicate_id,
                     folder_id,
@@ -2187,6 +2221,8 @@ impl Storage {
                     proxy_jump,
                     auth_method,
                     local_shell,
+                    local_startup_directory,
+                    local_startup_script,
                     url,
                     data_partition,
                     use_tmux_sessions,
@@ -2713,7 +2749,7 @@ fn list_connections_for_folder(
     };
     let mut statement = connection
         .prepare(&format!(
-            "SELECT connections.id, name, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url,
+            "SELECT connections.id, name, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url,
                     url_credentials.username
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
@@ -2975,14 +3011,14 @@ fn get_connection_by_id(
 ) -> Result<SavedConnection, String> {
     let saved_connection = connection
         .query_row(
-            "SELECT connections.id, name, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url,
+            "SELECT connections.id, name, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url,
                     url_credentials.username
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE connections.id = ?1",
             params![connection_id],
             |row| {
-                let url_credential_username: Option<String> = row.get(20)?;
+                let url_credential_username: Option<String> = row.get(22)?;
                 Ok(SavedConnection {
                     id: row.get(0)?,
                     name: row.get(1)?,
@@ -2993,17 +3029,19 @@ fn get_connection_by_id(
                     proxy_jump: row.get(6)?,
                     auth_method: row.get(7)?,
                     local_shell: row.get(8)?,
-                    url: row.get(9)?,
-                    data_partition: row.get(10)?,
-                    use_tmux_sessions: row.get(11)?,
-                    tmux_connection_id: row.get(12)?,
-                    connection_type: row.get(13)?,
-                    serial_line: row.get(14)?,
-                    serial_speed: optional_serial_speed(row.get::<_, Option<i64>>(15)?)?,
-                    rdp_options: parse_rdp_connection_options(row.get(16)?)?,
-                    vnc_options: parse_vnc_connection_options(row.get(17)?)?,
-                    ftp_options: parse_ftp_connection_options(row.get(18)?)?,
-                    icon_data_url: row.get(19)?,
+                    local_startup_directory: row.get(9)?,
+                    local_startup_script: row.get(10)?,
+                    url: row.get(11)?,
+                    data_partition: row.get(12)?,
+                    use_tmux_sessions: row.get(13)?,
+                    tmux_connection_id: row.get(14)?,
+                    connection_type: row.get(15)?,
+                    serial_line: row.get(16)?,
+                    serial_speed: optional_serial_speed(row.get::<_, Option<i64>>(17)?)?,
+                    rdp_options: parse_rdp_connection_options(row.get(18)?)?,
+                    vnc_options: parse_vnc_connection_options(row.get(19)?)?,
+                    ftp_options: parse_ftp_connection_options(row.get(20)?)?,
+                    icon_data_url: row.get(21)?,
                     url_credential_username: url_credential_username.clone(),
                     has_url_credential: url_credential_username.is_some(),
                     status: "idle".to_string(),
@@ -3022,7 +3060,7 @@ fn get_connection_by_id(
 }
 
 fn saved_connection_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SavedConnection> {
-    let url_credential_username: Option<String> = row.get(20)?;
+    let url_credential_username: Option<String> = row.get(22)?;
     Ok(SavedConnection {
         id: row.get(0)?,
         name: row.get(1)?,
@@ -3033,17 +3071,19 @@ fn saved_connection_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SavedC
         proxy_jump: row.get(6)?,
         auth_method: row.get(7)?,
         local_shell: row.get(8)?,
-        url: row.get(9)?,
-        data_partition: row.get(10)?,
-        use_tmux_sessions: row.get(11)?,
-        tmux_connection_id: row.get(12)?,
-        connection_type: row.get(13)?,
-        serial_line: row.get(14)?,
-        serial_speed: optional_serial_speed(row.get::<_, Option<i64>>(15)?)?,
-        rdp_options: parse_rdp_connection_options(row.get(16)?)?,
-        vnc_options: parse_vnc_connection_options(row.get(17)?)?,
-        ftp_options: parse_ftp_connection_options(row.get(18)?)?,
-        icon_data_url: row.get(19)?,
+        local_startup_directory: row.get(9)?,
+        local_startup_script: row.get(10)?,
+        url: row.get(11)?,
+        data_partition: row.get(12)?,
+        use_tmux_sessions: row.get(13)?,
+        tmux_connection_id: row.get(14)?,
+        connection_type: row.get(15)?,
+        serial_line: row.get(16)?,
+        serial_speed: optional_serial_speed(row.get::<_, Option<i64>>(17)?)?,
+        rdp_options: parse_rdp_connection_options(row.get(18)?)?,
+        vnc_options: parse_vnc_connection_options(row.get(19)?)?,
+        ftp_options: parse_ftp_connection_options(row.get(20)?)?,
+        icon_data_url: row.get(21)?,
         url_credential_username: url_credential_username.clone(),
         has_url_credential: url_credential_username.is_some(),
         status: "idle".to_string(),
@@ -3265,6 +3305,38 @@ fn normalize_local_shell(
         }
         None => Ok(None),
     }
+}
+
+fn normalize_local_startup_directory(
+    value: Option<String>,
+    connection_type: &str,
+) -> Result<Option<String>, String> {
+    if connection_type != "local" {
+        return Ok(None);
+    }
+
+    let trimmed = value
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    if let Some(directory) = trimmed.as_deref() {
+        if directory.chars().any(char::is_control) {
+            return Err("local startup directory cannot contain control characters".to_string());
+        }
+    }
+    Ok(trimmed)
+}
+
+fn normalize_local_startup_script(
+    value: Option<String>,
+    connection_type: &str,
+) -> Result<Option<String>, String> {
+    if connection_type != "local" {
+        return Ok(None);
+    }
+
+    Ok(value
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty()))
 }
 
 fn normalize_auth_method(
@@ -4108,6 +4180,8 @@ mod tests {
                 proxy_jump: None,
                 auth_method: Some("agent".to_string()),
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: None,
@@ -4133,6 +4207,8 @@ mod tests {
                 proxy_jump: None,
                 auth_method: Some("keyFile".to_string()),
                 local_shell: Some(shell.to_string()),
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: None,
@@ -4196,6 +4272,8 @@ mod tests {
                 proxy_jump: Some("jump.internal".to_string()),
                 auth_method: Some("keyFile".to_string()),
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: None,
@@ -4225,6 +4303,63 @@ mod tests {
     }
 
     #[test]
+    fn local_connection_persists_startup_directory_and_script() {
+        let storage =
+            Storage::open(temp_db_path("local-startup-options")).expect("storage opens");
+
+        let created = storage
+            .create_connection(CreateConnectionRequest {
+                name: "Project Shell".to_string(),
+                host: "localhost".to_string(),
+                user: "local".to_string(),
+                connection_type: "local".to_string(),
+                folder_id: None,
+                port: None,
+                key_path: None,
+                proxy_jump: None,
+                auth_method: None,
+                local_shell: Some("powershell.exe".to_string()),
+                local_startup_directory: Some("  C:\\Work\\KKTerm  ".to_string()),
+                local_startup_script: Some("  npm run check  ".to_string()),
+                url: None,
+                data_partition: None,
+                use_tmux_sessions: None,
+                serial_line: None,
+                serial_speed: None,
+                rdp_options: None,
+                vnc_options: None,
+                ftp_options: None,
+            })
+            .expect("local connection is created");
+
+        assert_eq!(
+            created.local_startup_directory.as_deref(),
+            Some("C:\\Work\\KKTerm")
+        );
+        assert_eq!(
+            created.local_startup_script.as_deref(),
+            Some("npm run check")
+        );
+
+        let tree = storage
+            .list_connection_tree()
+            .expect("connection tree loads");
+        let reloaded = tree
+            .connections
+            .iter()
+            .find(|connection| connection.id == created.id)
+            .expect("local connection reloads");
+        assert_eq!(
+            reloaded.local_startup_directory.as_deref(),
+            Some("C:\\Work\\KKTerm")
+        );
+        assert_eq!(
+            reloaded.local_startup_script.as_deref(),
+            Some("npm run check")
+        );
+    }
+
+    #[test]
     fn create_connection_can_persist_remote_desktop_connections() {
         let storage = Storage::open(temp_db_path("remote-desktop-create")).expect("storage opens");
 
@@ -4240,6 +4375,8 @@ mod tests {
                 proxy_jump: Some("ignored.internal".to_string()),
                 auth_method: Some("password".to_string()),
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: Some(true),
@@ -4271,6 +4408,8 @@ mod tests {
                 proxy_jump: None,
                 auth_method: None,
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: None,
@@ -4303,6 +4442,8 @@ mod tests {
                 proxy_jump: Some("ignored.internal".to_string()),
                 auth_method: Some("agent".to_string()),
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: Some(true),
@@ -4332,6 +4473,8 @@ mod tests {
                 proxy_jump: None,
                 auth_method: None,
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: None,
@@ -4366,6 +4509,8 @@ mod tests {
                 proxy_jump: None,
                 auth_method: None,
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: Some("router.internal".to_string()),
                 data_partition: Some("ops".to_string()),
                 use_tmux_sessions: None,
@@ -4455,6 +4600,8 @@ mod tests {
                 proxy_jump: None,
                 auth_method: Some("password".to_string()),
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: None,
@@ -4477,6 +4624,8 @@ mod tests {
                 proxy_jump: None,
                 auth_method: None,
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: Some("https://portal.example".to_string()),
                 data_partition: None,
                 use_tmux_sessions: None,
@@ -4635,6 +4784,8 @@ mod tests {
                 proxy_jump: Some("jump.internal".to_string()),
                 auth_method: Some("keyFile".to_string()),
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: Some(false),
@@ -4819,6 +4970,8 @@ mod tests {
                 proxy_jump: None,
                 auth_method: Some("agent".to_string()),
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: None,
@@ -5440,6 +5593,8 @@ mod tests {
                 proxy_jump: None,
                 auth_method: None,
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: None,
@@ -5480,6 +5635,8 @@ mod tests {
                 proxy_jump: None,
                 auth_method: None,
                 local_shell: None,
+                local_startup_directory: None,
+                local_startup_script: None,
                 url: None,
                 data_partition: None,
                 use_tmux_sessions: None,

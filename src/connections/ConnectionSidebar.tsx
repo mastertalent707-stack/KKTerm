@@ -20,7 +20,7 @@ import i18next from "../i18n/config";
 import { ariaExpanded, dialogButtonAria } from "../lib/aria";
 import { nativeMenuIcons } from "../lib/nativeMenuIcons";
 import { showNativeContextMenu, type NativeContextMenuItem } from "../lib/nativeContextMenu";
-import { confirmNativeDialog, invokeCommand, isTauriRuntime, selectKeyFile } from "../lib/tauri";
+import { confirmNativeDialog, invokeCommand, isTauriRuntime, selectAppLauncherFolder, selectKeyFile } from "../lib/tauri";
 import { connectionTree } from "../app-defaults";
 import { useWorkspaceStore } from "../store";
 import type { Connection, ConnectionFolder, ConnectionStatus, ConnectionTree, ConnectionType, CreateConnectionRequest, RdpSettings, SplitDirection, SshSettings, UpdateConnectionRequest, VncSettings } from "../types";
@@ -505,6 +505,8 @@ export function ConnectionSidebar({
       hasPassword: Boolean(password),
       type: connectionRequest.type,
       localShell: connectionRequest.localShell,
+      localStartupDirectory: connectionRequest.localStartupDirectory,
+      localStartupScript: connectionRequest.localStartupScript,
       serialLine: connectionRequest.serialLine,
       serialSpeed: connectionRequest.serialSpeed,
       url: connectionRequest.url,
@@ -2294,6 +2296,9 @@ function ConnectionDialog({
   const [keyPath, setKeyPath] = useState(
     initialConnection?.keyPath ?? sshSettings.defaultKeyPath ?? "",
   );
+  const [localStartupDirectory, setLocalStartupDirectory] = useState(
+    initialConnection?.localStartupDirectory ?? "",
+  );
   const [keyEmailDialogOpen, setKeyEmailDialogOpen] = useState(false);
   const [keyEmailDraft, setKeyEmailDraft] = useState("");
   const [isGeneratingKey, setIsGeneratingKey] = useState(false);
@@ -2426,6 +2431,14 @@ function ConnectionDialog({
       authMethod: usesSshDefaults ? authMethod : undefined,
       useTmuxSessions: usesSshDefaults ? useTmuxSessions : undefined,
       localShell: connectionType === "local" ? selectedLocalShell || undefined : undefined,
+      localStartupDirectory:
+        connectionType === "local"
+          ? String(form.get("localStartupDirectory") ?? "").trim() || undefined
+          : undefined,
+      localStartupScript:
+        connectionType === "local"
+          ? String(form.get("localStartupScript") ?? "").trim() || undefined
+          : undefined,
       serialLine: connectionType === "serial" ? serialLine : undefined,
       serialSpeed:
         connectionType === "serial"
@@ -2505,6 +2518,15 @@ function ConnectionDialog({
     const selectedPath = await selectKeyFile(keyPath || sshSettings.defaultKeyPath);
     if (selectedPath) {
       setKeyPath(selectedPath);
+    }
+  }
+
+  async function handleBrowseLocalStartupDirectory() {
+    const selectedPath = await selectAppLauncherFolder({
+      title: t("connections.localStartupDirectoryPickerTitle"),
+    });
+    if (selectedPath) {
+      setLocalStartupDirectory(selectedPath);
     }
   }
 
@@ -2642,6 +2664,29 @@ function ConnectionDialog({
                     </select>
                   </label>
                 </div>
+                <label>
+                  <span>{t("connections.localStartupDirectory")}</span>
+                  <div className="input-with-button">
+                    <input
+                      name="localStartupDirectory"
+                      onChange={(event) => setLocalStartupDirectory(event.currentTarget.value)}
+                      placeholder={t("connections.localStartupDirectoryPlaceholder")}
+                      value={localStartupDirectory}
+                    />
+                    <button className="toolbar-button" onClick={handleBrowseLocalStartupDirectory} type="button">
+                      {t("connections.browse")}
+                    </button>
+                  </div>
+                </label>
+                <label>
+                  <span>{t("connections.localStartupScript")}</span>
+                  <textarea
+                    name="localStartupScript"
+                    defaultValue={initialConnection?.localStartupScript ?? ""}
+                    placeholder={t("connections.localStartupScriptPlaceholder")}
+                    rows={4}
+                  />
+                </label>
               </>
             ) : isSerialConnection ? (
               <>
