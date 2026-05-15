@@ -1923,3 +1923,9 @@ main.dashboard-page {
   display: flex;
   gap: 8px;
 }
+
+.dw-bg-popover input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent);
+}
