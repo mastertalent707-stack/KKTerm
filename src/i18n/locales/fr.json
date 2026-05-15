@@ -850,7 +850,6 @@
             "panel": "Panneau",
             "tile": "Tuile",
             "action": "Action",
-            "mono": "Mono",
             "hero": "Hero"
         },
         "presetLabel": "Style prédéfini",

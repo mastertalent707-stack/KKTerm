@@ -546,8 +546,7 @@ main.dashboard-page {
 }
 
 .dw-body,
-.dw-hero-body,
-.dw-mono-body {
+.dw-hero-body {
   flex: 1 1 auto;
   min-height: 0;
   padding: 12px;
@@ -562,8 +561,7 @@ main.dashboard-page {
   padding: 5px 6px;
 }
 
-.dw-custom-widget .dw-body,
-.dw-custom-widget .dw-mono-body {
+.dw-custom-widget .dw-body {
   padding: 6px;
 }
 
@@ -586,11 +584,6 @@ main.dashboard-page {
 
 .dw-custom-widget .dw-hero-body {
   padding: 6px 9px 9px;
-}
-
-.dw-custom-widget .dw-mono-head {
-  min-height: 26px;
-  padding: 4px 6px;
 }
 
 .dw-custom-widget.dw-instance .dw-preset-action {
@@ -816,51 +809,6 @@ main.dashboard-page {
   padding: 12px 18px 18px;
   opacity: 0.92;
   font-size: 13px;
-}
-
-.dw-preset-mono {
-  color: #d8e1ef;
-  background: #0f1419;
-  border-color: #1d2530;
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 12px;
-}
-
-.dw-mono-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  padding: 8px 12px;
-  color: #8fa0bf;
-  background: #161c25;
-  border-bottom: 1px solid #1d2530;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-}
-
-.dw-mono-lights {
-  display: inline-flex;
-  gap: 4px;
-}
-
-.dw-mono-lights > span {
-  width: 9px;
-  height: 9px;
-  background: #41454c;
-  border-radius: 50%;
-}
-
-.dw-mono-title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dw-mono-body {
-  color: #d8e1ef;
-  font-size: 12px;
 }
 
 .dw-preset-action {
@@ -1383,14 +1331,6 @@ main.dashboard-page {
   background: linear-gradient(135deg, var(--w-accent), color-mix(in srgb, var(--w-accent) 68%, black));
 }
 
-.dw-catalog-thumb[data-preset="mono"] {
-  background:
-    linear-gradient(90deg, #41454c 0 7px, transparent 7px 11px, #41454c 11px 18px, transparent 18px 22px, #41454c 22px 29px, transparent 29px),
-    repeating-linear-gradient(180deg, #0f1419 0 18px, #161c25 18px 19px);
-  background-position: 12px 10px, 0 0;
-  background-repeat: no-repeat, repeat;
-}
-
 .dw-catalog-thumb[data-preset="action"] {
   background:
     linear-gradient(90deg, transparent 0 16px, var(--w-accent-soft, var(--accent-soft)) 16px 52px, transparent 52px),
@@ -1439,6 +1379,21 @@ main.dashboard-page {
   width: 28px;
   height: 28px;
   padding: 0;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.app-launcher-widget:hover .app-launcher-add,
+.app-launcher-widget:focus-within .app-launcher-add,
+.app-launcher-widget.is-adding .app-launcher-add,
+.app-launcher-widget.is-drop-target .app-launcher-add {
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .app-launcher-tile-grid {

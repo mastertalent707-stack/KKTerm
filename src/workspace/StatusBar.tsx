@@ -72,8 +72,14 @@ export function StatusBar({ activePage }: { activePage: ActivePage }) {
 function DontSleepStatusButton() {
   const { t } = useTranslation();
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
+  const storedEnabled = useWorkspaceStore((state) => state.generalSettings.dontSleepEnabled);
+  const setGeneralSettings = useWorkspaceStore((state) => state.setGeneralSettings);
   const [enabled, setEnabled] = useState(false);
   const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    setEnabled(storedEnabled);
+  }, [storedEnabled]);
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -85,6 +91,10 @@ function DontSleepStatusButton() {
       .then((nextEnabled) => {
         if (!disposed) {
           setEnabled(nextEnabled);
+          setGeneralSettings({
+            ...useWorkspaceStore.getState().generalSettings,
+            dontSleepEnabled: nextEnabled,
+          });
         }
       })
       .catch(() => {
@@ -94,7 +104,7 @@ function DontSleepStatusButton() {
     return () => {
       disposed = true;
     };
-  }, []);
+  }, [setGeneralSettings]);
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -102,11 +112,15 @@ function DontSleepStatusButton() {
     }
     const unlistenPromise = listen<boolean>("kkterm://dont-sleep-changed", (event) => {
       setEnabled(event.payload);
+      setGeneralSettings({
+        ...useWorkspaceStore.getState().generalSettings,
+        dontSleepEnabled: event.payload,
+      });
     });
     return () => {
       void unlistenPromise.then((unlisten) => unlisten());
     };
-  }, []);
+  }, [setGeneralSettings]);
 
   async function handleClick() {
     if (updating) {
@@ -121,6 +135,10 @@ function DontSleepStatusButton() {
         ? await invokeCommand("set_dont_sleep_enabled", { enabled: nextEnabled })
         : nextEnabled;
       setEnabled(savedEnabled);
+      setGeneralSettings({
+        ...useWorkspaceStore.getState().generalSettings,
+        dontSleepEnabled: savedEnabled,
+      });
       showStatusBarNotice(
         savedEnabled ? t("app.dontSleepEnabled") : t("app.dontSleepDisabled"),
         { tone: savedEnabled ? "success" : "info" },
@@ -135,17 +153,22 @@ function DontSleepStatusButton() {
 
   const label = enabled ? t("app.dontSleepDisable") : t("app.dontSleepEnable");
   const Icon = enabled ? Coffee : BedSingle;
+  const tooltip = t("app.dontSleep");
 
   return (
     <button
       className={`status-bar-action status-bar-dont-sleep ${enabled ? "active" : ""}`}
       aria-label={label}
+      aria-describedby="dont-sleep-status-tooltip"
       aria-pressed={enabled}
       disabled={updating}
       onClick={() => void handleClick()}
       type="button"
     >
       <Icon size={14} />
+      <span className="status-bar-tooltip" id="dont-sleep-status-tooltip" role="tooltip">
+        {tooltip}
+      </span>
     </button>
   );
 }

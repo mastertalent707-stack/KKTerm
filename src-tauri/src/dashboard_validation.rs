@@ -2,8 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub const PRESETS: &[&str] = &[
-    "panel", "ambient", "tile", "hero",
-    "mono", "action",
+    "panel", "ambient", "tile", "hero", "action",
 ];
 
 pub const ACCENTS: &[&str] = &[
@@ -466,6 +465,11 @@ mod tests {
     #[test]
     fn preset_unknown() {
         assert_eq!(validate_preset("does-not-exist"), Err(ValidationError::InvalidPreset));
+    }
+
+    #[test]
+    fn preset_mono_is_removed() {
+        assert_eq!(validate_preset("mono"), Err(ValidationError::InvalidPreset));
     }
 
     #[test]

@@ -180,6 +180,7 @@ export interface GeneralSettings {
   pinnedConnectionIds: string[];
   allowClipboardRead: boolean;
   minimizeToTray: boolean;
+  dontSleepEnabled: boolean;
   lastBackupAt?: string | null;
 }
 

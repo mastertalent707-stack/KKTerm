@@ -66,6 +66,14 @@ fn background_to_json(
     }
 }
 
+fn normalize_loaded_preset(preset: String) -> String {
+    if preset == "mono" {
+        "panel".to_string()
+    } else {
+        preset
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DashboardWidgetInstance {
@@ -207,7 +215,7 @@ pub fn load_state(conn: &SqliteConnection) -> Result<DashboardLoadState, Dashboa
                 view_id: row.get(1)?,
                 kind: row.get(2)?,
                 source_id: row.get(3)?,
-                preset: row.get(4)?,
+                preset: normalize_loaded_preset(row.get(4)?),
                 accent_name: row.get(5)?,
                 icon_name: row.get(6)?,
                 custom_title: row.get(7)?,
@@ -417,7 +425,7 @@ pub fn update_instance(
             view_id: row.get(1)?,
             kind: row.get(2)?,
             source_id: row.get(3)?,
-            preset: row.get(4)?,
+            preset: normalize_loaded_preset(row.get(4)?),
             accent_name: row.get(5)?,
             icon_name: row.get(6)?,
             custom_title: row.get(7)?,
@@ -653,7 +661,7 @@ pub fn widget_secret_owner_id_for_instance(
             view_id: row.get(1)?,
             kind: row.get(2)?,
             source_id: row.get(3)?,
-            preset: row.get(4)?,
+            preset: normalize_loaded_preset(row.get(4)?),
             accent_name: row.get(5)?,
             icon_name: row.get(6)?,
             custom_title: row.get(7)?,

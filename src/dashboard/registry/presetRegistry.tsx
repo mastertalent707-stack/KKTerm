@@ -103,19 +103,6 @@ function HeroChrome({ title, icon, body, controls, editMode }: PresetChromeProps
   );
 }
 
-function MonoChrome({ title, body, controls, editMode }: PresetChromeProps) {
-  return (
-    <div className="dw-preset dw-preset-mono">
-      <div className={`dw-mono-head${editMode ? " drag-handle" : ""}`}>
-        <span className="dw-mono-lights"><span/><span/><span/></span>
-        <span className="dw-mono-title">{title}</span>
-        {controls}
-      </div>
-      <div className="dw-mono-body">{body}</div>
-    </div>
-  );
-}
-
 function ActionChrome({ title, icon, body, controls, editMode, actionDirection }: PresetChromeProps) {
   if (actionDirection === "horizontal") {
     return (
@@ -146,6 +133,5 @@ export const PRESET_RENDERERS: Record<WidgetPreset, (p: PresetChromeProps) => Re
   ambient: AmbientChrome,
   tile: TileChrome,
   hero: HeroChrome,
-  mono: MonoChrome,
   action: ActionChrome,
 };

@@ -27,6 +27,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   pinnedConnectionIds: [],
   allowClipboardRead: true,
   minimizeToTray: true,
+  dontSleepEnabled: false,
   lastBackupAt: null,
 };
 

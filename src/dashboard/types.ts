@@ -2,7 +2,7 @@ export type WidgetKind = "builtIn" | "content" | "script";
 export type WidgetCustomKind = "content" | "script";
 
 export const WIDGET_PRESETS = [
-  "panel", "ambient", "tile", "hero", "mono", "action",
+  "panel", "ambient", "tile", "hero", "action",
 ] as const;
 export type WidgetPreset = (typeof WIDGET_PRESETS)[number];
 

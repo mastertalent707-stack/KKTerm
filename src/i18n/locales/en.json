@@ -52,7 +52,6 @@
       "ambient": "Ambient",
       "tile": "Tile",
       "hero": "Hero",
-      "mono": "Mono",
       "action": "Action"
     },
     "glassBackground": "Frosted glass background",

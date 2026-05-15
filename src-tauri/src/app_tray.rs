@@ -177,6 +177,11 @@ fn toggle_dont_sleep<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 
     match power.set_enabled(!currently_enabled) {
         Ok(enabled) => {
+            if let Some(storage) = app.try_state::<crate::storage::Storage>() {
+                if let Err(error) = storage.update_dont_sleep_enabled(enabled) {
+                    eprintln!("failed to persist Don't Sleep tray toggle: {error}");
+                }
+            }
             if let Some(tray_state) = app.try_state::<TrayState>() {
                 if let Err(error) = rebuild_menu(app, &tray_state) {
                     eprintln!("failed to refresh tray menu after Don't Sleep toggle: {error}");

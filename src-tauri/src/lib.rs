@@ -592,11 +592,15 @@ fn get_general_settings(
 fn update_general_settings(
     storage: tauri::State<'_, storage::Storage>,
     tray_state: tauri::State<'_, app_tray::TrayState>,
+    power: tauri::State<'_, power::DontSleepManager>,
     webviews: tauri::State<'_, webview::WebviewSessionManager>,
     request: storage::GeneralSettings,
 ) -> Result<storage::GeneralSettings, String> {
     let saved = storage.update_general_settings(request)?;
     tray_state.set_minimize_to_tray(saved.minimize_to_tray());
+    if let Err(error) = power.set_enabled(saved.dont_sleep_enabled()) {
+        eprintln!("failed to apply saved Don't Sleep setting: {error}");
+    }
     webviews.set_clipboard_read_allowed(saved.allow_clipboard_read());
     Ok(saved)
 }
@@ -650,12 +654,16 @@ fn launch_app_launcher_entry(
 fn import_settings_database(
     storage: tauri::State<'_, storage::Storage>,
     tray_state: tauri::State<'_, app_tray::TrayState>,
+    power: tauri::State<'_, power::DontSleepManager>,
     webviews: tauri::State<'_, webview::WebviewSessionManager>,
     path: String,
 ) -> Result<storage::ImportedDatabaseSnapshot, String> {
     let snapshot = storage.import_database_zip(path.into())?;
     let general_settings = storage.general_settings()?;
     tray_state.set_minimize_to_tray(general_settings.minimize_to_tray());
+    if let Err(error) = power.set_enabled(general_settings.dont_sleep_enabled()) {
+        eprintln!("failed to apply imported Don't Sleep setting: {error}");
+    }
     webviews.set_clipboard_read_allowed(general_settings.allow_clipboard_read());
     Ok(snapshot)
 }
@@ -908,10 +916,12 @@ fn get_dont_sleep_enabled(power: tauri::State<'_, power::DontSleepManager>) -> b
 fn set_dont_sleep_enabled(
     app: tauri::AppHandle,
     power: tauri::State<'_, power::DontSleepManager>,
+    storage: tauri::State<'_, storage::Storage>,
     tray_state: tauri::State<'_, app_tray::TrayState>,
     enabled: bool,
 ) -> Result<bool, String> {
     let saved = power.set_enabled(enabled)?;
+    storage.update_dont_sleep_enabled(saved)?;
     if let Err(error) = app_tray::rebuild_menu(&app, &tray_state) {
         eprintln!("failed to refresh tray menu after Don't Sleep change: {error}");
     }
@@ -2049,9 +2059,15 @@ pub fn run() {
             app.manage(app_tray::TrayState::new(
                 general_settings.minimize_to_tray(),
             ));
+            let power_manager = power::DontSleepManager::new();
+            if general_settings.dont_sleep_enabled() {
+                if let Err(error) = power_manager.set_enabled(true) {
+                    eprintln!("failed to restore Don't Sleep state: {error}");
+                }
+            }
             app.manage(storage);
             app.manage(performance::PerformanceMonitor::new());
-            app.manage(power::DontSleepManager::new());
+            app.manage(power_manager);
             app.manage(secrets::Secrets::new());
             app.manage(ai::AssistantLiveToolBridge::new());
             app.manage(sessions::SessionManager::new());

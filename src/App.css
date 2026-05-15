@@ -5206,6 +5206,7 @@ progress {
 }
 
 .status-bar-action {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -5237,6 +5238,35 @@ progress {
 .status-bar-dont-sleep.active svg {
   fill: currentColor;
   stroke: currentColor;
+}
+
+.status-bar-tooltip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 140;
+  padding: 4px 10px;
+  color: #111;
+  white-space: nowrap;
+  pointer-events: none;
+  background: #fffdf6;
+  border: 1px solid #111;
+  border-radius: 0;
+  box-shadow: none;
+  opacity: 0;
+  transform: translateY(2px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.status-bar-action:hover .status-bar-tooltip,
+.status-bar-action:focus-visible .status-bar-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 3000ms;
 }
 
 .host-metrics {

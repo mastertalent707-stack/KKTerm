@@ -219,6 +219,8 @@ pub struct GeneralSettings {
     #[serde(default)]
     minimize_to_tray: bool,
     #[serde(default)]
+    dont_sleep_enabled: bool,
+    #[serde(default)]
     last_backup_at: Option<String>,
 }
 
@@ -229,6 +231,10 @@ impl GeneralSettings {
 
     pub(crate) fn minimize_to_tray(&self) -> bool {
         self.minimize_to_tray
+    }
+
+    pub(crate) fn dont_sleep_enabled(&self) -> bool {
+        self.dont_sleep_enabled
     }
 }
 
@@ -981,6 +987,12 @@ impl Storage {
             )
             .map_err(to_storage_error)?;
         Ok(settings)
+    }
+
+    pub fn update_dont_sleep_enabled(&self, enabled: bool) -> Result<GeneralSettings, String> {
+        let mut settings = self.general_settings()?;
+        settings.dont_sleep_enabled = enabled;
+        self.update_general_settings(settings)
     }
 
     pub fn app_launcher_settings(&self) -> Result<AppLauncherSettings, String> {
@@ -3551,6 +3563,7 @@ fn default_general_settings() -> GeneralSettings {
         pinned_connection_ids: Vec::new(),
         allow_clipboard_read: default_allow_clipboard_read(),
         minimize_to_tray: false,
+        dont_sleep_enabled: false,
         last_backup_at: None,
     }
 }
@@ -5149,6 +5162,7 @@ mod tests {
         assert!(defaults.pinned_connection_ids.is_empty());
         assert!(defaults.allow_clipboard_read);
         assert!(!defaults.minimize_to_tray);
+        assert!(!defaults.dont_sleep_enabled);
         assert!(defaults.last_backup_at.is_none());
 
         let updated = storage
@@ -5164,6 +5178,7 @@ mod tests {
                 ],
                 allow_clipboard_read: false,
                 minimize_to_tray: true,
+                dont_sleep_enabled: true,
                 last_backup_at: None,
             })
             .expect("general settings update");
@@ -5175,6 +5190,7 @@ mod tests {
         );
         assert!(!updated.allow_clipboard_read);
         assert!(updated.minimize_to_tray);
+        assert!(updated.dont_sleep_enabled);
 
         let reloaded = storage.general_settings().expect("general settings reload");
         assert!(!reloaded.auto_backup_enabled);
@@ -5185,6 +5201,7 @@ mod tests {
         );
         assert!(!reloaded.allow_clipboard_read);
         assert!(reloaded.minimize_to_tray);
+        assert!(reloaded.dont_sleep_enabled);
         assert!(reloaded.last_backup_at.is_none());
     }
 
@@ -5349,6 +5366,7 @@ mod tests {
                 pinned_connection_ids: vec!["connection-pinned".to_string()],
                 allow_clipboard_read: true,
                 minimize_to_tray: true,
+                dont_sleep_enabled: true,
                 last_backup_at: None,
             })
             .expect("general settings update");
@@ -5363,6 +5381,7 @@ mod tests {
                 pinned_connection_ids: Vec::new(),
                 allow_clipboard_read: false,
                 minimize_to_tray: false,
+                dont_sleep_enabled: false,
                 last_backup_at: None,
             })
             .expect("general settings changes after export");
@@ -5381,6 +5400,7 @@ mod tests {
             vec!["connection-pinned".to_string()]
         );
         assert!(imported.general_settings.minimize_to_tray);
+        assert!(imported.general_settings.dont_sleep_enabled);
         assert_eq!(
             imported.general_settings.last_backup_at.as_deref(),
             Some(imported.backup.created_at.as_str())

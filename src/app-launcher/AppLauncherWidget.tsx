@@ -612,7 +612,7 @@ export function AppLauncherWidget({ instance }: { instance: DashboardWidgetInsta
 
   return (
     <div
-      className={`dashboard-widget-body app-launcher-widget${isDropTarget ? " is-drop-target" : ""}${editMode ? " is-managing" : ""}`}
+      className={`dashboard-widget-body app-launcher-widget${isDropTarget ? " is-drop-target" : ""}${editMode ? " is-managing" : ""}${addMenuState ? " is-adding" : ""}`}
       onDragLeave={() => setIsDropTarget(false)}
       onDragOver={handleBrowserDragOver}
       onDrop={handleBrowserDrop}

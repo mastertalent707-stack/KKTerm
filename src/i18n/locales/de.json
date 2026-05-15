@@ -850,7 +850,6 @@
             "panel": "Panel",
             "tile": "Kachel",
             "action": "Aktion",
-            "mono": "Mono",
             "hero": "Hero"
         },
         "presetLabel": "Stilvorlage",

@@ -3,6 +3,7 @@ import { ConnectionIconPicker } from "./ConnectionIconPicker";
 import { connectionIconSrcForConnection } from "./ConnectionIcon";
 import { AddConnectionMenu, QuickConnectMenu } from "./ConnectionMenus";
 import { ImportDialog } from "./ImportDialog";
+import { quickConnectRecentLabel } from "./quickConnectMenuModel";
 import {
   CONNECTION_TAB_CONTEXT_MENU_EVENT,
   type ConnectionTabContextMenuDetail,
@@ -896,7 +897,7 @@ export function ConnectionSidebar({
       ...(recentConnections.length > 0
         ? recentConnections.map((connection) => ({
             kind: "item" as const,
-            label: `${connection.name} - ${connectionSubtitle(connection)}`,
+            label: quickConnectRecentLabel(connection),
             iconSrc: connectionIconSrcForConnection(connection),
             action: () => {
               setQuickConnectMenuOpen(false);

@@ -850,7 +850,6 @@
             "panel": "Pannello",
             "tile": "Piastrella",
             "action": "Azione",
-            "mono": "Mono",
             "hero": "Hero"
         },
         "presetLabel": "Stile predefinito",

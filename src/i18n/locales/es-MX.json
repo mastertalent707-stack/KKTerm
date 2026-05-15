@@ -849,7 +849,6 @@
             "panel": "Panel",
             "tile": "Azulejo",
             "action": "Acción",
-            "mono": "Mono",
             "hero": "Hero"
         },
         "presetLabel": "Estilo predefinido",
