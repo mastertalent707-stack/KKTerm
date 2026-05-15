@@ -966,7 +966,27 @@
             "gHorizon": "地平線",
             "gPetal": "花瓣",
             "gTwilight": "暮光"
-        }
+        },
+        "backgroundChooseMedia": "選擇檔案…",
+        "backgroundDynamicHint": "在小工具網格後方執行本機 HTML5 動畫。",
+        "backgroundMediaFilter": "圖片與影片",
+        "backgroundMediaHint": "選擇圖片或影片作為此檢視的背景。",
+        "backgroundMediaSourceLink": "Pixabay",
+        "backgroundMediaSourcePrefix": "您可以在以下網站找到高品質的免版稅桌布：",
+        "backgroundModeDynamic": "動態",
+        "backgroundModeMedia": "圖片 / 影片",
+        "dynamicBackgrounds": {
+            "aurora": "極光",
+            "confetti": "五彩紙屑",
+            "embers": "餘燼",
+            "lava": "熔岩燈",
+            "matrix": "矩陣",
+            "nebula": "星雲",
+            "raindrops": "雨滴",
+            "starfield": "星空",
+            "synthwave": "合成波"
+        },
+        "hideTitle": "隱藏標題列"
     },
     "languages": {
         "de": "Deutsch",
@@ -1421,7 +1441,21 @@
         "updatePromptLabel": "KKTerm 更新提示",
         "widgetCredentialsEmpty": "找不到小工具憑據。",
         "widgetCredentialsHint": "為儀表板小工具設定儲存的憑據。憑據值保存在作業系統鑰匙圈中；小工具僅保留參照。",
-        "widgetCredentialsStored": "小工具憑據"
+        "widgetCredentialsStored": "小工具憑據",
+        "braveSearchApiKey": "Brave Search API 金鑰",
+        "credentialSavedApiKey": "已儲存的 API 金鑰",
+        "credentialSavedPassword": "已儲存的密碼",
+        "credentialSavedSecret": "已儲存的密鑰",
+        "deleteCredential": "刪除認證",
+        "deleteCredentialConfirmBody": "確定要刪除嗎？此操作無法復原。",
+        "searchProvider": "搜尋提供者",
+        "searchProviderBrave": "Brave Search",
+        "searchProviderScraper": "內建 (DuckDuckGo)",
+        "searchProviderSearxng": "SearXNG",
+        "searchProviderTavily": "Tavily",
+        "searxngUrl": "SearXNG 執行個體 URL",
+        "tavilySearchApiKey": "Tavily API 金鑰",
+        "updateOpenDownloadPage": "開啟下載頁面"
     },
     "sftp": {
         "accessed": "存取日期",
