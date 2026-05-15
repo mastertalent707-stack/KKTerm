@@ -186,10 +186,6 @@ pub struct TerminalSessionStarted {
 }
 
 impl TerminalSessionStarted {
-    pub fn session_id(&self) -> &str {
-        &self.session_id
-    }
-
     pub fn terminal_ready_ms(&self) -> Option<u128> {
         self.terminal_ready_ms
     }

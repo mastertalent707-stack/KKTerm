@@ -31,6 +31,7 @@ export default defineConfig(async () => ({
     },
   },
   build: {
+    chunkSizeWarningLimit: 900,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -44,18 +45,15 @@ export default defineConfig(async () => ({
             "@xterm/addon-web-links",
             "@xterm/addon-webgl",
           ],
-          codemirror: [
-            "codemirror",
+          markdown: [
             "@codemirror/autocomplete",
             "@codemirror/commands",
+            "@codemirror/lang-markdown",
             "@codemirror/language",
             "@codemirror/search",
             "@codemirror/state",
             "@codemirror/theme-one-dark",
             "@codemirror/view",
-          ],
-          markdown: [
-            "@codemirror/lang-markdown",
             "@lezer/markdown",
             "marked",
             "dompurify",
