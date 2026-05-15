@@ -25,6 +25,10 @@ export function getDashboardBackgroundVideoCacheKey(viewId: string, file: string
   return `${viewId}\u0000${file}`;
 }
 
+export function getDashboardBackgroundHostClassName() {
+  return "dw-dashboard-background-host dw-canvas-bg-video";
+}
+
 export function DashboardBackgroundHost({
   activeView,
   dashboardActive,
@@ -87,7 +91,7 @@ export function DashboardBackgroundHost({
   }, [activeVideoKey, dashboardActive, entries]);
 
   return (
-    <div className="dw-canvas-bg dw-canvas-bg-video" aria-hidden="true">
+    <div className={getDashboardBackgroundHostClassName()} aria-hidden="true">
       {entries.map((entry) => {
         const active = dashboardActive && entry.key === activeVideoKey;
         return (

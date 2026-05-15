@@ -36,7 +36,6 @@ function dimColor(dim: number): string | undefined {
 }
 
 export interface DashboardCanvasProps {
-  backgroundHost?: JSX.Element;
   view: DashboardView;
   instances: DashboardWidgetInstance[];
   onCustomize: (instance: DashboardWidgetInstance, anchor: HTMLElement) => void;
@@ -44,7 +43,6 @@ export interface DashboardCanvasProps {
 }
 
 export function DashboardCanvas({
-  backgroundHost,
   view,
   instances,
   onCustomize,
@@ -112,7 +110,6 @@ export function DashboardCanvas({
 
   return (
     <div className="dw-canvas-host" onContextMenu={onCanvasContextMenu}>
-      {backgroundHost}
       {backgroundLayer}
       {editMode ? <div className="dw-canvas-blueprint" /> : null}
       <ResponsiveGrid

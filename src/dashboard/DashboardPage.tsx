@@ -229,14 +229,12 @@ export function DashboardPage({
       </header>
 
       <div className={`dw-canvas-scroll${editMode ? " is-editing" : ""}`} style={canvasGridStyle}>
+        <DashboardBackgroundHost
+          activeView={activeView}
+          dashboardActive={dashboardActive}
+          views={views}
+        />
         <DashboardCanvas
-          backgroundHost={(
-            <DashboardBackgroundHost
-              activeView={activeView}
-              dashboardActive={dashboardActive}
-              views={views}
-            />
-          )}
           view={activeView}
           instances={viewInstances}
           onCustomize={(instance, anchor) => setCustomize({ instance, rect: anchor.getBoundingClientRect() })}

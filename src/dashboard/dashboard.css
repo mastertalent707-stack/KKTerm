@@ -296,6 +296,13 @@ main.dashboard-page.dashboard-page-hidden,
   overflow: hidden;
 }
 
+.dw-dashboard-background-host {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .dw-canvas-bg-video-layer {
   position: absolute;
   inset: 0;
@@ -334,7 +341,7 @@ main.dashboard-page.dashboard-page-hidden,
 
 .dw-canvas-host {
   position: relative;
-  z-index: 0;
+  z-index: 1;
   min-height: 100%;
 }
 
