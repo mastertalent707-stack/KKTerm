@@ -12,8 +12,10 @@ import type { DashboardWidgetInstance, GridDensity } from "./types";
 import { DashboardCanvas, DENSITY_SETTINGS } from "./view/DashboardCanvas";
 
 export function DashboardPage({
+  dashboardActive,
   onAssistantContextChange,
 }: {
+  dashboardActive: boolean;
   onAssistantContextChange: (context: AssistantPageContext) => void;
 }) {
   const { t } = useTranslation();
@@ -134,10 +136,22 @@ export function DashboardPage({
     });
   }, [activeView, viewInstances, activeCustomSourceIds, customWidgets, onAssistantContextChange, t]);
 
-  if (!ready || !activeView) return <div className="dashboard-loading">{t("common.loading")}</div>;
+  if (!ready || !activeView) {
+    return (
+      <div
+        className={`dashboard-loading${dashboardActive ? "" : " dashboard-page-hidden"}`}
+        aria-hidden={!dashboardActive}
+      >
+        {t("common.loading")}
+      </div>
+    );
+  }
 
   return (
-    <main className="dashboard-page">
+    <main
+      className={`dashboard-page${dashboardActive ? "" : " dashboard-page-hidden"}`}
+      aria-hidden={!dashboardActive}
+    >
       <header className="dashboard-topbar">
         <div className="dashboard-brand">
           <span className="crumb">{t("dashboard.title")}</span>
@@ -215,6 +229,7 @@ export function DashboardPage({
 
       <div className={`dw-canvas-scroll${editMode ? " is-editing" : ""}`} style={canvasGridStyle}>
         <DashboardCanvas
+          dashboardActive={dashboardActive}
           view={activeView}
           instances={viewInstances}
           onCustomize={(instance, anchor) => setCustomize({ instance, rect: anchor.getBoundingClientRect() })}

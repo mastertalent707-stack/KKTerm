@@ -1,12 +1,13 @@
 import GridLayout, { type Layout, WidthProvider } from "react-grid-layout/legacy";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
-import { useEffect, useMemo, type CSSProperties, type JSX, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, type CSSProperties, type JSX, type MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { showNativeContextMenu } from "../../lib/nativeContextMenu";
 import { resolveBackgroundPreset } from "../registry/backgroundPresets";
 import { useDashboardStore } from "../state/dashboardStore";
 import type { BackgroundFit, DashboardView, DashboardWidgetInstance, GridDensity } from "../types";
+import { syncBackgroundVideoPlayback } from "./backgroundVideo";
 import { WidgetFrame } from "./WidgetFrame";
 
 const ResponsiveGrid = WidthProvider(GridLayout);
@@ -45,30 +46,21 @@ function dimColor(dim: number): string | undefined {
     : `rgba(255, 255, 255, ${alpha})`;
 }
 
-function muteBackgroundVideo(video: HTMLVideoElement | null) {
-  if (!video) return;
-  video.defaultMuted = true;
-  video.muted = true;
-  video.volume = 0;
-}
-
-function keepBackgroundVideoMuted(event: { currentTarget: HTMLVideoElement }) {
-  muteBackgroundVideo(event.currentTarget);
-}
-
 export interface DashboardCanvasProps {
+  dashboardActive: boolean;
   view: DashboardView;
   instances: DashboardWidgetInstance[];
   onCustomize: (instance: DashboardWidgetInstance, anchor: HTMLElement) => void;
   onOpenBackground: () => void;
 }
 
-export function DashboardCanvas({ view, instances, onCustomize, onOpenBackground }: DashboardCanvasProps) {
+export function DashboardCanvas({ dashboardActive, view, instances, onCustomize, onOpenBackground }: DashboardCanvasProps) {
   const { t } = useTranslation();
   const editMode = useDashboardStore((s) => s.editMode);
   const applyLayout = useDashboardStore((s) => s.applyLayout);
   const backgroundImages = useDashboardStore((s) => s.backgroundImages);
   const loadBackgroundImage = useDashboardStore((s) => s.loadBackgroundImage);
+  const backgroundVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const background = view.background;
   const mediaFile = background?.kind === "image" || background?.kind === "video" ? background.file : null;
@@ -76,6 +68,17 @@ export function DashboardCanvas({ view, instances, onCustomize, onOpenBackground
   useEffect(() => {
     if (mediaFile) void loadBackgroundImage(mediaFile);
   }, [mediaFile, loadBackgroundImage]);
+
+  useEffect(() => {
+    syncBackgroundVideoPlayback(
+      background?.kind === "video" ? backgroundVideoRef.current : null,
+      dashboardActive,
+    );
+  }, [background?.kind, dashboardActive, mediaFile]);
+
+  useEffect(() => {
+    return () => syncBackgroundVideoPlayback(backgroundVideoRef.current, false);
+  }, []);
 
   const settings = DENSITY_SETTINGS[view.gridDensity];
   const layout: Layout = useMemo(
@@ -134,13 +137,16 @@ export function DashboardCanvas({ view, instances, onCustomize, onOpenBackground
         <div className="dw-canvas-bg dw-canvas-bg-video" style={style}>
           <video
             aria-hidden="true"
-            autoPlay
-            ref={muteBackgroundVideo}
+            autoPlay={dashboardActive}
+            ref={(video) => {
+              backgroundVideoRef.current = video;
+              syncBackgroundVideoPlayback(video, dashboardActive);
+            }}
             loop
             muted
-            onLoadedMetadata={keepBackgroundVideoMuted}
-            onPlay={keepBackgroundVideoMuted}
-            onVolumeChange={keepBackgroundVideoMuted}
+            onLoadedMetadata={(event) => syncBackgroundVideoPlayback(event.currentTarget, dashboardActive)}
+            onPlay={(event) => syncBackgroundVideoPlayback(event.currentTarget, dashboardActive)}
+            onVolumeChange={(event) => syncBackgroundVideoPlayback(event.currentTarget, dashboardActive)}
             playsInline
             src={dataUrl}
             style={videoFitStyle(background.fit)}

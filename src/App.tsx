@@ -29,9 +29,13 @@ import "./App.css";
 function App() {
   const { t } = useTranslation();
   const [activePage, setActivePage] = useState<ActivePage>("workspace");
+  const [dashboardMounted, setDashboardMounted] = useState(false);
   const previousNonSettingsPageRef = useRef<Exclude<ActivePage, "settings">>("workspace");
 
   function navigateToPage(page: ActivePage) {
+    if (page === "dashboard") {
+      setDashboardMounted(true);
+    }
     if (page === "settings" && activePage !== "settings") {
       previousNonSettingsPageRef.current = activePage as Exclude<ActivePage, "settings">;
     }
@@ -125,8 +129,11 @@ function App() {
           onResetLayout={resetWorkspaceChromeLayout}
         />
       ) : null}
-      {activePage === "dashboard" ? (
-        <DashboardPage onAssistantContextChange={setDashboardAssistantContext} />
+      {dashboardMounted ? (
+        <DashboardPage
+          dashboardActive={activePage === "dashboard"}
+          onAssistantContextChange={setDashboardAssistantContext}
+        />
       ) : null}
       <StatusBar activePage={activePage} />
     </div>

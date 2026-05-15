@@ -1,7 +1,7 @@
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { isTauriRuntime } from "../../lib/tauri";
+import { isTauriRuntime, openExternalUrl } from "../../lib/tauri";
 import { BACKGROUND_PRESETS } from "../registry/backgroundPresets";
 import { importBackgroundImage } from "../state/persistence";
 import { useDashboardStore } from "../state/dashboardStore";
@@ -148,6 +148,18 @@ export function BackgroundPopover({ view, onClose }: BackgroundPopoverProps) {
               </button>
             )}
           </div>
+          <p className="dw-muted">
+            {t("dashboard.backgroundMediaSourcePrefix")}{" "}
+            <a
+              href="https://pixabay.com/videos/search/wallpaper"
+              onClick={(event) => {
+                event.preventDefault();
+                void openExternalUrl("https://pixabay.com/videos/search/wallpaper");
+              }}
+            >
+              {t("dashboard.backgroundMediaSourceLink")}
+            </a>
+          </p>
           {importError && <small className="dw-muted">{importError}</small>}
           {mediaBackground && (
             <>

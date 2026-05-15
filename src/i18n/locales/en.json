@@ -80,6 +80,8 @@
     "backgroundMediaFilter": "Images and Videos",
     "backgroundImageHint": "Choose an image to use as this view's background.",
     "backgroundMediaHint": "Choose an image or video to use as this view's background.",
+    "backgroundMediaSourcePrefix": "You can find high quality royalty free wallpapers at",
+    "backgroundMediaSourceLink": "Pixabay",
     "backgroundFitLabel": "Fit",
     "backgroundDimLabel": "Dim / Lighten",
     "backgroundFit": {
