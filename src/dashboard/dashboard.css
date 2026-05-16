@@ -1456,6 +1456,8 @@ main.dashboard-page.dashboard-page-hidden,
   flex-direction: column;
   gap: 9px;
   padding: 12px;
+  height: 220px;
+  overflow: hidden;
   text-align: left;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1485,45 +1487,64 @@ main.dashboard-page.dashboard-page-hidden,
   color: var(--text-muted);
   font-size: 12px;
   line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .dw-catalog-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  color: var(--text-faint);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  align-items: center;
+  gap: 5px;
+  margin-top: auto;
 }
 
 .dw-catalog-delete {
   position: absolute;
-  top: 6px;
+  bottom: 6px;
   right: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 22px;
   height: 22px;
-  color: var(--text-muted);
+  color: var(--red);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
   cursor: pointer;
   z-index: 1;
   transition:
-    color 100ms ease,
     background 100ms ease,
     border-color 100ms ease;
 }
 
 .dw-catalog-delete:hover,
 .dw-catalog-delete:focus-visible {
-  color: var(--red);
   background: color-mix(in srgb, var(--red) 12%, transparent);
   border-color: color-mix(in srgb, var(--red) 25%, transparent);
   outline: none;
+}
+
+.dw-catalog-tag {
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dw-catalog-tag--builtIn {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dw-catalog-tag--custom {
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.12);
 }
 
 .dw-badge {
@@ -1531,46 +1552,30 @@ main.dashboard-page.dashboard-page-hidden,
   color: var(--accent);
   background: var(--accent-soft);
   border-radius: 3px;
+  font-size: 10px;
   font-weight: 700;
 }
 
+.dw-badge--ai {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.dw-badge--check {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
 .dw-catalog-thumb {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   height: 80px;
-  overflow: hidden;
-  background:
-    linear-gradient(180deg, var(--surface), var(--surface-muted)),
-    var(--surface-muted);
+  background: var(--w-accent-soft, var(--surface-muted));
   border: 1px solid var(--border);
   border-radius: 8px;
-}
-
-.dw-catalog-thumb[data-preset="ambient"] {
-  background:
-    radial-gradient(circle at 22% 36%, var(--w-accent) 0 3px, transparent 4px),
-    linear-gradient(90deg, transparent 0 20%, var(--text) 20% 46%, transparent 46%),
-    var(--surface-muted);
-  opacity: 0.7;
-}
-
-.dw-catalog-thumb[data-preset="tile"] {
-  background:
-    linear-gradient(90deg, var(--w-accent) 0 40%, transparent 40% 100%),
-    linear-gradient(180deg, var(--surface), var(--surface-muted));
-  background-size: 100% 6px, auto;
-  background-position: 0 54px, 0 0;
-  background-repeat: no-repeat;
-}
-
-.dw-catalog-thumb[data-preset="hero"] {
-  background: linear-gradient(135deg, var(--w-accent), color-mix(in srgb, var(--w-accent) 68%, black));
-}
-
-.dw-catalog-thumb[data-preset="action"] {
-  background:
-    linear-gradient(90deg, transparent 0 16px, var(--w-accent-soft, var(--accent-soft)) 16px 52px, transparent 52px),
-    var(--surface);
-  border-style: dashed;
+  color: var(--w-accent, var(--accent));
 }
 
 .dw-catalog-confirm-backdrop {

@@ -1,3 +1,4 @@
+import * as Icons from "lucide-react";
 import { AlertTriangle, Trash2, X } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
@@ -129,6 +130,7 @@ export function CatalogOverlay({ viewId, onClose }: CatalogOverlayProps) {
             const alreadyOnView = instances.some(
               (i) => i.viewId === viewId && i.sourceId === entry.id && i.kind === entry.kind,
             );
+            const IconCmp = (Icons as unknown as Record<string, React.ComponentType<{ width?: number; height?: number }>>)[entry.defaultIcon] ?? Icons.Hash;
             return (
               <button
                 key={entry.id}
@@ -157,16 +159,18 @@ export function CatalogOverlay({ viewId, onClose }: CatalogOverlayProps) {
                       }
                     }}
                   >
-                    <X width={12} height={12} />
+                    <Trash2 width={12} height={12} />
                   </span>
                 )}
-                <span className="dw-catalog-thumb" data-preset={entry.defaultPreset} />
+                <span className="dw-catalog-thumb">
+                  <IconCmp width={36} height={36} />
+                </span>
                 <h4>{entry.title}</h4>
                 <p>{entry.summary}</p>
                 <div className="dw-catalog-meta">
-                  <span>{groupLabel(getCatalogGroup(entry))}</span>
-                  {entry.createdBy === "agent" && <span className="dw-badge">AI</span>}
-                  {alreadyOnView && <span className="dw-badge">✓</span>}
+                  <span className={`dw-catalog-tag dw-catalog-tag--${getCatalogGroup(entry)}`}>{groupLabel(getCatalogGroup(entry))}</span>
+                  {entry.createdBy === "agent" && <span className="dw-badge dw-badge--ai">AI</span>}
+                  {alreadyOnView && <span className="dw-badge dw-badge--check">✓</span>}
                 </div>
               </button>
             );
