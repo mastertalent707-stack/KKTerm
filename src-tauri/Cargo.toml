@@ -1,6 +1,6 @@
 [package]
 name = "kkterm"
-version = "0.1.10"
+version = "0.1.11"
 description = "Fast local-first administration workspace for terminals, SSH, SFTP, and approval-based command assistance."
 authors = ["Ryan Tsai"]
 license = "MIT"
@@ -27,7 +27,7 @@ rusqlite = { version = "0.39", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "stream", "form"] }
-github-copilot-sdk = { version = "1.0.0-beta.4", features = ["embedded-cli"] }
+github-copilot-sdk = "1.0.0-beta.4"
 rand = "0.9"
 base64 = "0.22"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }

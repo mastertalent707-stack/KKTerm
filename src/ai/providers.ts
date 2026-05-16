@@ -6,6 +6,7 @@ export type {
   AiModelOption,
   AiProviderCapability,
   AiProviderDefinition,
+  AiProviderModelListStrategy,
   AiProviderSettingsField,
 } from "./providerRegistry";
 

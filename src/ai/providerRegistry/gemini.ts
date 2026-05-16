@@ -13,6 +13,7 @@ export const geminiProvider: AiProviderDefinition = {
   allowsCustomModel: true,
   apiKeyLabel: "Google AI Studio API key",
   apiKeyUrl: "https://aistudio.google.com/app/apikey",
+  modelListStrategy: "openAiCompatible",
   modelOptions: [
     { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", note: "Most capable", supportsImageInput: true },
     { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", note: "Fast, low cost", supportsImageInput: true },

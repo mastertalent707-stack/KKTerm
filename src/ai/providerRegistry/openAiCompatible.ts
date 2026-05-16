@@ -12,6 +12,7 @@ export const openAiCompatibleProvider: AiProviderDefinition = {
   allowsCustomBaseUrl: true,
   allowsCustomModel: true,
   apiKeyLabel: "API key",
+  modelListStrategy: "openAiCompatible",
   modelOptions: [
     { id: "gpt-5.5", label: "GPT-5.5 compatible", supportsImageInput: true },
     { id: "claude-opus-4-7", label: "Claude Opus compatible", supportsImageInput: true },

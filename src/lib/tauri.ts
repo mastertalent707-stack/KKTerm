@@ -690,6 +690,18 @@ export interface GitHubCopilotDevicePollResponse {
   interval?: number | null;
 }
 
+export interface GitHubCopilotModelOption {
+  id: string;
+  label: string;
+  supportsImageInput?: boolean | null;
+}
+
+export interface AiProviderModelOption {
+  id: string;
+  label: string;
+  supportsImageInput?: boolean | null;
+}
+
 type CommandMap = {
   app_bootstrap: {
     args: undefined;
@@ -935,6 +947,20 @@ type CommandMap = {
   poll_github_copilot_device_flow: {
     args: { request: { deviceCode: string } };
     result: GitHubCopilotDevicePollResponse;
+  };
+  list_github_copilot_models: {
+    args: undefined;
+    result: GitHubCopilotModelOption[];
+  };
+  list_ai_provider_models: {
+    args: {
+      request: {
+        providerKind: string;
+        baseUrl: string;
+        allowInsecureTls?: boolean;
+      };
+    };
+    result: AiProviderModelOption[];
   };
   plan_command_proposal: {
     args: {
@@ -1685,7 +1711,6 @@ export type McpCommandError =
   | { kind: "network"; message: string }
   | { kind: "protocol"; message: string }
   | { kind: "authError"; message: string }
-  | { kind: "toolError"; message: string }
   | { kind: "internal"; message: string };
 
 export function describeMcpError(error: unknown): string {
@@ -1703,7 +1728,6 @@ export function describeMcpError(error: unknown): string {
       case "network":
       case "protocol":
       case "authError":
-      case "toolError":
       case "internal":
         return err.message;
     }

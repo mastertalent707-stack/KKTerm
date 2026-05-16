@@ -61,7 +61,6 @@ pub enum McpCommandError {
     Network { message: String },
     Protocol { message: String },
     AuthError { message: String },
-    ToolError { message: String },
     Internal { message: String },
 }
 
@@ -185,6 +184,33 @@ fn map_unique_violation(error: rusqlite::Error) -> McpCommandError {
         McpCommandError::DuplicateName
     } else {
         McpCommandError::Internal { message: text }
+    }
+}
+
+fn map_keychain_error(_message: String) -> McpCommandError {
+    McpCommandError::KeychainUnavailable
+}
+
+fn insert_server_with_secret(
+    conn: &SqliteConnection,
+    server: &McpServer,
+    secret: Option<String>,
+    mut store_secret: impl FnMut(String, String) -> Result<(), String>,
+    mut delete_secret: impl FnMut(String) -> Result<(), String>,
+) -> Result<McpServer, McpCommandError> {
+    let Some(secret_value) = secret else {
+        return insert_server(conn, server);
+    };
+
+    let owner_id = mcp_secret_owner_id(&server.id);
+    store_secret(owner_id.clone(), secret_value).map_err(map_keychain_error)?;
+
+    match insert_server(conn, server) {
+        Ok(stored) => Ok(stored),
+        Err(error) => {
+            let _ = delete_secret(owner_id);
+            Err(error)
+        }
     }
 }
 
@@ -546,13 +572,15 @@ pub async fn mcp_create_server(
         created_at: chrono_now(),
         updated_at: chrono_now(),
     };
-    let stored = storage(&app).with_connection_infallible(|conn| insert_server(conn, &server))?;
-    if let Some(value) = secret {
-        secrets
-            .store_mcp_server_secret(mcp_secret_owner_id(&stored.id), value)
-            .map_err(|message| McpCommandError::Internal { message })?;
-    }
-    Ok(stored)
+    storage(&app).with_connection_infallible(|conn| {
+        insert_server_with_secret(
+            conn,
+            &server,
+            secret,
+            |owner_id, value| secrets.store_mcp_server_secret(owner_id, value),
+            |owner_id| secrets.delete_mcp_server_secret(owner_id),
+        )
+    })
 }
 
 fn next_sort_order(conn: &SqliteConnection) -> Result<i64, McpCommandError> {
@@ -613,13 +641,13 @@ pub async fn mcp_update_server(
             Some(value) if !value.is_empty() => {
                 secrets
                     .store_mcp_server_secret(mcp_secret_owner_id(&id), value)
-                    .map_err(|message| McpCommandError::Internal { message })?;
+                    .map_err(map_keychain_error)?;
                 has_secret = true;
             }
             _ => {
                 secrets
                     .delete_mcp_server_secret(mcp_secret_owner_id(&id))
-                    .map_err(|message| McpCommandError::Internal { message })?;
+                    .map_err(map_keychain_error)?;
                 has_secret = false;
             }
         }
@@ -676,7 +704,7 @@ pub async fn mcp_refresh_tools(
     let secret = if server.has_secret {
         secrets
             .read_mcp_server_secret(mcp_secret_owner_id(&server.id))
-            .map_err(|message| McpCommandError::Internal { message })?
+            .map_err(map_keychain_error)?
     } else {
         None
     };
@@ -723,7 +751,7 @@ pub async fn mcp_call_tool(
     let secret = if server.has_secret {
         secrets
             .read_mcp_server_secret(mcp_secret_owner_id(&server.id))
-            .map_err(|message| McpCommandError::Internal { message })?
+            .map_err(map_keychain_error)?
     } else {
         None
     };
@@ -762,5 +790,113 @@ fn status_for_error(err: &McpCommandError) -> (&'static str, String) {
         McpCommandError::AuthError { message } => ("auth_error", message.clone()),
         McpCommandError::Protocol { message } => ("protocol_error", message.clone()),
         other => ("protocol_error", format!("{other:?}")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+
+    fn test_connection() -> SqliteConnection {
+        let conn = SqliteConnection::open_in_memory().expect("in-memory database opens");
+        conn.execute_batch(
+            "CREATE TABLE mcp_servers (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                url TEXT NOT NULL,
+                headers_json TEXT NOT NULL DEFAULT '{}',
+                secret_header_name TEXT,
+                secret_value_template TEXT,
+                has_secret INTEGER NOT NULL DEFAULT 0,
+                tools_json TEXT,
+                tools_fetched_at TEXT,
+                last_status TEXT NOT NULL DEFAULT 'unknown'
+                    CHECK (last_status IN ('ok', 'unreachable', 'auth_error', 'protocol_error', 'unknown')),
+                last_error TEXT,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );",
+        )
+        .expect("schema initializes");
+        conn
+    }
+
+    fn sample_server(id: &str, name: &str) -> McpServer {
+        McpServer {
+            id: id.to_string(),
+            name: name.to_string(),
+            url: "https://example.com/mcp".to_string(),
+            headers: HashMap::new(),
+            secret_header_name: Some("Authorization".to_string()),
+            secret_value_template: Some("Bearer {SECRET}".to_string()),
+            has_secret: true,
+            tools: None,
+            tools_fetched_at: None,
+            last_status: "unknown".to_string(),
+            last_error: None,
+            sort_order: 0,
+            created_at: chrono_now(),
+            updated_at: chrono_now(),
+        }
+    }
+
+    #[test]
+    fn create_with_secret_does_not_insert_row_when_keychain_store_fails() {
+        let conn = test_connection();
+        let server = sample_server("mcp_test", "Example MCP");
+
+        let error = insert_server_with_secret(
+            &conn,
+            &server,
+            Some("token".to_string()),
+            |_owner_id, _value| Err("keychain unavailable".to_string()),
+            |_owner_id| Ok(()),
+        )
+        .expect_err("keychain failure aborts create");
+
+        assert!(matches!(error, McpCommandError::KeychainUnavailable));
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM mcp_servers", [], |row| row.get(0))
+            .expect("count query succeeds");
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn create_with_secret_deletes_stored_secret_when_insert_fails() {
+        let conn = test_connection();
+        let existing = sample_server("mcp_existing", "Example MCP");
+        insert_server_with_secret(
+            &conn,
+            &existing,
+            None,
+            |_owner_id, _value| Ok(()),
+            |_owner_id| Ok(()),
+        )
+        .expect("existing server inserts");
+
+        let duplicate = sample_server("mcp_duplicate", "Example MCP");
+        let stored_owner_ids = RefCell::new(Vec::new());
+        let deleted_owner_ids = RefCell::new(Vec::new());
+        let error = insert_server_with_secret(
+            &conn,
+            &duplicate,
+            Some("token".to_string()),
+            |owner_id, _value| {
+                stored_owner_ids.borrow_mut().push(owner_id);
+                Ok(())
+            },
+            |owner_id| {
+                deleted_owner_ids.borrow_mut().push(owner_id);
+                Ok(())
+            },
+        )
+        .expect_err("duplicate name rejects create");
+
+        assert!(matches!(error, McpCommandError::DuplicateName));
+        let owner_id = mcp_secret_owner_id("mcp_duplicate");
+        assert_eq!(stored_owner_ids.into_inner(), vec![owner_id.clone()]);
+        assert_eq!(deleted_owner_ids.into_inner(), vec![owner_id]);
     }
 }

@@ -13,6 +13,7 @@ export const openAiProvider: AiProviderDefinition = {
   allowsCustomModel: true,
   apiKeyLabel: "OpenAI API key",
   apiKeyUrl: "https://platform.openai.com/api-keys",
+  modelListStrategy: "openAiCompatible",
   modelOptions: [
     { id: "gpt-5.5", label: "GPT-5.5", note: "Flagship reasoning and coding", supportsImageInput: true },
     { id: "gpt-5.5-2026-04-23", label: "GPT-5.5 snapshot", supportsImageInput: true },

@@ -12,6 +12,8 @@ export const githubCopilotProvider: AiProviderDefinition = {
   allowsCustomBaseUrl: false,
   allowsCustomModel: true,
   apiKeyLabel: "GitHub Copilot OAuth",
+  modelListStrategy: "githubCopilotSdk",
+  strictModelList: true,
   modelOptions: [
     { id: "gpt-5.5", label: "GPT-5.5", supportsImageInput: true },
     { id: "gpt-5.4", label: "GPT-5.4", supportsImageInput: true },

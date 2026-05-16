@@ -2,7 +2,8 @@ use futures::StreamExt;
 use github_copilot_sdk::{
     Client as CopilotSdkClient, ClientOptions as CopilotSdkClientOptions, Error as CopilotSdkError,
     LogLevel as CopilotSdkLogLevel, MessageOptions as CopilotSdkMessageOptions,
-    SessionConfig as CopilotSdkSessionConfig, SessionEvent as CopilotSdkSessionEvent,
+    Model as CopilotSdkModel, SessionConfig as CopilotSdkSessionConfig,
+    SessionEvent as CopilotSdkSessionEvent,
 };
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use scraper::{Html, Selector};
@@ -34,6 +35,46 @@ const COPILOT_SDK_RESPONSE_TIMEOUT: Duration = Duration::from_secs(300);
 
 pub struct AssistantLiveToolBridge {
     pending: Mutex<HashMap<String, oneshot::Sender<String>>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CopilotModelOption {
+    pub id: String,
+    pub label: String,
+    pub supports_image_input: Option<bool>,
+}
+
+pub type AiProviderModelOption = CopilotModelOption;
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListAiProviderModelsRequest {
+    provider_kind: String,
+    base_url: String,
+    #[serde(default)]
+    allow_insecure_tls: bool,
+}
+
+impl ListAiProviderModelsRequest {
+    pub(crate) fn provider_kind(&self) -> &str {
+        &self.provider_kind
+    }
+
+    pub(crate) fn base_url(&self) -> &str {
+        &self.base_url
+    }
+
+    pub(crate) fn allow_insecure_tls(&self) -> bool {
+        self.allow_insecure_tls
+    }
+}
+
+#[derive(Clone, Copy)]
+enum AiProviderModelListStrategy {
+    GitHubCopilotSdk,
+    OllamaTags,
+    OpenAiCompatible,
 }
 
 impl AssistantLiveToolBridge {
@@ -1992,6 +2033,147 @@ async fn run_copilot_sdk(
     }
 
     result
+}
+
+pub async fn list_copilot_models(
+    app: &tauri::AppHandle,
+    token: &str,
+) -> Result<Vec<CopilotModelOption>, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("failed to locate app data directory: {error}"))?;
+    fs::create_dir_all(&app_data_dir)
+        .map_err(|error| format!("failed to create app data directory: {error}"))?;
+
+    let client_options = build_copilot_sdk_client_options(app_data_dir, token);
+    let client = CopilotSdkClient::start(client_options)
+        .await
+        .map_err(|error| format_copilot_sdk_error("start", error))?;
+
+    let result = client
+        .list_models()
+        .await
+        .map(|models| {
+            models
+                .iter()
+                .filter_map(copilot_model_option_from_sdk_model)
+                .collect()
+        })
+        .map_err(|error| format_copilot_sdk_error("list models", error));
+
+    if let Err(error) = client.stop().await {
+        ai_debug!("copilot sdk client stop failed after model listing: {error}");
+    }
+
+    result
+}
+
+pub async fn list_ai_provider_models(
+    app: &tauri::AppHandle,
+    provider_kind: &str,
+    base_url: &str,
+    api_key: Option<String>,
+    allow_insecure_tls: bool,
+) -> Result<Vec<AiProviderModelOption>, String> {
+    match model_list_strategy_for_provider(provider_kind)? {
+        AiProviderModelListStrategy::GitHubCopilotSdk => {
+            let token = api_key
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| {
+                    "Connect GitHub Copilot in Settings before listing Copilot models.".to_string()
+                })?;
+            list_copilot_models(app, &token).await
+        }
+        strategy @ (AiProviderModelListStrategy::OllamaTags
+        | AiProviderModelListStrategy::OpenAiCompatible) => {
+            let endpoint = model_list_endpoint(base_url, strategy)?;
+            let client = ai_http_client(allow_insecure_tls)?;
+            let response = client
+                .get(endpoint)
+                .headers(model_list_headers(api_key.as_deref())?)
+                .send()
+                .await
+                .map_err(|error| format!("failed to reach AI provider model list: {error}"))?;
+            let status = response.status();
+            let response_text = response
+                .text()
+                .await
+                .map_err(|error| format!("failed to read AI provider model list: {error}"))?;
+            if !status.is_success() {
+                return Err(format!(
+                    "AI provider model list returned HTTP {}: {}",
+                    status.as_u16(),
+                    truncate_error_body(&response_text)
+                ));
+            }
+            match strategy {
+                AiProviderModelListStrategy::OllamaTags => parse_ollama_tags_models(&response_text),
+                AiProviderModelListStrategy::OpenAiCompatible => {
+                    parse_openai_compatible_models(&response_text)
+                }
+                AiProviderModelListStrategy::GitHubCopilotSdk => unreachable!(),
+            }
+        }
+    }
+}
+
+fn model_list_strategy_for_provider(
+    provider_kind: &str,
+) -> Result<AiProviderModelListStrategy, String> {
+    match provider_kind.trim().to_lowercase().as_str() {
+        "github-copilot" | "github_copilot" | "github copilot" => {
+            Ok(AiProviderModelListStrategy::GitHubCopilotSdk)
+        }
+        "ollama" => Ok(AiProviderModelListStrategy::OllamaTags),
+        "openai" | "openrouter" | "deepseek" | "gemini" | "grok" | "litellm" | "nvidia"
+        | "opencode" | "openai-compatible" | "openai_compatible" | "openai compatible" => {
+            Ok(AiProviderModelListStrategy::OpenAiCompatible)
+        }
+        "azure-openai" | "azure_openai" | "azure openai" => Err(
+            "Azure OpenAI model refresh is deployment-based; enter the deployment name manually."
+                .to_string(),
+        ),
+        "anthropic" => Err(
+            "Anthropic model refresh is not available through the OpenAI-compatible model list."
+                .to_string(),
+        ),
+        _ => Err("AI provider model refresh is not supported for this provider.".to_string()),
+    }
+}
+
+fn model_list_headers(api_key: Option<&str>) -> Result<HeaderMap, String> {
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    if let Some(api_key) = api_key.map(str::trim).filter(|value| !value.is_empty()) {
+        let header_value = HeaderValue::from_str(&format!("Bearer {api_key}")).map_err(|_| {
+            "AI API key contains characters that cannot be sent in an HTTP header".to_string()
+        })?;
+        headers.insert(AUTHORIZATION, header_value);
+    }
+    Ok(headers)
+}
+
+fn copilot_model_option_from_sdk_model(model: &CopilotSdkModel) -> Option<CopilotModelOption> {
+    let id = model.id.trim();
+    if id.is_empty() {
+        return None;
+    }
+    let label = model.name.trim();
+    Some(CopilotModelOption {
+        id: id.to_string(),
+        label: if label.is_empty() {
+            id.to_string()
+        } else {
+            label.to_string()
+        },
+        supports_image_input: model
+            .capabilities
+            .supports
+            .as_ref()
+            .and_then(|supports| supports.vision),
+    })
 }
 
 fn build_copilot_sdk_client_options(app_data_dir: PathBuf, token: &str) -> CopilotSdkClientOptions {
@@ -4243,6 +4425,110 @@ fn azure_chat_completions_endpoint(base_url: &str, deployment: &str) -> Result<S
     ))
 }
 
+fn model_list_endpoint(
+    base_url: &str,
+    strategy: AiProviderModelListStrategy,
+) -> Result<String, String> {
+    let base_url = trim_required("AI provider endpoint", base_url.to_string())?;
+    let base_url = base_url.trim_end_matches('/');
+    match strategy {
+        AiProviderModelListStrategy::GitHubCopilotSdk => {
+            Err("GitHub Copilot model listing uses the Copilot SDK.".to_string())
+        }
+        AiProviderModelListStrategy::OllamaTags => {
+            let mut url = url::Url::parse(base_url)
+                .map_err(|error| format!("AI provider endpoint is not a valid URL: {error}"))?;
+            url.set_path("/api/tags");
+            url.set_query(None);
+            url.set_fragment(None);
+            Ok(url.to_string())
+        }
+        AiProviderModelListStrategy::OpenAiCompatible => {
+            if base_url.ends_with("/models") {
+                Ok(base_url.to_string())
+            } else if let Some(prefix) = base_url.strip_suffix("/chat/completions") {
+                Ok(format!("{prefix}/models"))
+            } else if let Some(prefix) = base_url.strip_suffix("/responses") {
+                Ok(format!("{prefix}/models"))
+            } else if base_url.ends_with("/v1") {
+                Ok(format!("{base_url}/models"))
+            } else if url::Url::parse(base_url)
+                .map(|url| url.path() == "/" || url.path().is_empty())
+                .unwrap_or(false)
+            {
+                Ok(format!("{base_url}/v1/models"))
+            } else {
+                Ok(format!("{base_url}/models"))
+            }
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct OllamaTagsResponse {
+    #[serde(default)]
+    models: Vec<OllamaTagModel>,
+}
+
+#[derive(Deserialize)]
+struct OllamaTagModel {
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    model: String,
+}
+
+fn parse_ollama_tags_models(value: &str) -> Result<Vec<AiProviderModelOption>, String> {
+    let response: OllamaTagsResponse = serde_json::from_str(value)
+        .map_err(|error| format!("failed to parse Ollama model list: {error}"))?;
+    Ok(response
+        .models
+        .into_iter()
+        .filter_map(|model| {
+            let id = if model.name.trim().is_empty() {
+                model.model.trim()
+            } else {
+                model.name.trim()
+            };
+            model_option_from_id(id)
+        })
+        .collect())
+}
+
+#[derive(Deserialize)]
+struct OpenAiModelsResponse {
+    #[serde(default)]
+    data: Vec<OpenAiModelEntry>,
+}
+
+#[derive(Deserialize)]
+struct OpenAiModelEntry {
+    #[serde(default)]
+    id: String,
+}
+
+fn parse_openai_compatible_models(value: &str) -> Result<Vec<AiProviderModelOption>, String> {
+    let response: OpenAiModelsResponse = serde_json::from_str(value)
+        .map_err(|error| format!("failed to parse OpenAI-compatible model list: {error}"))?;
+    Ok(response
+        .data
+        .into_iter()
+        .filter_map(|model| model_option_from_id(&model.id))
+        .collect())
+}
+
+fn model_option_from_id(id: &str) -> Option<AiProviderModelOption> {
+    let id = id.trim();
+    if id.is_empty() {
+        return None;
+    }
+    Some(AiProviderModelOption {
+        id: id.to_string(),
+        label: id.to_string(),
+        supports_image_input: None,
+    })
+}
+
 fn openai_compatible_headers(
     api_key: Option<&str>,
     auth_style: OpenAiAuthStyle,
@@ -4432,6 +4718,77 @@ mod tests {
             )
             .expect("endpoint is kept"),
             "https://api.openai.com/v1/responses"
+        );
+    }
+
+    #[test]
+    fn model_list_endpoints_follow_provider_strategy() {
+        assert_eq!(
+            model_list_endpoint(
+                "http://localhost:11434/v1",
+                AiProviderModelListStrategy::OllamaTags,
+            )
+            .expect("Ollama tags endpoint builds"),
+            "http://localhost:11434/api/tags"
+        );
+        assert_eq!(
+            model_list_endpoint(
+                "https://opencode.ai/zen/go/v1/chat/completions",
+                AiProviderModelListStrategy::OpenAiCompatible,
+            )
+            .expect("OpenAI compatible models endpoint builds"),
+            "https://opencode.ai/zen/go/v1/models"
+        );
+        assert_eq!(
+            model_list_endpoint(
+                "https://gateway.example.com",
+                AiProviderModelListStrategy::OpenAiCompatible,
+            )
+            .expect("OpenAI compatible bare base endpoint builds"),
+            "https://gateway.example.com/v1/models"
+        );
+        assert_eq!(
+            model_list_endpoint(
+                "https://generativelanguage.googleapis.com/v1beta/openai",
+                AiProviderModelListStrategy::OpenAiCompatible,
+            )
+            .expect("OpenAI compatible nested base endpoint builds"),
+            "https://generativelanguage.googleapis.com/v1beta/openai/models"
+        );
+    }
+
+    #[test]
+    fn provider_model_list_parsers_skip_blank_ids() {
+        let ollama = parse_ollama_tags_models(
+            r#"{"models":[{"name":"qwen3:latest"},{"model":"gemma3"},{"name":"  "}]}"#,
+        )
+        .expect("Ollama tags parse");
+        assert_eq!(
+            ollama,
+            vec![
+                AiProviderModelOption {
+                    id: "qwen3:latest".to_string(),
+                    label: "qwen3:latest".to_string(),
+                    supports_image_input: None,
+                },
+                AiProviderModelOption {
+                    id: "gemma3".to_string(),
+                    label: "gemma3".to_string(),
+                    supports_image_input: None,
+                },
+            ]
+        );
+
+        let compatible = parse_openai_compatible_models(
+            r#"{"object":"list","data":[{"id":"deepseek-v4-pro"},{"id":""},{"id":"kimi-k2.6"}]}"#,
+        )
+        .expect("OpenAI compatible models parse");
+        assert_eq!(
+            compatible
+                .iter()
+                .map(|model| model.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["deepseek-v4-pro", "kimi-k2.6"]
         );
     }
 
@@ -5207,6 +5564,13 @@ mod tests {
     }
 
     #[test]
+    fn opencode_provider_is_wired() {
+        let provider = provider_for("opencode").expect("OpenCode provider is wired");
+
+        assert_eq!(provider.provider_kind(), "opencode");
+    }
+
+    #[test]
     fn github_copilot_sdk_options_use_stored_token_only() {
         let app_data_dir = PathBuf::from("C:/kkterm/app-data");
         let options = build_copilot_sdk_client_options(app_data_dir.clone(), "ghu_test-token");
@@ -5215,6 +5579,38 @@ mod tests {
         assert_eq!(options.copilot_home, Some(app_data_dir.join("copilot")));
         assert_eq!(options.github_token.as_deref(), Some("ghu_test-token"));
         assert_eq!(options.use_logged_in_user, Some(false));
+    }
+
+    #[test]
+    fn github_copilot_model_options_preserve_account_catalog_metadata() {
+        let model = CopilotSdkModel {
+            billing: None,
+            capabilities: github_copilot_sdk::ModelCapabilities {
+                limits: None,
+                supports: Some(github_copilot_sdk::ModelCapabilitiesSupports {
+                    reasoning_effort: Some(true),
+                    vision: Some(false),
+                }),
+            },
+            default_reasoning_effort: Some("medium".to_string()),
+            id: "gpt-4.1".to_string(),
+            model_picker_category: None,
+            model_picker_price_category: None,
+            name: "GPT-4.1".to_string(),
+            policy: None,
+            supported_reasoning_efforts: vec!["low".to_string(), "medium".to_string()],
+        };
+
+        let option = copilot_model_option_from_sdk_model(&model).expect("valid model option");
+
+        assert_eq!(
+            option,
+            CopilotModelOption {
+                id: "gpt-4.1".to_string(),
+                label: "GPT-4.1".to_string(),
+                supports_image_input: Some(false),
+            }
+        );
     }
 
     #[test]

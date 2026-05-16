@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, Save } from "lucide-react";
+import { Bot, RefreshCw, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   AI_PROVIDER_DEFINITIONS,
@@ -15,6 +15,7 @@ import {
   invokeCommand,
   isTauriRuntime,
   openExternalUrl,
+  type AiProviderModelOption,
   type GitHubCopilotDeviceFlow,
 } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
@@ -30,6 +31,9 @@ import { SettingsSectionHeader } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { shouldShowStoredAiProviderKeyMask } from "./aiProviderKeyField";
 import i18next from "../i18n/config";
+
+const GITHUB_COPILOT_CLI_INSTALL_URL =
+  "https://docs.github.com/en/copilot/how-tos/copilot-cli/install-copilot-cli";
 
 function createStoredApiKeyMask() {
   const maskLength = 12 + Math.floor(Math.random() * 5);
@@ -61,8 +65,11 @@ function AiProviderSettingsFieldControl({
   draft,
   field,
   hasApiKey,
+  isRefreshingModels,
+  modelOptions,
   onApiKeyDraftChange,
   onDraftChange,
+  onRefreshModels,
 }: {
   apiKeyDraft: string;
   apiKeyStoredMask: string;
@@ -70,8 +77,11 @@ function AiProviderSettingsFieldControl({
   draft: AiProviderSettingsType;
   field: AiProviderSettingsField;
   hasApiKey: boolean;
+  isRefreshingModels: boolean;
+  modelOptions?: AiProviderModelOption[];
   onApiKeyDraftChange: (value: string) => void;
   onDraftChange: (patch: Partial<AiProviderSettingsType>) => void;
+  onRefreshModels: () => void;
 }) {
   const { t } = useTranslation();
   const [isApiKeyInputFocused, setIsApiKeyInputFocused] = useState(false);
@@ -96,18 +106,38 @@ function AiProviderSettingsFieldControl({
         </label>
       );
     case "model": {
-      const modelOptionIds = new Set(definition.modelOptions.map((model) => model.id));
+      const options = modelOptions ?? definition.modelOptions;
+      const modelOptionIds = new Set(options.map((model) => model.id));
       const hasCustomModel = draft.model.trim().length > 0 && !modelOptionIds.has(draft.model);
       return (
         <>
           <label>
-            <span>{t("settings.model")}</span>
+            <span>
+              {t("settings.model")}
+              {definition.modelListStrategy ? (
+                <button
+                  className="settings-api-key-link"
+                  disabled={
+                    isRefreshingModels ||
+                    !isTauriRuntime() ||
+                    (definition.requiresApiKey && !hasApiKey)
+                  }
+                  onClick={onRefreshModels}
+                  type="button"
+                >
+                  <RefreshCw size={13} />
+                  {isRefreshingModels
+                    ? t("settings.refreshingModels")
+                    : t("settings.refreshModels")}
+                </button>
+              ) : null}
+            </span>
             <select
               onChange={(event) => onDraftChange({ model: event.currentTarget.value })}
               value={draft.model}
             >
               {hasCustomModel ? <option value={draft.model}>{draft.model}</option> : null}
-              {definition.modelOptions.map((model) => (
+              {options.map((model) => (
                 <option key={model.id} value={model.id}>
                   {model.label}
                 </option>
@@ -222,7 +252,17 @@ function GitHubCopilotConnectionControl({
 
   return (
     <div className="settings-copilot-connection">
-      <p className="field-hint">{t("settings.copilotConnectionHint")}</p>
+      <p className="field-hint">
+        {t("settings.copilotConnectionHint")}
+        {" "}
+        <button
+          className="settings-api-key-link"
+          onClick={() => void openExternalUrl(GITHUB_COPILOT_CLI_INSTALL_URL)}
+          type="button"
+        >
+          {t("settings.copilotCliInstallHelp")}
+        </button>
+      </p>
       {deviceFlow ? (
         <div className="settings-copilot-code">
           <strong>{t("settings.copilotAuthCode", { code: deviceFlow.userCode })}</strong>
@@ -436,7 +476,10 @@ export function AiSettings() {
   const [copilotDeviceFlow, setCopilotDeviceFlow] =
     useState<GitHubCopilotDeviceFlow | null>(null);
   const [copilotPollIntervalSeconds, setCopilotPollIntervalSeconds] = useState(0);
+  const [copilotPollTick, setCopilotPollTick] = useState(0);
   const [isCopilotPolling, setIsCopilotPolling] = useState(false);
+  const [refreshedModelOptions, setRefreshedModelOptions] = useState<AiProviderModelOption[]>([]);
+  const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   const hasChanges =
     JSON.stringify(draft) !== JSON.stringify(aiProviderSettings) ||
     apiKeyDraft.trim().length > 0 ||
@@ -523,6 +566,7 @@ export function AiSettings() {
               ? Math.max(1, copilotPollIntervalSeconds + (response.interval ?? 5))
               : Math.max(1, response.interval ?? copilotPollIntervalSeconds);
           setCopilotPollIntervalSeconds(nextInterval);
+          setCopilotPollTick((tick) => tick + 1);
           setIsCopilotPolling(false);
         })
         .catch((error) => {
@@ -541,11 +585,108 @@ export function AiSettings() {
   }, [
     copilotDeviceFlow,
     copilotPollIntervalSeconds,
+    copilotPollTick,
     draft.providerKind,
     setAiProviderHasApiKey,
     showStatusBarNotice,
     t,
   ]);
+
+  useEffect(() => {
+    if (
+      !isTauriRuntime() ||
+      !aiProviderDefinition.modelListStrategy ||
+      (aiProviderDefinition.requiresApiKey && !selectedProviderHasApiKey)
+    ) {
+      setRefreshedModelOptions([]);
+      setIsRefreshingModels(false);
+      return;
+    }
+
+    let disposed = false;
+    setIsRefreshingModels(true);
+    void invokeCommand("list_ai_provider_models", {
+      request: {
+        providerKind: draft.providerKind,
+        baseUrl: draft.baseUrl,
+        allowInsecureTls: draft.allowInsecureTls,
+      },
+    })
+      .then((models) => {
+        if (disposed) return;
+        setRefreshedModelOptions(models);
+        setDraft((settings) => {
+          if (
+            settings.providerKind !== draft.providerKind ||
+            models.length === 0 ||
+            (settings.model.trim().length > 0 &&
+              (!aiProviderDefinition.strictModelList ||
+                models.some((model) => model.id === settings.model)))
+          ) {
+            return settings;
+          }
+          return { ...settings, model: models[0].id };
+        });
+      })
+      .catch(() => {
+        if (!disposed) setRefreshedModelOptions([]);
+      })
+      .finally(() => {
+        if (!disposed) setIsRefreshingModels(false);
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [
+    aiProviderDefinition.modelListStrategy,
+    aiProviderDefinition.strictModelList,
+    draft.allowInsecureTls,
+    draft.baseUrl,
+    draft.providerKind,
+    selectedProviderHasApiKey,
+  ]);
+
+  async function handleRefreshModels() {
+    if (
+      !isTauriRuntime() ||
+      !aiProviderDefinition.modelListStrategy ||
+      (aiProviderDefinition.requiresApiKey && !selectedProviderHasApiKey)
+    ) {
+      return;
+    }
+    setIsRefreshingModels(true);
+    try {
+      const models = await invokeCommand("list_ai_provider_models", {
+        request: {
+          providerKind: draft.providerKind,
+          baseUrl: draft.baseUrl,
+          allowInsecureTls: draft.allowInsecureTls,
+        },
+      });
+      setRefreshedModelOptions(models);
+      setDraft((settings) => {
+        if (
+          settings.providerKind !== draft.providerKind ||
+          models.length === 0 ||
+          (settings.model.trim().length > 0 &&
+            (!aiProviderDefinition.strictModelList ||
+              models.some((model) => model.id === settings.model)))
+        ) {
+          return settings;
+        }
+        return { ...settings, model: models[0].id };
+      });
+      showStatusBarNotice(t("settings.modelListRefreshed"), { tone: "success" });
+    } catch (error) {
+      setRefreshedModelOptions([]);
+      showStatusBarNotice(error instanceof Error ? error.message : String(error), {
+        tone: "error",
+      });
+    } finally {
+      setIsRefreshingModels(false);
+    }
+  }
 
   async function handleSave() {
     try {
@@ -608,6 +749,8 @@ export function AiSettings() {
     setSelectedProviderHasApiKey(false);
     setCopilotDeviceFlow(null);
     setCopilotPollIntervalSeconds(0);
+    setCopilotPollTick(0);
+    setRefreshedModelOptions([]);
   }
 
   async function handleConnectGitHubCopilot() {
@@ -616,6 +759,7 @@ export function AiSettings() {
       const flow = await invokeCommand("start_github_copilot_device_flow", undefined);
       setCopilotDeviceFlow(flow);
       setCopilotPollIntervalSeconds(flow.interval);
+      setCopilotPollTick(0);
       await openExternalUrl(flow.verificationUri);
     } catch (error) {
       setCopilotDeviceFlow(null);
@@ -636,6 +780,8 @@ export function AiSettings() {
       });
       setCopilotDeviceFlow(null);
       setCopilotPollIntervalSeconds(0);
+      setCopilotPollTick(0);
+      setRefreshedModelOptions([]);
       setSelectedProviderHasApiKey(false);
       if (aiProviderSettings.providerKind === "github-copilot") {
         setAiProviderHasApiKey(false);
@@ -709,6 +855,11 @@ export function AiSettings() {
               field={field}
               hasApiKey={selectedProviderHasApiKey}
               key={field}
+              modelOptions={
+                refreshedModelOptions.length > 0
+                  ? refreshedModelOptions
+                  : undefined
+              }
               onApiKeyDraftChange={setApiKeyDraft}
               onDraftChange={(patch) =>
                 setDraft((settings) => ({
@@ -716,6 +867,8 @@ export function AiSettings() {
                   ...patch,
                 }))
               }
+              isRefreshingModels={isRefreshingModels}
+              onRefreshModels={() => void handleRefreshModels()}
             />
           ))}
         </div>

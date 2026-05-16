@@ -13,6 +13,7 @@ export const nvidiaProvider: AiProviderDefinition = {
   allowsCustomModel: true,
   apiKeyLabel: "NVIDIA API key",
   apiKeyUrl: "https://build.nvidia.com/",
+  modelListStrategy: "openAiCompatible",
   modelOptions: [
     { id: "meta/llama-3.3-70b-instruct", label: "Llama 3.3 70B Instruct", supportsImageInput: false },
     { id: "bytedance/seed-oss-36b-instruct", label: "Seed OSS 36B Instruct", supportsImageInput: false },

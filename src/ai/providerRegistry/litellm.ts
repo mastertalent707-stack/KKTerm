@@ -12,6 +12,7 @@ export const liteLlmProvider: AiProviderDefinition = {
   allowsCustomBaseUrl: true,
   allowsCustomModel: true,
   apiKeyLabel: "LiteLLM key",
+  modelListStrategy: "openAiCompatible",
   modelOptions: [
     { id: "openai/gpt-5.5", label: "OpenAI GPT-5.5", supportsImageInput: true },
     { id: "anthropic/claude-opus-4-7", label: "Claude Opus 4.7", supportsImageInput: true },
