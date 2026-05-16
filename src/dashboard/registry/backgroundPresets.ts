@@ -30,3 +30,16 @@ export function resolveBackgroundPreset(id: string): BackgroundPresetDefinition 
 export function isBackgroundPresetId(value: string): value is (typeof BACKGROUND_PRESETS)[number]["id"] {
   return BACKGROUND_PRESETS.some((preset) => preset.id === value);
 }
+
+export const DASHBOARD_TAB_GRADIENT_PRESETS = BACKGROUND_PRESETS.filter((preset) => (
+  preset.id.startsWith("g-")
+));
+
+export function resolveDashboardTabGradientPreset(id: string): BackgroundPresetDefinition {
+  return DASHBOARD_TAB_GRADIENT_PRESETS.find((preset) => preset.id === id)
+    ?? DASHBOARD_TAB_GRADIENT_PRESETS[0];
+}
+
+export function isDashboardTabGradientPresetId(value: string): value is (typeof DASHBOARD_TAB_GRADIENT_PRESETS)[number]["id"] {
+  return DASHBOARD_TAB_GRADIENT_PRESETS.some((preset) => preset.id === value);
+}

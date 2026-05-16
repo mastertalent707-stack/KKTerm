@@ -9,6 +9,10 @@ import { BackgroundPopover } from "./edit/BackgroundPopover";
 import { CatalogOverlay } from "./edit/CatalogOverlay";
 import { CustomizePopover } from "./edit/CustomizePopover";
 import "./dashboard.css";
+import {
+  DASHBOARD_TAB_GRADIENT_PRESETS,
+  resolveDashboardTabGradientPreset,
+} from "./registry/backgroundPresets";
 import { libraryCatalogForAi } from "./script/widgetLibraries";
 import { useDashboardStore } from "./state/dashboardStore";
 import type { DashboardWidgetInstance, GridDensity } from "./types";
@@ -42,6 +46,7 @@ export function DashboardPage({
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [customize, setCustomize] = useState<{ instance: DashboardWidgetInstance; rect: DOMRect } | null>(null);
   const [editingViewId, setEditingViewId] = useState<string | null>(null);
+  const [tabGradientPicker, setTabGradientPicker] = useState<{ viewId: string; rect: DOMRect } | null>(null);
   const [backgroundOpen, setBackgroundOpen] = useState(false);
   const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
   const appliedLandingPref = useRef(false);
@@ -205,6 +210,22 @@ export function DashboardPage({
                 className={`dashboard-pill${isActiveView ? " active" : ""}${isEditingView ? " editing" : ""}${v.tabColor ? " has-tab-color" : ""}`}
                 style={dashboardTabColorStyle(v.tabColor)}
               >
+                {editMode ? (
+                  <button
+                    aria-label={t("dashboard.viewTabGradient", { view: v.title })}
+                    className="dashboard-pill-dot"
+                    onClick={(event) => {
+                      setTabGradientPicker({
+                        viewId: v.id,
+                        rect: event.currentTarget.getBoundingClientRect(),
+                      });
+                    }}
+                    style={dashboardTabDotStyle(v.tabColor)}
+                    type="button"
+                  />
+                ) : (
+                  isActiveView && <span aria-hidden="true" className="dashboard-pill-dot" />
+                )}
                 {isEditingView ? (
                   <input
                     aria-label={renameInputLabel}
@@ -251,16 +272,9 @@ export function DashboardPage({
                 )}
                 {editMode && (
                   <>
-                    <input
-                      aria-label={t("dashboard.viewTabColor", { view: v.title })}
-                      className="dashboard-pill-color"
-                      type="color"
-                      value={v.tabColor ?? "#2563eb"}
-                      onChange={(event) => void setViewTabColor(v.id, event.currentTarget.value)}
-                    />
                     {v.tabColor && (
                       <button
-                        aria-label={t("dashboard.clearViewTabColor", { view: v.title })}
+                        aria-label={t("dashboard.clearViewTabGradient", { view: v.title })}
                         className="dashboard-pill-color-clear"
                         onClick={() => void setViewTabColor(v.id, null)}
                         type="button"
@@ -326,26 +340,85 @@ export function DashboardPage({
       {backgroundOpen && (
         <BackgroundPopover view={activeView} onClose={() => setBackgroundOpen(false)} />
       )}
+      {tabGradientPicker && (
+        <TabGradientPopover
+          anchorRect={tabGradientPicker.rect}
+          activeGradientId={views.find((view) => view.id === tabGradientPicker.viewId)?.tabColor ?? null}
+          onClose={() => setTabGradientPicker(null)}
+          onSelect={(gradientId) => {
+            void setViewTabColor(tabGradientPicker.viewId, gradientId);
+            setTabGradientPicker(null);
+          }}
+        />
+      )}
     </main>
   );
 }
 
 function dashboardTabColorStyle(tabColor: string | null): CSSProperties | undefined {
   if (!tabColor) return undefined;
-  const textColor = readableTextColor(tabColor);
+  const preset = resolveDashboardTabGradientPreset(tabColor);
+  const textColor = tabColor === "g-twilight" ? "#ffffff" : "#0f172a";
   return {
-    "--dashboard-pill-bg": tabColor,
+    "--dashboard-pill-bg": preset.css,
     "--dashboard-pill-text": textColor,
     "--dashboard-pill-muted": textColor === "#ffffff" ? "rgb(255 255 255 / 78%)" : "rgb(15 23 42 / 76%)",
   } as CSSProperties;
 }
 
-function readableTextColor(hex: string): "#0f172a" | "#ffffff" {
-  const r = Number.parseInt(hex.slice(1, 3), 16);
-  const g = Number.parseInt(hex.slice(3, 5), 16);
-  const b = Number.parseInt(hex.slice(5, 7), 16);
-  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  return luminance > 0.58 ? "#0f172a" : "#ffffff";
+function dashboardTabDotStyle(tabColor: string | null): CSSProperties | undefined {
+  if (!tabColor) return undefined;
+  return { background: resolveDashboardTabGradientPreset(tabColor).css };
+}
+
+function TabGradientPopover({
+  activeGradientId,
+  anchorRect,
+  onClose,
+  onSelect,
+}: {
+  activeGradientId: string | null;
+  anchorRect: DOMRect;
+  onClose: () => void;
+  onSelect: (gradientId: string) => void;
+}) {
+  const { t } = useTranslation();
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function onDoc(event: globalThis.MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) onClose();
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const style = {
+    top: anchorRect.bottom + 6,
+    left: Math.min(anchorRect.left, window.innerWidth - 214),
+  } as CSSProperties;
+
+  return (
+    <div ref={ref} className="dashboard-tab-gradient-popover" style={style}>
+      {DASHBOARD_TAB_GRADIENT_PRESETS.map((preset) => (
+        <button
+          key={preset.id}
+          aria-label={t(preset.labelKey)}
+          className={activeGradientId === preset.id ? "active" : ""}
+          onClick={() => onSelect(preset.id)}
+          style={{ background: preset.css }}
+          type="button"
+        />
+      ))}
+    </div>
+  );
 }
 
 function DensityControl({ value, onChange }: { value: GridDensity; onChange: (v: GridDensity) => void }) {

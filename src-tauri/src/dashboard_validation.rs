@@ -80,6 +80,17 @@ pub const BACKGROUND_PRESET_IDS: &[&str] = &[
     "g-twilight",
 ];
 
+pub const DASHBOARD_TAB_GRADIENT_IDS: &[&str] = &[
+    "g-dawn",
+    "g-fog",
+    "g-meadow",
+    "g-dusk",
+    "g-linen",
+    "g-horizon",
+    "g-petal",
+    "g-twilight",
+];
+
 pub const DYNAMIC_BACKGROUND_IDS: &[&str] = &[
     "aurora",
     "raindrops",
@@ -244,11 +255,7 @@ pub fn validate_dynamic_background(dynamic: &str) -> Result<(), ValidationError>
 }
 
 pub fn validate_dashboard_tab_color(color: &str) -> Result<(), ValidationError> {
-    let bytes = color.as_bytes();
-    if bytes.len() == 7
-        && bytes[0] == b'#'
-        && bytes[1..].iter().all(|byte| byte.is_ascii_hexdigit())
-    {
+    if DASHBOARD_TAB_GRADIENT_IDS.contains(&color) {
         Ok(())
     } else {
         Err(ValidationError::InvalidBackground)
@@ -1172,23 +1179,23 @@ mod tests {
     }
 
     #[test]
-    fn dashboard_tab_color_accepts_hex_rgb() {
-        assert!(validate_dashboard_tab_color("#2563eb").is_ok());
-        assert!(validate_dashboard_tab_color("#ABCDEF").is_ok());
+    fn dashboard_tab_color_accepts_gradient_presets() {
+        assert!(validate_dashboard_tab_color("g-dawn").is_ok());
+        assert!(validate_dashboard_tab_color("g-twilight").is_ok());
     }
 
     #[test]
-    fn dashboard_tab_color_rejects_non_hex_rgb() {
+    fn dashboard_tab_color_rejects_custom_or_solid_colors() {
         assert_eq!(
-            validate_dashboard_tab_color("2563eb"),
+            validate_dashboard_tab_color("#2563eb"),
             Err(ValidationError::InvalidBackground),
         );
         assert_eq!(
-            validate_dashboard_tab_color("#12345g"),
+            validate_dashboard_tab_color("mist"),
             Err(ValidationError::InvalidBackground),
         );
         assert_eq!(
-            validate_dashboard_tab_color("#12345678"),
+            validate_dashboard_tab_color("neon-explosion"),
             Err(ValidationError::InvalidBackground),
         );
     }

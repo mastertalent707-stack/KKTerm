@@ -1,4 +1,11 @@
-import { BACKGROUND_PRESETS, isBackgroundPresetId, resolveBackgroundPreset } from "./backgroundPresets";
+import {
+  BACKGROUND_PRESETS,
+  DASHBOARD_TAB_GRADIENT_PRESETS,
+  isBackgroundPresetId,
+  isDashboardTabGradientPresetId,
+  resolveBackgroundPreset,
+  resolveDashboardTabGradientPreset,
+} from "./backgroundPresets";
 
 // There must be exactly 16 presets (8 solid + 8 gradient), matching the Rust whitelist.
 const presetCount: 16 = BACKGROUND_PRESETS.length as 16;
@@ -13,4 +20,20 @@ const maybeId: string = "mist";
 if (isBackgroundPresetId(maybeId)) {
   const known: (typeof BACKGROUND_PRESETS)[number]["id"] = maybeId;
   void known;
+}
+
+if (!DASHBOARD_TAB_GRADIENT_PRESETS.every((preset) => preset.id.startsWith("g-"))) {
+  throw new Error("Dashboard View tab presets should only expose gradients.");
+}
+
+if (!isDashboardTabGradientPresetId("g-dawn")) {
+  throw new Error("Dashboard View tab gradient ids should accept known gradients.");
+}
+
+if (isDashboardTabGradientPresetId("mist")) {
+  throw new Error("Dashboard View tab gradient ids should reject solid color presets.");
+}
+
+if (resolveDashboardTabGradientPreset("does-not-exist").id !== "g-dawn") {
+  throw new Error("Dashboard View tab gradient fallback should be stable.");
 }

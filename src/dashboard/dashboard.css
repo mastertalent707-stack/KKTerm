@@ -149,16 +149,32 @@ main.dashboard-page.dashboard-page-hidden,
     inset 0 0 0 1px rgb(255 255 255 / 18%);
 }
 
-.dashboard-pill.active::before {
-  content: "";
+.dashboard-pill-dot {
+  flex: 0 0 auto;
   width: 6px;
   height: 6px;
+  padding: 0;
   background: var(--accent);
+  border: 0;
   border-radius: 50%;
 }
 
-.dashboard-pill.has-tab-color.active::before {
+button.dashboard-pill-dot {
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border: 1px solid rgb(0 0 0 / 14%);
+  cursor: pointer;
+}
+
+.dashboard-pill.has-tab-color .dashboard-pill-dot {
   background: currentColor;
+}
+
+button.dashboard-pill-dot:hover,
+button.dashboard-pill-dot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .dashboard-pill-close {
@@ -197,29 +213,10 @@ main.dashboard-page.dashboard-page-hidden,
   background: rgb(255 255 255 / 20%);
 }
 
-.dashboard-pill-color,
 .dashboard-pill-color-clear {
   flex: 0 0 auto;
   width: 16px;
   height: 16px;
-}
-
-.dashboard-pill-color {
-  padding: 0;
-  overflow: hidden;
-  background: transparent;
-  border: 1px solid rgb(0 0 0 / 14%);
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.dashboard-pill-color::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-.dashboard-pill-color::-webkit-color-swatch {
-  border: 0;
-  border-radius: 999px;
 }
 
 .dashboard-pill-color-clear {
@@ -234,6 +231,38 @@ main.dashboard-page.dashboard-page-hidden,
   cursor: pointer;
   font-size: 13px;
   line-height: 1;
+}
+
+.dashboard-tab-gradient-popover {
+  position: fixed;
+  z-index: 210;
+  display: grid;
+  grid-template-columns: repeat(4, 42px);
+  gap: 7px;
+  width: max-content;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: var(--dashboard-shadow-ambient);
+}
+
+.dashboard-tab-gradient-popover button {
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.dashboard-tab-gradient-popover button:hover,
+.dashboard-tab-gradient-popover button:focus-visible {
+  border-color: var(--border-strong);
+  outline: none;
+}
+
+.dashboard-tab-gradient-popover button.active {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .dashboard-pill-add {

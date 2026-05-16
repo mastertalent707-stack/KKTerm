@@ -1318,14 +1318,14 @@ mod tests {
                 grid_density: None,
                 sort_order: None,
                 background: None,
-                tab_color: Some(Some("#2563eb".into())),
+                tab_color: Some(Some("g-dawn".into())),
             },
         )
         .unwrap();
-        assert_eq!(updated.tab_color.as_deref(), Some("#2563eb"));
+        assert_eq!(updated.tab_color.as_deref(), Some("g-dawn"));
         assert_eq!(
             load_state(&conn).unwrap().views[0].tab_color.as_deref(),
-            Some("#2563eb"),
+            Some("g-dawn"),
         );
 
         let cleared = update_view(
