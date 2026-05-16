@@ -23,29 +23,29 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["unstable", "tray-icon", "image-png", "protocol-asset"] }
 tauri-plugin-opener = "2"
 anyhow = "1.0.102"
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.39", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-tls", "stream"] }
 github-copilot-sdk = { version = "1.0.0-beta.4", features = ["embedded-cli"] }
-rand = "0.8"
+rand = "0.10"
 base64 = "0.22"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 portable-pty = "0.9.0"
 keyring-core = "1.0.0"
-russh = { version = "0.60.2", default-features = false, features = ["flate2", "ring", "rsa"] }
+russh = { version = "0.60.3", default-features = false, features = ["flate2", "ring", "rsa"] }
 russh-sftp = "2.1.2"
-suppaftp = { version = "7", default-features = false, features = ["tokio", "tokio-async-native-tls", "deprecated"] }
-async-native-tls = { version = "0.5", default-features = false }
-serial2 = "0.2.36"
-tokio = { version = "1.48.0", features = ["io-util", "net", "rt-multi-thread", "sync", "time"] }
+suppaftp = { version = "8", default-features = false, features = ["tokio", "tokio-async-native-tls", "deprecated"] }
+async-native-tls = { version = "0.6", default-features = false }
+serial2 = "0.2.37"
+tokio = { version = "1.52.3", features = ["io-util", "net", "rt-multi-thread", "sync", "time"] }
 url = "2"
-scraper = "0.22"
+scraper = "0.27"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 vnc = { package = "vnc-rs", version = "0.5.3" }
 time = { version = "0.3", features = ["formatting", "macros", "local-offset"] }
-zip = "2"
+zip = "8"
 futures = "0.3"
 filedescriptor = "0.8.3"
 lazy_static = "1.5.0"
@@ -53,10 +53,10 @@ shared_library = "0.1.9"
 winapi = "0.3.9"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_DataExchange", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Ole", "Win32_System_Variant", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_DataExchange", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Ole", "Win32_System_Power", "Win32_System_ProcessStatus", "Win32_System_Shutdown", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_DataExchange", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Ole", "Win32_System_Variant", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_DataExchange", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Ole", "Win32_System_Power", "Win32_System_ProcessStatus", "Win32_System_Shutdown", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
 windows-native-keyring-store = "1.0.0"
-webview2-com = "0.38.2"
+webview2-com = "0.39.1"
 tauri-plugin-single-instance = "2"
 
 
