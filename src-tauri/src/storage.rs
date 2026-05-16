@@ -12,7 +12,7 @@ use std::{
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
 
-const SCHEMA_USER_VERSION: i32 = 15;
+const SCHEMA_USER_VERSION: i32 = 16;
 
 const CURRENT_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS connection_folders (
@@ -198,6 +198,26 @@ CREATE TABLE IF NOT EXISTS dashboard_widget_instances (
 
 CREATE INDEX IF NOT EXISTS idx_dashboard_widget_instances_view
     ON dashboard_widget_instances(view_id, sort_order);
+
+CREATE TABLE IF NOT EXISTS mcp_servers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    url TEXT NOT NULL,
+    headers_json TEXT NOT NULL DEFAULT '{}',
+    secret_header_name TEXT,
+    secret_value_template TEXT,
+    has_secret INTEGER NOT NULL DEFAULT 0,
+    tools_json TEXT,
+    tools_fetched_at TEXT,
+    last_status TEXT NOT NULL DEFAULT 'unknown'
+        CHECK (last_status IN ('ok', 'unreachable', 'auth_error', 'protocol_error', 'unknown')),
+    last_error TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_mcp_servers_sort ON mcp_servers(sort_order);
 "#;
 
 pub struct Storage {

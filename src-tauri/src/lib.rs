@@ -11,6 +11,7 @@ mod ftp;
 mod github_copilot;
 mod import;
 mod logging;
+mod mcp;
 mod performance;
 mod power;
 mod rdp;
@@ -2371,7 +2372,13 @@ pub fn run() {
             dashboard_commands::dashboard_remove_custom_widget,
             dashboard_commands::dashboard_reset,
             dashboard_import_background_image,
-            dashboard_load_background_image
+            dashboard_load_background_image,
+            mcp::mcp_list_servers,
+            mcp::mcp_create_server,
+            mcp::mcp_update_server,
+            mcp::mcp_delete_server,
+            mcp::mcp_refresh_tools,
+            mcp::mcp_call_tool
         ])
         .run(tauri::generate_context!())
         .expect("error while running KKTerm");
