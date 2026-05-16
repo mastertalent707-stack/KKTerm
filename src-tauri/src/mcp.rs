@@ -12,6 +12,7 @@
 
 use std::collections::HashMap;
 
+use futures::StreamExt;
 use rusqlite::{params, Connection as SqliteConnection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -379,16 +380,14 @@ async fn rpc_call(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_ascii_lowercase())
         .unwrap_or_default();
-    if content_type.contains("text/event-stream") {
-        return Err(McpCommandError::Protocol {
-            message: "SSE streaming responses are not supported yet".to_string(),
-        });
-    }
     if !status.is_success() {
         let body_text = response.text().await.unwrap_or_default();
         return Err(McpCommandError::Protocol {
             message: format!("HTTP {status}: {body_text}"),
         });
+    }
+    if content_type.contains("text/event-stream") {
+        return read_sse_rpc_result(response, rpc_id).await;
     }
     let response_body = response
         .text()
@@ -396,9 +395,19 @@ async fn rpc_call(
         .map_err(|e| McpCommandError::Network {
             message: e.to_string(),
         })?;
-    let parsed: Value = serde_json::from_str(&response_body).map_err(|e| McpCommandError::Protocol {
-        message: format!("invalid JSON response: {e}"),
-    })?;
+    let parsed: Value =
+        serde_json::from_str(&response_body).map_err(|e| McpCommandError::Protocol {
+            message: format!("invalid JSON response: {e}"),
+        })?;
+    json_rpc_result(parsed, rpc_id)
+}
+
+fn json_rpc_result(parsed: Value, rpc_id: u64) -> Result<Value, McpCommandError> {
+    if !rpc_id_matches(&parsed, rpc_id) {
+        return Err(McpCommandError::Protocol {
+            message: format!("missing JSON-RPC response for id {rpc_id}"),
+        });
+    }
     if let Some(error) = parsed.get("error") {
         return Err(McpCommandError::Protocol {
             message: format!("JSON-RPC error: {error}"),
@@ -410,6 +419,97 @@ async fn rpc_call(
         .ok_or(McpCommandError::Protocol {
             message: "missing result field".to_string(),
         })
+}
+
+fn rpc_id_matches(value: &Value, rpc_id: u64) -> bool {
+    value
+        .get("id")
+        .and_then(Value::as_u64)
+        .is_some_and(|id| id == rpc_id)
+}
+
+async fn read_sse_rpc_result(
+    response: reqwest::Response,
+    rpc_id: u64,
+) -> Result<Value, McpCommandError> {
+    let mut buffer = String::new();
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| McpCommandError::Network {
+            message: e.to_string(),
+        })?;
+        buffer.push_str(&String::from_utf8_lossy(&chunk));
+        while let Some((event, rest)) = split_next_sse_event(&buffer) {
+            buffer = rest;
+            if let Some(result) = parse_sse_rpc_event(&event, rpc_id)? {
+                return Ok(result);
+            }
+        }
+    }
+    if !buffer.trim().is_empty() {
+        if let Some(result) = parse_sse_rpc_event(&buffer, rpc_id)? {
+            return Ok(result);
+        }
+    }
+    Err(McpCommandError::Protocol {
+        message: format!("SSE stream ended without JSON-RPC response for id {rpc_id}"),
+    })
+}
+
+#[cfg(test)]
+fn parse_sse_rpc_result(body: &str, rpc_id: u64) -> Result<Value, McpCommandError> {
+    let mut remaining = body.to_string();
+    while let Some((event, rest)) = split_next_sse_event(&remaining) {
+        remaining = rest;
+        if let Some(result) = parse_sse_rpc_event(&event, rpc_id)? {
+            return Ok(result);
+        }
+    }
+    if !remaining.trim().is_empty() {
+        if let Some(result) = parse_sse_rpc_event(&remaining, rpc_id)? {
+            return Ok(result);
+        }
+    }
+    Err(McpCommandError::Protocol {
+        message: format!("SSE stream ended without JSON-RPC response for id {rpc_id}"),
+    })
+}
+
+fn split_next_sse_event(buffer: &str) -> Option<(String, String)> {
+    let candidates = ["\r\n\r\n", "\n\n"];
+    let (index, separator) = candidates
+        .iter()
+        .filter_map(|separator| buffer.find(separator).map(|index| (index, *separator)))
+        .min_by_key(|(index, _)| *index)?;
+    let event = buffer[..index].to_string();
+    let rest = buffer[index + separator.len()..].to_string();
+    Some((event, rest))
+}
+
+fn parse_sse_rpc_event(event: &str, rpc_id: u64) -> Result<Option<Value>, McpCommandError> {
+    let data = sse_event_data(event);
+    if data.trim().is_empty() {
+        return Ok(None);
+    }
+    let parsed: Value = serde_json::from_str(&data).map_err(|e| McpCommandError::Protocol {
+        message: format!("invalid SSE JSON-RPC event: {e}"),
+    })?;
+    if rpc_id_matches(&parsed, rpc_id) {
+        return json_rpc_result(parsed, rpc_id).map(Some);
+    }
+    Ok(None)
+}
+
+fn sse_event_data(event: &str) -> String {
+    let mut lines = Vec::new();
+    for line in event.lines() {
+        let line = line.strip_suffix('\r').unwrap_or(line);
+        let Some(data) = line.strip_prefix("data:") else {
+            continue;
+        };
+        lines.push(data.strip_prefix(' ').unwrap_or(data));
+    }
+    lines.join("\n")
 }
 
 async fn initialize(
@@ -898,5 +998,43 @@ mod tests {
         let owner_id = mcp_secret_owner_id("mcp_duplicate");
         assert_eq!(stored_owner_ids.into_inner(), vec![owner_id.clone()]);
         assert_eq!(deleted_owner_ids.into_inner(), vec![owner_id]);
+    }
+
+    #[test]
+    fn sse_rpc_response_ignores_notifications_until_matching_result() {
+        let body = concat!(
+            ": keep-alive\n\n",
+            "event: message\n",
+            "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\",\"params\":{\"progress\":1}}\n\n",
+            "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"tools\":[{\"name\":\"echo\"}]}}\n\n",
+        );
+
+        let result = parse_sse_rpc_result(body, 2).expect("matching SSE result parses");
+
+        assert_eq!(result, json!({ "tools": [{ "name": "echo" }] }));
+    }
+
+    #[test]
+    fn sse_rpc_response_returns_matching_json_rpc_error() {
+        let body = concat!(
+            "data: {\"jsonrpc\":\"2.0\",\"id\":3,\"error\":{\"code\":-32601,\"message\":\"missing tool\"}}\n\n",
+        );
+
+        let error = parse_sse_rpc_result(body, 3).expect_err("JSON-RPC error is surfaced");
+
+        assert!(
+            matches!(error, McpCommandError::Protocol { message } if message.contains("missing tool"))
+        );
+    }
+
+    #[test]
+    fn sse_rpc_response_requires_matching_result_before_end_of_stream() {
+        let body = "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n\n";
+
+        let error = parse_sse_rpc_result(body, 1).expect_err("missing response is rejected");
+
+        assert!(
+            matches!(error, McpCommandError::Protocol { message } if message.contains("ended without JSON-RPC response"))
+        );
     }
 }
