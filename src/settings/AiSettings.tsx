@@ -26,6 +26,7 @@ import type {
   AiReasoningEffort,
   SearchProvider,
 } from "../types";
+import { McpServersControl } from "./McpServers";
 import { SettingsSectionHeader } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { shouldShowStoredAiProviderKeyMask } from "./aiProviderKeyField";
@@ -921,6 +922,8 @@ export function AiSettings() {
         searchApiKeyDraft={searchApiKeyDraft}
         searchApiKeyStoredMask={searchApiKeyStoredMask}
       />
+
+      <McpServersControl />
 
     </section>
   );

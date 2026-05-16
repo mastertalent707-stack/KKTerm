@@ -1,5 +1,11 @@
 import type { ScriptBody } from "../types";
 
+export interface ResolvedWidgetLibrary {
+  key: string;
+  global: string;
+  source: string;
+}
+
 export function buildCsp(perm: ScriptBody["permissions"]): string {
   const connect = perm.network ? "*" : "'none'";
   const images = perm.network ? "http: https: data: blob:" : "data: blob:";
@@ -21,11 +27,18 @@ function scriptStringLiteral(value: string): string {
     .replace(/\u2029/g, "\\u2029");
 }
 
-export function buildSrcdoc(body: ScriptBody, settingsValuesJson = "{}"): string {
+export function buildSrcdoc(
+  body: ScriptBody,
+  settingsValuesJson = "{}",
+  libraries: ResolvedWidgetLibrary[] = [],
+): string {
   const csp = buildCsp(body.permissions);
   const shim = body.htmlShim?.trim().length ? body.htmlShim : '<div id="root"></div>';
   const source = scriptStringLiteral(body.source);
   const settings = scriptStringLiteral(settingsValuesJson);
+  const libraryEntries = libraries
+    .map((lib) => `[${scriptStringLiteral(lib.key)},${scriptStringLiteral(lib.source)}]`)
+    .join(",");
   return `<!DOCTYPE html>
 <html><head>
   <meta charset="utf-8" />
@@ -148,6 +161,101 @@ export function buildSrcdoc(body: ScriptBody, settingsValuesJson = "{}"): string
           KK.setSettings(nextSettings);
         },
         openExternal: function (url) { window.parent.postMessage({ kk: true, type: 'openExternalUrl', url }, "*"); },
+        saveFile: function (filename, bytes, filters) {
+          return new Promise(function (resolve, reject) {
+            if (typeof filename !== 'string' || !filename) {
+              reject(new Error('filename is required.'));
+              return;
+            }
+            let buffer = null;
+            if (bytes instanceof Uint8Array) {
+              buffer = bytes;
+            } else if (bytes instanceof ArrayBuffer) {
+              buffer = new Uint8Array(bytes);
+            } else if (bytes && bytes.buffer instanceof ArrayBuffer) {
+              buffer = new Uint8Array(bytes.buffer, bytes.byteOffset || 0, bytes.byteLength);
+            }
+            if (!buffer) {
+              reject(new Error('bytes must be a Uint8Array, ArrayBuffer, or typed array.'));
+              return;
+            }
+            var requestId = 'file-save-' + Math.random().toString(36).slice(2);
+            function onMessage(event) {
+              var data = event.data;
+              if (!data || data.kk !== true || data.type !== 'saveFileResult' || data.requestId !== requestId) return;
+              window.removeEventListener('message', onMessage);
+              if (data.ok) {
+                resolve(data.path || null);
+              } else {
+                reject(new Error(data.error || 'File save failed.'));
+              }
+            }
+            window.addEventListener('message', onMessage);
+            window.parent.postMessage({
+              kk: true,
+              type: 'saveFile',
+              requestId: requestId,
+              filename: filename,
+              bytes: buffer,
+              filters: Array.isArray(filters) ? filters : undefined,
+            }, "*");
+          });
+        },
+        callMcpTool: function (serverIdOrName, toolName, args) {
+          return new Promise(function (resolve, reject) {
+            if (typeof serverIdOrName !== 'string' || !serverIdOrName) {
+              reject(new Error('serverIdOrName is required.'));
+              return;
+            }
+            if (typeof toolName !== 'string' || !toolName) {
+              reject(new Error('toolName is required.'));
+              return;
+            }
+            var requestId = 'mcp-' + Math.random().toString(36).slice(2);
+            function onMessage(event) {
+              var data = event.data;
+              if (!data || data.kk !== true || data.type !== 'mcpToolResult' || data.requestId !== requestId) return;
+              window.removeEventListener('message', onMessage);
+              if (data.ok) {
+                resolve(data.result);
+              } else {
+                reject(new Error(data.error || 'MCP tool call failed.'));
+              }
+            }
+            window.addEventListener('message', onMessage);
+            window.parent.postMessage({
+              kk: true,
+              type: 'callMcpTool',
+              requestId: requestId,
+              serverIdOrName: serverIdOrName,
+              toolName: toolName,
+              arguments: args == null ? {} : args,
+            }, "*");
+          });
+        },
+        readLocalFile: function (options) {
+          return new Promise(function (resolve, reject) {
+            var filters = options && Array.isArray(options.filters) ? options.filters : undefined;
+            var requestId = 'file-read-' + Math.random().toString(36).slice(2);
+            function onMessage(event) {
+              var data = event.data;
+              if (!data || data.kk !== true || data.type !== 'readLocalFileResult' || data.requestId !== requestId) return;
+              window.removeEventListener('message', onMessage);
+              if (data.ok) {
+                resolve(data.file || null);
+              } else {
+                reject(new Error(data.error || 'File read failed.'));
+              }
+            }
+            window.addEventListener('message', onMessage);
+            window.parent.postMessage({
+              kk: true,
+              type: 'readLocalFile',
+              requestId: requestId,
+              filters: filters,
+            }, "*");
+          });
+        },
         postMessage: function (payload) { window.parent.postMessage({ kk: true, payload }, "*"); },
         requestPermission: function () { return Promise.resolve(false); },
       };
@@ -178,17 +286,29 @@ export function buildSrcdoc(body: ScriptBody, settingsValuesJson = "{}"): string
       window.addEventListener('unhandledrejection', function (event) {
         showError(event.reason);
       });
-      try {
-        const source = ${source};
-        const blob = new Blob([source + '\\n//# sourceURL=kkterm-dashboard-widget.js'], { type: 'text/javascript' });
-        const script = document.createElement('script');
-        script.src = URL.createObjectURL(blob);
-        script.onload = function () { URL.revokeObjectURL(script.src); };
-        script.onerror = function () { showError(new Error('Widget script failed to load.')); };
-        document.head.appendChild(script);
-      } catch (err) {
-        showError(err);
+      function injectScript(source, name) {
+        return new Promise(function (resolve, reject) {
+          var blob = new Blob([source + '\\n//# sourceURL=' + name], { type: 'text/javascript' });
+          var script = document.createElement('script');
+          script.src = URL.createObjectURL(blob);
+          script.onload = function () { URL.revokeObjectURL(script.src); resolve(); };
+          script.onerror = function () {
+            URL.revokeObjectURL(script.src);
+            reject(new Error('Failed to load ' + name));
+          };
+          document.head.appendChild(script);
+        });
       }
+      var libraries = [${libraryEntries}];
+      var chain = Promise.resolve();
+      libraries.forEach(function (entry) {
+        chain = chain.then(function () {
+          return injectScript(entry[1], 'kkterm-widget-lib-' + entry[0] + '.js');
+        });
+      });
+      chain.then(function () {
+        return injectScript(${source}, 'kkterm-dashboard-widget.js');
+      }).catch(showError);
     })();
   </script>
 </body></html>`;

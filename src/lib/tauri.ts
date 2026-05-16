@@ -5,7 +5,7 @@ import {
   save as saveDialog,
 } from "@tauri-apps/plugin-dialog";
 import type { ConfirmDialogOptions } from "@tauri-apps/plugin-dialog";
-import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { readFile, writeFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import i18next from "../i18n/config";
 import type {
@@ -1636,7 +1636,104 @@ type CommandMap = {
     args: { file: string };
     result: { dataUrl?: string; path?: string };
   };
+  mcp_list_servers: {
+    args: undefined;
+    result: McpServer[];
+  };
+  mcp_create_server: {
+    args: { request: McpCreateServerRequest };
+    result: McpServer;
+  };
+  mcp_update_server: {
+    args: { request: McpUpdateServerRequest };
+    result: McpServer;
+  };
+  mcp_delete_server: {
+    args: { id: string };
+    result: null;
+  };
+  mcp_refresh_tools: {
+    args: { id: string };
+    result: McpServer;
+  };
+  mcp_call_tool: {
+    args: { serverIdOrName: string; toolName: string; arguments: unknown };
+    result: McpCallResult;
+  };
 };
+
+export interface McpServer {
+  id: string;
+  name: string;
+  url: string;
+  headers: Record<string, string>;
+  secretHeaderName: string | null;
+  secretValueTemplate: string | null;
+  hasSecret: boolean;
+  tools: unknown;
+  toolsFetchedAt: string | null;
+  lastStatus: "ok" | "unreachable" | "auth_error" | "protocol_error" | "unknown";
+  lastError: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface McpCreateServerRequest {
+  name: string;
+  url: string;
+  headers?: Record<string, string>;
+  secretHeaderName?: string;
+  secretValueTemplate?: string;
+  secret?: string;
+}
+
+export interface McpUpdateServerRequest {
+  id: string;
+  name?: string;
+  url?: string;
+  headers?: Record<string, string>;
+  secretHeaderName?: string | null;
+  secretValueTemplate?: string | null;
+  secret?: string | null;
+}
+
+export interface McpCallResult {
+  content: unknown;
+  isError: boolean;
+}
+
+export type McpCommandError =
+  | { kind: "validation"; reason: string }
+  | { kind: "notFound" }
+  | { kind: "duplicateName" }
+  | { kind: "keychainUnavailable" }
+  | { kind: "network"; message: string }
+  | { kind: "protocol"; message: string }
+  | { kind: "authError"; message: string }
+  | { kind: "internal"; message: string };
+
+export function describeMcpError(error: unknown): string {
+  if (error && typeof error === "object" && "kind" in error) {
+    const err = error as McpCommandError;
+    switch (err.kind) {
+      case "validation":
+        return err.reason;
+      case "notFound":
+        return i18next.t("settings.mcpErrorNotFound");
+      case "duplicateName":
+        return i18next.t("settings.mcpErrorDuplicateName");
+      case "keychainUnavailable":
+        return i18next.t("settings.mcpErrorKeychain");
+      case "network":
+      case "protocol":
+      case "authError":
+      case "internal":
+        return err.message;
+    }
+  }
+  return error instanceof Error ? error.message : String(error);
+}
 
 export function invokeCommand<Name extends keyof CommandMap>(
   name: Name,
@@ -1835,6 +1932,62 @@ export function isTauriRuntime() {
     "__TAURI_INTERNALS__" in
       (window as Window & { __TAURI_INTERNALS__?: unknown })
   );
+}
+
+export interface WidgetFilePickFilter {
+  name: string;
+  extensions: string[];
+}
+
+export interface WidgetReadFileResult {
+  name: string;
+  bytes: Uint8Array;
+  path: string;
+}
+
+/**
+ * Open a native file picker and return the selected file's bytes. Used by
+ * dashboard script widgets via KK.readLocalFile. Returns null when the user
+ * cancels.
+ */
+export async function pickAndReadFile(
+  filters?: WidgetFilePickFilter[],
+): Promise<WidgetReadFileResult | null> {
+  if (!isTauriRuntime()) {
+    throw new Error("File picker is only available in the Tauri runtime.");
+  }
+  const selection = await openDialog({
+    directory: false,
+    multiple: false,
+    filters: filters && filters.length > 0 ? filters : undefined,
+  });
+  const path = typeof selection === "string" ? selection : null;
+  if (!path) return null;
+  const bytes = await readFile(path);
+  const name = path.split(/[/\\]/).pop() ?? path;
+  return { name, bytes, path };
+}
+
+/**
+ * Show a native save dialog and write the supplied bytes to the chosen path.
+ * Used by dashboard script widgets via KK.saveFile. Returns the chosen path
+ * or null if the user cancels.
+ */
+export async function pickAndSaveFile(
+  defaultFilename: string,
+  bytes: Uint8Array,
+  filters?: WidgetFilePickFilter[],
+): Promise<string | null> {
+  if (!isTauriRuntime()) {
+    throw new Error("Save dialog is only available in the Tauri runtime.");
+  }
+  const path = await saveDialog({
+    defaultPath: defaultFilename,
+    filters: filters && filters.length > 0 ? filters : undefined,
+  });
+  if (typeof path !== "string" || !path) return null;
+  await writeFile(path, bytes);
+  return path;
 }
 
 export async function selectWikiExportPath(defaultFilename: string) {

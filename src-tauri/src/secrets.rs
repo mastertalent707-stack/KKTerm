@@ -62,6 +62,13 @@ impl SecretReferenceRequest {
         }
     }
 
+    pub(crate) fn mcp_server_secret(owner_id: String) -> Self {
+        Self {
+            kind: SecretKind::McpServerSecret,
+            owner_id,
+        }
+    }
+
     pub(crate) fn brave_search_api_key(owner_id: String) -> Self {
         Self {
             kind: SecretKind::BraveSearchApiKey,
@@ -99,6 +106,7 @@ enum SecretKind {
     BraveSearchApiKey,
     TavilySearchApiKey,
     WidgetSecret,
+    McpServerSecret,
 }
 
 impl Secrets {
@@ -229,6 +237,26 @@ impl Secrets {
         self.read_secret(SecretReferenceRequest::widget_secret(owner_id))
     }
 
+    pub(crate) fn read_mcp_server_secret(&self, owner_id: String) -> Result<Option<String>, String> {
+        self.read_secret(SecretReferenceRequest::mcp_server_secret(owner_id))
+    }
+
+    pub(crate) fn store_mcp_server_secret(
+        &self,
+        owner_id: String,
+        secret: String,
+    ) -> Result<(), String> {
+        self.store_secret(StoreSecretRequest {
+            kind: SecretKind::McpServerSecret,
+            owner_id,
+            secret,
+        })
+    }
+
+    pub(crate) fn delete_mcp_server_secret(&self, owner_id: String) -> Result<(), String> {
+        self.delete_secret(SecretReferenceRequest::mcp_server_secret(owner_id))
+    }
+
     fn entry(&self, reference: &SecretReference) -> Result<Entry, String> {
         if self.backend.is_none() {
             return Err(self
@@ -293,6 +321,7 @@ impl SecretKind {
             Self::BraveSearchApiKey => "brave-search-api-key",
             Self::TavilySearchApiKey => "tavily-search-api-key",
             Self::WidgetSecret => "widget-secret",
+            Self::McpServerSecret => "mcp-server-secret",
         }
     }
 }

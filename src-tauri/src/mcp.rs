@@ -1,0 +1,902 @@
+// Remote MCP (Model Context Protocol) HTTP-streamable transport.
+//
+// Phase 1 scope:
+// - HTTP JSON-RPC client (initialize, tools/list, tools/call)
+// - Stateless calls (no Mcp-Session-Id reuse between calls)
+// - Single auth header per server, stored in OS keychain
+// - SSE response detection -> protocol_error (deferred)
+// - SQLite storage of server config + cached tool schemas
+//
+// Deferred (future phases): SSE streaming, OAuth, session reuse,
+// progress notifications, capability negotiation beyond minimum.
+
+use std::collections::HashMap;
+
+use rusqlite::{params, Connection as SqliteConnection, OptionalExtension};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use tauri::{AppHandle, Manager, State};
+
+use crate::dashboard_ids::new_dashboard_id;
+use crate::secrets;
+
+const PROTOCOL_VERSION: &str = "2024-11-05";
+const KKTERM_CLIENT_NAME: &str = "kkterm";
+
+// -- Public types -----------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpServer {
+    pub id: String,
+    pub name: String,
+    pub url: String,
+    pub headers: HashMap<String, String>,
+    pub secret_header_name: Option<String>,
+    pub secret_value_template: Option<String>,
+    pub has_secret: bool,
+    pub tools: Option<Value>,
+    pub tools_fetched_at: Option<String>,
+    pub last_status: String,
+    pub last_error: Option<String>,
+    pub sort_order: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpCallResult {
+    pub content: Value,
+    pub is_error: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum McpCommandError {
+    Validation { reason: String },
+    NotFound,
+    DuplicateName,
+    KeychainUnavailable,
+    Network { message: String },
+    Protocol { message: String },
+    AuthError { message: String },
+    Internal { message: String },
+}
+
+impl From<rusqlite::Error> for McpCommandError {
+    fn from(value: rusqlite::Error) -> Self {
+        McpCommandError::Internal {
+            message: value.to_string(),
+        }
+    }
+}
+
+// -- Owner id ---------------------------------------------------------------
+
+pub fn mcp_secret_owner_id(server_id: &str) -> String {
+    format!("mcp-server:{server_id}")
+}
+
+// -- Storage ----------------------------------------------------------------
+
+pub fn list_servers(conn: &SqliteConnection) -> Result<Vec<McpServer>, McpCommandError> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, url, headers_json, secret_header_name, secret_value_template,
+                has_secret, tools_json, tools_fetched_at, last_status, last_error,
+                sort_order, created_at, updated_at
+         FROM mcp_servers
+         ORDER BY sort_order ASC, name COLLATE NOCASE ASC",
+    )?;
+    let rows = stmt
+        .query_map([], row_to_server)?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(rows)
+}
+
+pub fn get_server_by_id(
+    conn: &SqliteConnection,
+    id: &str,
+) -> Result<Option<McpServer>, McpCommandError> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, url, headers_json, secret_header_name, secret_value_template,
+                has_secret, tools_json, tools_fetched_at, last_status, last_error,
+                sort_order, created_at, updated_at
+         FROM mcp_servers
+         WHERE id = ?1",
+    )?;
+    let row = stmt.query_row(params![id], row_to_server).optional()?;
+    Ok(row)
+}
+
+pub fn get_server_by_name(
+    conn: &SqliteConnection,
+    name: &str,
+) -> Result<Option<McpServer>, McpCommandError> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, url, headers_json, secret_header_name, secret_value_template,
+                has_secret, tools_json, tools_fetched_at, last_status, last_error,
+                sort_order, created_at, updated_at
+         FROM mcp_servers
+         WHERE name = ?1",
+    )?;
+    let row = stmt.query_row(params![name], row_to_server).optional()?;
+    Ok(row)
+}
+
+fn row_to_server(row: &rusqlite::Row<'_>) -> rusqlite::Result<McpServer> {
+    let headers_json: String = row.get(3)?;
+    let headers = serde_json::from_str::<HashMap<String, String>>(&headers_json)
+        .unwrap_or_default();
+    let tools_json: Option<String> = row.get(7)?;
+    let tools = tools_json
+        .as_deref()
+        .and_then(|s| serde_json::from_str::<Value>(s).ok());
+    Ok(McpServer {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        url: row.get(2)?,
+        headers,
+        secret_header_name: row.get(4)?,
+        secret_value_template: row.get(5)?,
+        has_secret: row.get::<_, i64>(6)? != 0,
+        tools,
+        tools_fetched_at: row.get(8)?,
+        last_status: row.get(9)?,
+        last_error: row.get(10)?,
+        sort_order: row.get(11)?,
+        created_at: row.get(12)?,
+        updated_at: row.get(13)?,
+    })
+}
+
+fn insert_server(
+    conn: &SqliteConnection,
+    server: &McpServer,
+) -> Result<McpServer, McpCommandError> {
+    let headers_json = serde_json::to_string(&server.headers).unwrap_or_else(|_| "{}".to_string());
+    conn.execute(
+        "INSERT INTO mcp_servers (
+            id, name, url, headers_json, secret_header_name, secret_value_template,
+            has_secret, last_status, sort_order
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'unknown', ?8)",
+        params![
+            server.id,
+            server.name,
+            server.url,
+            headers_json,
+            server.secret_header_name,
+            server.secret_value_template,
+            i64::from(server.has_secret),
+            server.sort_order,
+        ],
+    )
+    .map_err(map_unique_violation)?;
+    get_server_by_id(conn, &server.id)?
+        .ok_or(McpCommandError::Internal {
+            message: "inserted MCP server vanished".to_string(),
+        })
+}
+
+fn map_unique_violation(error: rusqlite::Error) -> McpCommandError {
+    let text = error.to_string();
+    if text.contains("UNIQUE constraint failed") {
+        McpCommandError::DuplicateName
+    } else {
+        McpCommandError::Internal { message: text }
+    }
+}
+
+fn map_keychain_error(_message: String) -> McpCommandError {
+    McpCommandError::KeychainUnavailable
+}
+
+fn insert_server_with_secret(
+    conn: &SqliteConnection,
+    server: &McpServer,
+    secret: Option<String>,
+    mut store_secret: impl FnMut(String, String) -> Result<(), String>,
+    mut delete_secret: impl FnMut(String) -> Result<(), String>,
+) -> Result<McpServer, McpCommandError> {
+    let Some(secret_value) = secret else {
+        return insert_server(conn, server);
+    };
+
+    let owner_id = mcp_secret_owner_id(&server.id);
+    store_secret(owner_id.clone(), secret_value).map_err(map_keychain_error)?;
+
+    match insert_server(conn, server) {
+        Ok(stored) => Ok(stored),
+        Err(error) => {
+            let _ = delete_secret(owner_id);
+            Err(error)
+        }
+    }
+}
+
+fn update_status(
+    conn: &SqliteConnection,
+    id: &str,
+    status: &str,
+    error: Option<&str>,
+    tools_json: Option<&str>,
+) -> Result<(), McpCommandError> {
+    let now = chrono_now();
+    conn.execute(
+        "UPDATE mcp_servers
+         SET last_status = ?2,
+             last_error = ?3,
+             tools_json = COALESCE(?4, tools_json),
+             tools_fetched_at = CASE WHEN ?4 IS NOT NULL THEN ?5 ELSE tools_fetched_at END,
+             updated_at = ?5
+         WHERE id = ?1",
+        params![id, status, error, tools_json, now],
+    )?;
+    Ok(())
+}
+
+fn delete_server_row(conn: &SqliteConnection, id: &str) -> Result<(), McpCommandError> {
+    let affected = conn.execute("DELETE FROM mcp_servers WHERE id = ?1", params![id])?;
+    if affected == 0 {
+        return Err(McpCommandError::NotFound);
+    }
+    Ok(())
+}
+
+fn chrono_now() -> String {
+    time::OffsetDateTime::now_utc()
+        .format(&time::format_description::well_known::Rfc3339)
+        .unwrap_or_else(|_| "".to_string())
+}
+
+// -- Validation -------------------------------------------------------------
+
+fn validate_name(value: &str) -> Result<String, McpCommandError> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() || trimmed.len() > 64 {
+        return Err(McpCommandError::Validation {
+            reason: "name must be 1-64 characters".to_string(),
+        });
+    }
+    if trimmed.chars().any(|c| c.is_control()) {
+        return Err(McpCommandError::Validation {
+            reason: "name cannot contain control characters".to_string(),
+        });
+    }
+    Ok(trimmed.to_string())
+}
+
+fn validate_url(value: &str) -> Result<String, McpCommandError> {
+    let trimmed = value.trim();
+    let parsed = url::Url::parse(trimmed).map_err(|e| McpCommandError::Validation {
+        reason: format!("invalid url: {e}"),
+    })?;
+    if parsed.scheme() != "https" && parsed.scheme() != "http" {
+        return Err(McpCommandError::Validation {
+            reason: "url must use http or https scheme".to_string(),
+        });
+    }
+    Ok(parsed.to_string())
+}
+
+fn validate_headers(headers: &HashMap<String, String>) -> Result<(), McpCommandError> {
+    if headers.len() > 32 {
+        return Err(McpCommandError::Validation {
+            reason: "too many headers (limit 32)".to_string(),
+        });
+    }
+    for (name, value) in headers {
+        if name.is_empty() || name.len() > 128 {
+            return Err(McpCommandError::Validation {
+                reason: format!("invalid header name length: {name}"),
+            });
+        }
+        if name.chars().any(|c| c.is_control() || c == ':') {
+            return Err(McpCommandError::Validation {
+                reason: format!("invalid header name: {name}"),
+            });
+        }
+        if value.len() > 8 * 1024 {
+            return Err(McpCommandError::Validation {
+                reason: format!("header {name} value too large"),
+            });
+        }
+        if value.chars().any(|c| c == '\n' || c == '\r') {
+            return Err(McpCommandError::Validation {
+                reason: format!("header {name} value contains newline"),
+            });
+        }
+    }
+    Ok(())
+}
+
+// -- HTTP client ------------------------------------------------------------
+
+fn build_headers(
+    server: &McpServer,
+    secret_value: Option<&str>,
+) -> reqwest::header::HeaderMap {
+    use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        reqwest::header::CONTENT_TYPE,
+        HeaderValue::from_static("application/json"),
+    );
+    headers.insert(
+        reqwest::header::ACCEPT,
+        HeaderValue::from_static("application/json, text/event-stream"),
+    );
+    for (name, value) in &server.headers {
+        if let (Ok(n), Ok(v)) = (HeaderName::from_bytes(name.as_bytes()), HeaderValue::from_str(value)) {
+            headers.insert(n, v);
+        }
+    }
+    if let (Some(name), Some(template), Some(secret)) = (
+        server.secret_header_name.as_deref(),
+        server.secret_value_template.as_deref(),
+        secret_value,
+    ) {
+        let resolved = template.replace("{SECRET}", secret);
+        if let (Ok(n), Ok(v)) = (HeaderName::from_bytes(name.as_bytes()), HeaderValue::from_str(&resolved)) {
+            headers.insert(n, v);
+        }
+    }
+    headers
+}
+
+async fn rpc_call(
+    http: &reqwest::Client,
+    server: &McpServer,
+    secret_value: Option<&str>,
+    method: &str,
+    params: Value,
+    rpc_id: u64,
+) -> Result<Value, McpCommandError> {
+    let body = json!({
+        "jsonrpc": "2.0",
+        "id": rpc_id,
+        "method": method,
+        "params": params,
+    });
+    let response = http
+        .post(&server.url)
+        .headers(build_headers(server, secret_value))
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| McpCommandError::Network {
+            message: e.to_string(),
+        })?;
+    let status = response.status();
+    if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
+        return Err(McpCommandError::AuthError {
+            message: format!("HTTP {status}"),
+        });
+    }
+    let content_type = response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_ascii_lowercase())
+        .unwrap_or_default();
+    if content_type.contains("text/event-stream") {
+        return Err(McpCommandError::Protocol {
+            message: "SSE streaming responses are not supported yet".to_string(),
+        });
+    }
+    if !status.is_success() {
+        let body_text = response.text().await.unwrap_or_default();
+        return Err(McpCommandError::Protocol {
+            message: format!("HTTP {status}: {body_text}"),
+        });
+    }
+    let response_body = response
+        .text()
+        .await
+        .map_err(|e| McpCommandError::Network {
+            message: e.to_string(),
+        })?;
+    let parsed: Value = serde_json::from_str(&response_body).map_err(|e| McpCommandError::Protocol {
+        message: format!("invalid JSON response: {e}"),
+    })?;
+    if let Some(error) = parsed.get("error") {
+        return Err(McpCommandError::Protocol {
+            message: format!("JSON-RPC error: {error}"),
+        });
+    }
+    parsed
+        .get("result")
+        .cloned()
+        .ok_or(McpCommandError::Protocol {
+            message: "missing result field".to_string(),
+        })
+}
+
+async fn initialize(
+    http: &reqwest::Client,
+    server: &McpServer,
+    secret_value: Option<&str>,
+) -> Result<(), McpCommandError> {
+    let params = json!({
+        "protocolVersion": PROTOCOL_VERSION,
+        "capabilities": {},
+        "clientInfo": {
+            "name": KKTERM_CLIENT_NAME,
+            "version": env!("CARGO_PKG_VERSION"),
+        }
+    });
+    rpc_call(http, server, secret_value, "initialize", params, 1).await?;
+    // Send initialized notification (id-less per JSON-RPC notification)
+    let _ = http
+        .post(&server.url)
+        .headers(build_headers(server, secret_value))
+        .json(&json!({
+            "jsonrpc": "2.0",
+            "method": "notifications/initialized",
+        }))
+        .send()
+        .await;
+    Ok(())
+}
+
+async fn fetch_tools(
+    http: &reqwest::Client,
+    server: &McpServer,
+    secret_value: Option<&str>,
+) -> Result<Value, McpCommandError> {
+    initialize(http, server, secret_value).await?;
+    let result = rpc_call(http, server, secret_value, "tools/list", json!({}), 2).await?;
+    Ok(result)
+}
+
+async fn call_tool(
+    http: &reqwest::Client,
+    server: &McpServer,
+    secret_value: Option<&str>,
+    tool_name: &str,
+    arguments: Value,
+) -> Result<Value, McpCommandError> {
+    initialize(http, server, secret_value).await?;
+    let params = json!({
+        "name": tool_name,
+        "arguments": arguments,
+    });
+    rpc_call(http, server, secret_value, "tools/call", params, 3).await
+}
+
+fn http_client() -> Result<reqwest::Client, McpCommandError> {
+    reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .map_err(|e| McpCommandError::Internal {
+            message: e.to_string(),
+        })
+}
+
+// -- Tauri commands ---------------------------------------------------------
+
+fn storage(app: &AppHandle) -> State<'_, crate::storage::Storage> {
+    app.state::<crate::storage::Storage>()
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateMcpServerRequest {
+    pub name: String,
+    pub url: String,
+    pub headers: Option<HashMap<String, String>>,
+    pub secret_header_name: Option<String>,
+    pub secret_value_template: Option<String>,
+    pub secret: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateMcpServerRequest {
+    pub id: String,
+    pub name: Option<String>,
+    pub url: Option<String>,
+    pub headers: Option<HashMap<String, String>>,
+    pub secret_header_name: Option<Option<String>>,
+    pub secret_value_template: Option<Option<String>>,
+    pub secret: Option<Option<String>>,
+}
+
+#[tauri::command]
+pub fn mcp_list_servers(app: AppHandle) -> Result<Vec<McpServer>, McpCommandError> {
+    storage(&app).with_connection_infallible(|conn| list_servers(conn))
+}
+
+#[tauri::command]
+pub async fn mcp_create_server(
+    app: AppHandle,
+    secrets: State<'_, secrets::Secrets>,
+    request: CreateMcpServerRequest,
+) -> Result<McpServer, McpCommandError> {
+    let name = validate_name(&request.name)?;
+    let url = validate_url(&request.url)?;
+    let headers = request.headers.unwrap_or_default();
+    validate_headers(&headers)?;
+    if request.secret_header_name.is_some() != request.secret_value_template.is_some() {
+        return Err(McpCommandError::Validation {
+            reason: "secret header name and value template must both be present or both absent"
+                .to_string(),
+        });
+    }
+    let header_name = request
+        .secret_header_name
+        .as_deref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let value_template = request
+        .secret_value_template
+        .as_deref()
+        .map(|s| s.to_string())
+        .filter(|s| !s.is_empty());
+    if header_name.is_some() != value_template.is_some() {
+        return Err(McpCommandError::Validation {
+            reason: "secret header configuration is incomplete".to_string(),
+        });
+    }
+    if let Some(template) = value_template.as_deref() {
+        if !template.contains("{SECRET}") {
+            return Err(McpCommandError::Validation {
+                reason: "secret_value_template must contain the literal {SECRET} placeholder"
+                    .to_string(),
+            });
+        }
+    }
+    let secret = request.secret.filter(|s| !s.is_empty());
+    let has_secret = secret.is_some();
+    if has_secret && header_name.is_none() {
+        return Err(McpCommandError::Validation {
+            reason: "secret value provided without a header name".to_string(),
+        });
+    }
+    let id = new_dashboard_id("mcp");
+    let sort_order = storage(&app)
+        .with_connection_infallible(|conn| next_sort_order(conn))?;
+    let server = McpServer {
+        id: id.clone(),
+        name,
+        url,
+        headers,
+        secret_header_name: header_name,
+        secret_value_template: value_template,
+        has_secret,
+        tools: None,
+        tools_fetched_at: None,
+        last_status: "unknown".to_string(),
+        last_error: None,
+        sort_order,
+        created_at: chrono_now(),
+        updated_at: chrono_now(),
+    };
+    storage(&app).with_connection_infallible(|conn| {
+        insert_server_with_secret(
+            conn,
+            &server,
+            secret,
+            |owner_id, value| secrets.store_mcp_server_secret(owner_id, value),
+            |owner_id| secrets.delete_mcp_server_secret(owner_id),
+        )
+    })
+}
+
+fn next_sort_order(conn: &SqliteConnection) -> Result<i64, McpCommandError> {
+    let next: Option<i64> = conn
+        .query_row("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM mcp_servers", [], |row| row.get(0))
+        .optional()?;
+    Ok(next.unwrap_or(0))
+}
+
+#[tauri::command]
+pub async fn mcp_update_server(
+    app: AppHandle,
+    secrets: State<'_, secrets::Secrets>,
+    request: UpdateMcpServerRequest,
+) -> Result<McpServer, McpCommandError> {
+    let id = request.id.clone();
+    let existing = storage(&app)
+        .with_connection_infallible(|conn| get_server_by_id(conn, &id))?
+        .ok_or(McpCommandError::NotFound)?;
+    let new_name = match request.name {
+        Some(value) => validate_name(&value)?,
+        None => existing.name.clone(),
+    };
+    let new_url = match request.url {
+        Some(value) => validate_url(&value)?,
+        None => existing.url.clone(),
+    };
+    let new_headers = match request.headers {
+        Some(value) => {
+            validate_headers(&value)?;
+            value
+        }
+        None => existing.headers.clone(),
+    };
+    let new_secret_header_name = match request.secret_header_name {
+        Some(value) => value.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()),
+        None => existing.secret_header_name.clone(),
+    };
+    let new_value_template = match request.secret_value_template {
+        Some(value) => value.filter(|s| !s.is_empty()),
+        None => existing.secret_value_template.clone(),
+    };
+    if new_secret_header_name.is_some() != new_value_template.is_some() {
+        return Err(McpCommandError::Validation {
+            reason: "secret header configuration is incomplete".to_string(),
+        });
+    }
+    if let Some(template) = new_value_template.as_deref() {
+        if !template.contains("{SECRET}") {
+            return Err(McpCommandError::Validation {
+                reason: "secret_value_template must contain {SECRET}".to_string(),
+            });
+        }
+    }
+    let mut has_secret = existing.has_secret;
+    if let Some(secret_change) = request.secret {
+        match secret_change {
+            Some(value) if !value.is_empty() => {
+                secrets
+                    .store_mcp_server_secret(mcp_secret_owner_id(&id), value)
+                    .map_err(map_keychain_error)?;
+                has_secret = true;
+            }
+            _ => {
+                secrets
+                    .delete_mcp_server_secret(mcp_secret_owner_id(&id))
+                    .map_err(map_keychain_error)?;
+                has_secret = false;
+            }
+        }
+    }
+    if !has_secret {
+        // Don't keep a stale header config that requires a secret we don't have.
+        // We still allow auth-less changes by clearing template fields if no secret remains.
+    }
+    let headers_json = serde_json::to_string(&new_headers).unwrap_or_else(|_| "{}".to_string());
+    storage(&app).with_connection_infallible(|conn| -> Result<(), McpCommandError> {
+        conn.execute(
+            "UPDATE mcp_servers
+             SET name = ?2, url = ?3, headers_json = ?4, secret_header_name = ?5,
+                 secret_value_template = ?6, has_secret = ?7, updated_at = ?8
+             WHERE id = ?1",
+            params![
+                id,
+                new_name,
+                new_url,
+                headers_json,
+                new_secret_header_name,
+                new_value_template,
+                i64::from(has_secret),
+                chrono_now(),
+            ],
+        )
+        .map_err(map_unique_violation)?;
+        Ok(())
+    })?;
+    storage(&app)
+        .with_connection_infallible(|conn| get_server_by_id(conn, &id))?
+        .ok_or(McpCommandError::NotFound)
+}
+
+#[tauri::command]
+pub async fn mcp_delete_server(
+    app: AppHandle,
+    secrets: State<'_, secrets::Secrets>,
+    id: String,
+) -> Result<(), McpCommandError> {
+    let _ = secrets.delete_mcp_server_secret(mcp_secret_owner_id(&id));
+    storage(&app).with_connection_infallible(|conn| delete_server_row(conn, &id))
+}
+
+#[tauri::command]
+pub async fn mcp_refresh_tools(
+    app: AppHandle,
+    secrets: State<'_, secrets::Secrets>,
+    id: String,
+) -> Result<McpServer, McpCommandError> {
+    let server = storage(&app)
+        .with_connection_infallible(|conn| get_server_by_id(conn, &id))?
+        .ok_or(McpCommandError::NotFound)?;
+    let secret = if server.has_secret {
+        secrets
+            .read_mcp_server_secret(mcp_secret_owner_id(&server.id))
+            .map_err(map_keychain_error)?
+    } else {
+        None
+    };
+    let http = http_client()?;
+    let outcome = fetch_tools(&http, &server, secret.as_deref()).await;
+    let app_clone = app.clone();
+    let id_clone = server.id.clone();
+    match &outcome {
+        Ok(tools) => {
+            let tools_json = serde_json::to_string(tools).unwrap_or_else(|_| "{}".to_string());
+            storage(&app_clone).with_connection_infallible(|conn| {
+                update_status(conn, &id_clone, "ok", None, Some(&tools_json))
+            })?;
+        }
+        Err(err) => {
+            let (status, message) = status_for_error(err);
+            storage(&app_clone).with_connection_infallible(|conn| {
+                update_status(conn, &id_clone, status, Some(message.as_str()), None)
+            })?;
+        }
+    }
+    outcome?;
+    storage(&app)
+        .with_connection_infallible(|conn| get_server_by_id(conn, &id))?
+        .ok_or(McpCommandError::NotFound)
+}
+
+#[tauri::command]
+pub async fn mcp_call_tool(
+    app: AppHandle,
+    secrets: State<'_, secrets::Secrets>,
+    server_id_or_name: String,
+    tool_name: String,
+    arguments: Value,
+) -> Result<McpCallResult, McpCommandError> {
+    let server = storage(&app).with_connection_infallible(|conn| {
+        if let Some(by_id) = get_server_by_id(conn, &server_id_or_name)? {
+            Ok::<_, McpCommandError>(Some(by_id))
+        } else {
+            get_server_by_name(conn, &server_id_or_name)
+        }
+    })?;
+    let server = server.ok_or(McpCommandError::NotFound)?;
+    let secret = if server.has_secret {
+        secrets
+            .read_mcp_server_secret(mcp_secret_owner_id(&server.id))
+            .map_err(map_keychain_error)?
+    } else {
+        None
+    };
+    let http = http_client()?;
+    let outcome = call_tool(&http, &server, secret.as_deref(), &tool_name, arguments).await;
+    let app_clone = app.clone();
+    let id_clone = server.id.clone();
+    match &outcome {
+        Ok(_) => {
+            let _ = storage(&app_clone).with_connection_infallible(|conn| {
+                update_status(conn, &id_clone, "ok", None, None)
+            });
+        }
+        Err(err) => {
+            let (status, message) = status_for_error(err);
+            let _ = storage(&app_clone).with_connection_infallible(|conn| {
+                update_status(conn, &id_clone, status, Some(message.as_str()), None)
+            });
+        }
+    }
+    let result_value = outcome?;
+    let is_error = result_value
+        .get("isError")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let content = result_value
+        .get("content")
+        .cloned()
+        .unwrap_or(Value::Null);
+    Ok(McpCallResult { content, is_error })
+}
+
+fn status_for_error(err: &McpCommandError) -> (&'static str, String) {
+    match err {
+        McpCommandError::Network { message } => ("unreachable", message.clone()),
+        McpCommandError::AuthError { message } => ("auth_error", message.clone()),
+        McpCommandError::Protocol { message } => ("protocol_error", message.clone()),
+        other => ("protocol_error", format!("{other:?}")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+
+    fn test_connection() -> SqliteConnection {
+        let conn = SqliteConnection::open_in_memory().expect("in-memory database opens");
+        conn.execute_batch(
+            "CREATE TABLE mcp_servers (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                url TEXT NOT NULL,
+                headers_json TEXT NOT NULL DEFAULT '{}',
+                secret_header_name TEXT,
+                secret_value_template TEXT,
+                has_secret INTEGER NOT NULL DEFAULT 0,
+                tools_json TEXT,
+                tools_fetched_at TEXT,
+                last_status TEXT NOT NULL DEFAULT 'unknown'
+                    CHECK (last_status IN ('ok', 'unreachable', 'auth_error', 'protocol_error', 'unknown')),
+                last_error TEXT,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );",
+        )
+        .expect("schema initializes");
+        conn
+    }
+
+    fn sample_server(id: &str, name: &str) -> McpServer {
+        McpServer {
+            id: id.to_string(),
+            name: name.to_string(),
+            url: "https://example.com/mcp".to_string(),
+            headers: HashMap::new(),
+            secret_header_name: Some("Authorization".to_string()),
+            secret_value_template: Some("Bearer {SECRET}".to_string()),
+            has_secret: true,
+            tools: None,
+            tools_fetched_at: None,
+            last_status: "unknown".to_string(),
+            last_error: None,
+            sort_order: 0,
+            created_at: chrono_now(),
+            updated_at: chrono_now(),
+        }
+    }
+
+    #[test]
+    fn create_with_secret_does_not_insert_row_when_keychain_store_fails() {
+        let conn = test_connection();
+        let server = sample_server("mcp_test", "Example MCP");
+
+        let error = insert_server_with_secret(
+            &conn,
+            &server,
+            Some("token".to_string()),
+            |_owner_id, _value| Err("keychain unavailable".to_string()),
+            |_owner_id| Ok(()),
+        )
+        .expect_err("keychain failure aborts create");
+
+        assert!(matches!(error, McpCommandError::KeychainUnavailable));
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM mcp_servers", [], |row| row.get(0))
+            .expect("count query succeeds");
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn create_with_secret_deletes_stored_secret_when_insert_fails() {
+        let conn = test_connection();
+        let existing = sample_server("mcp_existing", "Example MCP");
+        insert_server_with_secret(
+            &conn,
+            &existing,
+            None,
+            |_owner_id, _value| Ok(()),
+            |_owner_id| Ok(()),
+        )
+        .expect("existing server inserts");
+
+        let duplicate = sample_server("mcp_duplicate", "Example MCP");
+        let stored_owner_ids = RefCell::new(Vec::new());
+        let deleted_owner_ids = RefCell::new(Vec::new());
+        let error = insert_server_with_secret(
+            &conn,
+            &duplicate,
+            Some("token".to_string()),
+            |owner_id, _value| {
+                stored_owner_ids.borrow_mut().push(owner_id);
+                Ok(())
+            },
+            |owner_id| {
+                deleted_owner_ids.borrow_mut().push(owner_id);
+                Ok(())
+            },
+        )
+        .expect_err("duplicate name rejects create");
+
+        assert!(matches!(error, McpCommandError::DuplicateName));
+        let owner_id = mcp_secret_owner_id("mcp_duplicate");
+        assert_eq!(stored_owner_ids.into_inner(), vec![owner_id.clone()]);
+        assert_eq!(deleted_owner_ids.into_inner(), vec![owner_id]);
+    }
+}
