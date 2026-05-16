@@ -13,6 +13,7 @@ export const openRouterProvider: AiProviderDefinition = {
   allowsCustomModel: true,
   apiKeyLabel: "OpenRouter API key",
   apiKeyUrl: "https://openrouter.ai/settings/keys",
+  modelListStrategy: "openAiCompatible",
   modelOptions: [
     { id: "openai/gpt-5.5", label: "OpenAI GPT-5.5", supportsImageInput: true },
     { id: "anthropic/claude-opus-4.7", label: "Claude Opus 4.7", supportsImageInput: true },

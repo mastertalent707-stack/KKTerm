@@ -12,6 +12,8 @@ export const ollamaProvider: AiProviderDefinition = {
   allowsCustomBaseUrl: true,
   allowsCustomModel: true,
   apiKeyLabel: "Ollama API key",
+  modelListStrategy: "ollamaTags",
+  strictModelList: true,
   modelOptions: [
     { id: "qwen3", label: "Qwen3", note: "Local general use", supportsImageInput: false },
     { id: "gpt-oss", label: "gpt-oss", note: "Open-weight", supportsImageInput: false },

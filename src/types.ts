@@ -366,6 +366,7 @@ export type AiProviderKind =
   | "github-copilot"
   | "ollama"
   | "nvidia"
+  | "opencode"
   | "openai-compatible";
 
 export type AiReasoningEffort = "default" | "low" | "medium" | "high" | "max";

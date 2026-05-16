@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, Save } from "lucide-react";
+import { Bot, RefreshCw, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   AI_PROVIDER_DEFINITIONS,
@@ -15,8 +15,8 @@ import {
   invokeCommand,
   isTauriRuntime,
   openExternalUrl,
+  type AiProviderModelOption,
   type GitHubCopilotDeviceFlow,
-  type GitHubCopilotModelOption,
 } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
 import type {
@@ -64,9 +64,11 @@ function AiProviderSettingsFieldControl({
   draft,
   field,
   hasApiKey,
+  isRefreshingModels,
   modelOptions,
   onApiKeyDraftChange,
   onDraftChange,
+  onRefreshModels,
 }: {
   apiKeyDraft: string;
   apiKeyStoredMask: string;
@@ -74,9 +76,11 @@ function AiProviderSettingsFieldControl({
   draft: AiProviderSettingsType;
   field: AiProviderSettingsField;
   hasApiKey: boolean;
-  modelOptions?: GitHubCopilotModelOption[];
+  isRefreshingModels: boolean;
+  modelOptions?: AiProviderModelOption[];
   onApiKeyDraftChange: (value: string) => void;
   onDraftChange: (patch: Partial<AiProviderSettingsType>) => void;
+  onRefreshModels: () => void;
 }) {
   const { t } = useTranslation();
   const [isApiKeyInputFocused, setIsApiKeyInputFocused] = useState(false);
@@ -107,7 +111,26 @@ function AiProviderSettingsFieldControl({
       return (
         <>
           <label>
-            <span>{t("settings.model")}</span>
+            <span>
+              {t("settings.model")}
+              {definition.modelListStrategy ? (
+                <button
+                  className="settings-api-key-link"
+                  disabled={
+                    isRefreshingModels ||
+                    !isTauriRuntime() ||
+                    (definition.requiresApiKey && !hasApiKey)
+                  }
+                  onClick={onRefreshModels}
+                  type="button"
+                >
+                  <RefreshCw size={13} />
+                  {isRefreshingModels
+                    ? t("settings.refreshingModels")
+                    : t("settings.refreshModels")}
+                </button>
+              ) : null}
+            </span>
             <select
               onChange={(event) => onDraftChange({ model: event.currentTarget.value })}
               value={draft.model}
@@ -454,7 +477,8 @@ export function AiSettings() {
   const [copilotPollIntervalSeconds, setCopilotPollIntervalSeconds] = useState(0);
   const [copilotPollTick, setCopilotPollTick] = useState(0);
   const [isCopilotPolling, setIsCopilotPolling] = useState(false);
-  const [copilotModelOptions, setCopilotModelOptions] = useState<GitHubCopilotModelOption[]>([]);
+  const [refreshedModelOptions, setRefreshedModelOptions] = useState<AiProviderModelOption[]>([]);
+  const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   const hasChanges =
     JSON.stringify(draft) !== JSON.stringify(aiProviderSettings) ||
     apiKeyDraft.trim().length > 0 ||
@@ -570,23 +594,33 @@ export function AiSettings() {
   useEffect(() => {
     if (
       !isTauriRuntime() ||
-      draft.providerKind !== "github-copilot" ||
-      !selectedProviderHasApiKey
+      !aiProviderDefinition.modelListStrategy ||
+      (aiProviderDefinition.requiresApiKey && !selectedProviderHasApiKey)
     ) {
-      setCopilotModelOptions([]);
+      setRefreshedModelOptions([]);
+      setIsRefreshingModels(false);
       return;
     }
 
     let disposed = false;
-    void invokeCommand("list_github_copilot_models", undefined)
+    setIsRefreshingModels(true);
+    void invokeCommand("list_ai_provider_models", {
+      request: {
+        providerKind: draft.providerKind,
+        baseUrl: draft.baseUrl,
+        allowInsecureTls: draft.allowInsecureTls,
+      },
+    })
       .then((models) => {
         if (disposed) return;
-        setCopilotModelOptions(models);
+        setRefreshedModelOptions(models);
         setDraft((settings) => {
           if (
-            settings.providerKind !== "github-copilot" ||
+            settings.providerKind !== draft.providerKind ||
             models.length === 0 ||
-            models.some((model) => model.id === settings.model)
+            (settings.model.trim().length > 0 &&
+              (!aiProviderDefinition.strictModelList ||
+                models.some((model) => model.id === settings.model)))
           ) {
             return settings;
           }
@@ -594,13 +628,64 @@ export function AiSettings() {
         });
       })
       .catch(() => {
-        if (!disposed) setCopilotModelOptions([]);
+        if (!disposed) setRefreshedModelOptions([]);
+      })
+      .finally(() => {
+        if (!disposed) setIsRefreshingModels(false);
       });
 
     return () => {
       disposed = true;
     };
-  }, [draft.providerKind, selectedProviderHasApiKey]);
+  }, [
+    aiProviderDefinition.modelListStrategy,
+    aiProviderDefinition.strictModelList,
+    draft.allowInsecureTls,
+    draft.baseUrl,
+    draft.providerKind,
+    selectedProviderHasApiKey,
+  ]);
+
+  async function handleRefreshModels() {
+    if (
+      !isTauriRuntime() ||
+      !aiProviderDefinition.modelListStrategy ||
+      (aiProviderDefinition.requiresApiKey && !selectedProviderHasApiKey)
+    ) {
+      return;
+    }
+    setIsRefreshingModels(true);
+    try {
+      const models = await invokeCommand("list_ai_provider_models", {
+        request: {
+          providerKind: draft.providerKind,
+          baseUrl: draft.baseUrl,
+          allowInsecureTls: draft.allowInsecureTls,
+        },
+      });
+      setRefreshedModelOptions(models);
+      setDraft((settings) => {
+        if (
+          settings.providerKind !== draft.providerKind ||
+          models.length === 0 ||
+          (settings.model.trim().length > 0 &&
+            (!aiProviderDefinition.strictModelList ||
+              models.some((model) => model.id === settings.model)))
+        ) {
+          return settings;
+        }
+        return { ...settings, model: models[0].id };
+      });
+      showStatusBarNotice(t("settings.modelListRefreshed"), { tone: "success" });
+    } catch (error) {
+      setRefreshedModelOptions([]);
+      showStatusBarNotice(error instanceof Error ? error.message : String(error), {
+        tone: "error",
+      });
+    } finally {
+      setIsRefreshingModels(false);
+    }
+  }
 
   async function handleSave() {
     try {
@@ -664,7 +749,7 @@ export function AiSettings() {
     setCopilotDeviceFlow(null);
     setCopilotPollIntervalSeconds(0);
     setCopilotPollTick(0);
-    setCopilotModelOptions([]);
+    setRefreshedModelOptions([]);
   }
 
   async function handleConnectGitHubCopilot() {
@@ -695,7 +780,7 @@ export function AiSettings() {
       setCopilotDeviceFlow(null);
       setCopilotPollIntervalSeconds(0);
       setCopilotPollTick(0);
-      setCopilotModelOptions([]);
+      setRefreshedModelOptions([]);
       setSelectedProviderHasApiKey(false);
       if (aiProviderSettings.providerKind === "github-copilot") {
         setAiProviderHasApiKey(false);
@@ -770,8 +855,8 @@ export function AiSettings() {
               hasApiKey={selectedProviderHasApiKey}
               key={field}
               modelOptions={
-                draft.providerKind === "github-copilot" && copilotModelOptions.length > 0
-                  ? copilotModelOptions
+                refreshedModelOptions.length > 0
+                  ? refreshedModelOptions
                   : undefined
               }
               onApiKeyDraftChange={setApiKeyDraft}
@@ -781,6 +866,8 @@ export function AiSettings() {
                   ...patch,
                 }))
               }
+              isRefreshingModels={isRefreshingModels}
+              onRefreshModels={() => void handleRefreshModels()}
             />
           ))}
         </div>

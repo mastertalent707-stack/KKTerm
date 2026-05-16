@@ -898,6 +898,23 @@ async fn list_github_copilot_models(
 }
 
 #[tauri::command]
+async fn list_ai_provider_models(
+    app: tauri::AppHandle,
+    secrets: tauri::State<'_, secrets::Secrets>,
+    request: ai::ListAiProviderModelsRequest,
+) -> Result<Vec<ai::AiProviderModelOption>, String> {
+    let api_key = read_ai_provider_api_key(&secrets, request.provider_kind())?;
+    ai::list_ai_provider_models(
+        &app,
+        request.provider_kind(),
+        request.base_url(),
+        api_key,
+        request.allow_insecure_tls(),
+    )
+    .await
+}
+
+#[tauri::command]
 fn plan_command_proposal(
     request: ai::CommandProposalRequest,
 ) -> Result<ai::CommandProposalPlan, String> {
@@ -2261,6 +2278,7 @@ pub fn run() {
             start_github_copilot_device_flow,
             poll_github_copilot_device_flow,
             list_github_copilot_models,
+            list_ai_provider_models,
             plan_command_proposal,
             complete_assistant_live_tool_request,
             run_ai_agent,

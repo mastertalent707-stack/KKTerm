@@ -4126,6 +4126,7 @@ fn validate_ai_provider_settings(
         "github-copilot" | "github_copilot" | "github copilot" => "github-copilot".to_string(),
         "ollama" => "ollama".to_string(),
         "nvidia" => "nvidia".to_string(),
+        "opencode" | "open-code" | "open_code" | "open code" => "opencode".to_string(),
         "openai-compatible" | "openai_compatible" | "openai compatible" => {
             "openai-compatible".to_string()
         }

@@ -37,7 +37,7 @@ export default defineConfig(async () => ({
         manualChunks: {
           react: ["react", "react-dom", "react/jsx-runtime"],
           i18n: ["i18next", "react-i18next"],
-          icons: ["lucide-react", "@icon-park/react"],
+          icons: ["lucide-react"],
           xterm: [
             "@xterm/xterm",
             "@xterm/addon-fit",

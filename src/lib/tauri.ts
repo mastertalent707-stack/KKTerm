@@ -696,6 +696,12 @@ export interface GitHubCopilotModelOption {
   supportsImageInput?: boolean | null;
 }
 
+export interface AiProviderModelOption {
+  id: string;
+  label: string;
+  supportsImageInput?: boolean | null;
+}
+
 type CommandMap = {
   app_bootstrap: {
     args: undefined;
@@ -945,6 +951,16 @@ type CommandMap = {
   list_github_copilot_models: {
     args: undefined;
     result: GitHubCopilotModelOption[];
+  };
+  list_ai_provider_models: {
+    args: {
+      request: {
+        providerKind: string;
+        baseUrl: string;
+        allowInsecureTls?: boolean;
+      };
+    };
+    result: AiProviderModelOption[];
   };
   plan_command_proposal: {
     args: {

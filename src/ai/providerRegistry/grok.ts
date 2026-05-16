@@ -13,6 +13,7 @@ export const grokProvider: AiProviderDefinition = {
   allowsCustomModel: true,
   apiKeyLabel: "xAI API key",
   apiKeyUrl: "https://console.x.ai/",
+  modelListStrategy: "openAiCompatible",
   modelOptions: [
     { id: "grok-4-fast", label: "Grok 4 Fast", note: "Latest fast alias", supportsImageInput: true },
     { id: "grok-4-fast-reasoning", label: "Grok 4 Fast Reasoning", supportsImageInput: true },

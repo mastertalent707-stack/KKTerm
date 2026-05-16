@@ -7,6 +7,7 @@ import { grokProvider } from "./grok";
 import { liteLlmProvider } from "./litellm";
 import { nvidiaProvider } from "./nvidia";
 import { ollamaProvider } from "./ollama";
+import { opencodeProvider } from "./opencode";
 import { openAiCompatibleProvider } from "./openAiCompatible";
 import { openAiProvider } from "./openai";
 import { openRouterProvider } from "./openrouter";
@@ -25,6 +26,7 @@ export const AI_PROVIDER_DEFINITIONS: AiProviderDefinition[] = [
   githubCopilotProvider,
   ollamaProvider,
   nvidiaProvider,
+  opencodeProvider,
   openAiCompatibleProvider,
 ];
 
@@ -32,5 +34,6 @@ export type {
   AiModelOption,
   AiProviderCapability,
   AiProviderDefinition,
+  AiProviderModelListStrategy,
   AiProviderSettingsField,
 } from "./types";

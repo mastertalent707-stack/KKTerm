@@ -10,6 +10,11 @@ export type AiProviderCapability =
   | "openAiCompatible"
   | "sdkOAuth";
 
+export type AiProviderModelListStrategy =
+  | "githubCopilotSdk"
+  | "ollamaTags"
+  | "openAiCompatible";
+
 export type AiModelOption = {
   id: string;
   label: string;
@@ -32,6 +37,8 @@ export type AiProviderDefinition = {
   apiKeyLabel: string;
   apiKeyUrl?: string;
   modelOptions: AiModelOption[];
+  modelListStrategy?: AiProviderModelListStrategy;
+  strictModelList?: boolean;
   settingsFields: AiProviderSettingsField[];
   capabilities: AiProviderCapability[];
 };

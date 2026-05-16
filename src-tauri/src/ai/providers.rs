@@ -8,6 +8,7 @@ mod nvidia;
 mod ollama;
 mod openai;
 mod openai_compatible;
+mod opencode;
 mod openrouter;
 
 use super::{AgentProviderAdapter, GitHubCopilotProvider};
@@ -23,6 +24,7 @@ pub(super) fn provider_for(kind: &str) -> Result<AgentProviderAdapter, String> {
         "openrouter" => Ok(AgentProviderAdapter::OpenAi(openrouter::provider())),
         "ollama" => Ok(AgentProviderAdapter::OpenAi(ollama::provider())),
         "nvidia" => Ok(AgentProviderAdapter::OpenAi(nvidia::provider())),
+        "opencode" => Ok(AgentProviderAdapter::OpenAi(opencode::provider())),
         "openai-compatible" => Ok(AgentProviderAdapter::OpenAi(openai_compatible::provider())),
         "anthropic" => Err(
             "Anthropic support needs a provider adapter; DeepSeek and OpenAI-compatible providers are wired first."
