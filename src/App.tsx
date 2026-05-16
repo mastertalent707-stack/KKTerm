@@ -115,14 +115,12 @@ function App() {
           onPointerDown={handleAiPanelResize}
         />
       ) : null}
-      {activePage !== "settings" ? (
-        <AssistantPanel
-          collapsed={aiPanelLayout.collapsed}
-          onOpenSettings={() => navigateToPage("settings")}
-          onToggleCollapsed={toggleAiPanel}
-          pageContext={activePage === "dashboard" ? dashboardAssistantContext : undefined}
-        />
-      ) : null}
+      <AssistantPanel
+        collapsed={aiPanelLayout.collapsed}
+        onOpenSettings={() => navigateToPage("settings")}
+        onToggleCollapsed={toggleAiPanel}
+        pageContext={activePage === "dashboard" ? dashboardAssistantContext : undefined}
+      />
       {activePage === "settings" ? (
         <SettingsPage
           onBack={() => setActivePage(previousNonSettingsPageRef.current)}

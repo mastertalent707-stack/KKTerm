@@ -414,6 +414,11 @@ button {
   pointer-events: none;
 }
 
+.settings-mode .assistant-panel {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .activity-rail {
   display: flex;
   position: relative;
