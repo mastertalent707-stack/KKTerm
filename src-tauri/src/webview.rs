@@ -840,7 +840,7 @@ where
         },
         PermissionRequestedEventHandler,
     };
-    use windows::core::Interface;
+    use windows_core::Interface;
 
     let setup_error = Arc::new(Mutex::new(None::<String>));
     let setup_error_for_callback = Arc::clone(&setup_error);
@@ -942,7 +942,7 @@ fn configure_platform_certificate_error_bypass(webview: &Webview) -> Result<(), 
         },
         ServerCertificateErrorDetectedEventHandler,
     };
-    use windows::core::Interface;
+    use windows_core::Interface;
 
     let setup_error = Arc::new(Mutex::new(None::<String>));
     let setup_error_for_callback = Arc::clone(&setup_error);

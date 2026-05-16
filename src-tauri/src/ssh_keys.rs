@@ -144,7 +144,7 @@ fn unique_private_key_path(ssh_folder: &Path) -> Result<PathBuf, String> {
 
     for _ in 0..128 {
         let mut random = [0_u8; 8];
-        rand::thread_rng().fill_bytes(&mut random);
+        rand::rng().fill_bytes(&mut random);
         let suffix = random
             .iter()
             .map(|byte| format!("{byte:02x}"))
