@@ -399,6 +399,7 @@ export interface AiProviderSettings {
   model: string;
   reasoningEffort: AiReasoningEffort;
   outputLanguage: string;
+  customInstructions: string;
   allowInsecureTls: boolean;
   cliExecutionPolicy: "suggestOnly";
   toolPermissionMode: AiToolPermissionMode;

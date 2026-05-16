@@ -29,6 +29,8 @@ export const DEFAULT_AI_ASSISTANT_TOOLS: AiAssistantToolSettings = {
   sessions: true,
 };
 
+export const CUSTOM_AI_INSTRUCTIONS_MAX_LENGTH = 1000;
+
 export function providerDefaultsFor(kind: AiProviderKind): AiProviderSettings {
   const definition = getAiProviderDefinition(kind);
   return {
@@ -37,6 +39,7 @@ export function providerDefaultsFor(kind: AiProviderKind): AiProviderSettings {
     model: definition.defaultModel,
     reasoningEffort: definition.defaultReasoningEffort,
     outputLanguage: "",
+    customInstructions: "",
     allowInsecureTls: false,
     cliExecutionPolicy: "suggestOnly",
     toolPermissionMode: "prompt",
@@ -64,6 +67,14 @@ export function normalizeAiProviderDraft(draft: AiProviderSettings): AiProviderS
   if (!model) {
     throw new Error(i18next.t("ai.modelRequired"));
   }
+  const customInstructions = (draft.customInstructions ?? "").trim();
+  if (customInstructions.length > CUSTOM_AI_INSTRUCTIONS_MAX_LENGTH) {
+    throw new Error(
+      i18next.t("settings.aiCustomInstructionsTooLong", {
+        count: CUSTOM_AI_INSTRUCTIONS_MAX_LENGTH,
+      }),
+    );
+  }
 
   return {
     ...draft,
@@ -71,6 +82,7 @@ export function normalizeAiProviderDraft(draft: AiProviderSettings): AiProviderS
     baseUrl: baseUrl.replace(/\/+$/, ""),
     model,
     reasoningEffort,
+    customInstructions,
     allowInsecureTls: Boolean(draft.allowInsecureTls),
     cliExecutionPolicy: "suggestOnly",
     toolPermissionMode: draft.toolPermissionMode === "allowAll" ? "allowAll" : "prompt",

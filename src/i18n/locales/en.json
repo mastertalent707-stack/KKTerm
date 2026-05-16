@@ -746,6 +746,9 @@
     "aiAllowInsecureTlsHint": "Ignore invalid or self-signed certificates for AI provider requests. Use only for trusted local or internal endpoints.",
     "aiResponseDefaults": "Response defaults",
     "aiResponseDefaultsHint": "Language preferences for Assistant replies.",
+    "aiCustomInstructions": "Custom instructions",
+    "aiCustomInstructionsHint": "Optional Assistant guidance, up to {{count}} characters. KKTerm safety, approval, and local-first constraints still apply.",
+    "aiCustomInstructionsTooLong": "AI Assistant custom instructions must be {{count}} characters or fewer.",
     "aiToolsDescription": "Choose the built-in tools the AI Assistant may call.",
     "aiToolsSafety": "Safeguards: file tools stay in app data, shell commands run from app data, and destructive requests are blocked.",
     "aiTools": {

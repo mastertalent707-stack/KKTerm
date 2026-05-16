@@ -497,6 +497,8 @@ pub struct AiProviderSettings {
     #[serde(default)]
     output_language: String,
     #[serde(default)]
+    custom_instructions: String,
+    #[serde(default)]
     allow_insecure_tls: bool,
     #[serde(default = "default_ai_cli_execution_policy")]
     cli_execution_policy: String,
@@ -535,6 +537,10 @@ impl AiProviderSettings {
 
     pub(crate) fn allow_insecure_tls(&self) -> bool {
         self.allow_insecure_tls
+    }
+
+    pub(crate) fn custom_instructions(&self) -> &str {
+        &self.custom_instructions
     }
 
     pub(crate) fn tools(&self) -> &AiAssistantToolSettings {
@@ -3914,6 +3920,7 @@ fn default_ai_provider_settings() -> AiProviderSettings {
         model: default_ai_model(),
         reasoning_effort: default_ai_reasoning_effort(),
         output_language: String::new(),
+        custom_instructions: String::new(),
         allow_insecure_tls: false,
         cli_execution_policy: default_ai_cli_execution_policy(),
         tool_permission_mode: default_ai_tool_permission_mode(),
@@ -4232,6 +4239,12 @@ fn validate_ai_provider_settings(
         _ => return Err("AI tool permission mode must be prompt or allowAll".to_string()),
     };
     settings.output_language = settings.output_language.trim().to_string();
+    settings.custom_instructions = settings.custom_instructions.trim().to_string();
+    if settings.custom_instructions.chars().count() > 1000 {
+        return Err(
+            "AI Assistant custom instructions must be 1000 characters or fewer".to_string(),
+        );
+    }
     settings.claude_cli_path = trim_optional(settings.claude_cli_path);
     settings.codex_cli_path = trim_optional(settings.codex_cli_path);
 
@@ -5974,6 +5987,7 @@ mod tests {
         assert_eq!(defaults.base_url, "https://api.openai.com/v1");
         assert_eq!(defaults.model, "gpt-5.5");
         assert_eq!(defaults.reasoning_effort, "medium");
+        assert_eq!(defaults.custom_instructions, "");
         assert_eq!(defaults.cli_execution_policy, "suggestOnly");
         assert_eq!(defaults.tool_permission_mode, "prompt");
         assert!(!defaults.allow_insecure_tls);
@@ -5986,6 +6000,7 @@ mod tests {
                 model: " openai/gpt-5.5 ".to_string(),
                 reasoning_effort: " XHIGH ".to_string(),
                 output_language: String::new(),
+                custom_instructions: String::new(),
                 allow_insecure_tls: true,
                 cli_execution_policy: "suggest-only".to_string(),
                 tool_permission_mode: " Allow All ".to_string(),
@@ -6057,6 +6072,7 @@ mod tests {
                 model: "gpt-5.5".to_string(),
                 reasoning_effort: "medium".to_string(),
                 output_language: String::new(),
+                custom_instructions: String::new(),
                 allow_insecure_tls: false,
                 cli_execution_policy: "suggestOnly".to_string(),
                 tool_permission_mode: "autoDeleteEverything".to_string(),
@@ -6084,6 +6100,7 @@ mod tests {
                 model: "gpt-5.5".to_string(),
                 reasoning_effort: "medium".to_string(),
                 output_language: String::new(),
+                custom_instructions: String::new(),
                 allow_insecure_tls: false,
                 cli_execution_policy: "suggestOnly".to_string(),
                 tool_permission_mode: "prompt".to_string(),
@@ -6115,6 +6132,7 @@ mod tests {
                 model: "   ".to_string(),
                 reasoning_effort: "medium".to_string(),
                 output_language: String::new(),
+                custom_instructions: String::new(),
                 allow_insecure_tls: false,
                 cli_execution_policy: "suggestOnly".to_string(),
                 tool_permission_mode: "prompt".to_string(),
@@ -6131,6 +6149,50 @@ mod tests {
     }
 
     #[test]
+    fn ai_provider_settings_trim_and_limit_custom_instructions() {
+        let storage =
+            Storage::open(temp_db_path("ai-provider-custom-instructions")).expect("storage opens");
+
+        let updated = storage
+            .update_ai_provider_settings(AiProviderSettings {
+                enabled: true,
+                provider_kind: "openai".to_string(),
+                base_url: "https://api.openai.com/v1".to_string(),
+                model: "gpt-5.5".to_string(),
+                reasoning_effort: "medium".to_string(),
+                output_language: String::new(),
+                custom_instructions: "  Prefer concise PowerShell examples.  ".to_string(),
+                allow_insecure_tls: false,
+                cli_execution_policy: "suggestOnly".to_string(),
+                tool_permission_mode: "prompt".to_string(),
+                claude_cli_path: None,
+                codex_cli_path: None,
+                tools: default_ai_assistant_tool_settings(),
+                search_provider: default_search_provider(),
+                searxng_url: String::new(),
+                search_provider_api_key: None,
+            })
+            .expect("custom instructions update");
+
+        assert_eq!(
+            updated.custom_instructions,
+            "Prefer concise PowerShell examples."
+        );
+
+        let error = storage
+            .update_ai_provider_settings(AiProviderSettings {
+                custom_instructions: "x".repeat(1001),
+                ..updated
+            })
+            .expect_err("overlong custom instructions are rejected");
+
+        assert_eq!(
+            error,
+            "AI Assistant custom instructions must be 1000 characters or fewer"
+        );
+    }
+
+    #[test]
     fn ai_provider_settings_keep_cli_policy_suggest_only() {
         let storage = Storage::open(temp_db_path("ai-provider-cli-policy")).expect("storage opens");
 
@@ -6142,6 +6204,7 @@ mod tests {
                 model: "gpt-5.5".to_string(),
                 reasoning_effort: "medium".to_string(),
                 output_language: String::new(),
+                custom_instructions: String::new(),
                 allow_insecure_tls: false,
                 cli_execution_policy: "executeAutomatically".to_string(),
                 tool_permission_mode: "prompt".to_string(),

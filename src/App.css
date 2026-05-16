@@ -6535,7 +6535,8 @@ fieldset.connection-specific-options > legend {
 .settings-dialog input,
 .settings-dialog select,
 .settings-section input,
-.settings-section select {
+.settings-section select,
+.settings-section textarea {
   width: 100%;
   min-width: 0;
   height: 30px;
@@ -6572,13 +6573,25 @@ fieldset.connection-specific-options > legend {
   font-size: 14px;
 }
 
+.settings-section textarea {
+  min-height: 96px;
+  height: auto;
+  padding: 8px 9px;
+  resize: vertical;
+}
+
+.settings-section textarea.ai-custom-instructions-textarea {
+  background: #ffffff;
+}
+
 .connection-dialog input:focus,
 .connection-dialog select:focus,
 .connection-dialog textarea:focus,
 .settings-dialog input:focus,
 .settings-dialog select:focus,
 .settings-section input:focus,
-.settings-section select:focus {
+.settings-section select:focus,
+.settings-section textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
@@ -9040,6 +9053,7 @@ fieldset.connection-specific-options > legend {
 
 .settings-section label:not(.settings-toggle-row) > input,
 .settings-section label:not(.settings-toggle-row) > select,
+.settings-section label:not(.settings-toggle-row) > textarea,
 .settings-section label:not(.settings-toggle-row) > .input-with-button,
 .settings-section label:not(.settings-toggle-row) > datalist {
   grid-column: 2;
@@ -9051,9 +9065,11 @@ fieldset.connection-specific-options > legend {
 
 .settings-section label:not(.settings-toggle-row):has(> .field-hint) > input,
 .settings-section label:not(.settings-toggle-row):has(> .field-hint) > select,
+.settings-section label:not(.settings-toggle-row):has(> .field-hint) > textarea,
 .settings-section label:not(.settings-toggle-row):has(> .field-hint) > .input-with-button,
 .settings-section label:not(.settings-toggle-row):has(> small) > input,
 .settings-section label:not(.settings-toggle-row):has(> small) > select,
+.settings-section label:not(.settings-toggle-row):has(> small) > textarea,
 .settings-section label:not(.settings-toggle-row):has(> small) > .input-with-button {
   grid-row: 1 / span 2;
   align-self: center;

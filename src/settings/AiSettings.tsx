@@ -3,6 +3,7 @@ import { Bot, RefreshCw, Save } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   AI_PROVIDER_DEFINITIONS,
+  CUSTOM_AI_INSTRUCTIONS_MAX_LENGTH,
   getAiProviderDefinition,
   normalizeAiProviderDraft,
   providerDefaultsFor,
@@ -235,6 +236,35 @@ function AiOutputLanguageControl({
           <option key={SUPPORTED_LANGUAGES[index]} value={name} />
         ))}
       </datalist>
+    </label>
+  );
+}
+
+function AiCustomInstructionsControl({
+  draft,
+  onDraftChange,
+}: {
+  draft: AiProviderSettingsType;
+  onDraftChange: (patch: Partial<AiProviderSettingsType>) => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <label>
+      <span>{t("settings.aiCustomInstructions")}</span>
+      <small className="field-hint">
+        {t("settings.aiCustomInstructionsHint", {
+          count: CUSTOM_AI_INSTRUCTIONS_MAX_LENGTH,
+        })}
+      </small>
+      <textarea
+        className="ai-custom-instructions-textarea"
+        maxLength={CUSTOM_AI_INSTRUCTIONS_MAX_LENGTH}
+        onChange={(event) =>
+          onDraftChange({ customInstructions: event.currentTarget.value })
+        }
+        value={draft.customInstructions ?? ""}
+      />
     </label>
   );
 }
@@ -904,6 +934,15 @@ export function AiSettings() {
         </div>
         <div className="ai-provider-fields">
           <AiOutputLanguageControl
+            draft={draft}
+            onDraftChange={(patch) =>
+              setDraft((settings) => ({
+                ...settings,
+                ...patch,
+              }))
+            }
+          />
+          <AiCustomInstructionsControl
             draft={draft}
             onDraftChange={(patch) =>
               setDraft((settings) => ({
