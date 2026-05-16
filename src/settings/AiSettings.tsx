@@ -26,6 +26,7 @@ import type {
   AiReasoningEffort,
   SearchProvider,
 } from "../types";
+import { sortModelOptionsForProvider } from "../ai/providerModelOptions";
 import { McpServersControl } from "./McpServers";
 import { SettingsSectionHeader } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
@@ -106,7 +107,10 @@ function AiProviderSettingsFieldControl({
         </label>
       );
     case "model": {
-      const options = modelOptions ?? definition.modelOptions;
+      const options = sortModelOptionsForProvider(
+        definition.kind,
+        modelOptions ?? definition.modelOptions,
+      );
       const modelOptionIds = new Set(options.map((model) => model.id));
       const hasCustomModel = draft.model.trim().length > 0 && !modelOptionIds.has(draft.model);
       return (
@@ -614,18 +618,19 @@ export function AiSettings() {
     })
       .then((models) => {
         if (disposed) return;
-        setRefreshedModelOptions(models);
+        const sortedModels = sortModelOptionsForProvider(draft.providerKind, models);
+        setRefreshedModelOptions(sortedModels);
         setDraft((settings) => {
           if (
             settings.providerKind !== draft.providerKind ||
-            models.length === 0 ||
+            sortedModels.length === 0 ||
             (settings.model.trim().length > 0 &&
               (!aiProviderDefinition.strictModelList ||
-                models.some((model) => model.id === settings.model)))
+                sortedModels.some((model) => model.id === settings.model)))
           ) {
             return settings;
           }
-          return { ...settings, model: models[0].id };
+          return { ...settings, model: sortedModels[0].id };
         });
       })
       .catch(() => {
@@ -664,18 +669,19 @@ export function AiSettings() {
           allowInsecureTls: draft.allowInsecureTls,
         },
       });
-      setRefreshedModelOptions(models);
+      const sortedModels = sortModelOptionsForProvider(draft.providerKind, models);
+      setRefreshedModelOptions(sortedModels);
       setDraft((settings) => {
         if (
           settings.providerKind !== draft.providerKind ||
-          models.length === 0 ||
+          sortedModels.length === 0 ||
           (settings.model.trim().length > 0 &&
             (!aiProviderDefinition.strictModelList ||
-              models.some((model) => model.id === settings.model)))
+              sortedModels.some((model) => model.id === settings.model)))
         ) {
           return settings;
         }
-        return { ...settings, model: models[0].id };
+        return { ...settings, model: sortedModels[0].id };
       });
       showStatusBarNotice(t("settings.modelListRefreshed"), { tone: "success" });
     } catch (error) {

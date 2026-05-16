@@ -38,13 +38,18 @@ import type {
 import { useTranslation } from "react-i18next";
 import { ariaChecked, ariaExpanded, dialogButtonAria, menuButtonAria } from "../lib/aria";
 import { invokeCommand, isTauriRuntime, openExternalUrl } from "../lib/tauri";
-import type { AiStreamEvent, CaptureScreenshotRequest } from "../lib/tauri";
+import type {
+  AiProviderModelOption,
+  AiStreamEvent,
+  CaptureScreenshotRequest,
+} from "../lib/tauri";
 import {
   getAiProviderDefinition,
   modelSupportsImageInput,
   normalizeAiProviderDraft,
   validateAiProviderForChat,
 } from "./providers";
+import { sortModelOptionsForProvider } from "./providerModelOptions";
 import {
   applyAssistantStreamEventToMessage,
   completeAssistantStreamMessageFromResponse,
@@ -662,6 +667,7 @@ export function AssistantPanel({
   const [imagePasteRejected, setImagePasteRejected] = useState(false);
   const [screenshotRegionState, setScreenshotRegionState] =
     useState<ScreenshotRegionState | null>(null);
+  const [refreshedModelOptions, setRefreshedModelOptions] = useState<AiProviderModelOption[]>([]);
   const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const addContextMenuRef = useRef<HTMLDivElement | null>(null);
@@ -691,11 +697,21 @@ export function AssistantPanel({
   const dashboardToolsEnabled =
     pageContext?.contextKind === "dashboard" && Boolean(aiProviderSettings.tools?.dashboard);
   const providerDefinition = getAiProviderDefinition(aiProviderSettings.providerKind);
+  const assistantModelOptions = useMemo(
+    () =>
+      refreshedModelOptions.length > 0
+        ? refreshedModelOptions
+        : sortModelOptionsForProvider(
+            aiProviderSettings.providerKind,
+            providerDefinition.modelOptions,
+          ),
+    [aiProviderSettings.providerKind, providerDefinition.modelOptions, refreshedModelOptions],
+  );
   const currentModel = aiProviderSettings.model || providerDefinition.defaultModel;
   const currentToolPermissionMode = aiProviderSettings.toolPermissionMode ?? "prompt";
   const modelOptionIds = useMemo(
-    () => new Set(providerDefinition.modelOptions.map((model) => model.id)),
-    [providerDefinition],
+    () => new Set(assistantModelOptions.map((model) => model.id)),
+    [assistantModelOptions],
   );
   const hasCustomModel = currentModel.trim().length > 0 && !modelOptionIds.has(currentModel);
   const toolPermissionLabels = useMemo(
@@ -705,9 +721,9 @@ export function AssistantPanel({
   const modelSelectLabels = useMemo(
     () => [
       ...(hasCustomModel ? [currentModel] : []),
-      ...providerDefinition.modelOptions.map((model) => model.label),
+      ...assistantModelOptions.map((model) => model.label),
     ],
-    [currentModel, hasCustomModel, providerDefinition],
+    [assistantModelOptions, currentModel, hasCustomModel],
   );
   const currentModelSupportsImageInput = modelSupportsImageInput(
     providerDefinition,
@@ -747,6 +763,46 @@ export function AssistantPanel({
   const sortedChatHistory = useMemo(() => sortedAssistantThreads(chatHistory), [chatHistory]);
   const recentChatHistory = sortedChatHistory.slice(0, 5);
   const shouldShowChatHistory = messages.length === 0 && !prompt.trim() && !isSendingPrompt;
+
+  useEffect(() => {
+    if (
+      !isTauriRuntime() ||
+      !providerDefinition.modelListStrategy ||
+      (providerDefinition.requiresApiKey && !aiProviderHasApiKey)
+    ) {
+      setRefreshedModelOptions([]);
+      return;
+    }
+
+    let disposed = false;
+    void invokeCommand("list_ai_provider_models", {
+      request: {
+        providerKind: aiProviderSettings.providerKind,
+        baseUrl: aiProviderSettings.baseUrl,
+        allowInsecureTls: aiProviderSettings.allowInsecureTls,
+      },
+    })
+      .then((models) => {
+        if (disposed) return;
+        setRefreshedModelOptions(
+          sortModelOptionsForProvider(aiProviderSettings.providerKind, models),
+        );
+      })
+      .catch(() => {
+        if (!disposed) setRefreshedModelOptions([]);
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [
+    aiProviderHasApiKey,
+    aiProviderSettings.allowInsecureTls,
+    aiProviderSettings.baseUrl,
+    aiProviderSettings.providerKind,
+    providerDefinition.modelListStrategy,
+    providerDefinition.requiresApiKey,
+  ]);
 
   useEffect(() => {
     writeAssistantChatHistory(chatHistory);
@@ -2301,7 +2357,7 @@ export function AssistantPanel({
             value={currentModel}
           >
             {hasCustomModel ? <option value={currentModel}>{currentModel}</option> : null}
-            {providerDefinition.modelOptions.map((model) => (
+            {assistantModelOptions.map((model) => (
               <option key={model.id} value={model.id}>
                 {model.label}
               </option>
