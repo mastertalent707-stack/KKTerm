@@ -1214,6 +1214,31 @@ async fn stream_responses_completions(
 }
 
 impl OpenAiCompatibleProvider {
+    fn supports_explicit_strict_tool_schemas(&self) -> bool {
+        matches!(self.provider_kind, "openai" | "azure-openai")
+    }
+
+    fn tool_definitions_for_provider(
+        &self,
+        tools: &[OpenAiToolDefinition],
+    ) -> Vec<OpenAiToolDefinition> {
+        let mut tools = tools.to_vec();
+        if !self.supports_explicit_strict_tool_schemas() {
+            for tool in &mut tools {
+                tool.function.strict = false;
+            }
+        }
+        tools
+    }
+
+    fn responses_tool_definitions_for_provider(
+        &self,
+        tools: &[OpenAiToolDefinition],
+    ) -> Vec<Value> {
+        let tools = self.tool_definitions_for_provider(tools);
+        responses_tool_definitions(&tools)
+    }
+
     async fn run_chat(
         &self,
         app: tauri::AppHandle,
@@ -1245,6 +1270,7 @@ impl OpenAiCompatibleProvider {
         } else {
             Vec::new()
         };
+        let provider_tool_definitions = self.tool_definitions_for_provider(&tool_definitions);
         let app_data_dir = app
             .path()
             .app_data_dir()
@@ -1258,8 +1284,8 @@ impl OpenAiCompatibleProvider {
                 model: settings.model().to_string(),
                 messages: messages.clone(),
                 stream: false,
-                tools: tool_definitions.clone(),
-                tool_choice: (!tool_definitions.is_empty()).then(|| "auto".to_string()),
+                tools: provider_tool_definitions.clone(),
+                tool_choice: (!provider_tool_definitions.is_empty()).then(|| "auto".to_string()),
                 thinking: deepseek_thinking(self.provider_kind, settings.reasoning_effort()),
             };
             log_provider_request(
@@ -1442,6 +1468,8 @@ impl OpenAiCompatibleProvider {
         } else {
             Vec::new()
         };
+        let provider_tool_definitions =
+            self.responses_tool_definitions_for_provider(&tool_definitions);
         let app_data_dir = app
             .path()
             .app_data_dir()
@@ -1456,8 +1484,8 @@ impl OpenAiCompatibleProvider {
                 input: input.clone(),
                 stream: false,
                 store: false,
-                tools: responses_tool_definitions(&tool_definitions),
-                tool_choice: (!tool_definitions.is_empty()).then(|| "auto".to_string()),
+                tools: provider_tool_definitions.clone(),
+                tool_choice: (!provider_tool_definitions.is_empty()).then(|| "auto".to_string()),
             };
             log_provider_request(
                 "responses",
@@ -1643,6 +1671,7 @@ impl OpenAiCompatibleProvider {
         } else {
             Vec::new()
         };
+        let provider_tool_definitions = self.tool_definitions_for_provider(&tool_definitions);
         let app_data_dir = app
             .path()
             .app_data_dir()
@@ -1663,8 +1692,8 @@ impl OpenAiCompatibleProvider {
                 model: model.clone(),
                 messages: messages.clone(),
                 stream: true,
-                tools: tool_definitions.clone(),
-                tool_choice: (!tool_definitions.is_empty()).then(|| "auto".to_string()),
+                tools: provider_tool_definitions.clone(),
+                tool_choice: (!provider_tool_definitions.is_empty()).then(|| "auto".to_string()),
                 thinking: deepseek_thinking(self.provider_kind, settings.reasoning_effort()),
             };
             log_provider_request(
@@ -1917,7 +1946,7 @@ impl OpenAiCompatibleProvider {
         let exhausted = true;
 
         let mut input = responses_input_from_messages(messages, request.files);
-        let resp_tool_defs = responses_tool_definitions(&tool_definitions);
+        let resp_tool_defs = self.responses_tool_definitions_for_provider(&tool_definitions);
 
         for turn_index in 0..10 {
             let request_body = OpenAiResponsesRequest {
@@ -1926,7 +1955,7 @@ impl OpenAiCompatibleProvider {
                 stream: true,
                 store: false,
                 tools: resp_tool_defs.clone(),
-                tool_choice: (!tool_definitions.is_empty()).then(|| "auto".to_string()),
+                tool_choice: (!resp_tool_defs.is_empty()).then(|| "auto".to_string()),
             };
             log_provider_request(
                 "responses_stream",
@@ -3161,7 +3190,7 @@ fn dashboard_widget_body_schema() -> Value {
             {"type":"object","properties":{"shape":{"type":"string","enum":["kvList"]},"data":{"type":"object","properties":{"rows":{"type":"array","minItems":1,"items":{"type":"object","properties":{"label":{"type":"string","minLength":1},"value":{"type":"string"}},"required":["label","value"],"additionalProperties":false}}},"required":["rows"],"additionalProperties":false}},"required":["shape","data"],"additionalProperties":false},
             {"type":"object","properties":{"shape":{"type":"string","enum":["checklist"]},"data":{"type":"object","properties":{"items":{"type":"array","minItems":1,"items":{"type":"object","properties":{"label":{"type":"string","minLength":1},"done":{"type":"boolean"}},"required":["label","done"],"additionalProperties":false}}},"required":["items"],"additionalProperties":false}},"required":["shape","data"],"additionalProperties":false},
             {"type":"object","properties":{"shape":{"type":"string","enum":["stat"]},"data":{"type":"object","properties":{"value":{"type":"string","minLength":1},"unit":{"type":["string","null"]},"delta":{"type":["string","null"]},"caption":{"type":["string","null"]}},"required":["value","unit","delta","caption"],"additionalProperties":false}},"required":["shape","data"],"additionalProperties":false},
-            {"type":"object","properties":{"source":{"type":"string","minLength":1},"permissions":{"type":"object","properties":{"network":{"type":"boolean"},"pollSeconds":{"type":["integer","null"],"minimum":1}},"required":["network","pollSeconds"],"additionalProperties":false},"htmlShim":{"type":["string","null"]},"libraries":{"type":"array","maxItems":8,"items":{"type":"string","enum":dashboard_widget_library_keys()}}},"required":["source","permissions","htmlShim"],"additionalProperties":false}
+            {"type":"object","properties":{"source":{"type":"string","minLength":1},"permissions":{"type":"object","properties":{"network":{"type":"boolean"},"pollSeconds":{"type":["integer","null"],"minimum":1}},"required":["network","pollSeconds"],"additionalProperties":false},"htmlShim":{"type":["string","null"]},"libraries":{"type":"array","maxItems":8,"items":{"type":"string","enum":dashboard_widget_library_keys()}}},"required":["source","permissions","htmlShim","libraries"],"additionalProperties":false}
         ]
     })
 }
@@ -5754,6 +5783,18 @@ mod tests {
             .parameters
             .pointer("/properties/patch/properties/body/anyOf/4/properties/libraries")
             .is_some());
+        assert!(create_tool
+            .function
+            .parameters
+            .pointer("/properties/body/anyOf/4/required")
+            .and_then(Value::as_array)
+            .is_some_and(|required| required.contains(&json!("libraries"))));
+        assert!(update_tool
+            .function
+            .parameters
+            .pointer("/properties/patch/properties/body/anyOf/4/required")
+            .and_then(Value::as_array)
+            .is_some_and(|required| required.contains(&json!("libraries"))));
 
         let enum_values = create_tool
             .function
@@ -5766,6 +5807,143 @@ mod tests {
                 enum_values.contains(&json!(library)),
                 "script library enum should include {library}"
             );
+        }
+    }
+
+    fn openai_provider(provider_kind: &str) -> OpenAiCompatibleProvider {
+        match providers::provider_for(provider_kind).expect("provider should exist") {
+            AgentProviderAdapter::OpenAi(provider) => provider,
+            AgentProviderAdapter::GitHubCopilot(_) => {
+                panic!("{provider_kind} is not an OpenAI-compatible provider")
+            }
+        }
+    }
+
+    #[test]
+    fn explicit_strict_tool_flags_are_only_sent_to_openai_family_providers() {
+        let settings: AiAssistantToolSettings = serde_json::from_value(json!({
+            "dashboard": true,
+            "currentTime": true
+        }))
+        .expect("tool settings deserialize");
+        let tools = ai_tool_definitions(&settings);
+        assert!(
+            tools.iter().any(|tool| tool.function.strict),
+            "shared tools include strict-capable definitions"
+        );
+
+        for provider_kind in ["openai", "azure-openai"] {
+            let provider = openai_provider(provider_kind);
+            let provider_tools = provider.tool_definitions_for_provider(&tools);
+            assert!(
+                provider_tools.iter().any(|tool| tool.function.strict),
+                "{provider_kind} should keep explicit strict tool flags"
+            );
+        }
+
+        for provider_kind in [
+            "deepseek",
+            "gemini",
+            "grok",
+            "litellm",
+            "nvidia",
+            "ollama",
+            "opencode",
+            "openai-compatible",
+            "openrouter",
+        ] {
+            let provider = openai_provider(provider_kind);
+            let provider_tools = provider.tool_definitions_for_provider(&tools);
+            assert!(
+                provider_tools.iter().all(|tool| !tool.function.strict),
+                "{provider_kind} should omit explicit strict tool flags"
+            );
+        }
+    }
+
+    #[test]
+    fn explicit_strict_tool_schemas_satisfy_openai_object_requirements() {
+        let settings: AiAssistantToolSettings = serde_json::from_value(json!({
+            "dashboard": true,
+            "currentTime": true
+        }))
+        .expect("tool settings deserialize");
+        let tools = ai_tool_definitions(&settings);
+        let strict_tools: Vec<_> = tools
+            .iter()
+            .filter(|tool| tool.function.strict)
+            .collect();
+        assert!(!strict_tools.is_empty(), "strict tools should be present");
+
+        for tool in strict_tools {
+            let mut errors = Vec::new();
+            collect_openai_strict_schema_errors(
+                &tool.function.parameters,
+                format!("{}.parameters", tool.function.name),
+                &mut errors,
+            );
+            assert!(
+                errors.is_empty(),
+                "{} strict schema violates OpenAI object requirements: {}",
+                tool.function.name,
+                errors.join("; ")
+            );
+        }
+    }
+
+    fn collect_openai_strict_schema_errors(schema: &Value, path: String, errors: &mut Vec<String>) {
+        if let Some(properties) = schema.get("properties").and_then(Value::as_object) {
+            if schema.get("additionalProperties") != Some(&Value::Bool(false)) {
+                errors.push(format!("{path} is missing additionalProperties=false"));
+            }
+
+            let required = schema
+                .get("required")
+                .and_then(Value::as_array)
+                .map(|values| {
+                    values
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .collect::<std::collections::BTreeSet<_>>()
+                });
+            let property_names = properties
+                .keys()
+                .map(String::as_str)
+                .collect::<std::collections::BTreeSet<_>>();
+            if required.as_ref() != Some(&property_names) {
+                let required_names = required
+                    .unwrap_or_default()
+                    .into_iter()
+                    .collect::<Vec<_>>()
+                    .join(",");
+                let property_names = property_names.into_iter().collect::<Vec<_>>().join(",");
+                errors.push(format!(
+                    "{path} required [{required_names}] does not match properties [{property_names}]"
+                ));
+            }
+
+            for (name, child) in properties {
+                collect_openai_strict_schema_errors(
+                    child,
+                    format!("{path}.properties.{name}"),
+                    errors,
+                );
+            }
+        }
+
+        if let Some(items) = schema.get("items") {
+            collect_openai_strict_schema_errors(items, format!("{path}.items"), errors);
+        }
+        for keyword in ["anyOf", "oneOf", "allOf"] {
+            if let Some(branches) = schema.get(keyword).and_then(Value::as_array) {
+                for (index, branch) in branches.iter().enumerate() {
+                    collect_openai_strict_schema_errors(
+                        branch,
+                        format!("{path}.{keyword}.{index}"),
+                        errors,
+                    );
+                }
+            }
         }
     }
 
