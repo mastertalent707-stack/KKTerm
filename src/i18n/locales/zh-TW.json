@@ -428,7 +428,9 @@
     "selectedIntent": "已選擇的助理意圖",
     "clearIntent": "清除 {{intent}}",
     "toolPerformanceCounters": "正在讀取效能計數器…",
-    "toolPerformanceCountersDone": "已讀取效能計數器"
+    "toolPerformanceCountersDone": "已讀取效能計數器",
+    "toolEmail": "正在傳送郵件…",
+    "toolEmailDone": "郵件已傳送"
   },
   "app": {
     "aiAssistant": "AI 助理",
@@ -449,7 +451,8 @@
     "settings": "設定",
     "trayDontSleep": "禁止休眠",
     "trayExit": "結束",
-    "wiki": "Wiki"
+    "wiki": "Wiki",
+    "manual": "手冊"
   },
   "appLauncher": {
     "addApp": "新增應用程式",
@@ -512,6 +515,7 @@
     "confirm": "確認",
     "connect": "連線",
     "copy": "複製",
+    "cut": "剪下",
     "delete": "刪除",
     "edit": "編輯",
     "error": "錯誤",
@@ -845,7 +849,7 @@
     "catalog": "小工具目錄",
     "catalogAll": "全部",
     "catalogGroupBuiltIn": "內建",
-    "catalogGroupCustom": "自訂",
+    "catalogGroupCustom": "AI 建立",
     "catalogNoMatches": "無符合的小工具。",
     "catalogSearch": "搜尋小工具…",
     "catalogTitle": "小工具目錄",
@@ -874,13 +878,14 @@
     "connectionWidgetSelectPlaceholder": "選擇已儲存的連接…",
     "copyValue": "複製 {{label}}",
     "customize": "自訂小工具",
+    "properties": "屬性",
     "customizeSectionCommon": "一般",
     "customizeSectionWidget": "小工具",
     "defaultView": "預設檢視",
     "deleteCustomWidget": "刪除 {{name}}",
-    "deleteCustomWidgetBody": "這將從每個儀表板視圖中刪除「{{name}}」及其所有執行個體。此操作無法復原。",
+    "deleteCustomWidgetBody": "這將從每個儀表板視圖中刪除 AI 建立的小工具「{{name}}」及其所有執行個體。此操作無法復原。",
     "deleteCustomWidgetConfirm": "刪除小工具",
-    "deleteCustomWidgetTitle": "刪除自訂小工具",
+    "deleteCustomWidgetTitle": "刪除 AI 建立的小工具",
     "density": {
       "compact": "緊湊",
       "default": "預設",
@@ -916,7 +921,7 @@
     "lastUsable": "末個可用",
     "mask": "子網路遮罩",
     "missingBuiltInWidget": "缺少內建小工具：{{sourceId}}",
-    "missingCustomWidget": "缺少自訂小工具：{{sourceId}}",
+    "missingCustomWidget": "缺少 AI 建立的小工具：{{sourceId}}",
     "moduleLabel": "小工具遊樂場",
     "network": "網路",
     "networkAddress": "網路位址",
@@ -983,7 +988,7 @@
     "subnetSample": "192.168.10.44/27",
     "subnetSummary": "將 CIDR 表示法展開為網路位址、廣播位址、遮罩和可用主機範圍。",
     "subnetTitle": "IPv4 子網路計算機",
-    "subtitle": "選擇本機工具小工具、報告和代理撰寫的卡片，將常用工具放在手邊。",
+    "subtitle": "選擇本機工具小工具、報告和 AI 建立的小工具，將常用工具放在手邊。",
     "title": "儀表板",
     "titleLabel": "標題",
     "titlePlaceholder": "自訂標題…",
@@ -1136,16 +1141,24 @@
         "label": "目前時間"
       },
       "dashboard": {
-        "description": "讀取和修改儀表板檢視、小工具實例和自訂小工具。",
+        "description": "讀取和修改儀表板檢視、小工具實例及 AI 建立的小工具。",
         "label": "儀表板"
       },
       "sessions": {
         "description": "讀取可見的工作階段上下文，並與活動的終端機、遠端桌面和檔案瀏覽器工作階段互動。",
         "label": "即時工作階段"
       },
+      "manual": {
+        "label": "操作手冊",
+        "description": "搜尋並閱讀內建的 KKTerm 操作手冊，以回答有關應用程式功能的使用問題。"
+      },
       "shellCommand": {
         "description": "僅從 KKTerm 應用程式資料執行非破壞性的 PowerShell 或批次命令。",
         "label": "PowerShell / 批次命令"
+      },
+      "email": {
+        "label": "傳送郵件",
+        "description": "透過 Resend、SendGrid、Mailgun、Postmark 或 SMTP 傳送已審閱的郵件。"
       },
       "webFetch": {
         "description": "讀取單一 http/https 頁面並摘要文字大小的內容。",
@@ -1221,6 +1234,8 @@
     "copyOnSelect": "選取時自動複製終端機文字",
     "credentialDeleted": "認證已刪除。",
     "credentialKindAiApiKey": "AI 提供者金鑰",
+    "credentialKindEmailApiKey": "郵件服務商金鑰",
+    "credentialKindEmailSmtpPassword": "SMTP 密碼",
     "credentialKindConnectionPassword": "連線密碼",
     "credentialKindUrlPassword": "網站認證",
     "credentialKindWidgetSecret": "小工具密鑰",
@@ -1245,7 +1260,7 @@
     "dashboardGeneral": "一般",
     "dashboardLandingLast": "上次使用的檢視",
     "dashboardReset": "重設儀表板",
-    "dashboardResetBody": "這將刪除所有儀表板檢視、小工具實例和 AI 撰寫的自訂小工具。預設檢視將恢復並帶有一個應用程式啟動器小工具。此操作無法復原。",
+    "dashboardResetBody": "這將刪除所有儀表板檢視、小工具實例和 AI 建立的小工具。預設檢視將恢復並帶有一個應用程式啟動器小工具。此操作無法復原。",
     "dashboardResetConfirm": "重設儀表板",
     "dashboardResetDone": "儀表板已重設為預設值。",
     "dashboardResetTitle": "重設儀表板",
@@ -1394,6 +1409,22 @@
     "searchProviderSearxng": "SearXNG",
     "searchProviderTavily": "Tavily",
     "searxngUrl": "SearXNG 執行個體 URL",
+    "emailProvider": "郵件服務供應商",
+    "emailProviderResend": "Resend",
+    "emailProviderSendGrid": "SendGrid",
+    "emailProviderMailgun": "Mailgun",
+    "emailProviderPostmark": "Postmark",
+    "emailProviderSmtp": "SMTP",
+    "emailFrom": "寄件人地址",
+    "emailApiKey": "郵件服務商 API 金鑰",
+    "mailgunDomain": "Mailgun 網域",
+    "smtpHost": "SMTP 主機",
+    "smtpPort": "SMTP 連接埠",
+    "smtpSecurity": "SMTP 加密方式",
+    "smtpSecurityStartTls": "STARTTLS",
+    "smtpSecurityNone": "無",
+    "smtpUsername": "SMTP 使用者名稱",
+    "smtpPassword": "SMTP 密碼",
     "sectionAbout": "關於",
     "sectionAiAssistant": "AI 助理",
     "sectionAppearance": "外觀",
@@ -1557,7 +1588,9 @@
     "mcpErrorKeychain": "作業系統金鑰鏈無法使用；無法儲存密鑰。",
     "aiCustomInstructions": "自訂指示",
     "aiCustomInstructionsHint": "可選的助理指導，最多 {{count}} 個字元。KKTerm 的安全性、核准和本地優先限制仍然適用。",
-    "aiCustomInstructionsTooLong": "AI 助理自訂指示不得超過 {{count}} 個字元。"
+    "aiCustomInstructionsTooLong": "AI 助理自訂指示不得超過 {{count}} 個字元。",
+    "showAllModels": "顯示所有模型",
+    "showAllModelsHint": "顯示重新整理時供應商返回的所有模型，而非僅限精選推薦。"
   },
   "sftp": {
     "accessed": "存取日期",
@@ -1905,5 +1938,14 @@
     "webview": "Webview",
     "workspace": "工作區",
     "workspaceSurface": "工作區表面"
+  },
+  "manual": {
+    "title": "操作手冊",
+    "subtitle": "KKTerm 操作指南，隨每個版本一併發布。",
+    "chaptersLabel": "章節",
+    "back": "返回",
+    "loading": "載入中…",
+    "loadError": "無法載入手冊：{{message}}",
+    "tauriRequired": "手冊僅在桌面執行環境中可用。"
   }
 }

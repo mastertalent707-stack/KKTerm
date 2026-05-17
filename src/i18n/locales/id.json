@@ -428,7 +428,9 @@
     "selectedIntent": "Intent asisten yang dipilih",
     "clearIntent": "Hapus {{intent}}",
     "toolPerformanceCounters": "Membaca pencacah kinerja…",
-    "toolPerformanceCountersDone": "Pencacah kinerja dibaca"
+    "toolPerformanceCountersDone": "Pencacah kinerja dibaca",
+    "toolEmail": "Mengirim email…",
+    "toolEmailDone": "Email terkirim"
   },
   "app": {
     "aiAssistant": "AI Assistant",
@@ -449,7 +451,8 @@
     "settings": "Pengaturan",
     "trayDontSleep": "Jangan Tidur",
     "trayExit": "Keluar",
-    "wiki": "Wiki"
+    "wiki": "Wiki",
+    "manual": "Panduan"
   },
   "appLauncher": {
     "addApp": "Tambah Aplikasi",
@@ -511,6 +514,7 @@
     "confirm": "Konfirmasi",
     "connect": "Hubungkan",
     "copy": "Salin",
+    "cut": "Potong",
     "delete": "Hapus",
     "edit": "Edit",
     "error": "Error",
@@ -844,7 +848,7 @@
     "catalog": "Katalog widget",
     "catalogAll": "Semua",
     "catalogGroupBuiltIn": "Bawaan",
-    "catalogGroupCustom": "Kustom",
+    "catalogGroupCustom": "Buatan AI",
     "catalogNoMatches": "Tidak ada widget yang cocok.",
     "catalogSearch": "Cari widget…",
     "catalogTitle": "Katalog Widget",
@@ -873,13 +877,14 @@
     "connectionWidgetSelectPlaceholder": "Pilih Koneksi tersimpan…",
     "copyValue": "Salin {{label}}",
     "customize": "Sesuaikan widget",
+    "properties": "Properti",
     "customizeSectionCommon": "Umum",
     "customizeSectionWidget": "Widget",
     "defaultView": "Tampilan default",
     "deleteCustomWidget": "Hapus {{name}}",
-    "deleteCustomWidgetBody": "Ini menghapus \"{{name}}\" dan semua instansnya dari setiap tampilan Dasbor. Ini tidak dapat dibatalkan.",
+    "deleteCustomWidgetBody": "Ini menghapus Widget Buatan AI \"{{name}}\" dan semua instansnya dari setiap tampilan Dashboard. Ini tidak dapat dibatalkan.",
     "deleteCustomWidgetConfirm": "Hapus Widget",
-    "deleteCustomWidgetTitle": "Hapus Widget Kustom",
+    "deleteCustomWidgetTitle": "Hapus Widget Buatan AI",
     "density": {
       "compact": "Rapat",
       "default": "Default",
@@ -915,7 +920,7 @@
     "lastUsable": "Terakhir dapat digunakan",
     "mask": "Subnet mask",
     "missingBuiltInWidget": "Widget bawaan hilang: {{sourceId}}",
-    "missingCustomWidget": "Widget kustom hilang: {{sourceId}}",
+    "missingCustomWidget": "Widget Buatan AI hilang: {{sourceId}}",
     "moduleLabel": "Taman bermain widget",
     "network": "Jaringan",
     "networkAddress": "Jaringan",
@@ -982,7 +987,7 @@
     "subnetSample": "192.168.10.44/27",
     "subnetSummary": "Perluas notasi CIDR menjadi jaringan, broadcast, mask, dan rentang host yang dapat digunakan.",
     "subnetTitle": "Kalkulator Subnet IPv4",
-    "subtitle": "Pilih widget utilitas lokal, laporan, dan kartu buatan agen untuk alat yang ingin Anda jangkau dengan mudah.",
+    "subtitle": "Pilih widget utilitas lokal, laporan, dan Widget Buatan AI untuk alat yang ingin Anda jangkau dengan mudah.",
     "title": "Dasbor",
     "titleLabel": "Judul",
     "titlePlaceholder": "Judul kustom…",
@@ -1135,16 +1140,24 @@
         "label": "Waktu saat ini"
       },
       "dashboard": {
-        "description": "Membaca dan memodifikasi tampilan Dasbor, instans widget, dan widget kustom.",
+        "description": "Baca dan modifikasi tampilan Dashboard, instansi widget, dan Widget Buatan AI.",
         "label": "Dasbor"
       },
       "sessions": {
         "description": "Baca konteks sesi yang terlihat dan berinteraksi dengan sesi terminal aktif, desktop jarak jauh, dan penjelajah file.",
         "label": "Sesi langsung"
       },
+      "manual": {
+        "label": "Panduan Operasional",
+        "description": "Cari dan baca Panduan Operasional KKTerm bawaan untuk menjawab pertanyaan tentang fitur aplikasi."
+      },
       "shellCommand": {
         "description": "Jalankan perintah PowerShell atau batch non-destruktif dari data aplikasi KKTerm saja.",
         "label": "Perintah PowerShell / batch"
+      },
+      "email": {
+        "label": "Kirim Email",
+        "description": "Kirim pesan yang telah ditinjau melalui Resend, SendGrid, Mailgun, Postmark, atau SMTP."
       },
       "webFetch": {
         "description": "Baca satu halaman http/https dan ringkas konten seukuran teks.",
@@ -1220,6 +1233,8 @@
     "copyOnSelect": "Salin teks terminal otomatis saat dipilih",
     "credentialDeleted": "Kredensial dihapus.",
     "credentialKindAiApiKey": "Kunci penyedia AI",
+    "credentialKindEmailApiKey": "Kunci penyedia email",
+    "credentialKindEmailSmtpPassword": "Kata sandi SMTP",
     "credentialKindConnectionPassword": "Kata sandi koneksi",
     "credentialKindUrlPassword": "Kredensial situs web",
     "credentialKindWidgetSecret": "Secret widget",
@@ -1244,7 +1259,7 @@
     "dashboardGeneral": "Umum",
     "dashboardLandingLast": "Tampilan terakhir aktif",
     "dashboardReset": "Reset Dasbor",
-    "dashboardResetBody": "Ini menghapus semua tampilan Dasbor, instans widget, dan widget kustom buatan AI. Tampilan Default akan dipulihkan dengan satu widget Peluncur Aplikasi. Ini tidak dapat dibatalkan.",
+    "dashboardResetBody": "Ini menghapus semua tampilan Dashboard, instans widget, dan Widget Buatan AI. Tampilan Default akan dipulihkan dengan satu widget Peluncur Aplikasi. Ini tidak dapat dibatalkan.",
     "dashboardResetConfirm": "Reset Dasbor",
     "dashboardResetDone": "Dasbor direset ke default.",
     "dashboardResetTitle": "Reset Dasbor",
@@ -1393,6 +1408,22 @@
     "searchProviderSearxng": "SearXNG",
     "searchProviderTavily": "Tavily",
     "searxngUrl": "URL instans SearXNG",
+    "emailProvider": "Penyedia email",
+    "emailProviderResend": "Resend",
+    "emailProviderSendGrid": "SendGrid",
+    "emailProviderMailgun": "Mailgun",
+    "emailProviderPostmark": "Postmark",
+    "emailProviderSmtp": "SMTP",
+    "emailFrom": "Alamat pengirim",
+    "emailApiKey": "Kunci API penyedia email",
+    "mailgunDomain": "Domain Mailgun",
+    "smtpHost": "Host SMTP",
+    "smtpPort": "Port SMTP",
+    "smtpSecurity": "Keamanan SMTP",
+    "smtpSecurityStartTls": "STARTTLS",
+    "smtpSecurityNone": "Tidak ada",
+    "smtpUsername": "Nama pengguna SMTP",
+    "smtpPassword": "Kata sandi SMTP",
     "sectionAbout": "Tentang",
     "sectionAiAssistant": "AI Assistant",
     "sectionAppearance": "Tampilan",
@@ -1556,7 +1587,9 @@
     "mcpErrorKeychain": "Keychain OS tidak tersedia; rahasia tidak dapat disimpan.",
     "aiCustomInstructions": "Instruksi kustom",
     "aiCustomInstructionsHint": "Panduan asisten opsional, hingga {{count}} karakter. Batasan keamanan, persetujuan, dan local-first KKTerm tetap berlaku.",
-    "aiCustomInstructionsTooLong": "Instruksi kustom asisten AI harus {{count}} karakter atau kurang."
+    "aiCustomInstructionsTooLong": "Instruksi kustom asisten AI harus {{count}} karakter atau kurang.",
+    "showAllModels": "Tampilkan Semua Model",
+    "showAllModelsHint": "Tampilkan setiap model yang dikembalikan oleh penyedia saat penyegaran, bukan hanya rekomendasi terpilih."
   },
   "sftp": {
     "accessed": "Diakses",
@@ -1904,5 +1937,14 @@
     "webview": "Webview",
     "workspace": "Ruang kerja",
     "workspaceSurface": "Permukaan ruang kerja"
+  },
+  "manual": {
+    "title": "Panduan Operasional",
+    "subtitle": "Cara mengoperasikan KKTerm. Disertakan dalam setiap rilis.",
+    "chaptersLabel": "Bab",
+    "back": "Kembali",
+    "loading": "Memuat…",
+    "loadError": "Gagal memuat panduan: {{message}}",
+    "tauriRequired": "Panduan hanya tersedia di runtime desktop."
   }
 }

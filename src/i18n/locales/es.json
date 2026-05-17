@@ -428,7 +428,9 @@
     "selectedIntent": "Intención del asistente seleccionada",
     "clearIntent": "Limpiar {{intent}}",
     "toolPerformanceCounters": "Leyendo contadores de rendimiento…",
-    "toolPerformanceCountersDone": "Contadores de rendimiento leídos"
+    "toolPerformanceCountersDone": "Contadores de rendimiento leídos",
+    "toolEmail": "Enviando correo…",
+    "toolEmailDone": "Correo enviado"
   },
   "app": {
     "aiAssistant": "Asistente IA",
@@ -449,7 +451,8 @@
     "settings": "Ajustes",
     "trayDontSleep": "No dormir",
     "trayExit": "Salir",
-    "wiki": "Wiki"
+    "wiki": "Wiki",
+    "manual": "Manual"
   },
   "appLauncher": {
     "addApp": "Añadir app",
@@ -511,6 +514,7 @@
     "confirm": "Confirmar",
     "connect": "Conectar",
     "copy": "Copiar",
+    "cut": "Cortar",
     "delete": "Eliminar",
     "edit": "Editar",
     "error": "Error",
@@ -844,7 +848,7 @@
     "catalog": "Catálogo de widgets",
     "catalogAll": "Todos",
     "catalogGroupBuiltIn": "Integrado",
-    "catalogGroupCustom": "Personalizado",
+    "catalogGroupCustom": "Creados por IA",
     "catalogNoMatches": "Ningún widget coincide.",
     "catalogSearch": "Buscar widgets…",
     "catalogTitle": "Catálogo de widgets",
@@ -873,13 +877,14 @@
     "connectionWidgetSelectPlaceholder": "Seleccionar una conexión guardada…",
     "copyValue": "Copiar {{label}}",
     "customize": "Personalizar widget",
+    "properties": "Propiedades",
     "customizeSectionCommon": "Común",
     "customizeSectionWidget": "Widget",
     "defaultView": "Vista predeterminada",
     "deleteCustomWidget": "Eliminar {{name}}",
-    "deleteCustomWidgetBody": "Esto elimina \"{{name}}\" y todas sus instancias de cada vista del Panel. Esto no se puede deshacer.",
+    "deleteCustomWidgetBody": "Esto elimina el widget creado por IA \"{{name}}\" y todas sus instancias de cada vista del Dashboard. Esto no se puede deshacer.",
     "deleteCustomWidgetConfirm": "Eliminar widget",
-    "deleteCustomWidgetTitle": "Eliminar widget personalizado",
+    "deleteCustomWidgetTitle": "Eliminar widget creado por IA",
     "density": {
       "compact": "Compacto",
       "default": "Predeterminado",
@@ -915,7 +920,7 @@
     "lastUsable": "Última utilizable",
     "mask": "Máscara de subred",
     "missingBuiltInWidget": "Widget integrado faltante: {{sourceId}}",
-    "missingCustomWidget": "Widget personalizado faltante: {{sourceId}}",
+    "missingCustomWidget": "Widget creado por IA faltante: {{sourceId}}",
     "moduleLabel": "Zona de widgets",
     "network": "Red",
     "networkAddress": "Red",
@@ -982,7 +987,7 @@
     "subnetSample": "192.168.10.44/27",
     "subnetSummary": "Expanda notación CIDR en dirección de red, broadcast, máscara y rangos de hosts utilizables.",
     "subnetTitle": "Calculadora de subred IPv4",
-    "subtitle": "Seleccione widgets de utilidad local, informes y tarjetas generadas por agentes para las herramientas que desee tener a mano.",
+    "subtitle": "Seleccione widgets de utilidad local, informes y widgets creados por IA para las herramientas que desee tener a mano.",
     "title": "Panel de control",
     "titleLabel": "Título",
     "titlePlaceholder": "Título personalizado…",
@@ -1135,16 +1140,24 @@
         "label": "Hora actual"
       },
       "dashboard": {
-        "description": "Leer y modificar vistas del panel, instancias de widgets y widgets personalizados.",
+        "description": "Leer y modificar las vistas del Dashboard, las instancias de widgets y los widgets creados por IA.",
         "label": "Panel"
       },
       "sessions": {
         "description": "Leer el contexto visible de sesiones e interactuar con sesiones activas de terminal, escritorio remoto y explorador de archivos.",
         "label": "Sesiones activas"
       },
+      "manual": {
+        "label": "Manual de operaciones",
+        "description": "Buscar y leer el Manual de operaciones KKTerm incluido para responder preguntas sobre el uso de la aplicación."
+      },
       "shellCommand": {
         "description": "Ejecutar comandos PowerShell o batch no destructivos solo desde los datos de la aplicación KKTerm.",
         "label": "Comandos PowerShell / batch"
+      },
+      "email": {
+        "label": "Enviar correo",
+        "description": "Enviar mensajes revisados a través de Resend, SendGrid, Mailgun, Postmark o SMTP."
       },
       "webFetch": {
         "description": "Leer una sola página http/https y resumir contenido de tamaño textual.",
@@ -1220,6 +1233,8 @@
     "copyOnSelect": "Copiar texto seleccionado automáticamente",
     "credentialDeleted": "Credencial eliminada.",
     "credentialKindAiApiKey": "Claves de proveedor IA",
+    "credentialKindEmailApiKey": "Claves de proveedor de correo",
+    "credentialKindEmailSmtpPassword": "Contraseñas SMTP",
     "credentialKindConnectionPassword": "Contraseñas de conexión",
     "credentialKindUrlPassword": "Credenciales de sitios web",
     "credentialKindWidgetSecret": "Secretos de widgets",
@@ -1244,7 +1259,7 @@
     "dashboardGeneral": "General",
     "dashboardLandingLast": "Última vista activa",
     "dashboardReset": "Restablecer panel",
-    "dashboardResetBody": "Esto elimina todas las vistas del panel, instancias de widgets y widgets personalizados creados por IA. Se restaurará la vista predeterminada con un widget de lanzador de aplicaciones. Esto no se puede deshacer.",
+    "dashboardResetBody": "Esto elimina todas las vistas del Dashboard, instancias de widgets y widgets creados por IA. La vista predeterminada se restaurará con un widget Lanzador de aplicaciones. Esto no se puede deshacer.",
     "dashboardResetConfirm": "Restablecer panel",
     "dashboardResetDone": "Panel restablecido a valores predeterminados.",
     "dashboardResetTitle": "Restablecer panel",
@@ -1393,6 +1408,22 @@
     "searchProviderSearxng": "SearXNG",
     "searchProviderTavily": "Tavily",
     "searxngUrl": "URL de instancia SearXNG",
+    "emailProvider": "Proveedor de correo",
+    "emailProviderResend": "Resend",
+    "emailProviderSendGrid": "SendGrid",
+    "emailProviderMailgun": "Mailgun",
+    "emailProviderPostmark": "Postmark",
+    "emailProviderSmtp": "SMTP",
+    "emailFrom": "Dirección de origen",
+    "emailApiKey": "Clave API del proveedor de correo",
+    "mailgunDomain": "Dominio Mailgun",
+    "smtpHost": "Host SMTP",
+    "smtpPort": "Puerto SMTP",
+    "smtpSecurity": "Seguridad SMTP",
+    "smtpSecurityStartTls": "STARTTLS",
+    "smtpSecurityNone": "Ninguna",
+    "smtpUsername": "Usuario SMTP",
+    "smtpPassword": "Contraseña SMTP",
     "sectionAbout": "Acerca de",
     "sectionAiAssistant": "Asistente IA",
     "sectionAppearance": "Apariencia",
@@ -1556,7 +1587,9 @@
     "mcpErrorKeychain": "El llavero del SO no está disponible; no se pueden almacenar secretos.",
     "aiCustomInstructions": "Instrucciones personalizadas",
     "aiCustomInstructionsHint": "Guía opcional del asistente, hasta {{count}} caracteres. Las restricciones de seguridad, aprobación y local-first de KKTerm siguen aplicándose.",
-    "aiCustomInstructionsTooLong": "Las instrucciones personalizadas del asistente IA deben tener {{count}} caracteres o menos."
+    "aiCustomInstructionsTooLong": "Las instrucciones personalizadas del asistente IA deben tener {{count}} caracteres o menos.",
+    "showAllModels": "Mostrar todos los modelos",
+    "showAllModelsHint": "Mostrar todos los modelos devueltos por el proveedor al actualizar, no solo las recomendaciones seleccionadas."
   },
   "sftp": {
     "accessed": "Accedido",
@@ -1904,5 +1937,14 @@
     "webview": "Webview",
     "workspace": "Espacio de trabajo",
     "workspaceSurface": "Superficie del espacio de trabajo"
+  },
+  "manual": {
+    "title": "Manual de operaciones",
+    "subtitle": "Cómo operar KKTerm. Se distribuye con cada versión.",
+    "chaptersLabel": "Capítulos",
+    "back": "Atrás",
+    "loading": "Cargando…",
+    "loadError": "No se pudo cargar el manual: {{message}}",
+    "tauriRequired": "El manual solo está disponible en el entorno de ejecución de escritorio."
   }
 }

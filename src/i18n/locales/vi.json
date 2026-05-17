@@ -428,7 +428,9 @@
     "selectedIntent": "Ý định trợ lý đã chọn",
     "clearIntent": "Xóa {{intent}}",
     "toolPerformanceCounters": "Đang đọc bộ đếm hiệu suất…",
-    "toolPerformanceCountersDone": "Đã đọc bộ đếm hiệu suất"
+    "toolPerformanceCountersDone": "Đã đọc bộ đếm hiệu suất",
+    "toolEmail": "Đang gửi email…",
+    "toolEmailDone": "Đã gửi email"
   },
   "app": {
     "aiAssistant": "Trợ lý AI",
@@ -449,7 +451,8 @@
     "settings": "Settings",
     "trayDontSleep": "Không ngủ",
     "trayExit": "Thoát",
-    "wiki": "Wiki"
+    "wiki": "Wiki",
+    "manual": "Hướng dẫn"
   },
   "appLauncher": {
     "addApp": "Thêm Ứng dụng",
@@ -511,6 +514,7 @@
     "confirm": "Confirm",
     "connect": "Connect",
     "copy": "Copy",
+    "cut": "Cắt",
     "delete": "Delete",
     "edit": "Edit",
     "error": "Error",
@@ -844,7 +848,7 @@
     "catalog": "Danh mục tiện ích",
     "catalogAll": "Tất cả",
     "catalogGroupBuiltIn": "Tích hợp",
-    "catalogGroupCustom": "Tùy chỉnh",
+    "catalogGroupCustom": "Do AI tạo",
     "catalogNoMatches": "Không có tiện ích nào khớp.",
     "catalogSearch": "Tìm kiếm tiện ích…",
     "catalogTitle": "Danh mục Tiện ích",
@@ -873,13 +877,14 @@
     "connectionWidgetSelectPlaceholder": "Chọn kết nối đã lưu…",
     "copyValue": "Sao chép {{label}}",
     "customize": "Tùy chỉnh tiện ích",
+    "properties": "Thuộc tính",
     "customizeSectionCommon": "Chung",
     "customizeSectionWidget": "Widget",
     "defaultView": "Góc nhìn mặc định",
     "deleteCustomWidget": "Xóa {{name}}",
-    "deleteCustomWidgetBody": "Thao tác này xóa \"{{name}}\" và tất cả phiên bản của nó khỏi mọi chế độ xem Bảng điều khiển. Không thể hoàn tác.",
+    "deleteCustomWidgetBody": "Thao tác này xóa Widget do AI tạo \"{{name}}\" và tất cả phiên bản của nó khỏi mọi chế độ xem Dashboard. Không thể hoàn tác.",
     "deleteCustomWidgetConfirm": "Xóa tiện ích",
-    "deleteCustomWidgetTitle": "Xóa tiện ích tùy chỉnh",
+    "deleteCustomWidgetTitle": "Xóa Widget do AI tạo",
     "density": {
       "compact": "Gọn",
       "default": "Mặc định",
@@ -915,7 +920,7 @@
     "lastUsable": "Khả dụng cuối cùng",
     "mask": "Mặt nạ mạng con",
     "missingBuiltInWidget": "Thiếu tiện ích tích hợp: {{sourceId}}",
-    "missingCustomWidget": "Thiếu tiện ích tùy chỉnh: {{sourceId}}",
+    "missingCustomWidget": "Thiếu Widget do AI tạo: {{sourceId}}",
     "moduleLabel": "Sân chơi tiện ích",
     "network": "Mạng",
     "networkAddress": "Mạng",
@@ -982,7 +987,7 @@
     "subnetSample": "192.168.10.44/27",
     "subnetSummary": "Mở rộng ký hiệu CIDR thành địa chỉ mạng, broadcast, mặt nạ và phạm vi máy khả dụng.",
     "subnetTitle": "Máy tính Mạng con IPv4",
-    "subtitle": "Chọn tiện ích cục bộ, báo cáo và thẻ do tác nhân soạn cho các công cụ bạn muốn có trong tầm tay.",
+    "subtitle": "Chọn tiện ích cục bộ, báo cáo và Widget do AI tạo cho các công cụ bạn muốn có trong tầm tay.",
     "title": "Bảng điều khiển",
     "titleLabel": "Tiêu đề",
     "titlePlaceholder": "Tiêu đề tùy chỉnh…",
@@ -1132,16 +1137,24 @@
         "label": "Thời gian hiện tại"
       },
       "dashboard": {
-        "description": "Đọc và sửa đổi góc nhìn Bảng điều khiển, phiên bản tiện ích và tiện ích tùy chỉnh.",
+        "description": "Đọc và chỉnh sửa các chế độ xem Dashboard, phiên bản widget và Widget do AI tạo.",
         "label": "Bảng điều khiển"
       },
       "sessions": {
         "description": "Đọc ngữ cảnh phiên hiển thị và tương tác với phiên terminal, máy tính từ xa và trình duyệt tệp đang hoạt động.",
         "label": "Phiên trực tiếp"
       },
+      "manual": {
+        "label": "Hướng dẫn vận hành",
+        "description": "Tìm kiếm và đọc Hướng dẫn vận hành KKTerm đính kèm để trả lời các câu hỏi về tính năng ứng dụng."
+      },
       "shellCommand": {
         "description": "Chạy lệnh PowerShell hoặc batch không phá hủy từ dữ liệu ứng dụng KKTerm.",
         "label": "Lệnh PowerShell / batch"
+      },
+      "email": {
+        "label": "Gửi Email",
+        "description": "Gửi tin nhắn đã được xem xét qua Resend, SendGrid, Mailgun, Postmark hoặc SMTP."
       },
       "webFetch": {
         "description": "Đọc một trang http/https và tóm tắt nội dung dạng văn bản.",
@@ -1217,6 +1230,8 @@
     "copyOnSelect": "Copy selected terminal text automatically",
     "credentialDeleted": "Đã xóa thông tin xác thực.",
     "credentialKindAiApiKey": "Khóa nhà cung cấp AI",
+    "credentialKindEmailApiKey": "Khóa nhà cung cấp email",
+    "credentialKindEmailSmtpPassword": "Mật khẩu SMTP",
     "credentialKindConnectionPassword": "Mật khẩu kết nối",
     "credentialKindUrlPassword": "Thông tin xác thực trang web",
     "credentialKindWidgetSecret": "Secret widget",
@@ -1241,7 +1256,7 @@
     "dashboardGeneral": "Chung",
     "dashboardLandingLast": "Góc nhìn hoạt động cuối cùng",
     "dashboardReset": "Đặt lại Bảng điều khiển",
-    "dashboardResetBody": "Thao tác này xóa tất cả góc nhìn Bảng điều khiển, phiên bản tiện ích và tiện ích tùy chỉnh do AI tạo. Góc nhìn Mặc định sẽ được khôi phục với một tiện ích Trình Khởi chạy Ứng dụng. Không thể hoàn tác.",
+    "dashboardResetBody": "Thao tác này xóa tất cả chế độ xem Dashboard, phiên bản tiện ích và Widget do AI tạo. Chế độ xem Mặc định sẽ được khôi phục với một tiện ích Trình Khởi chạy Ứng dụng. Không thể hoàn tác.",
     "dashboardResetConfirm": "Đặt lại Bảng điều khiển",
     "dashboardResetDone": "Bảng điều khiển đã được đặt lại về mặc định.",
     "dashboardResetTitle": "Đặt lại Bảng điều khiển",
@@ -1390,6 +1405,22 @@
     "searchProviderSearxng": "SearXNG",
     "searchProviderTavily": "Tavily",
     "searxngUrl": "URL phiên bản SearXNG",
+    "emailProvider": "Nhà cung cấp email",
+    "emailProviderResend": "Resend",
+    "emailProviderSendGrid": "SendGrid",
+    "emailProviderMailgun": "Mailgun",
+    "emailProviderPostmark": "Postmark",
+    "emailProviderSmtp": "SMTP",
+    "emailFrom": "Địa chỉ người gửi",
+    "emailApiKey": "Khóa API nhà cung cấp email",
+    "mailgunDomain": "Tên miền Mailgun",
+    "smtpHost": "Máy chủ SMTP",
+    "smtpPort": "Cổng SMTP",
+    "smtpSecurity": "Bảo mật SMTP",
+    "smtpSecurityStartTls": "STARTTLS",
+    "smtpSecurityNone": "Không có",
+    "smtpUsername": "Tên người dùng SMTP",
+    "smtpPassword": "Mật khẩu SMTP",
     "sectionAbout": "About",
     "sectionAiAssistant": "AI Assistant",
     "sectionAppearance": "Appearance",
@@ -1510,7 +1541,9 @@
     "yuGothicUi": "Yu Gothic UI",
     "aiCustomInstructions": "Hướng dẫn tùy chỉnh",
     "aiCustomInstructionsHint": "Hướng dẫn trợ lý tùy chọn, tối đa {{count}} ký tự. Các ràng buộc về an toàn, phê duyệt và local-first của KKTerm vẫn được áp dụng.",
-    "aiCustomInstructionsTooLong": "Hướng dẫn tùy chỉnh của trợ lý AI phải từ {{count}} ký tự trở xuống."
+    "aiCustomInstructionsTooLong": "Hướng dẫn tùy chỉnh của trợ lý AI phải từ {{count}} ký tự trở xuống.",
+    "showAllModels": "Hiển thị tất cả mô hình",
+    "showAllModelsHint": "Hiển thị mọi mô hình được nhà cung cấp trả về khi làm mới thay vì chỉ các đề xuất được tuyển chọn."
   },
   "sftp": {
     "accessed": "Accessed",
@@ -1858,5 +1891,14 @@
     "webview": "Webview",
     "workspace": "Workspace",
     "workspaceSurface": "Workspace surface"
+  },
+  "manual": {
+    "title": "Hướng dẫn vận hành",
+    "subtitle": "Cách vận hành KKTerm. Đi kèm với mỗi bản phát hành.",
+    "chaptersLabel": "Chương",
+    "back": "Quay lại",
+    "loading": "Đang tải…",
+    "loadError": "Không thể tải hướng dẫn: {{message}}",
+    "tauriRequired": "Hướng dẫn chỉ có sẵn trong môi trường chạy máy tính để bàn."
   }
 }

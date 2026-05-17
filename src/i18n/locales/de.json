@@ -428,7 +428,9 @@
     "selectedIntent": "Ausgewählte Assistenten-Absicht",
     "clearIntent": "{{intent}} löschen",
     "toolPerformanceCounters": "Leistungsindikatoren werden gelesen…",
-    "toolPerformanceCountersDone": "Leistungsindikatoren gelesen"
+    "toolPerformanceCountersDone": "Leistungsindikatoren gelesen",
+    "toolEmail": "E-Mail senden…",
+    "toolEmailDone": "E-Mail gesendet"
   },
   "app": {
     "aiAssistant": "KI-Assistent",
@@ -449,7 +451,8 @@
     "settings": "Einstellungen",
     "trayDontSleep": "Nicht schlafen",
     "trayExit": "Beenden",
-    "wiki": "Wiki"
+    "wiki": "Wiki",
+    "manual": "Handbuch"
   },
   "appLauncher": {
     "addApp": "App hinzufügen",
@@ -512,6 +515,7 @@
     "confirm": "Bestätigen",
     "connect": "Verbinden",
     "copy": "Kopieren",
+    "cut": "Ausschneiden",
     "delete": "Löschen",
     "edit": "Bearbeiten",
     "error": "Fehler",
@@ -845,7 +849,7 @@
     "catalog": "Widget-Katalog",
     "catalogAll": "Alle",
     "catalogGroupBuiltIn": "Integriert",
-    "catalogGroupCustom": "Benutzerdefiniert",
+    "catalogGroupCustom": "KI-erstellt",
     "catalogNoMatches": "Keine passenden Widgets.",
     "catalogSearch": "Widgets durchsuchen…",
     "catalogTitle": "Widget-Katalog",
@@ -874,13 +878,14 @@
     "connectionWidgetSelectPlaceholder": "Gespeicherte Verbindung auswählen…",
     "copyValue": "{{label}} kopieren",
     "customize": "Widget anpassen",
+    "properties": "Eigenschaften",
     "customizeSectionCommon": "Allgemein",
     "customizeSectionWidget": "Widget",
     "defaultView": "Standardansicht",
     "deleteCustomWidget": "{{name}} löschen",
-    "deleteCustomWidgetBody": "Dies löscht „{{name}}\" und alle Instanzen aus jeder Dashboard-Ansicht. Dies kann nicht rückgängig gemacht werden.",
+    "deleteCustomWidgetBody": "Dies löscht das KI-erstellte Widget „{{name}}“ und alle Instanzen davon aus jeder Dashboard-Ansicht. Dies kann nicht rückgängig gemacht werden.",
     "deleteCustomWidgetConfirm": "Widget löschen",
-    "deleteCustomWidgetTitle": "Benutzerdefiniertes Widget löschen",
+    "deleteCustomWidgetTitle": "KI-erstelltes Widget löschen",
     "density": {
       "compact": "Kompakt",
       "default": "Standard",
@@ -916,7 +921,7 @@
     "lastUsable": "Letzter nutzbarer",
     "mask": "Subnetzmaske",
     "missingBuiltInWidget": "Fehlendes integriertes Widget: {{sourceId}}",
-    "missingCustomWidget": "Fehlendes benutzerdefiniertes Widget: {{sourceId}}",
+    "missingCustomWidget": "Fehlendes KI-erstelltes Widget: {{sourceId}}",
     "moduleLabel": "Widgets",
     "network": "Netzwerk",
     "networkAddress": "Netzwerk",
@@ -983,7 +988,7 @@
     "subnetSample": "192.168.10.44/27",
     "subnetSummary": "Erweitert CIDR-Notation in Netzwerk-, Broadcast-, Masken- und nutzbare Host-Bereiche.",
     "subnetTitle": "IPv4-Subnetz-Rechner",
-    "subtitle": "Wählen Sie lokale Dienstprogramm-Widgets, Berichte und agentenerstellte Karten für die Werkzeuge, die Sie griffbereit haben möchten.",
+    "subtitle": "Wählen Sie lokale Dienstprogramm-Widgets, Berichte und KI-erstellte Widgets für die Werkzeuge aus, die Sie griffbereit haben möchten.",
     "title": "Dashboard",
     "titleLabel": "Titel",
     "titlePlaceholder": "Eigener Titel…",
@@ -1136,16 +1141,24 @@
         "label": "Aktuelle Uhrzeit"
       },
       "dashboard": {
-        "description": "Dashboard-Ansichten, Widget-Instanzen und benutzerdefinierte Widgets lesen und ändern.",
+        "description": "Dashboard-Ansichten, Widget-Instanzen und KI-erstellte Widgets lesen und ändern.",
         "label": "Dashboard"
       },
       "sessions": {
         "description": "Sichtbaren Sitzungskontext lesen und mit aktiven Terminal-, Remote-Desktop- und Dateibrowser-Sitzungen interagieren.",
         "label": "Live-Sitzungen"
       },
+      "manual": {
+        "label": "Betriebshandbuch",
+        "description": "Das mitgelieferte KKTerm-Betriebshandbuch durchsuchen und lesen, um Fragen zur App-Bedienung zu beantworten."
+      },
       "shellCommand": {
         "description": "Nicht-destruktive PowerShell- oder Batch-Befehle nur aus KKTerm-App-Daten ausführen.",
         "label": "PowerShell / Batch-Befehle"
+      },
+      "email": {
+        "label": "E-Mail senden",
+        "description": "Geprüfte Nachrichten über Resend, SendGrid, Mailgun, Postmark oder SMTP senden."
       },
       "webFetch": {
         "description": "Eine einzelne http/https-Seite lesen und textgroßen Inhalt zusammenfassen.",
@@ -1221,6 +1234,8 @@
     "copyOnSelect": "Ausgewählten Text automatisch kopieren",
     "credentialDeleted": "Anmeldeinformation gelöscht.",
     "credentialKindAiApiKey": "KI-Anbieterschlüssel",
+    "credentialKindEmailApiKey": "E-Mail-Anbieter-Schlüssel",
+    "credentialKindEmailSmtpPassword": "SMTP-Passwörter",
     "credentialKindConnectionPassword": "Verbindungspasswörter",
     "credentialKindUrlPassword": "Website-Anmeldeinformationen",
     "credentialKindWidgetSecret": "Widget-Geheimnisse",
@@ -1245,7 +1260,7 @@
     "dashboardGeneral": "Allgemein",
     "dashboardLandingLast": "Letzte aktive Ansicht",
     "dashboardReset": "Dashboard zurücksetzen",
-    "dashboardResetBody": "Dadurch werden alle Dashboard-Ansichten, Widget-Instanzen und KI-erstellte benutzerdefinierte Widgets gelöscht. Die Standardansicht wird mit einem App-Starter-Widget wiederhergestellt. Dies kann nicht rückgängig gemacht werden.",
+    "dashboardResetBody": "Dies löscht alle Dashboard-Ansichten, Widget-Instanzen und KI-erstellte Widgets. Die Standardansicht wird mit einem App-Starter-Widget wiederhergestellt. Dies kann nicht rückgängig gemacht werden.",
     "dashboardResetConfirm": "Dashboard zurücksetzen",
     "dashboardResetDone": "Dashboard auf Standardwerte zurückgesetzt.",
     "dashboardResetTitle": "Dashboard zurücksetzen",
@@ -1394,6 +1409,22 @@
     "searchProviderSearxng": "SearXNG",
     "searchProviderTavily": "Tavily",
     "searxngUrl": "SearXNG-Instanz-URL",
+    "emailProvider": "E-Mail-Anbieter",
+    "emailProviderResend": "Resend",
+    "emailProviderSendGrid": "SendGrid",
+    "emailProviderMailgun": "Mailgun",
+    "emailProviderPostmark": "Postmark",
+    "emailProviderSmtp": "SMTP",
+    "emailFrom": "Absenderadresse",
+    "emailApiKey": "API-Schlüssel des E-Mail-Anbieters",
+    "mailgunDomain": "Mailgun-Domain",
+    "smtpHost": "SMTP-Host",
+    "smtpPort": "SMTP-Port",
+    "smtpSecurity": "SMTP-Sicherheit",
+    "smtpSecurityStartTls": "STARTTLS",
+    "smtpSecurityNone": "Keine",
+    "smtpUsername": "SMTP-Benutzername",
+    "smtpPassword": "SMTP-Passwort",
     "sectionAbout": "Über",
     "sectionAiAssistant": "KI-Assistent",
     "sectionAppearance": "Erscheinungsbild",
@@ -1557,7 +1588,9 @@
     "mcpErrorKeychain": "OS-Schlüsselbund ist nicht verfügbar; Secrets können nicht gespeichert werden.",
     "aiCustomInstructions": "Benutzerdefinierte Anweisungen",
     "aiCustomInstructionsHint": "Optionale Assistenten-Anleitung, bis zu {{count}} Zeichen. KKTerm-Sicherheits-, Genehmigungs- und Local-First-Einschränkungen gelten weiterhin.",
-    "aiCustomInstructionsTooLong": "KI-Assistent benutzerdefinierte Anweisungen dürfen maximal {{count}} Zeichen haben."
+    "aiCustomInstructionsTooLong": "KI-Assistent benutzerdefinierte Anweisungen dürfen maximal {{count}} Zeichen haben.",
+    "showAllModels": "Alle Modelle anzeigen",
+    "showAllModelsHint": "Alle beim Aktualisieren vom Anbieter zurückgegebenen Modelle anzeigen, nicht nur die kuratierten Empfehlungen."
   },
   "sftp": {
     "accessed": "Zugegriffen",
@@ -1905,5 +1938,14 @@
     "webview": "Webview",
     "workspace": "Arbeitsbereich",
     "workspaceSurface": "Arbeitsbereich-Oberfläche"
+  },
+  "manual": {
+    "title": "Betriebshandbuch",
+    "subtitle": "Bedienung von KKTerm. Wird mit jedem Release ausgeliefert.",
+    "chaptersLabel": "Kapitel",
+    "back": "Zurück",
+    "loading": "Wird geladen…",
+    "loadError": "Handbuch konnte nicht geladen werden: {{message}}",
+    "tauriRequired": "Das Handbuch ist nur in der Desktop-Laufzeitumgebung verfügbar."
   }
 }

@@ -428,7 +428,9 @@
     "selectedIntent": "已选择的助手意图",
     "clearIntent": "清除 {{intent}}",
     "toolPerformanceCounters": "正在读取性能计数器…",
-    "toolPerformanceCountersDone": "已读取性能计数器"
+    "toolPerformanceCountersDone": "已读取性能计数器",
+    "toolEmail": "正在发送邮件…",
+    "toolEmailDone": "邮件已发送"
   },
   "app": {
     "aiAssistant": "AI 助手",
@@ -449,7 +451,8 @@
     "settings": "设置",
     "trayDontSleep": "禁止休眠",
     "trayExit": "退出",
-    "wiki": "Wiki"
+    "wiki": "Wiki",
+    "manual": "手册"
   },
   "appLauncher": {
     "addApp": "添加应用",
@@ -512,6 +515,7 @@
     "confirm": "确认",
     "connect": "连接",
     "copy": "复制",
+    "cut": "剪切",
     "delete": "删除",
     "edit": "编辑",
     "error": "错误",
@@ -845,7 +849,7 @@
     "catalog": "小部件目录",
     "catalogAll": "全部",
     "catalogGroupBuiltIn": "内置",
-    "catalogGroupCustom": "自定义",
+    "catalogGroupCustom": "AI 创建",
     "catalogNoMatches": "无匹配的小部件。",
     "catalogSearch": "搜索小部件…",
     "catalogTitle": "小部件目录",
@@ -874,13 +878,14 @@
     "connectionWidgetSelectPlaceholder": "选择已保存的连接…",
     "copyValue": "复制 {{label}}",
     "customize": "自定义小部件",
+    "properties": "属性",
     "customizeSectionCommon": "通用",
     "customizeSectionWidget": "小部件",
     "defaultView": "默认视图",
     "deleteCustomWidget": "删除 {{name}}",
-    "deleteCustomWidgetBody": "这将从每个仪表板视图中删除\"{{name}}\"及其所有实例。此操作无法撤消。",
+    "deleteCustomWidgetBody": "这将从每个仪表板视图中删除 AI 创建的小组件「{{name}}」及其所有实例。此操作无法撤消。",
     "deleteCustomWidgetConfirm": "删除小部件",
-    "deleteCustomWidgetTitle": "删除自定义小部件",
+    "deleteCustomWidgetTitle": "删除 AI 创建的小组件",
     "density": {
       "compact": "紧凑",
       "default": "默认",
@@ -916,7 +921,7 @@
     "lastUsable": "末个可用",
     "mask": "子网掩码",
     "missingBuiltInWidget": "缺少内置小部件：{{sourceId}}",
-    "missingCustomWidget": "缺少自定义小部件：{{sourceId}}",
+    "missingCustomWidget": "缺少 AI 创建的小组件：{{sourceId}}",
     "moduleLabel": "小部件游乐场",
     "network": "网络",
     "networkAddress": "网络地址",
@@ -983,7 +988,7 @@
     "subnetSample": "192.168.10.44/27",
     "subnetSummary": "将 CIDR 表示法展开为网络地址、广播地址、掩码和可用主机范围。",
     "subnetTitle": "IPv4 子网计算器",
-    "subtitle": "选择本地工具小部件、报告和代理编写的卡片，将常用工具放在手边。",
+    "subtitle": "选择本地工具小组件、报告和 AI 创建的小组件，将常用工具放在手边。",
     "title": "仪表板",
     "titleLabel": "标题",
     "titlePlaceholder": "自定义标题…",
@@ -1136,16 +1141,24 @@
         "label": "当前时间"
       },
       "dashboard": {
-        "description": "读取和修改仪表板视图、小部件实例和自定义小部件。",
+        "description": "读取和修改仪表板视图、小组件实例及 AI 创建的小组件。",
         "label": "仪表板"
       },
       "sessions": {
         "description": "读取可见的会话上下文，并与活动的终端、远程桌面和文件浏览器会话交互。",
         "label": "实时会话"
       },
+      "manual": {
+        "label": "操作手册",
+        "description": "搜索并阅读内置的 KKTerm 操作手册，解答有关应用功能的使用问题。"
+      },
       "shellCommand": {
         "description": "仅从 KKTerm 应用数据运行非破坏性的 PowerShell 或批处理命令。",
         "label": "PowerShell / 批处理命令"
+      },
+      "email": {
+        "label": "发送邮件",
+        "description": "通过 Resend、SendGrid、Mailgun、Postmark 或 SMTP 发送经审阅的邮件。"
       },
       "webFetch": {
         "description": "读取单个 http/https 页面并摘要文本内容。",
@@ -1221,6 +1234,8 @@
     "copyOnSelect": "选中时自动复制终端文字",
     "credentialDeleted": "凭据已删除。",
     "credentialKindAiApiKey": "AI 提供商密钥",
+    "credentialKindEmailApiKey": "邮件服务商密钥",
+    "credentialKindEmailSmtpPassword": "SMTP 密码",
     "credentialKindConnectionPassword": "连接密码",
     "credentialKindUrlPassword": "网站凭据",
     "credentialKindWidgetSecret": "小部件密钥",
@@ -1245,7 +1260,7 @@
     "dashboardGeneral": "通用",
     "dashboardLandingLast": "上次活动的视图",
     "dashboardReset": "重置仪表板",
-    "dashboardResetBody": "这将删除所有仪表板视图、小部件实例和 AI 创作的自定义小部件。默认视图将恢复并带有一个应用启动器小部件。此操作无法撤消。",
+    "dashboardResetBody": "这将删除所有仪表板视图、小组件实例和 AI 创建的小组件。默认视图将恢复并带有一个应用启动器小组件。此操作无法撤消。",
     "dashboardResetConfirm": "重置仪表板",
     "dashboardResetDone": "仪表板已重置为默认值。",
     "dashboardResetTitle": "重置仪表板",
@@ -1394,6 +1409,22 @@
     "searchProviderSearxng": "SearXNG",
     "searchProviderTavily": "Tavily",
     "searxngUrl": "SearXNG 实例 URL",
+    "emailProvider": "邮件服务商",
+    "emailProviderResend": "Resend",
+    "emailProviderSendGrid": "SendGrid",
+    "emailProviderMailgun": "Mailgun",
+    "emailProviderPostmark": "Postmark",
+    "emailProviderSmtp": "SMTP",
+    "emailFrom": "发件人地址",
+    "emailApiKey": "邮件服务商 API 密钥",
+    "mailgunDomain": "Mailgun 域名",
+    "smtpHost": "SMTP 主机",
+    "smtpPort": "SMTP 端口",
+    "smtpSecurity": "SMTP 加密方式",
+    "smtpSecurityStartTls": "STARTTLS",
+    "smtpSecurityNone": "无",
+    "smtpUsername": "SMTP 用户名",
+    "smtpPassword": "SMTP 密码",
     "sectionAbout": "关于",
     "sectionAiAssistant": "AI 助手",
     "sectionAppearance": "外观",
@@ -1557,7 +1588,9 @@
     "mcpErrorKeychain": "操作系统密钥链不可用；无法存储密钥。",
     "aiCustomInstructions": "自定义指令",
     "aiCustomInstructionsHint": "可选的助手指导，最多 {{count}} 个字符。KKTerm 的安全、批准和本地优先限制仍然适用。",
-    "aiCustomInstructionsTooLong": "AI 助手自定义指令不得超过 {{count}} 个字符。"
+    "aiCustomInstructionsTooLong": "AI 助手自定义指令不得超过 {{count}} 个字符。",
+    "showAllModels": "显示所有模型",
+    "showAllModelsHint": "显示刷新时提供商返回的所有模型，而不仅是精选推荐。"
   },
   "sftp": {
     "accessed": "访问日期",
@@ -1905,5 +1938,14 @@
     "webview": "Webview",
     "workspace": "工作区",
     "workspaceSurface": "工作区表面"
+  },
+  "manual": {
+    "title": "操作手册",
+    "subtitle": "KKTerm 操作指南，随每个版本一同发布。",
+    "chaptersLabel": "章节",
+    "back": "返回",
+    "loading": "加载中…",
+    "loadError": "无法加载手册：{{message}}",
+    "tauriRequired": "手册仅在桌面运行时中可用。"
   }
 }

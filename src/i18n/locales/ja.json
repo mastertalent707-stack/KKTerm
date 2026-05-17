@@ -428,7 +428,9 @@
     "selectedIntent": "選択されたアシスタントインテント",
     "clearIntent": "{{intent}}をクリア",
     "toolPerformanceCounters": "パフォーマンスカウンターを読み取り中…",
-    "toolPerformanceCountersDone": "パフォーマンスカウンターを読み取りました"
+    "toolPerformanceCountersDone": "パフォーマンスカウンターを読み取りました",
+    "toolEmail": "メール送信中…",
+    "toolEmailDone": "メール送信完了"
   },
   "app": {
     "aiAssistant": "AIアシスタント",
@@ -449,7 +451,8 @@
     "settings": "設定",
     "trayDontSleep": "スリープしない",
     "trayExit": "終了",
-    "wiki": "ウィキ"
+    "wiki": "ウィキ",
+    "manual": "マニュアル"
   },
   "appLauncher": {
     "addApp": "アプリを追加",
@@ -512,6 +515,7 @@
     "confirm": "確認",
     "connect": "接続",
     "copy": "コピー",
+    "cut": "切り取り",
     "delete": "削除",
     "edit": "編集",
     "error": "エラー",
@@ -845,7 +849,7 @@
     "catalog": "ウィジェットカタログ",
     "catalogAll": "すべて",
     "catalogGroupBuiltIn": "ビルトイン",
-    "catalogGroupCustom": "カスタム",
+    "catalogGroupCustom": "AI 作成",
     "catalogNoMatches": "一致するウィジェットはありません。",
     "catalogSearch": "ウィジェットを検索…",
     "catalogTitle": "ウィジェットカタログ",
@@ -874,13 +878,14 @@
     "connectionWidgetSelectPlaceholder": "保存された接続を選択…",
     "copyValue": "{{label}} をコピー",
     "customize": "ウィジェットをカスタマイズ",
+    "properties": "プロパティ",
     "customizeSectionCommon": "共通",
     "customizeSectionWidget": "ウィジェット",
     "defaultView": "デフォルトビュー",
     "deleteCustomWidget": "{{name}} を削除",
-    "deleteCustomWidgetBody": "「{{name}}」とそのすべてのインスタンスをすべてのダッシュボードビューから削除します。この操作は元に戻せません。",
+    "deleteCustomWidgetBody": "「{{name}}」と、すべてのダッシュボードビューのすべてのインスタンスを削除します。この操作は元に戻せません。",
     "deleteCustomWidgetConfirm": "ウィジェットを削除",
-    "deleteCustomWidgetTitle": "カスタムウィジェットを削除",
+    "deleteCustomWidgetTitle": "AI 作成ウィジェットを削除",
     "density": {
       "compact": "コンパクト",
       "default": "デフォルト",
@@ -916,7 +921,7 @@
     "lastUsable": "最後の使用可能",
     "mask": "サブネットマスク",
     "missingBuiltInWidget": "組み込みウィジェットが見つかりません：{{sourceId}}",
-    "missingCustomWidget": "カスタムウィジェットが見つかりません：{{sourceId}}",
+    "missingCustomWidget": "AI 作成ウィジェットが見つかりません：{{sourceId}}",
     "moduleLabel": "ウィジェットプレイグラウンド",
     "network": "ネットワーク",
     "networkAddress": "ネットワークアドレス",
@@ -983,7 +988,7 @@
     "subnetSample": "192.168.10.44/27",
     "subnetSummary": "CIDR 表記をネットワークアドレス、ブロードキャスト、マスク、使用可能なホスト範囲に展開します。",
     "subnetTitle": "IPv4 サブネット計算機",
-    "subtitle": "手元に置きたいツールのウィジェット、レポート、エージェント作成カードを選択します。",
+    "subtitle": "ローカルユーティリティウィジェット、レポート、および AI 作成ウィジェットから、必要なツールを選択します。",
     "title": "ダッシュボード",
     "titleLabel": "タイトル",
     "titlePlaceholder": "カスタムタイトル…",
@@ -1136,16 +1141,24 @@
         "label": "現在時刻"
       },
       "dashboard": {
-        "description": "ダッシュボードビュー、ウィジェットインスタンス、カスタムウィジェットを読み取り・変更します。",
+        "description": "ダッシュボードビュー、ウィジェットインスタンス、および AI 作成ウィジェットを読み取り・変更します。",
         "label": "ダッシュボード"
       },
       "sessions": {
         "description": "表示中のセッションコンテキストを読み取り、アクティブな端末、リモートデスクトップ、ファイルブラウザのセッションと対話します。",
         "label": "ライブセッション"
       },
+      "manual": {
+        "label": "操作マニュアル",
+        "description": "バンドルされた KKTerm 操作マニュアルを検索・閲覧して、アプリ機能の使い方に関する質問に答えます。"
+      },
       "shellCommand": {
         "description": "KKTerm アプリデータからのみ非破壊的な PowerShell またはバッチコマンドを実行します。",
         "label": "PowerShell / バッチコマンド"
+      },
+      "email": {
+        "label": "メール送信",
+        "description": "Resend、SendGrid、Mailgun、Postmark、または SMTP を通じて確認済みメッセージを送信します。"
       },
       "webFetch": {
         "description": "単一の http/https ページを読み取り、テキストサイズのコンテンツを要約します。",
@@ -1221,6 +1234,8 @@
     "copyOnSelect": "選択時にターミナルテキストを自動コピー",
     "credentialDeleted": "認証情報を削除しました。",
     "credentialKindAiApiKey": "AIプロバイダーキー",
+    "credentialKindEmailApiKey": "メールプロバイダーキー",
+    "credentialKindEmailSmtpPassword": "SMTP パスワード",
     "credentialKindConnectionPassword": "接続パスワード",
     "credentialKindUrlPassword": "ウェブサイト認証情報",
     "credentialKindWidgetSecret": "ウィジェットシークレット",
@@ -1245,7 +1260,7 @@
     "dashboardGeneral": "一般",
     "dashboardLandingLast": "最後にアクティブだったビュー",
     "dashboardReset": "ダッシュボードをリセット",
-    "dashboardResetBody": "すべてのダッシュボードビュー、ウィジェットインスタンス、AI作成のカスタムウィジェットを削除します。デフォルトビューはアプリランチャーウィジェット付きで復元されます。この操作は元に戻せません。",
+    "dashboardResetBody": "すべてのダッシュボードビュー、ウィジェットインスタンス、および AI 作成ウィジェットを削除します。デフォルトビューはアプリランチャーウィジェット付きで復元されます。この操作は元に戻せません。",
     "dashboardResetConfirm": "ダッシュボードをリセット",
     "dashboardResetDone": "ダッシュボードをデフォルトにリセットしました。",
     "dashboardResetTitle": "ダッシュボードをリセット",
@@ -1394,6 +1409,22 @@
     "searchProviderSearxng": "SearXNG",
     "searchProviderTavily": "Tavily",
     "searxngUrl": "SearXNGインスタンスURL",
+    "emailProvider": "メールプロバイダー",
+    "emailProviderResend": "Resend",
+    "emailProviderSendGrid": "SendGrid",
+    "emailProviderMailgun": "Mailgun",
+    "emailProviderPostmark": "Postmark",
+    "emailProviderSmtp": "SMTP",
+    "emailFrom": "送信者アドレス",
+    "emailApiKey": "メールプロバイダー API キー",
+    "mailgunDomain": "Mailgun ドメイン",
+    "smtpHost": "SMTP ホスト",
+    "smtpPort": "SMTP ポート",
+    "smtpSecurity": "SMTP セキュリティ",
+    "smtpSecurityStartTls": "STARTTLS",
+    "smtpSecurityNone": "なし",
+    "smtpUsername": "SMTP ユーザー名",
+    "smtpPassword": "SMTP パスワード",
     "sectionAbout": "について",
     "sectionAiAssistant": "AIアシスタント",
     "sectionAppearance": "外観",
@@ -1557,7 +1588,9 @@
     "mcpErrorKeychain": "OS キーチェーンが利用できません。シークレットを保存できません。",
     "aiCustomInstructions": "カスタム指示",
     "aiCustomInstructionsHint": "オプションのアシスタントガイダンス、最大{{count}}文字。KKTermの安全性、承認、ローカルファーストの制約が引き続き適用されます。",
-    "aiCustomInstructionsTooLong": "AIアシスタントのカスタム指示は{{count}}文字以下である必要があります。"
+    "aiCustomInstructionsTooLong": "AIアシスタントのカスタム指示は{{count}}文字以下である必要があります。",
+    "showAllModels": "すべてのモデルを表示",
+    "showAllModelsHint": "厳選された推奨モデルだけでなく、更新時にプロバイダーから返されるすべてのモデルを表示します。"
   },
   "sftp": {
     "accessed": "アクセス日時",
@@ -1905,5 +1938,14 @@
     "webview": "Webview",
     "workspace": "ワークスペース",
     "workspaceSurface": "ワークスペース面"
+  },
+  "manual": {
+    "title": "操作マニュアル",
+    "subtitle": "KKTerm の操作方法。各リリースに同梱されています。",
+    "chaptersLabel": "章",
+    "back": "戻る",
+    "loading": "読み込み中…",
+    "loadError": "マニュアルを読み込めませんでした：{{message}}",
+    "tauriRequired": "マニュアルはデスクトップランタイムでのみ利用できます。"
   }
 }

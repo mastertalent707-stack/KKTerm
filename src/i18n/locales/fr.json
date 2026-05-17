@@ -428,7 +428,9 @@
     "selectedIntent": "Intention de l'assistant sélectionnée",
     "clearIntent": "Effacer {{intent}}",
     "toolPerformanceCounters": "Lecture des compteurs de performance…",
-    "toolPerformanceCountersDone": "Compteurs de performance lus"
+    "toolPerformanceCountersDone": "Compteurs de performance lus",
+    "toolEmail": "Envoi d’un e-mail…",
+    "toolEmailDone": "E-mail envoyé"
   },
   "app": {
     "aiAssistant": "Assistant IA",
@@ -449,7 +451,8 @@
     "settings": "Paramètres",
     "trayDontSleep": "Ne pas mettre en veille",
     "trayExit": "Quitter",
-    "wiki": "Wiki"
+    "wiki": "Wiki",
+    "manual": "Manuel"
   },
   "appLauncher": {
     "addApp": "Ajouter une application",
@@ -512,6 +515,7 @@
     "confirm": "Confirmer",
     "connect": "Connecter",
     "copy": "Copier",
+    "cut": "Couper",
     "delete": "Supprimer",
     "edit": "Modifier",
     "error": "Erreur",
@@ -845,7 +849,7 @@
     "catalog": "Catalogue de widgets",
     "catalogAll": "Tous",
     "catalogGroupBuiltIn": "Intégré",
-    "catalogGroupCustom": "Personnalisé",
+    "catalogGroupCustom": "Créés par l'IA",
     "catalogNoMatches": "Aucun widget correspondant.",
     "catalogSearch": "Rechercher des widgets…",
     "catalogTitle": "Catalogue de widgets",
@@ -874,13 +878,14 @@
     "connectionWidgetSelectPlaceholder": "Sélectionner une connexion enregistrée…",
     "copyValue": "Copier {{label}}",
     "customize": "Personnaliser le widget",
+    "properties": "Propriétés",
     "customizeSectionCommon": "Commun",
     "customizeSectionWidget": "Widget",
     "defaultView": "Vue par défaut",
     "deleteCustomWidget": "Supprimer {{name}}",
-    "deleteCustomWidgetBody": "Cela supprime « {{name}} » et toutes ses instances de chaque vue du tableau de bord. Cette action est irréversible.",
+    "deleteCustomWidgetBody": "Cela supprime le widget créé par l'IA « {{name}} » et toutes ses instances de chaque vue du tableau de bord. Cette action est irréversible.",
     "deleteCustomWidgetConfirm": "Supprimer le widget",
-    "deleteCustomWidgetTitle": "Supprimer le widget personnalisé",
+    "deleteCustomWidgetTitle": "Supprimer le widget créé par l'IA",
     "density": {
       "compact": "Compact",
       "default": "Par défaut",
@@ -916,7 +921,7 @@
     "lastUsable": "Dernier utilisable",
     "mask": "Masque de sous-réseau",
     "missingBuiltInWidget": "Widget intégré manquant : {{sourceId}}",
-    "missingCustomWidget": "Widget personnalisé manquant : {{sourceId}}",
+    "missingCustomWidget": "Widget créé par l'IA manquant : {{sourceId}}",
     "moduleLabel": "Widgets",
     "network": "Réseau",
     "networkAddress": "Réseau",
@@ -983,7 +988,7 @@
     "subnetSample": "192.168.10.44/27",
     "subnetSummary": "Développe une notation CIDR en adresse réseau, diffusion, masque et plages d'hôtes utilisables.",
     "subnetTitle": "Calculateur de sous-réseau IPv4",
-    "subtitle": "Sélectionnez des widgets utilitaires locaux, des rapports et des fiches créées par agent pour les outils que vous voulez à portée de main.",
+    "subtitle": "Sélectionnez des widgets utilitaires locaux, des rapports et des widgets créés par l'IA pour les outils que vous voulez à portée de main.",
     "title": "Tableau de bord",
     "titleLabel": "Titre",
     "titlePlaceholder": "Titre personnalisé…",
@@ -1136,16 +1141,24 @@
         "label": "Heure actuelle"
       },
       "dashboard": {
-        "description": "Lire et modifier les vues du tableau de bord, les instances de widgets et les widgets personnalisés.",
+        "description": "Lire et modifier les vues du tableau de bord, les instances de widgets et les widgets créés par l’IA.",
         "label": "Tableau de bord"
       },
       "sessions": {
         "description": "Lire le contexte visible des sessions et interagir avec les sessions actives de terminal, bureau à distance et explorateur de fichiers.",
         "label": "Sessions actives"
       },
+      "manual": {
+        "label": "Manuel d’utilisation",
+        "description": "Rechercher et lire le Manuel d’utilisation KKTerm intégré pour répondre aux questions sur les fonctionnalités de l’application."
+      },
       "shellCommand": {
         "description": "Exécuter des commandes PowerShell ou batch non destructives uniquement depuis les données d'application KKTerm.",
         "label": "Commandes PowerShell / batch"
+      },
+      "email": {
+        "label": "Envoyer un e-mail",
+        "description": "Envoyer des messages vérifiés via Resend, SendGrid, Mailgun, Postmark ou SMTP."
       },
       "webFetch": {
         "description": "Lire une seule page http/https et résumer son contenu textuel.",
@@ -1221,6 +1234,8 @@
     "copyOnSelect": "Copier automatiquement le texte sélectionné",
     "credentialDeleted": "Identifiant supprimé.",
     "credentialKindAiApiKey": "Clés de fournisseur IA",
+    "credentialKindEmailApiKey": "Clés de fournisseur d’e-mail",
+    "credentialKindEmailSmtpPassword": "Mots de passe SMTP",
     "credentialKindConnectionPassword": "Mots de passe de connexion",
     "credentialKindUrlPassword": "Identifiants de sites web",
     "credentialKindWidgetSecret": "Secrets des widgets",
@@ -1245,7 +1260,7 @@
     "dashboardGeneral": "Général",
     "dashboardLandingLast": "Dernière vue active",
     "dashboardReset": "Réinitialiser le tableau de bord",
-    "dashboardResetBody": "Cela supprime toutes les vues du tableau de bord, les instances de widgets et les widgets personnalisés créés par IA. La vue par défaut sera restaurée avec un widget Lanceur d'applications. Cette action est irréversible.",
+    "dashboardResetBody": "Cela supprime toutes les vues du tableau de bord, les instances de widgets et les widgets créés par l'IA. La vue par défaut sera restaurée avec un widget Lanceur d'applications. Cette action est irréversible.",
     "dashboardResetConfirm": "Réinitialiser le tableau de bord",
     "dashboardResetDone": "Tableau de bord réinitialisé aux valeurs par défaut.",
     "dashboardResetTitle": "Réinitialiser le tableau de bord",
@@ -1394,6 +1409,22 @@
     "searchProviderSearxng": "SearXNG",
     "searchProviderTavily": "Tavily",
     "searxngUrl": "URL de l'instance SearXNG",
+    "emailProvider": "Fournisseur d’e-mail",
+    "emailProviderResend": "Resend",
+    "emailProviderSendGrid": "SendGrid",
+    "emailProviderMailgun": "Mailgun",
+    "emailProviderPostmark": "Postmark",
+    "emailProviderSmtp": "SMTP",
+    "emailFrom": "Adresse d’expéditeur",
+    "emailApiKey": "Clé API du fournisseur d’e-mail",
+    "mailgunDomain": "Domaine Mailgun",
+    "smtpHost": "Hôte SMTP",
+    "smtpPort": "Port SMTP",
+    "smtpSecurity": "Sécurité SMTP",
+    "smtpSecurityStartTls": "STARTTLS",
+    "smtpSecurityNone": "Aucune",
+    "smtpUsername": "Nom d’utilisateur SMTP",
+    "smtpPassword": "Mot de passe SMTP",
     "sectionAbout": "À propos",
     "sectionAiAssistant": "Assistant IA",
     "sectionAppearance": "Apparence",
@@ -1557,7 +1588,9 @@
     "mcpErrorKeychain": "Le trousseau du système d'exploitation est indisponible ; les secrets ne peuvent pas être stockés.",
     "aiCustomInstructions": "Instructions personnalisées",
     "aiCustomInstructionsHint": "Guide optionnel de l'assistant, jusqu'à {{count}} caractères. Les contraintes de sécurité, d'approbation et de local-first de KKTerm s'appliquent toujours.",
-    "aiCustomInstructionsTooLong": "Les instructions personnalisées de l'assistant IA doivent comporter {{count}} caractères ou moins."
+    "aiCustomInstructionsTooLong": "Les instructions personnalisées de l'assistant IA doivent comporter {{count}} caractères ou moins.",
+    "showAllModels": "Afficher tous les modèles",
+    "showAllModelsHint": "Afficher tous les modèles renvoyés par le fournisseur lors de l’actualisation, pas seulement les recommandations sélectionnées."
   },
   "sftp": {
     "accessed": "Accédé",
@@ -1905,5 +1938,14 @@
     "webview": "Webview",
     "workspace": "Espace de travail",
     "workspaceSurface": "Surface de l'espace de travail"
+  },
+  "manual": {
+    "title": "Manuel d’utilisation",
+    "subtitle": "Comment utiliser KKTerm. Fourni avec chaque version.",
+    "chaptersLabel": "Chapitres",
+    "back": "Retour",
+    "loading": "Chargement…",
+    "loadError": "Impossible de charger le manuel : {{message}}",
+    "tauriRequired": "Le manuel est disponible uniquement dans l’environnement d’exécution de bureau."
   }
 }

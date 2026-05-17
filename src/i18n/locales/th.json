@@ -428,7 +428,9 @@
     "selectedIntent": "เจตนาผู้ช่วยที่เลือก",
     "clearIntent": "ล้าง {{intent}}",
     "toolPerformanceCounters": "กำลังอ่านตัวนับประสิทธิภาพ…",
-    "toolPerformanceCountersDone": "อ่านตัวนับประสิทธิภาพแล้ว"
+    "toolPerformanceCountersDone": "อ่านตัวนับประสิทธิภาพแล้ว",
+    "toolEmail": "กำลังส่งอีเมล…",
+    "toolEmailDone": "ส่งอีเมลแล้ว"
   },
   "app": {
     "aiAssistant": "ผู้ช่วย AI",
@@ -449,7 +451,8 @@
     "settings": "การตั้งค่า",
     "trayDontSleep": "ไม่พักเครื่อง",
     "trayExit": "ออก",
-    "wiki": "วิกิ"
+    "wiki": "วิกิ",
+    "manual": "คู่มือ"
   },
   "appLauncher": {
     "addApp": "เพิ่มแอป",
@@ -511,6 +514,7 @@
     "confirm": "ยืนยัน",
     "connect": "เชื่อมต่อ",
     "copy": "คัดลอก",
+    "cut": "ตัด",
     "delete": "ลบ",
     "edit": "แก้ไข",
     "error": "ข้อผิดพลาด",
@@ -844,7 +848,7 @@
     "catalog": "แคตตาล็อกวิดเจ็ต",
     "catalogAll": "ทั้งหมด",
     "catalogGroupBuiltIn": "ในตัว",
-    "catalogGroupCustom": "กำหนดเอง",
+    "catalogGroupCustom": "สร้างโดย AI",
     "catalogNoMatches": "ไม่มีวิดเจ็ตที่ตรงกัน",
     "catalogSearch": "ค้นหาวิดเจ็ต…",
     "catalogTitle": "แคตตาล็อกวิดเจ็ต",
@@ -873,13 +877,14 @@
     "connectionWidgetSelectPlaceholder": "เลือกการเชื่อมต่อที่บันทึกไว้…",
     "copyValue": "คัดลอก {{label}}",
     "customize": "ปรับแต่งวิดเจ็ต",
+    "properties": "คุณสมบัติ",
     "customizeSectionCommon": "ทั่วไป",
     "customizeSectionWidget": "วิดเจ็ต",
     "defaultView": "มุมมองเริ่มต้น",
     "deleteCustomWidget": "ลบ {{name}}",
-    "deleteCustomWidgetBody": "การดำเนินการนี้จะลบ \"{{name}}\" และอินสแตนซ์ทั้งหมดออกจากทุกมุมมองแดชบอร์ด ไม่สามารถยกเลิกได้",
+    "deleteCustomWidgetBody": "การดำเนินการนี้จะลบวิดเจ็ตที่สร้างโดย AI \"{{name}}\" และอินสแตนซ์ทั้งหมดออกจากทุกมุมมองแดชบอร์ด ไม่สามารถยกเลิกได้",
     "deleteCustomWidgetConfirm": "ลบวิดเจ็ต",
-    "deleteCustomWidgetTitle": "ลบวิดเจ็ตที่กำหนดเอง",
+    "deleteCustomWidgetTitle": "ลบวิดเจ็ตที่สร้างโดย AI",
     "density": {
       "compact": "กะทัดรัด",
       "default": "ค่าเริ่มต้น",
@@ -915,7 +920,7 @@
     "lastUsable": "ใช้งานได้ตัวสุดท้าย",
     "mask": "ซับเน็ตมาสก์",
     "missingBuiltInWidget": "ไม่มีวิดเจ็ตในตัว: {{sourceId}}",
-    "missingCustomWidget": "ไม่มีวิดเจ็ตที่กำหนดเอง: {{sourceId}}",
+    "missingCustomWidget": "ไม่พบวิดเจ็ตที่สร้างโดย AI: {{sourceId}}",
     "moduleLabel": "สนามเด็กเล่นวิดเจ็ต",
     "network": "เครือข่าย",
     "networkAddress": "เครือข่าย",
@@ -982,7 +987,7 @@
     "subnetSample": "192.168.10.44/27",
     "subnetSummary": "ขยายสัญกรณ์ CIDR เป็นเครือข่าย บรอดคาสต์ มาสก์ และช่วงโฮสต์ที่ใช้งานได้",
     "subnetTitle": "เครื่องคำนวณซับเน็ต IPv4",
-    "subtitle": "เลือกวิดเจ็ตยูทิลิตีภายใน รายงาน และการ์ดที่เอเจนต์เขียนขึ้นสำหรับเครื่องมือที่คุณต้องการใกล้มือ",
+    "subtitle": "เลือกวิดเจ็ตยูทิลิตีภายใน รายงาน และวิดเจ็ตที่สร้างโดย AI สำหรับเครื่องมือที่คุณต้องการใกล้มือ",
     "title": "แดชบอร์ด",
     "titleLabel": "ชื่อเรื่อง",
     "titlePlaceholder": "ชื่อที่กำหนดเอง…",
@@ -1135,16 +1140,24 @@
         "label": "เวลาปัจจุบัน"
       },
       "dashboard": {
-        "description": "อ่านและแก้ไขมุมมองแดชบอร์ด อินสแตนซ์วิดเจ็ต และวิดเจ็ตที่กำหนดเอง",
+        "description": "อ่านและแก้ไขมุมมอง Dashboard อินสแตนซ์วิดเจ็ต และวิดเจ็ตที่สร้างโดย AI",
         "label": "แดชบอร์ด"
       },
       "sessions": {
         "description": "อ่านบริบทเซสชันที่มองเห็นและโต้ตอบกับเซสชันเทอร์มินัล เดสก์ท็อประยะไกล และเบราว์เซอร์ไฟล์ที่ใช้งานอยู่",
         "label": "เซสชันสด"
       },
+      "manual": {
+        "label": "คู่มือการใช้งาน",
+        "description": "ค้นหาและอ่านคู่มือการใช้งาน KKTerm ที่ติดมาเพื่อตอบคำถามเกี่ยวกับฟีเจอร์ของแอป"
+      },
       "shellCommand": {
         "description": "รันคำสั่ง PowerShell หรือ batch แบบไม่ทำลายจากข้อมูลแอป KKTerm เท่านั้น",
         "label": "คำสั่ง PowerShell / batch"
+      },
+      "email": {
+        "label": "ส่งอีเมล",
+        "description": "ส่งข้อความที่ผ่านการตรวจสอบผ่าน Resend, SendGrid, Mailgun, Postmark หรือ SMTP"
       },
       "webFetch": {
         "description": "อ่านหน้า http/https เดียวและสรุปเนื้อหาขนาดข้อความ",
@@ -1220,6 +1233,8 @@
     "copyOnSelect": "คัดลอกข้อความเทอร์มินัลอัตโนมัติเมื่อเลือก",
     "credentialDeleted": "ลบข้อมูลประจำตัวแล้ว",
     "credentialKindAiApiKey": "คีย์ผู้ให้บริการ AI",
+    "credentialKindEmailApiKey": "คีย์ผู้ให้บริการอีเมล",
+    "credentialKindEmailSmtpPassword": "รหัสผ่าน SMTP",
     "credentialKindConnectionPassword": "รหัสผ่านการเชื่อมต่อ",
     "credentialKindUrlPassword": "ข้อมูลรับรองเว็บไซต์",
     "credentialKindWidgetSecret": "secret ของวิดเจ็ต",
@@ -1244,7 +1259,7 @@
     "dashboardGeneral": "ทั่วไป",
     "dashboardLandingLast": "มุมมองที่ใช้งานล่าสุด",
     "dashboardReset": "รีเซ็ตแดชบอร์ด",
-    "dashboardResetBody": "การดำเนินการนี้จะลบมุมมองแดชบอร์ดทั้งหมด อินสแตนซ์วิดเจ็ต และวิดเจ็ตที่กำหนดเองที่เขียนโดย AI มุมมองเริ่มต้นจะถูกกู้คืนพร้อมวิดเจ็ตตัวเรียกใช้แอปหนึ่งรายการ การดำเนินการนี้ไม่สามารถยกเลิกได้",
+    "dashboardResetBody": "การดำเนินการนี้จะลบมุมมองแดชบอร์ดทั้งหมด อินสแตนซ์วิดเจ็ต และวิดเจ็ตที่สร้างโดย AI มุมมองเริ่มต้นจะถูกกู้คืนพร้อมวิดเจ็ตตัวเรียกใช้แอปหนึ่งรายการ การดำเนินการนี้ไม่สามารถยกเลิกได้",
     "dashboardResetConfirm": "รีเซ็ตแดชบอร์ด",
     "dashboardResetDone": "แดชบอร์ดถูกรีเซ็ตเป็นค่าเริ่มต้นแล้ว",
     "dashboardResetTitle": "รีเซ็ตแดชบอร์ด",
@@ -1393,6 +1408,22 @@
     "searchProviderSearxng": "SearXNG",
     "searchProviderTavily": "Tavily",
     "searxngUrl": "URL อินสแตนซ์ SearXNG",
+    "emailProvider": "ผู้ให้บริการอีเมล",
+    "emailProviderResend": "Resend",
+    "emailProviderSendGrid": "SendGrid",
+    "emailProviderMailgun": "Mailgun",
+    "emailProviderPostmark": "Postmark",
+    "emailProviderSmtp": "SMTP",
+    "emailFrom": "ที่อยู่ผู้ส่ง",
+    "emailApiKey": "API คีย์ของผู้ให้บริการอีเมล",
+    "mailgunDomain": "โดเมน Mailgun",
+    "smtpHost": "โฮสต์ SMTP",
+    "smtpPort": "พอร์ต SMTP",
+    "smtpSecurity": "การรักษาความปลอดภัย SMTP",
+    "smtpSecurityStartTls": "STARTTLS",
+    "smtpSecurityNone": "ไม่มี",
+    "smtpUsername": "ชื่อผู้ใช้ SMTP",
+    "smtpPassword": "รหัสผ่าน SMTP",
     "sectionAbout": "เกี่ยวกับ",
     "sectionAiAssistant": "ผู้ช่วย AI",
     "sectionAppearance": "รูปลักษณ์",
@@ -1556,7 +1587,9 @@
     "mcpErrorKeychain": "พวงกุญแจระบบปฏิบัติการไม่พร้อมใช้งาน ไม่สามารถจัดเก็บข้อมูลลับได้",
     "aiCustomInstructions": "คำแนะนำที่กำหนดเอง",
     "aiCustomInstructionsHint": "คำแนะนำผู้ช่วยเสริม สูงสุด {{count}} ตัวอักษร ข้อจำกัดด้านความปลอดภัย การอนุมัติ และ local-first ของ KKTerm ยังคงมีผล",
-    "aiCustomInstructionsTooLong": "คำแนะนำที่กำหนดเองของผู้ช่วย AI ต้องมี {{count}} ตัวอักษรหรือน้อยกว่า"
+    "aiCustomInstructionsTooLong": "คำแนะนำที่กำหนดเองของผู้ช่วย AI ต้องมี {{count}} ตัวอักษรหรือน้อยกว่า",
+    "showAllModels": "แสดงโมเดลทั้งหมด",
+    "showAllModelsHint": "แสดงทุกโมเดลที่ผู้ให้บริการส่งกลับมาเมื่อรีเฟรช แทนที่จะแสดงเฉพาะคำแนะนำที่คัดสรร"
   },
   "sftp": {
     "accessed": "เข้าถึงเมื่อ",
@@ -1904,5 +1937,14 @@
     "webview": "Webview",
     "workspace": "พื้นที่ทำงาน",
     "workspaceSurface": "พื้นผิวพื้นที่ทำงาน"
+  },
+  "manual": {
+    "title": "คู่มือการใช้งาน",
+    "subtitle": "วิธีใช้งาน KKTerm มาพร้อมกับทุกเวอร์ชัน",
+    "chaptersLabel": "บทต่างๆ",
+    "back": "ย้อนกลับ",
+    "loading": "กำลังโหลด…",
+    "loadError": "ไม่สามารถโหลดคู่มือได้: {{message}}",
+    "tauriRequired": "คู่มือใช้งานได้เฉพาะในสภาพแวดล้อม runtime บนเดสก์ท็อปเท่านั้น"
   }
 }
