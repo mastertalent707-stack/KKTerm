@@ -34,7 +34,6 @@ import type {
   SmtpSecurity,
 } from "../types";
 import {
-  displayNameForModelOption,
   selectModelOptionsForProvider,
   sortModelOptionsForProvider,
 } from "../ai/providerModelOptions";
@@ -156,7 +155,7 @@ function AiProviderSettingsFieldControl({
               {hasCustomModel ? <option value={draft.model}>{draft.model}</option> : null}
               {options.map((model) => (
                 <option key={model.id} value={model.id}>
-                  {displayNameForModelOption(model, t("settings.recommendedModel"))}
+                  {model.label}
                 </option>
               ))}
             </select>

@@ -19,13 +19,6 @@ export type DisplayModelOption = ProviderModelOption & {
   custom: true;
 };
 
-type ModelLookupOption = {
-  id: string;
-  label: string;
-  recommended?: boolean;
-  supportsImageInput?: boolean | null;
-};
-
 const OPENROUTER_MODEL_COLLATOR = new Intl.Collator(undefined, {
   numeric: true,
   sensitivity: "base",
@@ -113,12 +106,4 @@ export function selectModelOptionsForProvider({
       : [];
 
   return uniqueModelOptions([...customModelOption, ...displayModels]);
-}
-
-export function displayNameForModelOption(
-  model: ModelLookupOption,
-  recommendedLabel: string,
-) {
-  if (!model.recommended) return model.label;
-  return `${model.label} - ${recommendedLabel}`;
 }

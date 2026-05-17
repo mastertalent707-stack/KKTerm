@@ -723,7 +723,6 @@
     "refreshModels": "Refresh models",
     "refreshingModels": "Refreshing models",
     "modelListRefreshed": "Model list refreshed.",
-    "recommendedModel": "Recommended",
     "showAllModels": "Show All Models",
     "showAllModelsHint": "Show every provider model returned by refresh instead of only the curated recommendations.",
     "clearAiConfirm": "Reset AI provider settings and remove the saved API key?",

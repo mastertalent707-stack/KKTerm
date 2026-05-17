@@ -51,7 +51,6 @@ import {
   validateAiProviderForChat,
 } from "./providers";
 import {
-  displayNameForModelOption,
   selectModelOptionsForProvider,
   sortModelOptionsForProvider,
 } from "./providerModelOptions";
@@ -805,11 +804,9 @@ export function AssistantPanel({
   const modelSelectLabels = useMemo(
     () => [
       ...(hasCustomModel ? [currentModel] : []),
-      ...assistantModelOptions.map((model) =>
-        displayNameForModelOption(model, t("settings.recommendedModel")),
-      ),
+      ...assistantModelOptions.map((model) => model.label),
     ],
-    [assistantModelOptions, currentModel, hasCustomModel, t],
+    [assistantModelOptions, currentModel, hasCustomModel],
   );
   const currentModelSupportsImageInput = modelSupportsImageInput(
     providerDefinition,
@@ -2616,7 +2613,7 @@ export function AssistantPanel({
             {hasCustomModel ? <option value={currentModel}>{currentModel}</option> : null}
             {assistantModelOptions.map((model) => (
               <option key={model.id} value={model.id}>
-                {displayNameForModelOption(model, t("settings.recommendedModel"))}
+                {model.label}
               </option>
             ))}
           </select>

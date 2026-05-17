@@ -1,5 +1,4 @@
 import {
-  displayNameForModelOption,
   selectModelOptionsForProvider,
   sortModelOptionsForProvider,
 } from "./providerModelOptions";
@@ -70,13 +69,4 @@ const customModelOptions = selectModelOptionsForProvider({
 
 if (customModelOptions[0]?.id !== "my-private-model") {
   throw new Error("Custom model IDs should appear in model selectors even when Show All is off.");
-}
-
-const recommendedLabel = displayNameForModelOption(
-  { id: "gpt-5.4-mini", label: "GPT-5.4 Mini", recommended: true },
-  "Recommended",
-);
-
-if (recommendedLabel !== "GPT-5.4 Mini - Recommended") {
-  throw new Error(`Recommended model labels should be marked, got: ${recommendedLabel}`);
 }
