@@ -4727,9 +4727,9 @@ progress {
 }
 
 .assistant-model-select {
-  flex: 0 1 var(--assistant-model-select-width, max-content);
-  width: var(--assistant-model-select-width, auto);
-  max-width: 100%;
+  flex: 0 1 min(var(--assistant-model-select-width, 14rem), 18rem);
+  width: min(var(--assistant-model-select-width, 14rem), 18rem);
+  max-width: min(42%, 18rem);
 }
 
 .assistant-permission-menu-wrapper {

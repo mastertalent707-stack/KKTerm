@@ -1,7 +1,7 @@
 import { ConnectionIcon } from "../connections/ConnectionIcon";
 import { workspaceKindLabel } from "../connections/utils";
 import { inspectActiveSshSystemContext } from "../terminal/TerminalWorkspace";
-import { writeToClipboard } from "../lib/clipboard";
+import { readFromClipboard, writeToClipboard } from "../lib/clipboard";
 import {
   Bot,
   Camera,
@@ -37,6 +37,7 @@ import type {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { ariaChecked, ariaExpanded, dialogButtonAria, menuButtonAria } from "../lib/aria";
+import { showNativeContextMenu } from "../lib/nativeContextMenu";
 import { invokeCommand, isTauriRuntime, openExternalUrl } from "../lib/tauri";
 import type {
   AiProviderModelOption,
@@ -1885,6 +1886,77 @@ export function AssistantPanel({
     }
   }
 
+  function insertTextIntoComposer(textarea: HTMLTextAreaElement, text: string) {
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const nextPrompt = `${textarea.value.slice(0, selectionStart)}${text}${textarea.value.slice(selectionEnd)}`;
+    const nextCaret = selectionStart + text.length;
+    setPrompt(nextPrompt);
+    window.requestAnimationFrame(() => {
+      composerTextareaRef.current?.focus();
+      composerTextareaRef.current?.setSelectionRange(nextCaret, nextCaret);
+    });
+  }
+
+  function deleteComposerSelection(textarea: HTMLTextAreaElement) {
+    insertTextIntoComposer(textarea, "");
+  }
+
+  async function handleComposerContextMenu(event: MouseEvent<HTMLTextAreaElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const textarea = event.currentTarget;
+    const hasSelection = textarea.selectionStart !== textarea.selectionEnd;
+    const opened = await showNativeContextMenu(
+      [
+        {
+          kind: "item",
+          label: t("common.copy"),
+          disabled: !hasSelection,
+          action: () => {
+            const selectedText = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
+            if (selectedText) {
+              void writeToClipboard(selectedText);
+            }
+            textarea.focus();
+          },
+        },
+        {
+          kind: "item",
+          label: t("common.cut"),
+          disabled: !hasSelection || textarea.disabled,
+          action: () => {
+            const selectedText = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
+            if (selectedText) {
+              void writeToClipboard(selectedText);
+              deleteComposerSelection(textarea);
+            }
+          },
+        },
+        {
+          kind: "item",
+          label: t("common.paste"),
+          disabled: textarea.disabled,
+          action: () => {
+            void readFromClipboard().then((text) => {
+              if (text) {
+                insertTextIntoComposer(textarea, text);
+              } else {
+                textarea.focus();
+              }
+            });
+          },
+        },
+      ],
+      { x: event.clientX, y: event.clientY },
+    );
+
+    if (!opened) {
+      textarea.focus();
+    }
+  }
+
   async function captureAssistantScreenshot(rect: CaptureScreenshotRequest) {
     if (!isTauriRuntime()) {
       showStatusBarNotice(t("workspace.screenshotsRequireRuntime"), { tone: "warning" });
@@ -2378,6 +2450,7 @@ export function AssistantPanel({
           ref={composerTextareaRef}
           onKeyDown={handleComposerKeyDown}
           onPaste={(event) => void handleComposerPaste(event)}
+          onContextMenu={(event) => void handleComposerContextMenu(event)}
           onChange={(event) => setPrompt(event.currentTarget.value)}
           disabled={isSendingPrompt}
           placeholder={assistantIntentPlaceholder(assistantIntent, t)}
