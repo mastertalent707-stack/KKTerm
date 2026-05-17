@@ -129,6 +129,8 @@ Dashboard mutating tools run from the Rust Assistant tool loop, outside the fron
 
 The `dashboard_create_widget` assistant tool schema is strict-compatible where possible. It uses a closed root object, bounded enums, required fields, and closed nested object shapes so capable providers produce structured widget arguments instead of free-form prose or partial JSON. Rust validation remains the final authority before anything is persisted.
 
+The AI-facing widget contract requires the first created widget to be complete for the user's requested outcome. If a request implies live/realtime data, MCP-backed data, web-fetched data, local file/session data, or another changing input, the assistant should use the needed discovery/read/fetch tool rounds before creation and create a script widget wired to the actual data source with loading, error, empty, and refresh states. Static content widgets are for explicitly static requests or blocked live-data cases; missing credentials should become `settingsSchema` secret/config fields plus a secret-entry request, not a placeholder scaffold.
+
 ## Frontend Module Map (Dashboard)
 
 ```text
