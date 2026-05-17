@@ -443,6 +443,8 @@
     "credentialKindConnectionPassword": "Connection passwords",
     "credentialKindUrlPassword": "Website credentials",
     "credentialKindAiApiKey": "AI provider keys",
+    "credentialKindEmailApiKey": "Email provider keys",
+    "credentialKindEmailSmtpPassword": "SMTP passwords",
     "credentialKindWidgetSecret": "Widget secrets",
     "sectionAiAssistant": "AI Assistant",
     "sectionSsh": "SSH",
@@ -805,6 +807,10 @@
         "label": "PowerShell / batch commands",
         "description": "Run non-destructive commands from app data only."
       },
+      "email": {
+        "label": "Send Email",
+        "description": "Send reviewed messages through Resend, SendGrid, Mailgun, Postmark, or SMTP."
+      },
       "dashboard": {
         "label": "Dashboard",
         "description": "Read and modify Dashboard views, widget instances, and custom widgets."
@@ -826,6 +832,22 @@
     "braveSearchApiKey": "Brave Search API key",
     "tavilySearchApiKey": "Tavily API key",
     "searxngUrl": "SearXNG instance URL",
+    "emailProvider": "Email provider",
+    "emailProviderResend": "Resend",
+    "emailProviderSendGrid": "SendGrid",
+    "emailProviderMailgun": "Mailgun",
+    "emailProviderPostmark": "Postmark",
+    "emailProviderSmtp": "SMTP",
+    "emailFrom": "From address",
+    "emailApiKey": "Email provider API key",
+    "mailgunDomain": "Mailgun domain",
+    "smtpHost": "SMTP host",
+    "smtpPort": "SMTP port",
+    "smtpSecurity": "SMTP security",
+    "smtpSecurityStartTls": "STARTTLS",
+    "smtpSecurityNone": "None",
+    "smtpUsername": "SMTP username",
+    "smtpPassword": "SMTP password",
     "connectedConnectionsRail": "Show connected Connections",
     "connectedConnectionsRailHint": "Adds connected Connection icons to the Activity Rail.",
     "connectedConnectionsRailSaved": "Show Connection in Left Rail setting saved."
@@ -1419,6 +1441,7 @@
     "toolFileRead": "Reading file\u2026",
     "toolCurrentTime": "Checking current time\u2026",
     "toolPerformanceCounters": "Reading performance counters\u2026",
+    "toolEmail": "Sending email\u2026",
     "toolSecretRequest": "Requesting secret entry\u2026",
     "toolDashboard": "Updating Dashboard...",
     "toolConnections": "Managing Connections...",
@@ -1430,6 +1453,7 @@
     "toolFileReadDone": "Read file",
     "toolCurrentTimeDone": "Checked current time",
     "toolPerformanceCountersDone": "Read performance counters",
+    "toolEmailDone": "Sent email",
     "toolSecretRequestDone": "Requested secret entry",
     "toolDashboardDone": "Updated Dashboard",
     "toolConnectionsDone": "Managed Connections",

@@ -37,6 +37,8 @@ import { useWorkspaceStore } from "../store";
 import { useDashboardStore } from "../dashboard/state/dashboardStore";
 import {
   AI_PROVIDER_SECRET_OWNER_ID,
+  EMAIL_API_SECRET_OWNER_ID,
+  EMAIL_SMTP_SECRET_OWNER_ID,
   allAiProviderSecretOwnerIds,
 } from "../lib/settings";
 import { SettingsSectionHeader } from "./shared";
@@ -216,6 +218,20 @@ export function GeneralSettings() {
             }),
           ),
         );
+        await Promise.all([
+          invokeCommand("delete_secret", {
+            request: {
+              kind: "emailApiKey",
+              ownerId: EMAIL_API_SECRET_OWNER_ID,
+            },
+          }),
+          invokeCommand("delete_secret", {
+            request: {
+              kind: "emailSmtpPassword",
+              ownerId: EMAIL_SMTP_SECRET_OWNER_ID,
+            },
+          }),
+        ]);
         setGeneralSettings(general);
         setTerminalSettings(terminal);
         setAppearanceSettings(appearance);

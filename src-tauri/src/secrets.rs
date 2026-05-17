@@ -82,6 +82,20 @@ impl SecretReferenceRequest {
             owner_id,
         }
     }
+
+    pub(crate) fn email_api_key(owner_id: String) -> Self {
+        Self {
+            kind: SecretKind::EmailApiKey,
+            owner_id,
+        }
+    }
+
+    pub(crate) fn email_smtp_password(owner_id: String) -> Self {
+        Self {
+            kind: SecretKind::EmailSmtpPassword,
+            owner_id,
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -105,6 +119,8 @@ enum SecretKind {
     AiApiKey,
     BraveSearchApiKey,
     TavilySearchApiKey,
+    EmailApiKey,
+    EmailSmtpPassword,
     WidgetSecret,
     McpServerSecret,
 }
@@ -233,6 +249,20 @@ impl Secrets {
         self.read_secret(SecretReferenceRequest::tavily_search_api_key(owner_id))
     }
 
+    pub(crate) fn read_email_api_key(
+        &self,
+        owner_id: String,
+    ) -> Result<Option<String>, String> {
+        self.read_secret(SecretReferenceRequest::email_api_key(owner_id))
+    }
+
+    pub(crate) fn read_email_smtp_password(
+        &self,
+        owner_id: String,
+    ) -> Result<Option<String>, String> {
+        self.read_secret(SecretReferenceRequest::email_smtp_password(owner_id))
+    }
+
     pub(crate) fn read_widget_secret(&self, owner_id: String) -> Result<Option<String>, String> {
         self.read_secret(SecretReferenceRequest::widget_secret(owner_id))
     }
@@ -320,6 +350,8 @@ impl SecretKind {
             Self::AiApiKey => "ai-api-key",
             Self::BraveSearchApiKey => "brave-search-api-key",
             Self::TavilySearchApiKey => "tavily-search-api-key",
+            Self::EmailApiKey => "email-api-key",
+            Self::EmailSmtpPassword => "email-smtp-password",
             Self::WidgetSecret => "widget-secret",
             Self::McpServerSecret => "mcp-server-secret",
         }

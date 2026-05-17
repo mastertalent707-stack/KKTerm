@@ -20,6 +20,10 @@ function credentialKindKey(kind: StoredCredentialKind) {
       return "settings.credentialKindUrlPassword";
     case "aiApiKey":
       return "settings.credentialKindAiApiKey";
+    case "emailApiKey":
+      return "settings.credentialKindEmailApiKey";
+    case "emailSmtpPassword":
+      return "settings.credentialKindEmailSmtpPassword";
     case "widgetSecret":
       return "settings.credentialKindWidgetSecret";
     default:
@@ -33,7 +37,10 @@ function credentialDescriptionKey(credential: StoredCredentialSummary) {
   }
   switch (credential.kind) {
     case "aiApiKey":
+    case "emailApiKey":
       return "settings.credentialSavedApiKey";
+    case "emailSmtpPassword":
+      return "settings.credentialSavedPassword";
     case "widgetSecret":
       return "settings.credentialSavedSecret";
     case "connectionPassword":

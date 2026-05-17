@@ -11,7 +11,11 @@ import {
   type AiProviderSettingsField,
 } from "../ai/providers";
 import { SUPPORTED_LANGUAGES } from "../i18n/config";
-import { aiProviderSecretOwnerId } from "../lib/settings";
+import {
+  EMAIL_API_SECRET_OWNER_ID,
+  EMAIL_SMTP_SECRET_OWNER_ID,
+  aiProviderSecretOwnerId,
+} from "../lib/settings";
 import {
   invokeCommand,
   isTauriRuntime,
@@ -22,10 +26,12 @@ import {
 import { useWorkspaceStore } from "../store";
 import type {
   AiAssistantToolId,
+  EmailProvider,
   AiProviderKind,
   AiProviderSettings as AiProviderSettingsType,
   AiReasoningEffort,
   SearchProvider,
+  SmtpSecurity,
 } from "../types";
 import { sortModelOptionsForProvider } from "../ai/providerModelOptions";
 import { McpServersControl } from "./McpServers";
@@ -339,6 +345,7 @@ const AI_ASSISTANT_TOOL_IDS: AiAssistantToolId[] = [
   "appDataFileSearch",
   "appDataFileRead",
   "performanceCounters",
+  "email",
   "shellCommand",
   "dashboard",
   "connections",
@@ -354,6 +361,18 @@ const SEARCH_PROVIDER_OPTIONS: { value: SearchProvider; labelKey: string }[] = [
 
 const BRAVE_SEARCH_OWNER_ID = "brave-search";
 const TAVILY_SEARCH_OWNER_ID = "tavily-search";
+const EMAIL_PROVIDER_OPTIONS: { value: EmailProvider; labelKey: string }[] = [
+  { value: "resend", labelKey: "settings.emailProviderResend" },
+  { value: "sendgrid", labelKey: "settings.emailProviderSendGrid" },
+  { value: "mailgun", labelKey: "settings.emailProviderMailgun" },
+  { value: "postmark", labelKey: "settings.emailProviderPostmark" },
+  { value: "smtp", labelKey: "settings.emailProviderSmtp" },
+];
+
+const SMTP_SECURITY_OPTIONS: { value: SmtpSecurity; labelKey: string }[] = [
+  { value: "starttls", labelKey: "settings.smtpSecurityStartTls" },
+  { value: "none", labelKey: "settings.smtpSecurityNone" },
+];
 
 function SearchProviderControl({
   draft,
@@ -436,19 +455,152 @@ function SearchProviderControl({
   );
 }
 
+function EmailDeliveryControl({
+  draft,
+  emailSecretDraft,
+  emailSecretStoredMask,
+  hasEmailSecret,
+  onDraftChange,
+  onEmailSecretDraftChange,
+}: {
+  draft: AiProviderSettingsType;
+  emailSecretDraft: string;
+  emailSecretStoredMask: string;
+  hasEmailSecret: boolean;
+  onDraftChange: (patch: Partial<AiProviderSettingsType>) => void;
+  onEmailSecretDraftChange: (value: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [isSecretFocused, setIsSecretFocused] = useState(false);
+  const shouldShowStoredSecret =
+    hasEmailSecret && !isSecretFocused && emailSecretDraft.length === 0;
+  const secretLabel =
+    draft.emailProvider === "smtp" ? t("settings.smtpPassword") : t("settings.emailApiKey");
+
+  return (
+    <div className="search-provider-subsection">
+      <label>
+        <span>{t("settings.emailProvider")}</span>
+        <select
+          onChange={(event) =>
+            onDraftChange({
+              emailProvider: event.currentTarget.value as EmailProvider,
+            })
+          }
+          value={draft.emailProvider}
+        >
+          {EMAIL_PROVIDER_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {t(option.labelKey)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        <span>{t("settings.emailFrom")}</span>
+        <input
+          onChange={(event) => onDraftChange({ emailFrom: event.currentTarget.value })}
+          placeholder="ops@example.com"
+          value={draft.emailFrom}
+        />
+      </label>
+      {draft.emailProvider === "mailgun" ? (
+        <label>
+          <span>{t("settings.mailgunDomain")}</span>
+          <input
+            onChange={(event) =>
+              onDraftChange({ mailgunDomain: event.currentTarget.value })
+            }
+            placeholder="mg.example.com"
+            value={draft.mailgunDomain}
+          />
+        </label>
+      ) : null}
+      {draft.emailProvider === "smtp" ? (
+        <>
+          <label>
+            <span>{t("settings.smtpHost")}</span>
+            <input
+              onChange={(event) => onDraftChange({ smtpHost: event.currentTarget.value })}
+              placeholder="smtp.example.com"
+              value={draft.smtpHost}
+            />
+          </label>
+          <label>
+            <span>{t("settings.smtpPort")}</span>
+            <input
+              min={1}
+              max={65535}
+              onChange={(event) =>
+                onDraftChange({ smtpPort: Number(event.currentTarget.value) })
+              }
+              type="number"
+              value={draft.smtpPort}
+            />
+          </label>
+          <label>
+            <span>{t("settings.smtpSecurity")}</span>
+            <select
+              onChange={(event) =>
+                onDraftChange({ smtpSecurity: event.currentTarget.value as SmtpSecurity })
+              }
+              value={draft.smtpSecurity}
+            >
+              {SMTP_SECURITY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{t("settings.smtpUsername")}</span>
+            <input
+              onChange={(event) =>
+                onDraftChange({ smtpUsername: event.currentTarget.value })
+              }
+              value={draft.smtpUsername}
+            />
+          </label>
+        </>
+      ) : null}
+      <label>
+        <span>{secretLabel}</span>
+        <input
+          autoComplete="off"
+          onBlur={() => setIsSecretFocused(false)}
+          onChange={(event) => onEmailSecretDraftChange(event.currentTarget.value)}
+          onFocus={() => setIsSecretFocused(true)}
+          placeholder={secretLabel}
+          type="password"
+          value={shouldShowStoredSecret ? emailSecretStoredMask : emailSecretDraft}
+        />
+      </label>
+    </div>
+  );
+}
+
 function AiAssistantToolsControl({
   draft,
+  emailSecretDraft,
+  emailSecretStoredMask,
+  hasEmailSecret,
   searchApiKeyDraft,
   searchApiKeyStoredMask,
   hasSearchApiKey,
   onDraftChange,
+  onEmailSecretDraftChange,
   onSearchApiKeyDraftChange,
 }: {
   draft: AiProviderSettingsType;
+  emailSecretDraft: string;
+  emailSecretStoredMask: string;
+  hasEmailSecret: boolean;
   searchApiKeyDraft: string;
   searchApiKeyStoredMask: string;
   hasSearchApiKey: boolean;
   onDraftChange: (patch: Partial<AiProviderSettingsType>) => void;
+  onEmailSecretDraftChange: (value: string) => void;
   onSearchApiKeyDraftChange: (value: string) => void;
 }) {
   const { t } = useTranslation();
@@ -486,6 +638,15 @@ function AiAssistantToolsControl({
                 searchApiKeyDraft={searchApiKeyDraft}
                 searchApiKeyStoredMask={searchApiKeyStoredMask}
               />
+            ) : toolId === "email" && draft.tools?.email ? (
+              <EmailDeliveryControl
+                draft={draft}
+                emailSecretDraft={emailSecretDraft}
+                emailSecretStoredMask={emailSecretStoredMask}
+                hasEmailSecret={hasEmailSecret}
+                onDraftChange={onDraftChange}
+                onEmailSecretDraftChange={onEmailSecretDraftChange}
+              />
             ) : null}
           </div>
         ))}
@@ -508,6 +669,9 @@ export function AiSettings() {
   const [searchApiKeyDraft, setSearchApiKeyDraft] = useState("");
   const [searchApiKeyStoredMask, setSearchApiKeyStoredMask] = useState(createStoredApiKeyMask);
   const [hasSearchApiKey, setHasSearchApiKey] = useState(false);
+  const [emailSecretDraft, setEmailSecretDraft] = useState("");
+  const [emailSecretStoredMask, setEmailSecretStoredMask] = useState(createStoredApiKeyMask);
+  const [hasEmailSecret, setHasEmailSecret] = useState(false);
   const [copilotDeviceFlow, setCopilotDeviceFlow] =
     useState<GitHubCopilotDeviceFlow | null>(null);
   const [copilotPollIntervalSeconds, setCopilotPollIntervalSeconds] = useState(0);
@@ -518,7 +682,8 @@ export function AiSettings() {
   const hasChanges =
     JSON.stringify(draft) !== JSON.stringify(aiProviderSettings) ||
     apiKeyDraft.trim().length > 0 ||
-    searchApiKeyDraft.trim().length > 0;
+    searchApiKeyDraft.trim().length > 0 ||
+    emailSecretDraft.trim().length > 0;
   const aiProviderDefinition = getAiProviderDefinition(draft.providerKind);
 
   useEffect(() => {
@@ -574,6 +739,28 @@ export function AiSettings() {
       disposed = true;
     };
   }, [draft.searchProvider]);
+
+  useEffect(() => {
+    if (!isTauriRuntime()) return;
+    let disposed = false;
+    setEmailSecretDraft("");
+    const isSmtp = draft.emailProvider === "smtp";
+    void invokeCommand("secret_exists", {
+      request: {
+        kind: isSmtp ? ("emailSmtpPassword" as const) : ("emailApiKey" as const),
+        ownerId: isSmtp ? EMAIL_SMTP_SECRET_OWNER_ID : EMAIL_API_SECRET_OWNER_ID,
+      },
+    })
+      .then((presence) => {
+        if (!disposed) setHasEmailSecret(presence.exists);
+      })
+      .catch(() => {
+        if (!disposed) setHasEmailSecret(false);
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [draft.emailProvider]);
 
   useEffect(() => {
     if (!copilotDeviceFlow || !isTauriRuntime()) return;
@@ -760,6 +947,20 @@ export function AiSettings() {
           setSearchApiKeyDraft("");
           setSearchApiKeyStoredMask(createStoredApiKeyMask());
         }
+      }
+
+      if (emailSecretDraft.trim() && isTauriRuntime()) {
+        const isSmtp = nextSettings.emailProvider === "smtp";
+        await invokeCommand("store_secret", {
+          request: {
+            kind: isSmtp ? ("emailSmtpPassword" as const) : ("emailApiKey" as const),
+            ownerId: isSmtp ? EMAIL_SMTP_SECRET_OWNER_ID : EMAIL_API_SECRET_OWNER_ID,
+            secret: emailSecretDraft.trim(),
+          },
+        });
+        setHasEmailSecret(true);
+        setEmailSecretDraft("");
+        setEmailSecretStoredMask(createStoredApiKeyMask());
       }
 
       const saved = isTauriRuntime()
@@ -957,6 +1158,9 @@ export function AiSettings() {
 
       <AiAssistantToolsControl
         draft={draft}
+        emailSecretDraft={emailSecretDraft}
+        emailSecretStoredMask={emailSecretStoredMask}
+        hasEmailSecret={hasEmailSecret}
         hasSearchApiKey={hasSearchApiKey}
         onDraftChange={(patch) =>
           setDraft((settings) => ({
@@ -964,6 +1168,7 @@ export function AiSettings() {
             ...patch,
           }))
         }
+        onEmailSecretDraftChange={setEmailSecretDraft}
         onSearchApiKeyDraftChange={setSearchApiKeyDraft}
         searchApiKeyDraft={searchApiKeyDraft}
         searchApiKeyStoredMask={searchApiKeyStoredMask}

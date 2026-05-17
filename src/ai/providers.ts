@@ -1,6 +1,6 @@
 import i18next from "../i18n/config";
 import { AI_PROVIDER_DEFINITIONS } from "./providerRegistry";
-import type { AiAssistantToolSettings, AiProviderKind, AiProviderSettings, AiReasoningEffort, SearchProvider } from "../types";
+import type { AiAssistantToolSettings, AiProviderKind, AiProviderSettings, AiReasoningEffort, EmailProvider, SearchProvider, SmtpSecurity } from "../types";
 export { AI_PROVIDER_DEFINITIONS, modelSupportsImageInput } from "./providerRegistry";
 export type {
   AiModelOption,
@@ -25,6 +25,7 @@ export const DEFAULT_AI_ASSISTANT_TOOLS: AiAssistantToolSettings = {
   appDataFileRead: false,
   currentTime: false,
   performanceCounters: false,
+  email: false,
   dashboard: false,
   connections: true,
   sessions: true,
@@ -49,6 +50,13 @@ export function providerDefaultsFor(kind: AiProviderKind): AiProviderSettings {
     tools: DEFAULT_AI_ASSISTANT_TOOLS,
     searchProvider: "scraper",
     searxngUrl: "",
+    emailProvider: "resend",
+    emailFrom: "",
+    mailgunDomain: "",
+    smtpHost: "",
+    smtpPort: 587,
+    smtpUsername: "",
+    smtpSecurity: "starttls",
   };
 }
 
@@ -92,6 +100,13 @@ export function normalizeAiProviderDraft(draft: AiProviderSettings): AiProviderS
     tools: { ...DEFAULT_AI_ASSISTANT_TOOLS, ...(draft.tools ?? {}) },
     searchProvider: normalizeSearchProvider(draft.searchProvider),
     searxngUrl: draft.searxngUrl?.trim() ?? "",
+    emailProvider: normalizeEmailProvider(draft.emailProvider),
+    emailFrom: draft.emailFrom?.trim() ?? "",
+    mailgunDomain: draft.mailgunDomain?.trim() ?? "",
+    smtpHost: draft.smtpHost?.trim() ?? "",
+    smtpPort: normalizeSmtpPort(draft.smtpPort),
+    smtpUsername: draft.smtpUsername?.trim() ?? "",
+    smtpSecurity: normalizeSmtpSecurity(draft.smtpSecurity),
   };
 }
 
@@ -106,6 +121,31 @@ function normalizeSearchProvider(value: string | undefined): SearchProvider {
     default:
       return "scraper";
   }
+}
+
+function normalizeEmailProvider(value: string | undefined): EmailProvider {
+  switch (value) {
+    case "sendgrid":
+      return "sendgrid";
+    case "mailgun":
+      return "mailgun";
+    case "postmark":
+      return "postmark";
+    case "smtp":
+      return "smtp";
+    default:
+      return "resend";
+  }
+}
+
+function normalizeSmtpSecurity(value: string | undefined): SmtpSecurity {
+  return value === "none" ? "none" : "starttls";
+}
+
+function normalizeSmtpPort(value: number | undefined): number {
+  const port = Number(value);
+  if (!Number.isFinite(port)) return 587;
+  return Math.max(1, Math.min(65535, Math.round(port)));
 }
 
 export function providerNeedsApiKey(settings: AiProviderSettings) {

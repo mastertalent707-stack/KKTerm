@@ -104,6 +104,7 @@ export const defaultAiAssistantToolSettings = {
   appDataFileRead: false,
   currentTime: false,
   performanceCounters: false,
+  email: false,
   dashboard: false,
   connections: true,
   sessions: true,
@@ -124,6 +125,13 @@ export const defaultAiProviderSettings: AiProviderSettings = {
   tools: defaultAiAssistantToolSettings,
   searchProvider: "scraper",
   searxngUrl: "",
+  emailProvider: "resend",
+  emailFrom: "",
+  mailgunDomain: "",
+  smtpHost: "",
+  smtpPort: 587,
+  smtpUsername: "",
+  smtpSecurity: "starttls",
 };
 
 export type AiSuggestion = {

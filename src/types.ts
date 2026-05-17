@@ -386,6 +386,7 @@ export type AiAssistantToolId =
   | "appDataFileRead"
   | "currentTime"
   | "performanceCounters"
+  | "email"
   | "dashboard"
   | "connections"
   | "sessions";
@@ -393,6 +394,8 @@ export type AiAssistantToolId =
 export type AiAssistantToolSettings = Record<AiAssistantToolId, boolean>;
 
 export type SearchProvider = "scraper" | "brave" | "tavily" | "searxng";
+export type EmailProvider = "resend" | "sendgrid" | "mailgun" | "postmark" | "smtp";
+export type SmtpSecurity = "starttls" | "none";
 
 export interface AiProviderSettings {
   providerKind: AiProviderKind;
@@ -409,6 +412,13 @@ export interface AiProviderSettings {
   tools: AiAssistantToolSettings;
   searchProvider: SearchProvider;
   searxngUrl: string;
+  emailProvider: EmailProvider;
+  emailFrom: string;
+  mailgunDomain: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUsername: string;
+  smtpSecurity: SmtpSecurity;
 }
 
 export interface WorkspaceTab {
@@ -529,6 +539,8 @@ export type SecretKind =
   | "aiApiKey"
   | "braveSearchApiKey"
   | "tavilySearchApiKey"
+  | "emailApiKey"
+  | "emailSmtpPassword"
   | "widgetSecret";
 
 export interface KeychainStatus {
@@ -571,6 +583,8 @@ export type StoredCredentialKind =
   | "connectionPassword"
   | "urlPassword"
   | "aiApiKey"
+  | "emailApiKey"
+  | "emailSmtpPassword"
   | "widgetSecret";
 
 export interface StoredCredentialSummary {

@@ -5,6 +5,9 @@ use github_copilot_sdk::{
     Model as CopilotSdkModel, SessionConfig as CopilotSdkSessionConfig,
     SessionEvent as CopilotSdkSessionEvent,
 };
+use lettre::message::{Mailbox, MultiPart, SinglePart};
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{Message, SmtpTransport, Transport};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
@@ -3012,6 +3015,13 @@ fn ai_tool_definitions(settings: &AiAssistantToolSettings) -> Vec<OpenAiToolDefi
     if settings.shell_command() {
         tools.push(tool_definition("shell_command", "Run a non-destructive PowerShell or batch command from KKTerm app data only. Destructive commands are blocked.", json!({"type":"object","properties":{"command":{"type":"string"},"shell":{"type":"string","enum":["powershell","batch"]}},"required":["command"]})));
     }
+    if settings.email() {
+        tools.push(tool_definition(
+            "send_email",
+            "Send one email through the configured email provider. Use only when the user explicitly asks to send email and has reviewed the recipients, subject, and body. Attachments are not supported.",
+            send_email_schema(),
+        ));
+    }
     if settings.dashboard() {
         tools.push(tool_definition(
             "dashboard_load_state",
@@ -3241,6 +3251,23 @@ fn request_secret_entry_schema() -> Value {
             "placeholder":{"type":["string","null"],"maxLength":120}
         },
         "required":["kind","instanceId","fieldKey","label","description","placeholder"],
+        "additionalProperties":false
+    })
+}
+
+fn send_email_schema() -> Value {
+    json!({
+        "type":"object",
+        "properties":{
+            "to":{"type":"array","minItems":1,"maxItems":50,"items":{"type":"string"}},
+            "cc":{"type":["array","null"],"maxItems":50,"items":{"type":"string"}},
+            "bcc":{"type":["array","null"],"maxItems":50,"items":{"type":"string"}},
+            "replyTo":{"type":["string","null"]},
+            "subject":{"type":"string","minLength":1,"maxLength":300},
+            "text":{"type":["string","null"],"maxLength":200000},
+            "html":{"type":["string","null"],"maxLength":200000}
+        },
+        "required":["to","cc","bcc","replyTo","subject","text","html"],
         "additionalProperties":false
     })
 }
@@ -3475,6 +3502,7 @@ async fn run_ai_tool(
             app_data_file_read_tool(app_data_dir, args)
         }
         "shell_command" if tool_settings.shell_command() => shell_command_tool(app_data_dir, args),
+        "send_email" if tool_settings.email() => send_email_tool(settings, args).await,
         "performance_counters" if tool_settings.performance_counters() => {
             performance_counters_tool(app)
         }
@@ -3502,6 +3530,7 @@ async fn run_ai_tool(
 
 fn tool_requires_allow_all(tool_name: &str) -> bool {
     tool_name == "shell_command"
+        || tool_name == "send_email"
         || (tool_name.starts_with("dashboard_") && tool_name != "dashboard_load_state")
         || matches!(
             tool_name,
@@ -4197,6 +4226,396 @@ fn shell_command_tool(root: &Path, args: Value) -> String {
         }
         Err(error) => format!("Command failed to start: {error}"),
     }
+}
+
+#[derive(Debug)]
+struct EmailToolRequest {
+    to: Vec<String>,
+    cc: Vec<String>,
+    bcc: Vec<String>,
+    reply_to: Option<String>,
+    subject: String,
+    text: Option<String>,
+    html: Option<String>,
+}
+
+async fn send_email_tool(settings: &AiProviderSettings, args: Value) -> String {
+    let request = match parse_email_tool_request(args) {
+        Ok(request) => request,
+        Err(error) => return json!({"ok": false, "error": error}).to_string(),
+    };
+    if settings.email_from().trim().is_empty() {
+        return json!({"ok": false, "error": "Send Email requires a sender address in Settings."})
+            .to_string();
+    }
+
+    match settings.email_provider() {
+        "resend" => send_email_resend(settings, &request).await,
+        "sendgrid" => send_email_sendgrid(settings, &request).await,
+        "mailgun" => send_email_mailgun(settings, &request).await,
+        "postmark" => send_email_postmark(settings, &request).await,
+        "smtp" => send_email_smtp(settings, &request),
+        _ => json!({"ok": false, "error": "Unknown Send Email provider configured."}).to_string(),
+    }
+}
+
+fn parse_email_tool_request(args: Value) -> Result<EmailToolRequest, String> {
+    let to = email_array_arg(&args, "to");
+    let cc = email_array_arg(&args, "cc");
+    let bcc = email_array_arg(&args, "bcc");
+    if to.is_empty() {
+        return Err("send_email requires at least one recipient.".to_string());
+    }
+    for address in to.iter().chain(cc.iter()).chain(bcc.iter()) {
+        validate_email_address(address)?;
+    }
+    let reply_to = optional_email_arg(&args, "replyTo")?;
+    let subject = arg_string(&args, "subject");
+    if subject.is_empty() {
+        return Err("send_email requires subject.".to_string());
+    }
+    if subject.chars().any(|ch| ch == '\r' || ch == '\n') {
+        return Err("send_email subject cannot contain line breaks.".to_string());
+    }
+    let text = optional_body_arg(&args, "text");
+    let html = optional_body_arg(&args, "html");
+    if text.is_none() && html.is_none() {
+        return Err("send_email requires text or html body.".to_string());
+    }
+
+    Ok(EmailToolRequest {
+        to,
+        cc,
+        bcc,
+        reply_to,
+        subject,
+        text,
+        html,
+    })
+}
+
+fn email_array_arg(args: &Value, key: &str) -> Vec<String> {
+    args.get(key)
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .take(50)
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn optional_email_arg(args: &Value, key: &str) -> Result<Option<String>, String> {
+    let value = arg_string(args, key);
+    if value.is_empty() {
+        return Ok(None);
+    }
+    validate_email_address(&value)?;
+    Ok(Some(value))
+}
+
+fn optional_body_arg(args: &Value, key: &str) -> Option<String> {
+    let value = arg_string(args, key);
+    (!value.is_empty()).then(|| value.chars().take(200_000).collect())
+}
+
+fn validate_email_address(value: &str) -> Result<(), String> {
+    if value.contains(['\r', '\n']) || !value.contains('@') {
+        return Err(format!("Invalid email address: {value}"));
+    }
+    Ok(())
+}
+
+fn require_email_secret<'a>(
+    settings: &'a AiProviderSettings,
+    label: &str,
+) -> Result<&'a str, String> {
+    settings
+        .email_secret()
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| format!("{label} is not configured in Settings."))
+}
+
+fn email_http_client(settings: &AiProviderSettings) -> Result<reqwest::Client, String> {
+    build_web_client(settings.allow_insecure_tls())
+}
+
+async fn send_email_resend(settings: &AiProviderSettings, request: &EmailToolRequest) -> String {
+    let api_key = match require_email_secret(settings, "Resend API key") {
+        Ok(key) => key,
+        Err(error) => return json!({"ok": false, "error": error}).to_string(),
+    };
+    let client = match email_http_client(settings) {
+        Ok(client) => client,
+        Err(error) => return json!({"ok": false, "error": error}).to_string(),
+    };
+    let mut body = json!({
+        "from": settings.email_from(),
+        "to": request.to,
+        "subject": request.subject,
+    });
+    insert_optional_email_fields(&mut body, request);
+    send_email_http_request(
+        client
+            .post("https://api.resend.com/emails")
+            .bearer_auth(api_key)
+            .json(&body),
+        "Resend",
+    )
+    .await
+}
+
+async fn send_email_sendgrid(settings: &AiProviderSettings, request: &EmailToolRequest) -> String {
+    let api_key = match require_email_secret(settings, "SendGrid API key") {
+        Ok(key) => key,
+        Err(error) => return json!({"ok": false, "error": error}).to_string(),
+    };
+    let client = match email_http_client(settings) {
+        Ok(client) => client,
+        Err(error) => return json!({"ok": false, "error": error}).to_string(),
+    };
+    let mut personalization = json!({
+        "to": request.to.iter().map(|email| json!({"email": email})).collect::<Vec<_>>()
+    });
+    if !request.cc.is_empty() {
+        personalization["cc"] = json!(request.cc.iter().map(|email| json!({"email": email})).collect::<Vec<_>>());
+    }
+    if !request.bcc.is_empty() {
+        personalization["bcc"] = json!(request.bcc.iter().map(|email| json!({"email": email})).collect::<Vec<_>>());
+    }
+    let mut content = Vec::new();
+    if let Some(text) = &request.text {
+        content.push(json!({"type": "text/plain", "value": text}));
+    }
+    if let Some(html) = &request.html {
+        content.push(json!({"type": "text/html", "value": html}));
+    }
+    let mut body = json!({
+        "personalizations": [personalization],
+        "from": {"email": settings.email_from()},
+        "subject": request.subject,
+        "content": content,
+    });
+    if let Some(reply_to) = &request.reply_to {
+        body["reply_to"] = json!({"email": reply_to});
+    }
+    send_email_http_request(
+        client
+            .post("https://api.sendgrid.com/v3/mail/send")
+            .bearer_auth(api_key)
+            .json(&body),
+        "SendGrid",
+    )
+    .await
+}
+
+async fn send_email_mailgun(settings: &AiProviderSettings, request: &EmailToolRequest) -> String {
+    let api_key = match require_email_secret(settings, "Mailgun API key") {
+        Ok(key) => key,
+        Err(error) => return json!({"ok": false, "error": error}).to_string(),
+    };
+    let domain = settings.mailgun_domain();
+    if domain.is_empty() {
+        return json!({"ok": false, "error": "Mailgun domain is not configured in Settings."})
+            .to_string();
+    }
+    let client = match email_http_client(settings) {
+        Ok(client) => client,
+        Err(error) => return json!({"ok": false, "error": error}).to_string(),
+    };
+    let mut form = vec![
+        ("from", settings.email_from().to_string()),
+        ("to", request.to.join(",")),
+        ("subject", request.subject.clone()),
+    ];
+    if !request.cc.is_empty() {
+        form.push(("cc", request.cc.join(",")));
+    }
+    if !request.bcc.is_empty() {
+        form.push(("bcc", request.bcc.join(",")));
+    }
+    if let Some(reply_to) = &request.reply_to {
+        form.push(("h:Reply-To", reply_to.clone()));
+    }
+    if let Some(text) = &request.text {
+        form.push(("text", text.clone()));
+    }
+    if let Some(html) = &request.html {
+        form.push(("html", html.clone()));
+    }
+    let url = format!("https://api.mailgun.net/v3/{domain}/messages");
+    send_email_http_request(
+        client.post(url).basic_auth("api", Some(api_key)).form(&form),
+        "Mailgun",
+    )
+    .await
+}
+
+async fn send_email_postmark(settings: &AiProviderSettings, request: &EmailToolRequest) -> String {
+    let api_key = match require_email_secret(settings, "Postmark server token") {
+        Ok(key) => key,
+        Err(error) => return json!({"ok": false, "error": error}).to_string(),
+    };
+    let client = match email_http_client(settings) {
+        Ok(client) => client,
+        Err(error) => return json!({"ok": false, "error": error}).to_string(),
+    };
+    let mut body = json!({
+        "From": settings.email_from(),
+        "To": request.to.join(","),
+        "Subject": request.subject,
+    });
+    if !request.cc.is_empty() {
+        body["Cc"] = json!(request.cc.join(","));
+    }
+    if !request.bcc.is_empty() {
+        body["Bcc"] = json!(request.bcc.join(","));
+    }
+    if let Some(reply_to) = &request.reply_to {
+        body["ReplyTo"] = json!(reply_to);
+    }
+    if let Some(text) = &request.text {
+        body["TextBody"] = json!(text);
+    }
+    if let Some(html) = &request.html {
+        body["HtmlBody"] = json!(html);
+    }
+    send_email_http_request(
+        client
+            .post("https://api.postmarkapp.com/email")
+            .header("X-Postmark-Server-Token", api_key)
+            .header("Accept", "application/json")
+            .json(&body),
+        "Postmark",
+    )
+    .await
+}
+
+fn insert_optional_email_fields(body: &mut Value, request: &EmailToolRequest) {
+    if !request.cc.is_empty() {
+        body["cc"] = json!(request.cc);
+    }
+    if !request.bcc.is_empty() {
+        body["bcc"] = json!(request.bcc);
+    }
+    if let Some(reply_to) = &request.reply_to {
+        body["reply_to"] = json!(reply_to);
+    }
+    if let Some(text) = &request.text {
+        body["text"] = json!(text);
+    }
+    if let Some(html) = &request.html {
+        body["html"] = json!(html);
+    }
+}
+
+async fn send_email_http_request(builder: reqwest::RequestBuilder, provider: &str) -> String {
+    match builder.send().await {
+        Ok(response) => {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
+            if status.is_success() {
+                json!({"ok": true, "provider": provider, "status": status.as_u16()}).to_string()
+            } else {
+                json!({
+                    "ok": false,
+                    "provider": provider,
+                    "status": status.as_u16(),
+                    "error": truncate_error_body(&text)
+                })
+                .to_string()
+            }
+        }
+        Err(error) => {
+            json!({"ok": false, "provider": provider, "error": format!("Email request failed: {error}")})
+                .to_string()
+        }
+    }
+}
+
+fn send_email_smtp(settings: &AiProviderSettings, request: &EmailToolRequest) -> String {
+    if settings.smtp_host().is_empty() {
+        return json!({"ok": false, "error": "SMTP host is not configured in Settings."})
+            .to_string();
+    }
+    let message = match build_smtp_message(settings.email_from(), request) {
+        Ok(message) => message,
+        Err(error) => return json!({"ok": false, "error": error}).to_string(),
+    };
+    let mut builder = if settings.smtp_security() == "none" {
+        SmtpTransport::builder_dangerous(settings.smtp_host())
+    } else {
+        match SmtpTransport::starttls_relay(settings.smtp_host()) {
+            Ok(builder) => builder,
+            Err(error) => {
+                return json!({"ok": false, "error": format!("Invalid SMTP host: {error}")})
+                    .to_string()
+            }
+        }
+    }
+    .port(settings.smtp_port().into());
+    if !settings.smtp_username().is_empty() {
+        let password = match require_email_secret(settings, "SMTP password") {
+            Ok(password) => password,
+            Err(error) => return json!({"ok": false, "error": error}).to_string(),
+        };
+        builder = builder.credentials(Credentials::new(
+            settings.smtp_username().to_string(),
+            password.to_string(),
+        ));
+    }
+    let mailer = builder.build();
+    match mailer.send(&message) {
+        Ok(response) => json!({
+            "ok": true,
+            "provider": "SMTP",
+            "message": response.message().collect::<Vec<_>>().join(" ")
+        })
+        .to_string(),
+        Err(error) => json!({"ok": false, "provider": "SMTP", "error": error.to_string()})
+            .to_string(),
+    }
+}
+
+fn build_smtp_message(from: &str, request: &EmailToolRequest) -> Result<Message, String> {
+    let mut builder = Message::builder()
+        .from(parse_mailbox(from)?)
+        .subject(&request.subject);
+    for recipient in &request.to {
+        builder = builder.to(parse_mailbox(recipient)?);
+    }
+    for recipient in &request.cc {
+        builder = builder.cc(parse_mailbox(recipient)?);
+    }
+    for recipient in &request.bcc {
+        builder = builder.bcc(parse_mailbox(recipient)?);
+    }
+    if let Some(reply_to) = &request.reply_to {
+        builder = builder.reply_to(parse_mailbox(reply_to)?);
+    }
+    match (&request.text, &request.html) {
+        (Some(text), Some(html)) => builder
+            .multipart(MultiPart::alternative_plain_html(text.clone(), html.clone()))
+            .map_err(|error| format!("Failed to build SMTP message: {error}")),
+        (Some(text), None) => builder
+            .singlepart(SinglePart::plain(text.clone()))
+            .map_err(|error| format!("Failed to build SMTP message: {error}")),
+        (None, Some(html)) => builder
+            .singlepart(SinglePart::html(html.clone()))
+            .map_err(|error| format!("Failed to build SMTP message: {error}")),
+        (None, None) => Err("send_email requires text or html body.".to_string()),
+    }
+}
+
+fn parse_mailbox(value: &str) -> Result<Mailbox, String> {
+    value
+        .parse::<Mailbox>()
+        .map_err(|error| format!("Invalid email address {value}: {error}"))
 }
 
 fn collect_file_matches(root: &Path, dir: &Path, query: &str, matches: &mut Vec<String>) {
@@ -6189,6 +6608,29 @@ mod tests {
     }
 
     #[test]
+    fn tool_definitions_include_send_email_tool_when_enabled() {
+        let settings: AiAssistantToolSettings = serde_json::from_value(json!({
+            "email": true
+        }))
+        .expect("tool settings deserialize");
+
+        let tools = ai_tool_definitions(&settings);
+        let tool = tools
+            .iter()
+            .find(|tool| tool.function.name == "send_email")
+            .expect("send email tool is available");
+
+        assert!(tool
+            .function
+            .description
+            .contains("Send one email through the configured email provider"));
+        assert_eq!(
+            tool.function.parameters.pointer("/properties/to/items/type"),
+            Some(&json!("string"))
+        );
+    }
+
+    #[test]
     fn explicit_strict_tool_schemas_satisfy_openai_object_requirements() {
         let settings: AiAssistantToolSettings = serde_json::from_value(json!({
             "dashboard": true,
@@ -6490,6 +6932,7 @@ mod tests {
             "session_remote_desktop_mouse_click"
         ));
         assert!(tool_requires_allow_all("session_file_browser_delete"));
+        assert!(tool_requires_allow_all("send_email"));
         assert!(!tool_requires_allow_all("dashboard_load_state"));
         assert!(!tool_requires_allow_all("connection_list"));
         assert!(!tool_requires_allow_all("session_state"));

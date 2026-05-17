@@ -940,6 +940,7 @@ async fn run_ai_agent(
     let mut settings = storage.ai_provider_settings()?;
     let api_key = read_ai_provider_api_key(&secrets, settings.provider_kind())?;
     inject_search_api_key(&secrets, &mut settings)?;
+    inject_email_secret(&secrets, &mut settings)?;
     ai::run_agent(app, settings, api_key, request).await
 }
 
@@ -954,6 +955,7 @@ async fn run_ai_agent_streaming(
     let mut settings = storage.ai_provider_settings()?;
     let api_key = read_ai_provider_api_key(&secrets, settings.provider_kind())?;
     inject_search_api_key(&secrets, &mut settings)?;
+    inject_email_secret(&secrets, &mut settings)?;
     ai::run_agent_streaming(app, settings, api_key, request, channel).await
 }
 
@@ -987,6 +989,23 @@ fn inject_search_api_key(
         _ => None,
     };
     settings.set_search_provider_api_key(key);
+    Ok(())
+}
+
+fn inject_email_secret(
+    secrets: &secrets::Secrets,
+    settings: &mut storage::AiProviderSettings,
+) -> Result<(), String> {
+    let secret = if settings.email_provider() == "smtp" {
+        secrets
+            .read_email_smtp_password(storage::EMAIL_SMTP_SECRET_OWNER_ID.to_string())
+            .map_err(|e| format!("failed to read SMTP password: {e}"))?
+    } else {
+        secrets
+            .read_email_api_key(storage::EMAIL_API_SECRET_OWNER_ID.to_string())
+            .map_err(|e| format!("failed to read email API key: {e}"))?
+    };
+    settings.set_email_secret(secret);
     Ok(())
 }
 
@@ -1278,6 +1297,12 @@ fn delete_stored_credential(
             Ok(())
         }
         "aiApiKey" => secrets.delete_secret(secrets::SecretReferenceRequest::ai_api_key(owner_id)),
+        "emailApiKey" => {
+            secrets.delete_secret(secrets::SecretReferenceRequest::email_api_key(owner_id))
+        }
+        "emailSmtpPassword" => secrets.delete_secret(
+            secrets::SecretReferenceRequest::email_smtp_password(owner_id),
+        ),
         "connectionPassword" => secrets.delete_secret(
             secrets::SecretReferenceRequest::connection_password(owner_id),
         ),
@@ -1295,6 +1320,8 @@ fn credential_reference(
         )),
         "urlPassword" => Ok(secrets::SecretReferenceRequest::url_password(owner_id)),
         "aiApiKey" => Ok(secrets::SecretReferenceRequest::ai_api_key(owner_id)),
+        "emailApiKey" => Ok(secrets::SecretReferenceRequest::email_api_key(owner_id)),
+        "emailSmtpPassword" => Ok(secrets::SecretReferenceRequest::email_smtp_password(owner_id)),
         "widgetSecret" => Ok(secrets::SecretReferenceRequest::widget_secret(owner_id)),
         _ => Err("unsupported credential kind".to_string()),
     }

@@ -441,6 +441,8 @@ pub struct AiAssistantToolSettings {
     connections: bool,
     #[serde(default = "default_ai_sessions_tool_enabled")]
     sessions: bool,
+    #[serde(default)]
+    email: bool,
 }
 
 impl AiAssistantToolSettings {
@@ -474,6 +476,9 @@ impl AiAssistantToolSettings {
     pub(crate) fn sessions(&self) -> bool {
         self.sessions
     }
+    pub(crate) fn email(&self) -> bool {
+        self.email
+    }
     pub(crate) fn any_enabled(&self) -> bool {
         self.web_search
             || self.web_fetch
@@ -485,6 +490,7 @@ impl AiAssistantToolSettings {
             || self.dashboard
             || self.connections
             || self.sessions
+            || self.email
     }
 }
 
@@ -520,8 +526,24 @@ pub struct AiProviderSettings {
     search_provider: String,
     #[serde(default)]
     searxng_url: String,
+    #[serde(default = "default_email_provider")]
+    email_provider: String,
+    #[serde(default)]
+    email_from: String,
+    #[serde(default)]
+    mailgun_domain: String,
+    #[serde(default)]
+    smtp_host: String,
+    #[serde(default = "default_smtp_port")]
+    smtp_port: u16,
+    #[serde(default)]
+    smtp_username: String,
+    #[serde(default = "default_smtp_security")]
+    smtp_security: String,
     #[serde(skip)]
     search_provider_api_key: Option<String>,
+    #[serde(skip)]
+    email_secret: Option<String>,
 }
 
 impl AiProviderSettings {
@@ -571,6 +593,42 @@ impl AiProviderSettings {
 
     pub(crate) fn set_search_provider_api_key(&mut self, key: Option<String>) {
         self.search_provider_api_key = key;
+    }
+
+    pub(crate) fn email_provider(&self) -> &str {
+        &self.email_provider
+    }
+
+    pub(crate) fn email_from(&self) -> &str {
+        &self.email_from
+    }
+
+    pub(crate) fn mailgun_domain(&self) -> &str {
+        &self.mailgun_domain
+    }
+
+    pub(crate) fn smtp_host(&self) -> &str {
+        &self.smtp_host
+    }
+
+    pub(crate) fn smtp_port(&self) -> u16 {
+        self.smtp_port
+    }
+
+    pub(crate) fn smtp_username(&self) -> &str {
+        &self.smtp_username
+    }
+
+    pub(crate) fn smtp_security(&self) -> &str {
+        &self.smtp_security
+    }
+
+    pub(crate) fn email_secret(&self) -> Option<&str> {
+        self.email_secret.as_deref()
+    }
+
+    pub(crate) fn set_email_secret(&mut self, secret: Option<String>) {
+        self.email_secret = secret;
     }
 }
 
@@ -813,6 +871,8 @@ pub struct StoredCredentialCandidate {
 }
 
 pub(crate) const LEGACY_AI_PROVIDER_SECRET_OWNER_ID: &str = "openai-compatible-provider";
+pub(crate) const EMAIL_API_SECRET_OWNER_ID: &str = "email-tool-api-key";
+pub(crate) const EMAIL_SMTP_SECRET_OWNER_ID: &str = "email-tool-smtp-password";
 
 const AI_PROVIDER_CREDENTIALS: &[(&str, &str, &str)] = &[
     ("openai", "OpenAI", "OpenAI API key"),
@@ -2790,6 +2850,28 @@ fn list_stored_credential_candidates(
         updated_at: None,
         metadata_source: "settings".to_string(),
     });
+    credentials.push(StoredCredentialCandidate {
+        id: format!("email-api-key:{EMAIL_API_SECRET_OWNER_ID}"),
+        kind: "emailApiKey".to_string(),
+        secret_kind: "emailApiKey".to_string(),
+        owner_id: EMAIL_API_SECRET_OWNER_ID.to_string(),
+        label: "Email provider API key".to_string(),
+        detail: Some("Send Email".to_string()),
+        username: None,
+        updated_at: None,
+        metadata_source: "settings".to_string(),
+    });
+    credentials.push(StoredCredentialCandidate {
+        id: format!("email-smtp-password:{EMAIL_SMTP_SECRET_OWNER_ID}"),
+        kind: "emailSmtpPassword".to_string(),
+        secret_kind: "emailSmtpPassword".to_string(),
+        owner_id: EMAIL_SMTP_SECRET_OWNER_ID.to_string(),
+        label: "SMTP password".to_string(),
+        detail: Some("Send Email".to_string()),
+        username: None,
+        updated_at: None,
+        metadata_source: "settings".to_string(),
+    });
 
     Ok(credentials)
 }
@@ -3935,7 +4017,15 @@ fn default_ai_provider_settings() -> AiProviderSettings {
         tools: default_ai_assistant_tool_settings(),
         search_provider: default_search_provider(),
         searxng_url: String::new(),
+        email_provider: default_email_provider(),
+        email_from: String::new(),
+        mailgun_domain: String::new(),
+        smtp_host: String::new(),
+        smtp_port: default_smtp_port(),
+        smtp_username: String::new(),
+        smtp_security: default_smtp_security(),
         search_provider_api_key: None,
+        email_secret: None,
     }
 }
 
@@ -3951,6 +4041,7 @@ fn default_ai_assistant_tool_settings() -> AiAssistantToolSettings {
         dashboard: default_ai_dashboard_tool_enabled(),
         connections: default_ai_connections_tool_enabled(),
         sessions: default_ai_sessions_tool_enabled(),
+        email: false,
     }
 }
 
@@ -3976,6 +4067,18 @@ fn default_ai_sessions_tool_enabled() -> bool {
 
 fn default_search_provider() -> String {
     "scraper".to_string()
+}
+
+fn default_email_provider() -> String {
+    "resend".to_string()
+}
+
+fn default_smtp_port() -> u16 {
+    587
+}
+
+fn default_smtp_security() -> String {
+    "starttls".to_string()
 }
 
 fn default_ai_provider_kind() -> String {
@@ -4300,6 +4403,56 @@ fn validate_ai_provider_settings(
         }
         if settings.searxng_url.chars().any(char::is_whitespace) {
             return Err("SearXNG instance URL cannot contain whitespace".to_string());
+        }
+    }
+
+    settings.email_provider = match settings
+        .email_provider
+        .trim()
+        .to_lowercase()
+        .replace(['-', '_', ' '], "")
+        .as_str()
+    {
+        "" | "resend" => "resend".to_string(),
+        "sendgrid" => "sendgrid".to_string(),
+        "mailgun" => "mailgun".to_string(),
+        "postmark" => "postmark".to_string(),
+        "smtp" => "smtp".to_string(),
+        _ => {
+            return Err(
+                "Email provider must be resend, sendgrid, mailgun, postmark, or smtp"
+                    .to_string(),
+            )
+        }
+    };
+    settings.email_from = settings.email_from.trim().to_string();
+    settings.mailgun_domain = settings.mailgun_domain.trim().to_string();
+    settings.smtp_host = settings.smtp_host.trim().to_string();
+    settings.smtp_username = settings.smtp_username.trim().to_string();
+    settings.smtp_security = match settings
+        .smtp_security
+        .trim()
+        .to_lowercase()
+        .replace(['-', '_', ' '], "")
+        .as_str()
+    {
+        "" | "starttls" => "starttls".to_string(),
+        "none" | "plain" => "none".to_string(),
+        _ => return Err("SMTP security must be starttls or none".to_string()),
+    };
+
+    if settings.tools.email && settings.email_from.is_empty() {
+        return Err("Email sender address is required when Send Email is enabled".to_string());
+    }
+    if settings.tools.email && settings.email_provider == "mailgun" && settings.mailgun_domain.is_empty() {
+        return Err("Mailgun domain is required when Send Email uses Mailgun".to_string());
+    }
+    if settings.tools.email && settings.email_provider == "smtp" {
+        if settings.smtp_host.is_empty() {
+            return Err("SMTP host is required when Send Email uses SMTP".to_string());
+        }
+        if settings.smtp_port == 0 {
+            return Err("SMTP port must be between 1 and 65535".to_string());
         }
     }
 
@@ -6020,7 +6173,15 @@ mod tests {
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),
+                email_provider: default_email_provider(),
+                email_from: String::new(),
+                mailgun_domain: String::new(),
+                smtp_host: String::new(),
+                smtp_port: default_smtp_port(),
+                smtp_username: String::new(),
+                smtp_security: default_smtp_security(),
                 search_provider_api_key: None,
+                email_secret: None,
             })
             .expect("AI provider settings update");
 
@@ -6092,7 +6253,15 @@ mod tests {
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),
+                email_provider: default_email_provider(),
+                email_from: String::new(),
+                mailgun_domain: String::new(),
+                smtp_host: String::new(),
+                smtp_port: default_smtp_port(),
+                smtp_username: String::new(),
+                smtp_security: default_smtp_security(),
                 search_provider_api_key: None,
+                email_secret: None,
             })
             .expect_err("unknown tool permission mode is rejected");
 
@@ -6120,7 +6289,15 @@ mod tests {
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),
+                email_provider: default_email_provider(),
+                email_from: String::new(),
+                mailgun_domain: String::new(),
+                smtp_host: String::new(),
+                smtp_port: default_smtp_port(),
+                smtp_username: String::new(),
+                smtp_security: default_smtp_security(),
                 search_provider_api_key: None,
+                email_secret: None,
             })
             .expect_err("scheme-less endpoint is rejected");
 
@@ -6152,7 +6329,15 @@ mod tests {
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),
+                email_provider: default_email_provider(),
+                email_from: String::new(),
+                mailgun_domain: String::new(),
+                smtp_host: String::new(),
+                smtp_port: default_smtp_port(),
+                smtp_username: String::new(),
+                smtp_security: default_smtp_security(),
                 search_provider_api_key: None,
+                email_secret: None,
             })
             .expect_err("blank model is rejected");
 
@@ -6181,7 +6366,15 @@ mod tests {
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),
+                email_provider: default_email_provider(),
+                email_from: String::new(),
+                mailgun_domain: String::new(),
+                smtp_host: String::new(),
+                smtp_port: default_smtp_port(),
+                smtp_username: String::new(),
+                smtp_security: default_smtp_security(),
                 search_provider_api_key: None,
+                email_secret: None,
             })
             .expect("custom instructions update");
 
@@ -6224,7 +6417,15 @@ mod tests {
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),
+                email_provider: default_email_provider(),
+                email_from: String::new(),
+                mailgun_domain: String::new(),
+                smtp_host: String::new(),
+                smtp_port: default_smtp_port(),
+                smtp_username: String::new(),
+                smtp_security: default_smtp_security(),
                 search_provider_api_key: None,
+                email_secret: None,
             })
             .expect_err("auto-execution policy is rejected");
 
