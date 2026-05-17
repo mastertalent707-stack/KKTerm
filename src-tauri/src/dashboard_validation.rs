@@ -314,6 +314,21 @@ pub enum ContentBody {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ContentMarkdown {
     pub source: String,
+    #[serde(default)]
+    pub mode: ContentMarkdownMode,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ContentMarkdownMode {
+    Markdown,
+    Html,
+}
+
+impl Default for ContentMarkdownMode {
+    fn default() -> Self {
+        Self::Markdown
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -1069,6 +1084,28 @@ mod tests {
     fn content_markdown_ok() {
         let json = r##"{"shape":"markdown","data":{"source":"# Hello"}}"##;
         assert!(validate_content_body_json(json).is_ok());
+    }
+
+    #[test]
+    fn content_markdown_accepts_explicit_markdown_mode() {
+        let json = r##"{"shape":"markdown","data":{"source":"# Hello","mode":"markdown"}}"##;
+        assert!(validate_content_body_json(json).is_ok());
+    }
+
+    #[test]
+    fn content_markdown_accepts_explicit_html_mode() {
+        let json =
+            r##"{"shape":"markdown","data":{"source":"<strong>Hello</strong>","mode":"html"}}"##;
+        assert!(validate_content_body_json(json).is_ok());
+    }
+
+    #[test]
+    fn content_markdown_unknown_mode_rejected() {
+        let json = r##"{"shape":"markdown","data":{"source":"# Hello","mode":"plain"}}"##;
+        assert_eq!(
+            validate_content_body_json(json),
+            Err(ValidationError::InvalidContentShape),
+        );
     }
 
     #[test]

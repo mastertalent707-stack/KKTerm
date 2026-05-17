@@ -34,7 +34,7 @@ It does not own:
 | Kind | Body source | Execution model |
 | --- | --- | --- |
 | `builtIn` | TypeScript component in `src/dashboard/widgets/` registered in `builtInRegistry.ts` | Normal React render. App Launcher is the only current built-in. |
-| `content` | Validated JSON in `dashboard_custom_widgets.body_json` | Declarative renderer in `ContentWidgetRenderer.tsx` — switches over `shape: 'markdown' \| 'kvList' \| 'checklist' \| 'stat'`. No code execution. |
+| `content` | Validated JSON in `dashboard_custom_widgets.body_json` | Declarative renderer in `ContentWidgetRenderer.tsx` — switches over `shape: 'markdown' \| 'kvList' \| 'checklist' \| 'stat'`. Markdown-shaped content sets `data.mode: 'markdown' \| 'html'`; markdown mode parses Markdown and html mode sanitizes and renders an HTML fragment. No code execution. |
 | `script` | JavaScript source string in `dashboard_custom_widgets.body_json` | Hosted inside an isolated `iframe srcdoc` via `ScriptWidgetHost.tsx`. Has `document`, `fetch`, `setInterval`, and a minimal `KK` postMessage bridge. Permissions (`network`, `pollSeconds`) declared per widget. Fault-isolation boundary — a bad script breaks one widget, not the dashboard. |
 
 **Visual Preset** — one of five framing styles applied per widget instance: `panel`, `ambient`, `tile`, `hero`, `action`. Implemented in `presetRegistry.tsx` as thin CSS-driven chrome wrappers. Each preset reads `--w-accent` and `--w-accent-soft` for the widget's accent color; presets do not encode their own palette. Ambient supports optional frosted-glass background and title-bar visibility toggles; Action supports a layout direction toggle (vertical/horizontal).
@@ -114,7 +114,7 @@ Rust validation invariants:
 - `accent_name` is in the palette whitelist.
 - `icon_name` is in the lucide icon whitelist.
 - Grid bounds: `w ≥ 1`, `h ≥ 1`, `x ≥ 0`, `y ≥ 0`, `x + w ≤ 12`.
-- Content shape byte caps and shape-specific schema: non-empty markdown source, non-empty key/value rows with labels, non-empty checklist items with labels, or a non-empty stat value.
+- Content shape byte caps and shape-specific schema: non-empty markdown source with optional persisted `mode` (`markdown` default for legacy widgets, or `html`), non-empty key/value rows with labels, non-empty checklist items with labels, or a non-empty stat value.
 - Script source is required and ≤ 64 KB; `pollSeconds ≥ 1`; only declared `permissions` values are accepted.
 - Settings schemas are bounded JSON objects with up to 20 fields. Supported field types are `text`, `number`, `boolean`, `select`, and `secret`; keys must be stable ASCII identifiers and select fields must declare bounded label/value options.
 - Settings schemas use `secret` fields for passwords, API keys, tokens, and similar values. A secret field never has a default value.
@@ -239,7 +239,7 @@ The original script host pasted AI-generated `source` directly inside the host `
 
 Arbitrary AI-authored HTML is not a reliable default for dashboard creation. The reliable path is schema-first:
 
-- The assistant should choose `content` widgets whenever the request fits the existing declarative shapes (`markdown`, `kvList`, `checklist`, `stat`).
+- The assistant should choose `content` widgets whenever the request fits the existing declarative shapes (`markdown`, `kvList`, `checklist`, `stat`). For `shape: "markdown"`, assistant-authored widget bodies must specify `data.mode` as either `markdown` or `html`; use `markdown` for Markdown text and `html` for an HTML fragment that KKTerm will sanitize before rendering.
 - Interactive widgets should move toward predefined building blocks such as form fields, buttons, expressions, fetch blocks, and layout containers rendered by KKTerm-owned React components.
 - The assistant should produce only schema for those blocks. KKTerm validates and renders the schema; the model does not author random HTML.
 - Per-instance custom options should use `settingsSchema.fields` rather than model-authored settings UI. KKTerm owns the settings form and stores values in `dashboard_widget_instances.settings_values_json`.

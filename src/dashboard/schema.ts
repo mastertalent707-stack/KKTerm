@@ -53,7 +53,15 @@ export function validateContentWidgetBody(value: unknown): ValidationResult<Cont
       if (!isNonEmptyString(value.data.source)) {
         return { ok: false, reason: "invalidContentData" };
       }
-      return { ok: true, value: { shape: "markdown", data: { source: value.data.source } } };
+      if (
+        value.data.mode !== undefined &&
+        value.data.mode !== "markdown" &&
+        value.data.mode !== "html"
+      ) {
+        return { ok: false, reason: "invalidContentData" };
+      }
+      const mode = value.data.mode === "html" ? "html" : "markdown";
+      return { ok: true, value: { shape: "markdown", data: { source: value.data.source, mode } } };
     }
     case "kvList": {
       if (!Array.isArray(value.data.rows) || value.data.rows.length === 0) {

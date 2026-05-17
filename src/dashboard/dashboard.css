@@ -1381,6 +1381,88 @@ button.dashboard-pill-dot:focus-visible {
   line-height: 1.65;
 }
 
+.dw-content-rich {
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.dw-content-rich > :first-child {
+  margin-top: 0;
+}
+
+.dw-content-rich > :last-child {
+  margin-bottom: 0;
+}
+
+.dw-content-rich h1,
+.dw-content-rich h2,
+.dw-content-rich h3,
+.dw-content-rich h4,
+.dw-content-rich h5,
+.dw-content-rich h6,
+.dw-content-rich p,
+.dw-content-rich ul,
+.dw-content-rich ol,
+.dw-content-rich blockquote,
+.dw-content-rich table {
+  margin: 0 0 0.65em;
+}
+
+.dw-content-rich h1,
+.dw-content-rich h2,
+.dw-content-rich h3,
+.dw-content-rich h4,
+.dw-content-rich h5,
+.dw-content-rich h6 {
+  color: var(--text);
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.dw-content-rich h1 { font-size: 17px; }
+.dw-content-rich h2 { font-size: 15px; }
+.dw-content-rich h3,
+.dw-content-rich h4,
+.dw-content-rich h5,
+.dw-content-rich h6 { font-size: 13px; }
+
+.dw-content-rich ul,
+.dw-content-rich ol {
+  padding-left: 18px;
+}
+
+.dw-content-rich a {
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.dw-content-rich :not(pre) > code {
+  padding: 1px 4px;
+  color: var(--text);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.dw-content-rich pre {
+  max-width: 100%;
+  overflow: auto;
+  padding: 8px;
+  color: var(--text);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.dw-content-rich img,
+.dw-content-rich table {
+  max-width: 100%;
+}
+
 .dw-empty,
 .dw-muted {
   margin: 0;

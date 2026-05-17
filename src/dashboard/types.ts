@@ -123,7 +123,7 @@ export interface LayoutEntry {
 export type ContentShape = "markdown" | "kvList" | "checklist" | "stat";
 
 export type ContentBody =
-  | { shape: "markdown"; data: { source: string } }
+  | { shape: "markdown"; data: { source: string; mode?: "markdown" | "html" } }
   | { shape: "kvList"; data: { rows: { label: string; value: string }[] } }
   | { shape: "checklist"; data: { items: { label: string; done?: boolean }[] } }
   | { shape: "stat"; data: { value: string; unit?: string; delta?: string; caption?: string } };

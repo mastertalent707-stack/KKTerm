@@ -212,7 +212,7 @@ The Dashboard module is a built-in activity-rail destination that presents a 12-
 
 The full architecture lives in `docs/DASHBOARD.md`. Summary of the durable shape:
 
-- **Three widget kinds.** `builtIn` (TypeScript components in `src/dashboard/widgets/`, registered in `src/dashboard/registry/builtInRegistry.ts`), `content` (declarative JSON: markdown/kvList/checklist/stat), and `script` (JavaScript executed inside an isolated `iframe srcdoc` host with declared `network` / `pollSeconds` permissions). Built-in widgets ship with the app; `content` and `script` widgets are AI-authored in v1 and stored in `dashboard_custom_widgets`.
+- **Three widget kinds.** `builtIn` (TypeScript components in `src/dashboard/widgets/`, registered in `src/dashboard/registry/builtInRegistry.ts`), `content` (declarative JSON: markdown/kvList/checklist/stat; markdown-shaped content supports `data.mode: markdown | html`), and `script` (JavaScript executed inside an isolated `iframe srcdoc` host with declared `network` / `pollSeconds` permissions). Built-in widgets ship with the app; `content` and `script` widgets are AI-authored in v1 and stored in `dashboard_custom_widgets`.
 - **Five visual presets.** `panel`, `ambient`, `tile`, `hero`, `action`. Each preset is a CSS chrome wrapper that reads the widget's `--w-accent` / `--w-accent-soft` variables; presets do not encode their own palette. Ambient supports optional frosted-glass background and title-bar visibility; Action supports layout direction (vertical/horizontal).
 - **Per-instance customization.** Each widget instance carries `preset`, `accent_name` (palette key, not hex), `icon_name` (curated lucide whitelist), and optional `custom_title`.
 - **Layout** uses `react-grid-layout` with `WidthProvider`, 12 columns, `compactType: 'vertical'`, drag handles restricted to preset headers, debounced batched layout writes through `dashboard_apply_layout`. Per-view `grid_density` (`compact` / `default` / `roomy`) is edited from the topbar in edit mode only.
@@ -333,7 +333,7 @@ Workspace chrome layout is global state. Connection-specific live context may ch
 - `src/dashboard/view/WidgetFrame.tsx` — preset chrome wrapper plus edit-mode controls (remove, customize). Sets inline accent CSS variables.
 - `src/dashboard/view/WidgetBody.tsx` — dispatcher: `builtIn` → registry lookup; `content` → `ContentWidgetRenderer`; `script` → `ScriptWidgetHost`.
 - `src/dashboard/widgets/` — one file per built-in widget body. `AppLauncherBody.tsx` delegates to `src/app-launcher/`.
-- `src/dashboard/content/ContentWidgetRenderer.tsx` — declarative `content`-kind renderer; switches over `shape: 'markdown' | 'kvList' | 'checklist' | 'stat'`.
+- `src/dashboard/content/ContentWidgetRenderer.tsx` — declarative `content`-kind renderer; switches over `shape: 'markdown' | 'kvList' | 'checklist' | 'stat'`, parsing Markdown or sanitizing HTML according to markdown-shaped `data.mode`.
 - `src/dashboard/script/ScriptWidgetHost.tsx` — `iframe srcdoc` host for `script`-kind widgets. Wires the postMessage bridge and applies declared permissions through CSP.
 - `src/dashboard/script/permissions.ts` — script-kind capability validation shared with the Rust validator surface.
 - `src/dashboard/edit/CatalogOverlay.tsx` — "Add widget" modal with search, Built-in/Custom source tabs, and thumbnail cards.

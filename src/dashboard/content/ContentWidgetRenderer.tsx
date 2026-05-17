@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import DOMPurify from "dompurify";
+import { marked } from "marked";
 import type { ContentBody } from "../types";
 import { parseJsonObject, validateContentWidgetBody } from "../schema";
 
@@ -16,7 +18,7 @@ export function ContentWidgetRenderer({ bodyJson }: { bodyJson: string }) {
 
   switch (parsed.shape) {
     case "markdown":
-      return <div className="dw-content-md">{parsed.data.source}</div>;
+      return <RichContent source={parsed.data.source} mode={parsed.data.mode ?? "markdown"} />;
     case "kvList":
       return (
         <div className="dw-kv">
@@ -46,4 +48,22 @@ export function ContentWidgetRenderer({ bodyJson }: { bodyJson: string }) {
         </div>
       );
   }
+}
+
+function RichContent({ source, mode }: { source: string; mode: "markdown" | "html" }) {
+  const html = useMemo(() => {
+    const rawHtml =
+      mode === "html"
+        ? source
+        : (marked.parse(source, { async: false }) as string);
+    return DOMPurify.sanitize(rawHtml);
+  }, [mode, source]);
+
+  return (
+    <div
+      className="dw-content-md dw-content-rich"
+      data-mode={mode}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
 }
