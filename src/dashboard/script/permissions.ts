@@ -184,7 +184,7 @@ export function buildSrcdoc(
       overflow: hidden;
       border: 1px solid var(--kk-border);
       border-radius: 8px;
-      background: #0f172a;
+      background: transparent;
     }
     .kk-stage > canvas,
     canvas.kk-fill,
@@ -235,6 +235,7 @@ export function buildSrcdoc(
       var _nativeSetInterval = window.setInterval.bind(window);
       var _nativeClearInterval = window.clearInterval.bind(window);
       var _kkRafCallbacks = new Map();
+      var _kkVisibilityCallbacks = new Set();
       var _kkRafSequence = 1;
       var _kkRafScheduled = false;
       var _kkLastRafTimestamp = 0;
@@ -271,6 +272,15 @@ export function buildSrcdoc(
           }
         });
         scheduleKkRafPump(KK_RAF_MIN_INTERVAL_MS);
+      }
+      function notifyKkVisibilityCallbacks() {
+        Array.prototype.slice.call(_kkVisibilityCallbacks).forEach(function (callback) {
+          try {
+            callback(_kkVisible);
+          } catch (error) {
+            _nativeSetTimeout(function () { throw error; }, 0);
+          }
+        });
       }
       window.requestAnimationFrame = function (callback) {
         if (typeof callback !== 'function') {
@@ -421,6 +431,21 @@ export function buildSrcdoc(
             disposed = true;
             if (observer) observer.disconnect();
             window.removeEventListener('resize', notify);
+          };
+        },
+        onVisibilityChange: function (callback) {
+          if (typeof callback !== 'function') return function () {};
+          _kkVisibilityCallbacks.add(callback);
+          _nativeSetTimeout(function () {
+            if (!_kkVisibilityCallbacks.has(callback)) return;
+            try {
+              callback(_kkVisible);
+            } catch (error) {
+              _nativeSetTimeout(function () { throw error; }, 0);
+            }
+          }, 0);
+          return function () {
+            _kkVisibilityCallbacks.delete(callback);
           };
         },
         getSecret: function (key) {
@@ -622,7 +647,13 @@ export function buildSrcdoc(
       window.addEventListener('message', function (event) {
         var data = event.data;
         if (!data || !data.kk || data.type !== 'setVisible') return;
-        _kkVisible = data.visible === true;
+        var nextVisible = data.visible === true;
+        if (_kkVisible !== nextVisible) {
+          _kkVisible = nextVisible;
+          notifyKkVisibilityCallbacks();
+        } else {
+          _kkVisible = nextVisible;
+        }
         if (_kkVisible) scheduleKkRafPump(0);
       });
 

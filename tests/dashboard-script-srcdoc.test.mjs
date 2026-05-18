@@ -95,6 +95,22 @@ test("script widget host exposes measured viewport bridge", async () => {
   assert.match(srcdoc, /new ResizeObserver\(notify\)/);
 });
 
+test("script widget host notifies generated animation code when visibility changes", async () => {
+  const { buildSrcdoc } = await importTypeScriptModule(
+    new URL("../src/dashboard/script/permissions.ts", import.meta.url),
+  );
+  const srcdoc = buildSrcdoc({
+    source: "KK.onVisibilityChange((visible) => { if (visible) requestAnimationFrame(() => {}); });",
+    permissions: { network: false },
+  });
+
+  assert.match(srcdoc, /var _kkVisibilityCallbacks = new Set\(\)/);
+  assert.match(srcdoc, /onVisibilityChange: function \(callback\)/);
+  assert.match(srcdoc, /_kkVisibilityCallbacks\.add\(callback\)/);
+  assert.match(srcdoc, /notifyKkVisibilityCallbacks\(\)/);
+  assert.match(srcdoc, /if \(_kkVisible !== nextVisible\)/);
+});
+
 test("script widget host caps animation and tight timer loops", async () => {
   const { buildSrcdoc } = await importTypeScriptModule(
     new URL("../src/dashboard/script/permissions.ts", import.meta.url),
@@ -143,6 +159,19 @@ test("script widget host exposes app-owned UI primitives", async () => {
   ]) {
     assert.match(srcdoc, new RegExp(`\\.${className}`));
   }
+});
+
+test("script widget stage primitive does not impose a dark object background", async () => {
+  const { buildSrcdoc } = await importTypeScriptModule(
+    new URL("../src/dashboard/script/permissions.ts", import.meta.url),
+  );
+  const srcdoc = buildSrcdoc({
+    source: "document.getElementById('root').innerHTML = '<div class=\"kk-stage\"></div>';",
+    permissions: { network: false },
+  });
+
+  assert.match(srcdoc, /\.kk-stage \{[\s\S]*background: transparent;/);
+  assert.doesNotMatch(srcdoc, /\.kk-stage \{[\s\S]*background: #0f172a;/);
 });
 
 test("script widget host exposes file and folder drop-zone helper", async () => {
