@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `ai.*` (full namespace), `app.aiAssistant`, `settings.mcp*`, `settings.sectionAiAssistant`, `settings.credentialKindAiApiKey`
-- Topics: AI panel, chats, new chat, history, SQLite, tool permission modes, intents (Watchdog / Create Widget / Extension Draft), MCP servers, attachments (files, screenshots, terminal buffer), provider keys, send-to-terminal
+- Topics: AI panel, chats, new chat, history, SQLite, tool permission modes, tool defaults, intents (Watchdog / Create Widget / Extension Draft), MCP servers, attachments (files, screenshots, terminal buffer), provider keys, send-to-terminal
 - Synonyms: "chat", "copilot", "AI bot", "tools", "approval", "MCP", "agent", "watchdog", "where are chats stored", "clear chat storage"
 
 ## Panel
@@ -53,6 +53,8 @@ Assistant tool calls run under one of two modes (selector label `ai.toolPermissi
 - **Allow all** (`ai.toolPermissionAllowAll`) — tool calls run without prompting. Use deliberately.
 
 ### Built-in tools
+
+Built-in AI tools default on except `settings.aiTools.email.label`. The email tool stays off until enabled in Settings because it requires delivery configuration and an email secret.
 
 Names shown during a tool call (`ai.toolCallRunning` → `ai.toolCallComplete`):
 

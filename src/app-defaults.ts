@@ -97,15 +97,15 @@ export const defaultVncSettings: VncSettings = {
 };
 
 export const defaultAiAssistantToolSettings = {
-  webSearch: false,
-  webFetch: false,
-  shellCommand: false,
-  appDataFileSearch: false,
-  appDataFileRead: false,
-  currentTime: false,
-  performanceCounters: false,
+  webSearch: true,
+  webFetch: true,
+  shellCommand: true,
+  appDataFileSearch: true,
+  appDataFileRead: true,
+  currentTime: true,
+  performanceCounters: true,
   email: false,
-  dashboard: false,
+  dashboard: true,
   connections: true,
   sessions: true,
   manual: true,

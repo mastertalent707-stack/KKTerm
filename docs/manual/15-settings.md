@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `settings.*` (full namespace — over 400 keys; section roots listed below)
-- Topics: General, Appearance, Dashboard, Credentials & MCP, AI Assistant, SSH, Terminal, Screenshots, RDP, VNC, URL, About; settings draft/save/reset; backup ZIP; settings import; reset all
+- Topics: General, Appearance, Dashboard, Credentials & MCP, AI Assistant, assistant tool defaults, SSH, Terminal, Screenshots, RDP, VNC, URL, About; settings draft/save/reset; backup ZIP; settings import; reset all
 - Synonyms: "preferences", "options", "config", "theme", "dark mode", "language", "API key", "import settings", "factory reset"
 
 > Settings page styling is consistent across sections. Related controls live inside the shared `settings-subsection settings-fieldset` group so the group title sits in the border. Editable controls look editable; disabled / readonly controls stay muted. Delete buttons inside Settings are icon-only red trash cans (no visible "Delete" text). Destructive Settings-wide actions live in **General → Settings data**, behind app-owned confirmation dialogs — not inside feature-specific sections.
@@ -78,6 +78,7 @@ Section header `settings.sectionAiAssistant`. Owned by `src/settings/AiSettings.
 - Custom model ID is a separate text input.
 - API keys go into the OS keychain under `AI_PROVIDER_SECRET_OWNER_ID`; never written to SQLite or settings JSON.
 - Tool permission default (`ai.toolPermissionMode`) is set here as well.
+- Assistant tools default enabled except `settings.aiTools.email.label`, which stays off until the user enables and configures delivery.
 
 ## SSH
 

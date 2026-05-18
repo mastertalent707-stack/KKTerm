@@ -449,15 +449,15 @@ impl ScreenshotSettings {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AiAssistantToolSettings {
-    #[serde(default)]
+    #[serde(default = "default_ai_general_tool_enabled")]
     web_search: bool,
-    #[serde(default)]
+    #[serde(default = "default_ai_general_tool_enabled")]
     web_fetch: bool,
-    #[serde(default)]
+    #[serde(default = "default_ai_general_tool_enabled")]
     shell_command: bool,
-    #[serde(default)]
+    #[serde(default = "default_ai_general_tool_enabled")]
     app_data_file_search: bool,
-    #[serde(default)]
+    #[serde(default = "default_ai_general_tool_enabled")]
     app_data_file_read: bool,
     #[serde(default = "default_ai_current_time_tool_enabled")]
     current_time: bool,
@@ -4187,11 +4187,11 @@ fn default_ai_provider_settings() -> AiProviderSettings {
 
 fn default_ai_assistant_tool_settings() -> AiAssistantToolSettings {
     AiAssistantToolSettings {
-        web_search: false,
-        web_fetch: false,
-        shell_command: false,
-        app_data_file_search: false,
-        app_data_file_read: false,
+        web_search: default_ai_general_tool_enabled(),
+        web_fetch: default_ai_general_tool_enabled(),
+        shell_command: default_ai_general_tool_enabled(),
+        app_data_file_search: default_ai_general_tool_enabled(),
+        app_data_file_read: default_ai_general_tool_enabled(),
         current_time: default_ai_current_time_tool_enabled(),
         performance_counters: default_ai_performance_counters_tool_enabled(),
         dashboard: default_ai_dashboard_tool_enabled(),
@@ -4202,12 +4202,16 @@ fn default_ai_assistant_tool_settings() -> AiAssistantToolSettings {
     }
 }
 
+fn default_ai_general_tool_enabled() -> bool {
+    true
+}
+
 fn default_ai_current_time_tool_enabled() -> bool {
-    false
+    true
 }
 
 fn default_ai_performance_counters_tool_enabled() -> bool {
-    false
+    true
 }
 
 fn default_ai_dashboard_tool_enabled() -> bool {
@@ -6407,6 +6411,18 @@ mod tests {
         assert_eq!(defaults.tool_permission_mode, "prompt");
         assert!(!defaults.allow_insecure_tls);
         assert!(!defaults.show_all_models);
+        assert!(defaults.tools.web_search());
+        assert!(defaults.tools.web_fetch());
+        assert!(defaults.tools.shell_command());
+        assert!(defaults.tools.app_data_file_search());
+        assert!(defaults.tools.app_data_file_read());
+        assert!(defaults.tools.current_time());
+        assert!(defaults.tools.performance_counters());
+        assert!(defaults.tools.dashboard());
+        assert!(defaults.tools.connections());
+        assert!(defaults.tools.sessions());
+        assert!(defaults.tools.manual());
+        assert!(!defaults.tools.email());
 
         let updated = storage
             .update_ai_provider_settings(AiProviderSettings {

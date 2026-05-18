@@ -1,6 +1,24 @@
 import { getAiProviderDefinition, providerDefaultsFor, validateAiProviderForChat } from "./providers";
+import { defaultAiAssistantToolSettings } from "../app-defaults";
+
+function assertToolsDefaultOnExceptEmail(label: string, tools: Record<string, boolean>) {
+  const disabledDefaultTools = Object.entries(tools)
+    .filter(([toolId, enabled]) => toolId !== "email" && !enabled)
+    .map(([toolId]) => toolId);
+  if (disabledDefaultTools.length > 0) {
+    throw new Error(
+      `${label} AI assistant tools should default on except email; disabled defaults: ${disabledDefaultTools.join(", ")}`,
+    );
+  }
+  if (tools.email) {
+    throw new Error(`${label} email AI assistant tool should stay off by default.`);
+  }
+}
 
 const copilotSettings = providerDefaultsFor("github-copilot");
+
+assertToolsDefaultOnExceptEmail("Provider", providerDefaultsFor("openai").tools);
+assertToolsDefaultOnExceptEmail("App", defaultAiAssistantToolSettings);
 
 try {
   validateAiProviderForChat(copilotSettings, false);

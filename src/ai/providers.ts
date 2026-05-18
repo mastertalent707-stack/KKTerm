@@ -18,15 +18,15 @@ export function getAiProviderDefinition(kind: AiProviderKind) {
 }
 
 export const DEFAULT_AI_ASSISTANT_TOOLS: AiAssistantToolSettings = {
-  webSearch: false,
-  webFetch: false,
-  shellCommand: false,
-  appDataFileSearch: false,
-  appDataFileRead: false,
-  currentTime: false,
-  performanceCounters: false,
+  webSearch: true,
+  webFetch: true,
+  shellCommand: true,
+  appDataFileSearch: true,
+  appDataFileRead: true,
+  currentTime: true,
+  performanceCounters: true,
   email: false,
-  dashboard: false,
+  dashboard: true,
   connections: true,
   sessions: true,
   manual: true,
