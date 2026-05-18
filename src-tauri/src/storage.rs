@@ -1713,6 +1713,18 @@ impl Storage {
         )?;
         ensure_column(
             &connection,
+            "dashboard_custom_widgets",
+            "created_at",
+            "TEXT NOT NULL DEFAULT '1970-01-01 00:00:00'",
+        )?;
+        ensure_column(
+            &connection,
+            "dashboard_custom_widgets",
+            "updated_at",
+            "TEXT NOT NULL DEFAULT '1970-01-01 00:00:00'",
+        )?;
+        ensure_column(
+            &connection,
             "dashboard_widget_instances",
             "settings_values_json",
             "TEXT NOT NULL DEFAULT '{}'",
@@ -1731,6 +1743,17 @@ impl Storage {
         )?;
         ensure_column(&connection, "dashboard_views", "background_json", "TEXT")?;
         ensure_column(&connection, "dashboard_views", "tab_color", "TEXT")?;
+        connection
+            .execute(
+                "UPDATE dashboard_widget_instances
+                    SET grid_y = CASE
+                        WHEN grid_h >= ?1 THEN 0
+                        ELSE ?1 - grid_h
+                    END
+                 WHERE grid_y < 0 OR grid_y + grid_h > ?1",
+                params![crate::dashboard_validation::GRID_MAX_ROWS],
+            )
+            .map_err(to_storage_error)?;
         connection
             .execute_batch(&format!("PRAGMA user_version = {SCHEMA_USER_VERSION}"))
             .map_err(to_storage_error)?;

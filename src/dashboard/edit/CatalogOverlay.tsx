@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DeleteConfirmationDialog } from "../../app/DeleteConfirmationDialog";
 import { useDashboardStore } from "../state/dashboardStore";
+import { nextDashboardAppendGridY } from "../grid";
 import { BUILT_IN_WIDGETS } from "../registry/builtInRegistry";
 import { resolveAccent } from "../registry/palette";
 import type { AccentName, IconName, WidgetKind, WidgetPreset } from "../types";
@@ -88,7 +89,7 @@ export function CatalogOverlay({ viewId, onClose }: CatalogOverlayProps) {
       accentName: entry.defaultAccent,
       iconName: entry.defaultIcon,
       gridX: 0,
-      gridY: Number.MAX_SAFE_INTEGER, // RGL will pack to bottom
+      gridY: nextDashboardAppendGridY(instances, viewId, entry.defaultSize.h),
       gridW: entry.defaultSize.w,
       gridH: entry.defaultSize.h,
     });

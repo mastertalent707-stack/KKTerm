@@ -83,6 +83,7 @@ import {
 } from "./secretRequest";
 import { scrollAssistantChatToBottom } from "./assistantScroll";
 import type { AiToolPermissionMode } from "../types";
+import { resolveCreateWidgetFollowupPrompt } from "./widgetFollowupPrompt";
 
 function resolveAssistantOutputLanguage(outputLanguage: string): string | undefined {
   if (!outputLanguage) {
@@ -228,9 +229,13 @@ function assistantAgentIntent(intent: AssistantPromptIntent): "chat" | "extensio
   return intent === "extensionCreation" ? "extensionCreation" : "chat";
 }
 
-function assistantPromptForIntent(intent: AssistantPromptIntent, prompt: string) {
+function assistantPromptForIntent(
+  intent: AssistantPromptIntent,
+  prompt: string,
+  previousMessages: readonly AssistantChatMessage[] = [],
+) {
   if (intent === "createWidget") {
-    return `Create a Dashboard widget for this request:\n${prompt}`;
+    return `Create a Dashboard widget for this request:\n${resolveCreateWidgetFollowupPrompt(prompt, previousMessages)}`;
   }
   if (intent === "watchdog") {
     return `Configure or draft a Watchdog for this monitoring request:\n${prompt}`;
@@ -1761,7 +1766,7 @@ export function AssistantPanel({
       const response = await invokeCommand("run_ai_agent_streaming", {
         channel,
         request: {
-          prompt: assistantPromptForIntent(requestIntent, normalizedPrompt),
+          prompt: assistantPromptForIntent(requestIntent, normalizedPrompt, previousMessages),
           contextLabel,
           intent: assistantAgentIntent(requestIntent),
           selectedOutput: textAttachments[0]?.text,

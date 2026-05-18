@@ -106,6 +106,7 @@ pub const DYNAMIC_BACKGROUND_IDS: &[&str] = &[
 pub const BACKGROUND_FITS: &[&str] = &["fill", "fit", "stretch", "tile", "center"];
 
 pub const GRID_COLUMNS: i64 = 12;
+pub const GRID_MAX_ROWS: i64 = 1000;
 pub const MAX_SCRIPT_SOURCE_BYTES: usize = 64 * 1024;
 pub const MAX_CONTENT_BODY_BYTES: usize = 32 * 1024;
 pub const MAX_SETTINGS_SCHEMA_BYTES: usize = 16 * 1024;
@@ -199,7 +200,13 @@ pub fn validate_icon(value: &str) -> Result<(), ValidationError> {
 }
 
 pub fn validate_grid_bounds(x: i64, y: i64, w: i64, h: i64) -> Result<(), ValidationError> {
-    if w < 1 || h < 1 || x < 0 || y < 0 || x + w > GRID_COLUMNS {
+    let Some(right) = x.checked_add(w) else {
+        return Err(ValidationError::InvalidGridBounds);
+    };
+    let Some(bottom) = y.checked_add(h) else {
+        return Err(ValidationError::InvalidGridBounds);
+    };
+    if w < 1 || h < 1 || x < 0 || y < 0 || right > GRID_COLUMNS || bottom > GRID_MAX_ROWS {
         Err(ValidationError::InvalidGridBounds)
     } else {
         Ok(())
@@ -1146,6 +1153,18 @@ mod tests {
     fn grid_bounds_zero_size() {
         assert_eq!(
             validate_grid_bounds(0, 0, 0, 1),
+            Err(ValidationError::InvalidGridBounds),
+        );
+    }
+
+    #[test]
+    fn grid_bounds_rejects_absurd_y() {
+        assert_eq!(
+            validate_grid_bounds(0, i64::MAX, 4, 3),
+            Err(ValidationError::InvalidGridBounds),
+        );
+        assert_eq!(
+            validate_grid_bounds(0, GRID_MAX_ROWS, 4, 1),
             Err(ValidationError::InvalidGridBounds),
         );
     }

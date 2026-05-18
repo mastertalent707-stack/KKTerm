@@ -5,6 +5,7 @@ import { useEffect, useMemo, type CSSProperties, type JSX, type MouseEvent } fro
 import { useTranslation } from "react-i18next";
 import { showNativeContextMenu } from "../../lib/nativeContextMenu";
 import { resolveBackgroundPreset } from "../registry/backgroundPresets";
+import { clampDashboardGridY } from "../grid";
 import { DashboardDynamicBackground } from "../registry/dynamicBackgrounds";
 import { useDashboardStore } from "../state/dashboardStore";
 import type { BackgroundFit, DashboardView, DashboardWidgetInstance, GridDensity } from "../types";
@@ -66,7 +67,13 @@ export function DashboardCanvas({
   const settings = DENSITY_SETTINGS[view.gridDensity];
   const layout: Layout = useMemo(
     () => instances.map((i) => ({
-      i: i.id, x: i.gridX, y: i.gridY, w: i.gridW, h: i.gridH, minW: 1, minH: 1,
+      i: i.id,
+      x: i.gridX,
+      y: clampDashboardGridY(i.gridY, i.gridH),
+      w: i.gridW,
+      h: i.gridH,
+      minW: 1,
+      minH: 1,
     })),
     [instances],
   );
