@@ -931,7 +931,6 @@
     "hideTitle": "Sembunyikan bilah judul",
     "icon": "Ikon",
     "input": "Input",
-    "invalidContentWidgetBody": "Bodi widget konten bukan JSON yang valid.",
     "invalidScriptWidgetBody": "Bodi widget skrip bukan JSON yang valid.",
     "lastUsable": "Terakhir dapat digunakan",
     "mask": "Subnet mask",

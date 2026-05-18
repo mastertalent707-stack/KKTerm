@@ -932,7 +932,6 @@
     "hideTitle": "隐藏标题栏",
     "icon": "图标",
     "input": "输入",
-    "invalidContentWidgetBody": "内容小部件正文不是有效的JSON。",
     "invalidScriptWidgetBody": "脚本小部件正文不是有效的JSON。",
     "lastUsable": "末个可用",
     "mask": "子网掩码",

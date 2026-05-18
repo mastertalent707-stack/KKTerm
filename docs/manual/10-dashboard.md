@@ -3,10 +3,10 @@
 ## AI grep hints
 
 - Keys: `dashboard.*` (full namespace)
-- Topics: Dashboard Views, Widget Instances, presets (panel / ambient / tile / hero / action), accents, icons, backgrounds, density, edit layout, catalog, custom widgets (content + script), AI-authored widgets, agent widget JSON
+- Topics: Dashboard Views, Widget Instances, presets (panel / ambient / tile / hero / action), accents, icons, backgrounds, density, edit layout, catalog, custom script widgets, AI-authored widgets, agent widget JSON
 - Synonyms: "homepage", "tiles", "cards", "widgets", "report", "background image", "wallpaper", "translucent widget", "see-through widget", "canvas opacity"
 
-> **Terms:** see `CONTEXT.md`. **Dashboard View** is a durable SQLite-backed tab; **Widget Instance** is a placed widget on a View with its own preset/accent/title/layout. **Dashboard Custom Widget** is an AI-authored widget definition (kinds `content` or `script`). Architecture details live in `docs/DASHBOARD.md`.
+> **Terms:** see `CONTEXT.md`. **Dashboard View** is a durable SQLite-backed tab; **Widget Instance** is a placed widget on a View with its own preset/accent/title/layout. **Dashboard Custom Widget** is an AI-authored script-widget definition. Architecture details live in `docs/DASHBOARD.md`.
 
 ## Module entry
 
@@ -96,14 +96,13 @@ Copy any output value with `dashboard.copyValue`.
 
 ## Custom Widgets (AI-authored)
 
-Custom Widgets are authored by the AI Assistant (`ai.createWidget`), not by users directly in v1. Two kinds:
+Custom Widgets are authored by the AI Assistant (`ai.createWidget`), not by users directly in v1. AI-authored widgets are script widgets:
 
-- **`content`** — declarative JSON (markdown / kvList / checklist / stat).
 - **`script`** — JavaScript hosted inside an isolated `iframe srcdoc` host with declared `dashboard.scriptNetwork` permissions and `dashboard.scriptPollSeconds`. Source viewable via `dashboard.scriptViewSource`. iframe accessible title: `dashboard.scriptWidgetFrameTitle`.
 
 Validation errors surface as:
 
-- `dashboard.scriptInvalidBody`, `dashboard.invalidScriptWidgetBody`, `dashboard.invalidContentWidgetBody`.
+- `dashboard.scriptInvalidBody`, `dashboard.invalidScriptWidgetBody`.
 - Library load failure: `dashboard.widgetLibraryLoadFailed`.
 - Missing references: `dashboard.missingBuiltInWidget`, `dashboard.missingCustomWidget`.
 - Resource cap: `dashboard.scriptWidgetCapped`.

@@ -932,7 +932,6 @@
     "hideTitle": "タイトルバーを非表示",
     "icon": "アイコン",
     "input": "入力",
-    "invalidContentWidgetBody": "コンテンツウィジェット本文が有効なJSONではありません。",
     "invalidScriptWidgetBody": "スクリプトウィジェット本文が有効なJSONではありません。",
     "lastUsable": "最後の使用可能",
     "mask": "サブネットマスク",

@@ -931,7 +931,6 @@
     "hideTitle": "ซ่อนแถบชื่อเรื่อง",
     "icon": "ไอคอน",
     "input": "อินพุต",
-    "invalidContentWidgetBody": "เนื้อหาวิดเจ็ตคอนเทนต์ไม่ใช่ JSON ที่ถูกต้อง",
     "invalidScriptWidgetBody": "เนื้อหาวิดเจ็ตสคริปต์ไม่ใช่ JSON ที่ถูกต้อง",
     "lastUsable": "ใช้งานได้ตัวสุดท้าย",
     "mask": "ซับเน็ตมาสก์",

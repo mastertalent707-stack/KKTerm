@@ -25,16 +25,15 @@ It does not own:
 
 **Dashboard View** — a tab in the Dashboard topbar. A user may have many views; the first one is named "Default" and is created on first run. Each view carries its own `grid_density` (`compact` / `default` / `roomy`) and optional `tab_color` gradient preset id, edited from the topbar's edit-mode controls.
 
-**Dashboard Widget Instance** — one placed widget on a view. Carries display state (preset, accent, icon, custom title), layout state (`x`, `y`, `w`, `h` on the 12-column grid), per-instance custom settings values, a `kind` of `builtIn` / `content` / `script`, and a `source_id` that resolves either to a built-in registry entry or a `DashboardCustomWidget` row.
+**Dashboard Widget Instance** — one placed widget on a view. Carries display state (preset, accent, icon, custom title), layout state (`x`, `y`, `w`, `h` on the 12-column grid), per-instance custom settings values, a `kind` of `builtIn` / `script`, and a `source_id` that resolves either to a built-in registry entry or a `DashboardCustomWidget` row.
 
-**Dashboard AI Created Widget** — a durable definition for `content` and `script` widgets authored by the AI Assistant. Stored once; multiple instances can reference the same definition. An AI Created Widget may define a small app-rendered settings schema; each placed instance stores its own values. Secret settings are the exception: the instance stores only a reference and the actual password/API key/token lives in the OS keychain. Deleting an AI Created Widget cascades to its instances (enforced in Rust because SQLite cannot express conditional foreign keys).
+**Dashboard AI Created Widget** — a durable script-widget definition authored by the AI Assistant. Stored once; multiple instances can reference the same definition. An AI Created Widget may define a small app-rendered settings schema; each placed instance stores its own values. Secret settings are the exception: the instance stores only a reference and the actual password/API key/token lives in the OS keychain. Deleting an AI Created Widget cascades to its instances (enforced in Rust because SQLite cannot express conditional foreign keys).
 
-**Widget Kind** — three values, layered by capability:
+**Widget Kind** — two values, layered by ownership:
 
 | Kind | Body source | Execution model |
 | --- | --- | --- |
 | `builtIn` | TypeScript component in `src/dashboard/widgets/` registered in `builtInRegistry.ts` | Normal React render. App Launcher is the only current built-in. |
-| `content` | Validated JSON in `dashboard_custom_widgets.body_json` | Declarative renderer in `ContentWidgetRenderer.tsx` — switches over `shape: 'markdown' \| 'kvList' \| 'checklist' \| 'stat'`. Markdown-shaped content sets `data.mode: 'markdown' \| 'html'`; markdown mode parses Markdown and html mode sanitizes and renders an HTML fragment. No code execution. |
 | `script` | JavaScript source string in `dashboard_custom_widgets.body_json` | Hosted inside an isolated `iframe srcdoc` via `ScriptWidgetHost.tsx`. Has `document`, `fetch`, `setInterval`, and a minimal `KK` postMessage bridge. Permissions (`network`, `pollSeconds`) declared per widget. Fault-isolation boundary — a bad script breaks one widget, not the dashboard. |
 
 **Visual Preset** — one of three framing styles applied per widget instance: `panel`, `ambient`, `hero`. Implemented in `presetRegistry.tsx` as thin CSS-driven chrome wrappers. Each preset reads `--w-accent` and `--w-accent-soft` for the widget's accent color; presets do not encode their own palette. Ambient supports optional frosted-glass background and hides its title bar by default.
@@ -78,7 +77,7 @@ SQLite holds three Dashboard tables, defined in `src-tauri/src/storage.rs` under
 | --- | --- |
 | `dashboard_views` | One row per view. Holds `title`, `sort_order`, `grid_density`, and optional `tab_color` gradient preset id. |
 | `dashboard_widget_instances` | One row per placed widget. Holds `kind`, `source_id`, presentation fields (`preset`, `accent_name`, `icon_name`, `custom_title`), per-instance `settings_values_json`, and layout (`grid_x`, `grid_y`, `grid_w`, `grid_h`). Secret fields store only `secretRef` metadata here. |
-| `dashboard_custom_widgets` | One row per AI Created `content` or `script` widget definition. Holds `body_json`, validated against the kind, plus optional app-rendered `settings_schema_json`. |
+| `dashboard_custom_widgets` | One row per AI Created script-widget definition. Holds `body_json`, validated against the script body schema, plus optional app-rendered `settings_schema_json`. |
 
 Indexes: `(view_id, sort_order)` on instances for fast per-view loads.
 
@@ -114,12 +113,11 @@ Rust validation invariants:
 - `accent_name` is in the palette whitelist.
 - `icon_name` is in the lucide icon whitelist.
 - Grid bounds: `w ≥ 1`, `h ≥ 1`, `x ≥ 0`, `y ≥ 0`, `x + w ≤ 12`.
-- Content shape byte caps and shape-specific schema: non-empty markdown source with optional persisted `mode` (`markdown` default for legacy widgets, or `html`), non-empty key/value rows with labels, non-empty checklist items with labels, or a non-empty stat value.
 - Script source is required and ≤ 64 KB; `pollSeconds ≥ 1`; only declared `permissions` values are accepted.
 - Settings schemas are bounded JSON objects with up to 20 fields. Supported field types are `text`, `number`, `boolean`, `select`, and `secret`; keys must be stable ASCII identifiers and select fields must declare bounded label/value options.
 - Settings schemas use `secret` fields for passwords, API keys, tokens, and similar values. A secret field never has a default value.
 - Settings values are per-instance JSON objects capped at 32 KB. For `secret` fields, Rust rejects plaintext values; the only valid stored shape is a `secretRef` whose owner id matches `dashboard-widget-secret:<instanceId>:<fieldKey>`.
-- Frontend renderers use the matching TypeScript validator in `src/dashboard/schema.ts` before rendering content or script widgets, so malformed stored JSON falls back to the existing invalid-body state instead of partially rendering.
+- Frontend renderers use the matching TypeScript validator in `src/dashboard/schema.ts` before rendering script widgets, so malformed stored JSON falls back to the existing invalid-body state instead of partially rendering.
 
 Validation failures return structured error text to the AI Assistant so it can self-correct. The Assistant page context tells the model to call `dashboard_create_widget` with the active view id for creation requests; after any dashboard mutating tool completes, the frontend reloads Dashboard state and the newly mounted widget frame runs the canvas fade-in animation.
 
@@ -127,7 +125,7 @@ Dashboard mutating tools run from the Rust Assistant tool loop, outside the fron
 
 The `dashboard_create_widget` assistant tool schema is strict-compatible where possible. It uses a closed root object, bounded enums, required fields, and closed nested object shapes so capable providers produce structured widget arguments instead of free-form prose or partial JSON. Rust validation remains the final authority before anything is persisted.
 
-The AI-facing widget contract requires the first created widget to be complete for the user's requested outcome. If a request implies live/realtime data, MCP-backed data, web-fetched data, local file/session data, or another changing input, the assistant should use the needed discovery/read/fetch tool rounds before creation and create a script widget wired to the actual data source with loading, error, empty, and refresh states. Static content widgets are for explicitly static requests or blocked live-data cases; missing credentials should become `settingsSchema` secret/config fields plus a secret-entry request, not a placeholder scaffold.
+The AI-facing widget contract requires the first created widget to be complete for the user's requested outcome. If a request implies live/realtime data, MCP-backed data, web-fetched data, local file/session data, or another changing input, the assistant should use the needed discovery/read/fetch tool rounds before creation and create a script widget wired to the actual data source with loading, error, empty, and refresh states. Explicitly static requests should still become small script widgets that render their content into `#root`; missing credentials should become `settingsSchema` secret/config fields plus a secret-entry request, not a placeholder scaffold.
 
 ## Frontend Module Map (Dashboard)
 
@@ -146,11 +144,9 @@ src/dashboard/
   view/
     DashboardCanvas.tsx          ── react-grid-layout host
     WidgetFrame.tsx              ── preset chrome + edit-mode controls
-    WidgetBody.tsx               ── dispatch by kind (builtIn / content / script)
+    WidgetBody.tsx               ── dispatch by kind (builtIn / script)
   widgets/                       ── built-in body components, one file each
     AppLauncherBody.tsx          ── delegates to src/app-launcher
-  content/
-    ContentWidgetRenderer.tsx
   script/
     ScriptWidgetHost.tsx
     permissions.ts
@@ -188,7 +184,6 @@ The customize popover is anchored to a widget's settings (⚙) button and contai
 5. **Widget settings** — for AI Created Widgets with `settings_schema_json`, KKTerm renders text, number, boolean, select, and secret fields. Non-secret values are stored on the instance. Secret values are written to the OS keychain under the `widgetSecret` kind and the instance stores only a reference.
 6. **Advanced** — kind-specific:
    - `script`: network permission, poll seconds, view source (read-only), reload.
-   - `content`: view body JSON (read-only).
    - `builtIn`: nothing.
 
 The shared display sections render identically regardless of widget kind.
@@ -245,14 +240,13 @@ The original script host pasted AI-generated `source` directly inside the host `
 
 ## AI Widget Reliability Direction
 
-Arbitrary AI Created HTML is not a reliable default for dashboard creation. The reliable path is schema-first:
+AI Created Widgets use a single script body shape. The reliable path is bounded script generation:
 
-- The assistant should choose `content` widgets whenever the request fits the existing declarative shapes (`markdown`, `kvList`, `checklist`, `stat`). For `shape: "markdown"`, assistant-authored widget bodies must specify `data.mode` as either `markdown` or `html`; use `markdown` for Markdown text and `html` for an HTML fragment that KKTerm will sanitize before rendering.
-- Interactive widgets should move toward predefined building blocks such as form fields, buttons, expressions, fetch blocks, and layout containers rendered by KKTerm-owned React components.
-- The assistant should produce only schema for those blocks. KKTerm validates and renders the schema; the model does not author random HTML.
+- The assistant should create complete script widgets for both static and interactive requests. Static text, tables, and summaries should render DOM into `#root` rather than using a separate declarative content kind.
+- Generated scripts should prefer KKTerm's iframe CSS primitives and small DOM helpers over full HTML documents, external fonts, global resets, or imported UI frameworks.
+- Runtime CDN script injection is blocked by CSP. If a widget needs a curated local library, the assistant must declare it in `body.libraries`.
 - Per-instance custom options should use `settingsSchema.fields` rather than model-authored settings UI. KKTerm owns the settings form and stores values in `dashboard_widget_instances.settings_values_json`.
-- Sensitive per-instance options must use `settingsSchema.fields[].type = "secret"`. The model must not place passwords, API keys, tokens, or similar values in `defaultValue`, script source, content body, or `settings_values_json`.
-- `script` widgets remain an advanced escape hatch for genuinely custom live behavior, isolated in an iframe and validated for storage size/permissions, but they are not the product-default authoring surface for common widgets.
+- Sensitive per-instance options must use `settingsSchema.fields[].type = "secret"`. The model must not place passwords, API keys, tokens, or similar values in `defaultValue`, script source, or `settings_values_json`.
 - Assistant-facing widget creation schemas should stay strict-compatible where possible: root object, required fields, `additionalProperties: false`, bounded enums, and Rust validation as the final authority.
 
 ## AI Assistant Integration

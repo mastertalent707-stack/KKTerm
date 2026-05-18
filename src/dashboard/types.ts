@@ -1,5 +1,5 @@
-export type WidgetKind = "builtIn" | "content" | "script";
-export type WidgetCustomKind = "content" | "script";
+export type WidgetKind = "builtIn" | "script";
+export type WidgetCustomKind = "script";
 
 export const WIDGET_PRESETS = [
   "panel", "ambient", "hero",
@@ -150,14 +150,6 @@ export interface LayoutEntry {
   gridW: number;
   gridH: number;
 }
-
-export type ContentShape = "markdown" | "kvList" | "checklist" | "stat";
-
-export type ContentBody =
-  | { shape: "markdown"; data: { source: string; mode?: "markdown" | "html" } }
-  | { shape: "kvList"; data: { rows: { label: string; value: string }[] } }
-  | { shape: "checklist"; data: { items: { label: string; done?: boolean }[] } }
-  | { shape: "stat"; data: { value: string; unit?: string; delta?: string; caption?: string } };
 
 export interface ScriptBody {
   source: string;

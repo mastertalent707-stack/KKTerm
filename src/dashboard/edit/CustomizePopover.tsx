@@ -334,9 +334,6 @@ function AdvancedSection({ instance }: { instance: DashboardWidgetInstance }) {
       />
     );
   }
-  if (instance.kind === "content") {
-    return <pre className="dw-source-view">{customSource.bodyJson}</pre>;
-  }
   return null;
 }
 

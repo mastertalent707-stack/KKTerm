@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS dashboard_views (
 
 CREATE TABLE IF NOT EXISTS dashboard_custom_widgets (
     id TEXT PRIMARY KEY,
-    kind TEXT NOT NULL CHECK (kind IN ('content', 'script')),
+    kind TEXT NOT NULL CHECK (kind IN ('script')),
     title TEXT NOT NULL,
     summary TEXT NOT NULL DEFAULT '',
     category TEXT NOT NULL DEFAULT 'custom',
@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS dashboard_custom_widgets (
 CREATE TABLE IF NOT EXISTS dashboard_widget_instances (
     id TEXT PRIMARY KEY,
     view_id TEXT NOT NULL REFERENCES dashboard_views(id) ON DELETE CASCADE,
-    kind TEXT NOT NULL CHECK (kind IN ('builtIn', 'content', 'script')),
+    kind TEXT NOT NULL CHECK (kind IN ('builtIn', 'script')),
     source_id TEXT NOT NULL,
     preset TEXT NOT NULL,
     accent_name TEXT NOT NULL,
@@ -2977,7 +2977,7 @@ fn list_widget_secret_candidates(
                 ON dashboard_custom_widgets.id = dashboard_widget_instances.source_id
              INNER JOIN dashboard_views
                 ON dashboard_views.id = dashboard_widget_instances.view_id
-             WHERE dashboard_widget_instances.kind IN ('content', 'script')
+             WHERE dashboard_widget_instances.kind = 'script'
              ORDER BY lower(dashboard_views.title), lower(dashboard_custom_widgets.title)",
         )
         .map_err(to_storage_error)?;

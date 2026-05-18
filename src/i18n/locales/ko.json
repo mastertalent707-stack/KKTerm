@@ -931,7 +931,6 @@
     "hideTitle": "제목 표시줄 숨기기",
     "icon": "아이콘",
     "input": "입력",
-    "invalidContentWidgetBody": "콘텐츠 위젯 본문이 유효한 JSON이 아닙니다.",
     "invalidScriptWidgetBody": "스크립트 위젯 본문이 유효한 JSON이 아닙니다.",
     "lastUsable": "마지막 사용 가능",
     "mask": "서브넷 마스크",

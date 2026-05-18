@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useDashboardStore } from "../state/dashboardStore";
 import { getBuiltInWidget } from "../registry/builtInRegistry";
-import { ContentWidgetRenderer } from "../content/ContentWidgetRenderer";
 import { ScriptWidgetHost } from "../script/ScriptWidgetHost";
 import type { DashboardWidgetInstance } from "../types";
 import type { NativeContextMenuPosition } from "../../lib/nativeContextMenu";
@@ -37,16 +36,12 @@ export function WidgetBody({
     );
   }
 
-  if (cw.kind === "content") return <ContentWidgetRenderer bodyJson={cw.bodyJson} />;
-  if (cw.kind === "script") {
-    return (
-      <ScriptWidgetHost
-        bodyJson={cw.bodyJson}
-        instance={instance}
-        onWidgetContextMenu={onWidgetContextMenu}
-        settingsSchemaJson={cw.settingsSchemaJson}
-      />
-    );
-  }
-  return null;
+  return (
+    <ScriptWidgetHost
+      bodyJson={cw.bodyJson}
+      instance={instance}
+      onWidgetContextMenu={onWidgetContextMenu}
+      settingsSchemaJson={cw.settingsSchemaJson}
+    />
+  );
 }

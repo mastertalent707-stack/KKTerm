@@ -52,11 +52,11 @@ A durable SQLite-backed tab in the Dashboard module, stored in `dashboard_views`
 _Avoid_: dashboard page, tab, board
 
 **Dashboard Widget Instance**:
-A placed widget on a Dashboard View, stored in `dashboard_widget_instances`. Carries a `kind` (`builtIn` / `content` / `script`), a `source_id` resolving to a built-in registry entry or a Dashboard AI Created Widget, presentation fields (`preset`, `accent_name`, `icon_name`, `custom_title`), and layout coordinates (`grid_x`, `grid_y`, `grid_w`, `grid_h`). Multiple Instances of the same source may coexist with different presets, accents, and sizes.
+A placed widget on a Dashboard View, stored in `dashboard_widget_instances`. Carries a `kind` (`builtIn` / `script`), a `source_id` resolving to a built-in registry entry or a Dashboard AI Created Widget, presentation fields (`preset`, `accent_name`, `icon_name`, `custom_title`), and layout coordinates (`grid_x`, `grid_y`, `grid_w`, `grid_h`). Multiple Instances of the same source may coexist with different presets, accents, and sizes.
 _Avoid_: widget, tile, card
 
 **Dashboard AI Created Widget**:
-An AI Created Widget definition stored in `dashboard_custom_widgets`. Has `kind` `content` (declarative JSON: markdown/kvList/checklist/stat) or `script` (JavaScript hosted inside an isolated `iframe srcdoc` with declared `network` and `pollSeconds` permissions). Authoring is AI-only in v1; users customize and remove AI Created Widgets but do not create them through the UI.
+An AI Created Widget definition stored in `dashboard_custom_widgets`. AI Created Widgets are script-only: JavaScript hosted inside an isolated `iframe srcdoc` with declared `network` and `pollSeconds` permissions. Authoring is AI-only in v1; users customize and remove AI Created Widgets but do not create them through the UI.
 _Avoid_: plugin, extension, custom tile
 
 **Widget Preset**:
@@ -64,7 +64,7 @@ One of three visual chrome styles applied per Widget Instance: `panel`, `ambient
 _Avoid_: theme, style, layout
 
 **Widget Kind**:
-One of `builtIn`, `content`, `script`. Determines the body rendering path: `builtIn` resolves to a TypeScript component in `src/dashboard/widgets/`; `content` renders declarative JSON; `script` mounts a JavaScript body inside an isolated `iframe srcdoc` host.
+One of `builtIn`, `script`. Determines the body rendering path: `builtIn` resolves to a TypeScript component in `src/dashboard/widgets/`; `script` mounts a JavaScript body inside an isolated `iframe srcdoc` host.
 _Avoid_: widget type, widget variant
 
 **Default Launch State**:

@@ -657,7 +657,7 @@ fn validate_instance_settings_values(
     conn: &SqliteConnection,
     instance: &DashboardWidgetInstance,
 ) -> Result<(), DashboardStorageError> {
-    if !matches!(instance.kind.as_str(), "content" | "script") {
+    if instance.kind != "script" {
         return Ok(());
     }
     let schema_json: Option<String> = conn
@@ -735,7 +735,7 @@ pub fn create_custom_widget(
     validate_settings_schema_json(settings_schema_json)?;
     if !matches!(created_by, "user" | "agent") {
         return Err(DashboardStorageError::validation_with_detail(
-            ValidationError::InvalidContentData,
+            ValidationError::InvalidCustomWidgetKind,
             Some(format!(
                 "createdBy must be 'user' or 'agent'; got {created_by:?}"
             )),
@@ -836,9 +836,8 @@ pub fn remove_custom_widget(
     id: &str,
     force_delete_instances: bool,
 ) -> Result<(), DashboardStorageError> {
-    let mut stmt = conn.prepare(
-        "SELECT id FROM dashboard_widget_instances WHERE source_id = ? AND kind IN ('content', 'script')"
-    )?;
+    let mut stmt =
+        conn.prepare("SELECT id FROM dashboard_widget_instances WHERE source_id = ? AND kind = 'script'")?;
     let instance_ids: Vec<String> = stmt
         .query_map(params![id], |row| row.get::<_, String>(0))?
         .collect::<Result<Vec<_>, _>>()?;
@@ -910,7 +909,7 @@ pub fn widget_secret_owner_id_for_instance(
         other => DashboardStorageError::Sqlite(other),
     })?;
 
-    if !matches!(instance.kind.as_str(), "content" | "script") {
+    if instance.kind != "script" {
         return Ok(None);
     }
     let schema_json: String = conn.query_row(
@@ -999,7 +998,7 @@ mod tests {
             );
             CREATE TABLE dashboard_custom_widgets (
                 id TEXT PRIMARY KEY,
-                kind TEXT NOT NULL CHECK (kind IN ('content','script')),
+                kind TEXT NOT NULL CHECK (kind IN ('script')),
                 title TEXT NOT NULL, summary TEXT NOT NULL DEFAULT '',
                 category TEXT NOT NULL DEFAULT 'custom',
                 body_json TEXT NOT NULL,
@@ -1011,7 +1010,7 @@ mod tests {
             CREATE TABLE dashboard_widget_instances (
                 id TEXT PRIMARY KEY,
                 view_id TEXT NOT NULL REFERENCES dashboard_views(id) ON DELETE CASCADE,
-                kind TEXT NOT NULL CHECK (kind IN ('builtIn','content','script')),
+                kind TEXT NOT NULL CHECK (kind IN ('builtIn','script')),
                 source_id TEXT NOT NULL, preset TEXT NOT NULL, accent_name TEXT NOT NULL,
                 icon_name TEXT NOT NULL, custom_title TEXT,
                 glass INTEGER NOT NULL DEFAULT 0,
@@ -1241,17 +1240,17 @@ mod tests {
         create_custom_widget(
             &conn,
             "cw1",
-            "content",
-            "My Markdown",
+            "script",
+            "My Script",
             "",
             "custom",
-            r#"{"shape":"markdown","data":{"source":"hi"}}"#,
+            r#"{"source":"const root = document.getElementById('root'); root.textContent = 'ok';","permissions":{"network":false,"pollSeconds":null},"htmlShim":null,"libraries":[]}"#,
             None,
             "agent",
         )
         .unwrap();
         add_instance(
-            &conn, "inst", "v1", "content", "cw1", "panel", "blue", "Hash", 0, 0, 3, 2,
+            &conn, "inst", "v1", "script", "cw1", "panel", "blue", "Hash", 0, 0, 3, 2,
         )
         .unwrap();
         let err = remove_custom_widget(&conn, "cw1", false);

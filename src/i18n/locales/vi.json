@@ -931,7 +931,6 @@
     "hideTitle": "Ẩn thanh tiêu đề",
     "icon": "Biểu tượng",
     "input": "Đầu vào",
-    "invalidContentWidgetBody": "Nội dung tiện ích không phải JSON hợp lệ.",
     "invalidScriptWidgetBody": "Nội dung tiện ích tập lệnh không phải JSON hợp lệ.",
     "lastUsable": "Khả dụng cuối cùng",
     "mask": "Mặt nạ mạng con",

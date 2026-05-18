@@ -932,7 +932,6 @@
     "hideTitle": "Titelleiste ausblenden",
     "icon": "Symbol",
     "input": "Eingabe",
-    "invalidContentWidgetBody": "Content-Widget-Body ist kein gültiges JSON.",
     "invalidScriptWidgetBody": "Script-Widget-Body ist kein gültiges JSON.",
     "lastUsable": "Letzter nutzbarer",
     "mask": "Subnetzmaske",

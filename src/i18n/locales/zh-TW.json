@@ -932,7 +932,6 @@
     "hideTitle": "隱藏標題列",
     "icon": "圖示",
     "input": "輸入",
-    "invalidContentWidgetBody": "內容小工具本文不是有效的 JSON。",
     "invalidScriptWidgetBody": "指令碼小工具本文不是有效的 JSON。",
     "lastUsable": "末個可用",
     "mask": "子網路遮罩",

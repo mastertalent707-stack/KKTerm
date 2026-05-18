@@ -108,7 +108,6 @@ pub const BACKGROUND_FITS: &[&str] = &["fill", "fit", "stretch", "tile", "center
 pub const GRID_COLUMNS: i64 = 12;
 pub const GRID_MAX_ROWS: i64 = 1000;
 pub const MAX_SCRIPT_SOURCE_BYTES: usize = 64 * 1024;
-pub const MAX_CONTENT_BODY_BYTES: usize = 32 * 1024;
 pub const MAX_SETTINGS_SCHEMA_BYTES: usize = 16 * 1024;
 pub const MAX_SETTINGS_VALUES_BYTES: usize = 32 * 1024;
 pub const MAX_SETTINGS_FIELDS: usize = 20;
@@ -157,9 +156,6 @@ pub enum ValidationError {
     InvalidGridBounds,
     InvalidKind,
     InvalidCustomWidgetKind,
-    InvalidContentShape,
-    InvalidContentData,
-    ContentTooLarge,
     InvalidScriptBody,
     ScriptTooLarge,
     InvalidPermission,
@@ -214,7 +210,7 @@ pub fn validate_grid_bounds(x: i64, y: i64, w: i64, h: i64) -> Result<(), Valida
 }
 
 pub fn validate_kind(kind: &str) -> Result<(), ValidationError> {
-    if matches!(kind, "builtIn" | "content" | "script") {
+    if matches!(kind, "builtIn" | "script") {
         Ok(())
     } else {
         Err(ValidationError::InvalidKind)
@@ -222,7 +218,7 @@ pub fn validate_kind(kind: &str) -> Result<(), ValidationError> {
 }
 
 pub fn validate_custom_widget_kind(kind: &str) -> Result<(), ValidationError> {
-    if matches!(kind, "content" | "script") {
+    if kind == "script" {
         Ok(())
     } else {
         Err(ValidationError::InvalidCustomWidgetKind)
@@ -311,69 +307,6 @@ fn validate_background_media(
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "shape", rename_all = "camelCase")]
-pub enum ContentBody {
-    Markdown { data: ContentMarkdown },
-    KvList { data: ContentKvList },
-    Checklist { data: ContentChecklist },
-    Stat { data: ContentStat },
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ContentMarkdown {
-    pub source: String,
-    #[serde(default)]
-    pub mode: ContentMarkdownMode,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum ContentMarkdownMode {
-    Markdown,
-    Html,
-}
-
-impl Default for ContentMarkdownMode {
-    fn default() -> Self {
-        Self::Markdown
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ContentKvList {
-    pub rows: Vec<ContentKvRow>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ContentKvRow {
-    pub label: String,
-    pub value: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ContentChecklist {
-    pub items: Vec<ContentChecklistItem>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ContentChecklistItem {
-    pub label: String,
-    #[serde(default)]
-    pub done: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ContentStat {
-    pub value: String,
-    #[serde(default)]
-    pub unit: Option<String>,
-    #[serde(default)]
-    pub delta: Option<String>,
-    #[serde(default)]
-    pub caption: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ScriptBody {
     pub source: String,
@@ -391,79 +324,6 @@ pub struct ScriptPermissions {
     pub network: bool,
     #[serde(default)]
     pub poll_seconds: Option<u64>,
-}
-
-#[allow(dead_code)]
-pub fn validate_content_body_json(json: &str) -> Result<ContentBody, ValidationError> {
-    validate_content_body_json_detailed(json).map_err(|(kind, _)| kind)
-}
-
-pub fn validate_content_body_json_detailed(
-    json: &str,
-) -> Result<ContentBody, (ValidationError, Option<String>)> {
-    if json.len() > MAX_CONTENT_BODY_BYTES {
-        return Err((
-            ValidationError::ContentTooLarge,
-            Some(format!(
-                "content bodyJson is {} bytes; max is {}",
-                json.len(),
-                MAX_CONTENT_BODY_BYTES
-            )),
-        ));
-    }
-    let parsed: ContentBody = serde_json::from_str(json).map_err(|error| {
-        (
-            ValidationError::InvalidContentShape,
-            Some(format!("content bodyJson did not parse: {error}")),
-        )
-    })?;
-    match &parsed {
-        ContentBody::Markdown { data } => {
-            if data.source.trim().is_empty() {
-                return Err((
-                    ValidationError::InvalidContentData,
-                    Some("markdown content 'source' is empty".to_string()),
-                ));
-            }
-        }
-        ContentBody::KvList { data } => {
-            if data.rows.is_empty() {
-                return Err((
-                    ValidationError::InvalidContentData,
-                    Some("kvList content has no rows".to_string()),
-                ));
-            }
-            if data.rows.iter().any(|row| row.label.trim().is_empty()) {
-                return Err((
-                    ValidationError::InvalidContentData,
-                    Some("kvList row has empty label".to_string()),
-                ));
-            }
-        }
-        ContentBody::Checklist { data } => {
-            if data.items.is_empty() {
-                return Err((
-                    ValidationError::InvalidContentData,
-                    Some("checklist has no items".to_string()),
-                ));
-            }
-            if data.items.iter().any(|item| item.label.trim().is_empty()) {
-                return Err((
-                    ValidationError::InvalidContentData,
-                    Some("checklist item has empty label".to_string()),
-                ));
-            }
-        }
-        ContentBody::Stat { data } => {
-            if data.value.trim().is_empty() {
-                return Err((
-                    ValidationError::InvalidContentData,
-                    Some("stat 'value' is empty".to_string()),
-                ));
-            }
-        }
-    }
-    Ok(parsed)
 }
 
 #[allow(dead_code)]
@@ -909,10 +769,6 @@ pub fn validate_custom_body_for_kind_detailed(
     body_json: &str,
 ) -> Result<(), (ValidationError, Option<String>)> {
     match kind {
-        "content" => {
-            validate_content_body_json_detailed(body_json)?;
-            Ok(())
-        }
         "script" => {
             validate_script_body_json_detailed(body_json)?;
             Ok(())
@@ -920,7 +776,7 @@ pub fn validate_custom_body_for_kind_detailed(
         _ => Err((
             ValidationError::InvalidCustomWidgetKind,
             Some(format!(
-                "AI Created Widget kind {kind:?} is not one of: content, script"
+                "AI Created Widget kind {kind:?} is not script"
             )),
         )),
     }
@@ -1223,63 +1079,10 @@ mod tests {
     }
 
     #[test]
-    fn content_markdown_ok() {
-        let json = r##"{"shape":"markdown","data":{"source":"# Hello"}}"##;
-        assert!(validate_content_body_json(json).is_ok());
-    }
-
-    #[test]
-    fn content_markdown_accepts_explicit_markdown_mode() {
-        let json = r##"{"shape":"markdown","data":{"source":"# Hello","mode":"markdown"}}"##;
-        assert!(validate_content_body_json(json).is_ok());
-    }
-
-    #[test]
-    fn content_markdown_accepts_explicit_html_mode() {
-        let json =
-            r##"{"shape":"markdown","data":{"source":"<strong>Hello</strong>","mode":"html"}}"##;
-        assert!(validate_content_body_json(json).is_ok());
-    }
-
-    #[test]
-    fn content_markdown_unknown_mode_rejected() {
-        let json = r##"{"shape":"markdown","data":{"source":"# Hello","mode":"plain"}}"##;
+    fn custom_content_kind_is_rejected() {
         assert_eq!(
-            validate_content_body_json(json),
-            Err(ValidationError::InvalidContentShape),
-        );
-    }
-
-    #[test]
-    fn content_markdown_empty_rejected() {
-        let json = r##"{"shape":"markdown","data":{"source":"   "}}"##;
-        assert_eq!(
-            validate_content_body_json(json),
-            Err(ValidationError::InvalidContentData),
-        );
-    }
-
-    #[test]
-    fn content_kv_ok() {
-        let json = r#"{"shape":"kvList","data":{"rows":[{"label":"a","value":"b"}]}}"#;
-        assert!(validate_content_body_json(json).is_ok());
-    }
-
-    #[test]
-    fn content_unknown_shape_rejected() {
-        let json = r#"{"shape":"chart","data":{}}"#;
-        assert_eq!(
-            validate_content_body_json(json),
-            Err(ValidationError::InvalidContentShape),
-        );
-    }
-
-    #[test]
-    fn content_kv_empty_label_rejected() {
-        let json = r#"{"shape":"kvList","data":{"rows":[{"label":"   ","value":"b"}]}}"#;
-        assert_eq!(
-            validate_content_body_json(json),
-            Err(ValidationError::InvalidContentData),
+            validate_custom_widget_kind("content"),
+            Err(ValidationError::InvalidCustomWidgetKind)
         );
     }
 

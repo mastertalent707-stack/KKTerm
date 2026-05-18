@@ -931,7 +931,6 @@
     "hideTitle": "Ocultar barra de título",
     "icon": "Icono",
     "input": "Entrada",
-    "invalidContentWidgetBody": "El cuerpo del widget de contenido no es JSON válido.",
     "invalidScriptWidgetBody": "El cuerpo del widget de script no es JSON válido.",
     "lastUsable": "Última utilizable",
     "mask": "Máscara de subred",
