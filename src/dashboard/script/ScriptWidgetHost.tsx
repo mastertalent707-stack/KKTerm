@@ -38,6 +38,18 @@ import type { NativeContextMenuPosition } from "../../lib/nativeContextMenu";
 type SetCapped = (capped: boolean) => void;
 const activeScriptWidgets = new Map<string, SetCapped>();
 
+const BRIDGE_RATE_LIMITS_MS = {
+  setSettings: 500,
+  getSecret: 500,
+  saveFile: 1000,
+  readLocalFile: 1000,
+  callMcpTool: 1000,
+  getPerformanceCounters: 1000,
+  widgetContextMenu: 250,
+} as const;
+
+type RateLimitedBridgeMessage = keyof typeof BRIDGE_RATE_LIMITS_MS;
+
 function normalizeScriptWidgetCap(cap: number): number {
   return Math.max(1, Math.floor(Number.isFinite(cap) ? cap : 1));
 }
@@ -112,6 +124,7 @@ export function ScriptWidgetHost({
 }) {
   const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const bridgeLastAcceptedRef = useRef(new Map<RateLimitedBridgeMessage, number>());
   const updateInstance = useDashboardStore((s) => s.updateInstance);
   const maxActiveScriptWidgets = useWorkspaceStore(
     (s) => s.dashboardSettings.maxActiveScriptWidgets,
@@ -228,6 +241,14 @@ export function ScriptWidgetHost({
   }, [capped, libraries]);
 
   useEffect(() => {
+    function allowBridgeMessage(type: RateLimitedBridgeMessage): boolean {
+      const now = performance.now();
+      const previous = bridgeLastAcceptedRef.current.get(type) ?? -Infinity;
+      if (now - previous < BRIDGE_RATE_LIMITS_MS[type]) return false;
+      bridgeLastAcceptedRef.current.set(type, now);
+      return true;
+    }
+
     function onMessage(event: MessageEvent) {
       if (event.source !== iframeRef.current?.contentWindow) return;
       const data = event.data;
@@ -236,33 +257,61 @@ export function ScriptWidgetHost({
         return;
       }
       if (isScriptWidgetSettingsMessage(data)) {
-        const values = parseWidgetSettingsValuesJson(JSON.stringify(data.settings));
+        if (!allowBridgeMessage("setSettings")) return;
+        let settingsJson = "{}";
+        try {
+          settingsJson = JSON.stringify(data.settings);
+        } catch {
+          return;
+        }
+        const values = parseWidgetSettingsValuesJson(settingsJson);
         if (values.ok) {
           void updateInstance(instance.id, { settingsValuesJson: JSON.stringify(values.value) });
         }
         return;
       }
       if (isScriptWidgetGetSecretMessage(data)) {
+        if (!allowBridgeMessage("getSecret")) {
+          postBridgeError(data, "secretValue", "Widget secret reads are rate limited.");
+          return;
+        }
         void sendSecretResponse(data);
         return;
       }
       if (isScriptWidgetSaveFileMessage(data)) {
+        if (!allowBridgeMessage("saveFile")) {
+          postBridgeError(data, "saveFileResult", "Widget file save requests are rate limited.");
+          return;
+        }
         void sendSaveFileResponse(data);
         return;
       }
       if (isScriptWidgetReadFileMessage(data)) {
+        if (!allowBridgeMessage("readLocalFile")) {
+          postBridgeError(data, "readLocalFileResult", "Widget file read requests are rate limited.");
+          return;
+        }
         void sendReadFileResponse(data);
         return;
       }
       if (isScriptWidgetCallMcpToolMessage(data)) {
+        if (!allowBridgeMessage("callMcpTool")) {
+          postBridgeError(data, "mcpToolResult", "Widget MCP calls are rate limited.");
+          return;
+        }
         void sendMcpToolResponse(data);
         return;
       }
       if (isScriptWidgetPerformanceCountersMessage(data)) {
+        if (!allowBridgeMessage("getPerformanceCounters")) {
+          postBridgeError(data, "performanceCountersResult", "Widget performance counter reads are rate limited.");
+          return;
+        }
         void sendPerformanceCountersResponse(data);
         return;
       }
       if (isScriptWidgetContextMenuMessage(data)) {
+        if (!allowBridgeMessage("widgetContextMenu")) return;
         const frameRect = iframeRef.current?.getBoundingClientRect();
         if (frameRect) {
           void onWidgetContextMenu({
@@ -380,6 +429,20 @@ export function ScriptWidgetHost({
           error: describeMcpError(error),
         }, "*");
       }
+    }
+
+    function postBridgeError(
+      data: { requestId: string },
+      type: string,
+      error: string,
+    ) {
+      iframeRef.current?.contentWindow?.postMessage({
+        kk: true,
+        type,
+        requestId: data.requestId,
+        ok: false,
+        error,
+      }, "*");
     }
 
     async function sendPerformanceCountersResponse(data: { requestId: string }) {

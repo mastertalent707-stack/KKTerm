@@ -223,6 +223,105 @@ export function buildSrcdoc(
         var dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
         return { width: width, height: height, dpr: dpr };
       }
+      // Renderer guardrails: a single AI-authored widget should not be able to
+      // monopolize WebView2's shared renderer thread with tight animation/timer
+      // loops. These wrappers preserve the usual browser APIs while capping
+      // animation callbacks and clamping extremely small interval delays.
+      var _kkVisible = true;
+      var _nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
+      var _nativeCancelAnimationFrame = window.cancelAnimationFrame.bind(window);
+      var _nativeSetTimeout = window.setTimeout.bind(window);
+      var _nativeClearTimeout = window.clearTimeout.bind(window);
+      var _nativeSetInterval = window.setInterval.bind(window);
+      var _nativeClearInterval = window.clearInterval.bind(window);
+      var _kkRafCallbacks = new Map();
+      var _kkRafSequence = 1;
+      var _kkRafScheduled = false;
+      var _kkLastRafTimestamp = 0;
+      var _kkRafTimer = 0;
+      var _kkRafHandle = 0;
+      var KK_RAF_MIN_INTERVAL_MS = 33;
+      var KK_SET_TIMEOUT_MIN_MS = 16;
+      var KK_SET_INTERVAL_MIN_MS = 100;
+      function scheduleKkRafPump(delay) {
+        if (_kkRafScheduled || !_kkVisible || !_kkRafCallbacks.size) return;
+        _kkRafScheduled = true;
+        _kkRafTimer = _nativeSetTimeout(function () {
+          _kkRafTimer = 0;
+          _kkRafHandle = _nativeRequestAnimationFrame(runKkRafPump);
+        }, Math.max(0, delay || 0));
+      }
+      function runKkRafPump(timestamp) {
+        _kkRafScheduled = false;
+        _kkRafHandle = 0;
+        if (!_kkVisible || !_kkRafCallbacks.size) return;
+        var elapsed = timestamp - _kkLastRafTimestamp;
+        if (_kkLastRafTimestamp > 0 && elapsed < KK_RAF_MIN_INTERVAL_MS) {
+          scheduleKkRafPump(KK_RAF_MIN_INTERVAL_MS - elapsed);
+          return;
+        }
+        _kkLastRafTimestamp = timestamp;
+        var callbacks = Array.prototype.slice.call(_kkRafCallbacks.entries());
+        _kkRafCallbacks.clear();
+        callbacks.forEach(function (entry) {
+          try {
+            entry[1](timestamp);
+          } catch (error) {
+            _nativeSetTimeout(function () { throw error; }, 0);
+          }
+        });
+        scheduleKkRafPump(KK_RAF_MIN_INTERVAL_MS);
+      }
+      window.requestAnimationFrame = function (callback) {
+        if (typeof callback !== 'function') {
+          return _nativeRequestAnimationFrame(callback);
+        }
+        var id = _kkRafSequence++;
+        _kkRafCallbacks.set(id, callback);
+        scheduleKkRafPump(0);
+        return id;
+      };
+      window.cancelAnimationFrame = function (id) {
+        _kkRafCallbacks.delete(id);
+        if (!_kkRafCallbacks.size) {
+          if (_kkRafTimer) {
+            _nativeClearTimeout(_kkRafTimer);
+            _kkRafTimer = 0;
+          }
+          if (_kkRafHandle) {
+            _nativeCancelAnimationFrame(_kkRafHandle);
+            _kkRafHandle = 0;
+          }
+          _kkRafScheduled = false;
+        }
+      };
+      window.setTimeout = function (handler, timeout) {
+        var args = Array.prototype.slice.call(arguments, 2);
+        var delay = Number(timeout);
+        if (!Number.isFinite(delay)) delay = 0;
+        return _nativeSetTimeout(function () {
+          if (typeof handler === 'function') {
+            handler.apply(window, args);
+          } else {
+            Function(String(handler))();
+          }
+        }, Math.max(delay, KK_SET_TIMEOUT_MIN_MS));
+      };
+      window.clearTimeout = _nativeClearTimeout;
+      window.setInterval = function (handler, timeout) {
+        var args = Array.prototype.slice.call(arguments, 2);
+        var delay = Number(timeout);
+        if (!Number.isFinite(delay)) delay = 0;
+        return _nativeSetInterval(function () {
+          if (!_kkVisible) return;
+          if (typeof handler === 'function') {
+            handler.apply(window, args);
+          } else {
+            Function(String(handler))();
+          }
+        }, Math.max(delay, KK_SET_INTERVAL_MIN_MS));
+      };
+      window.clearInterval = _nativeClearInterval;
       function readDroppedFile(file, path) {
         return new Promise(function (resolve, reject) {
           var reader = new FileReader();
@@ -519,12 +618,12 @@ export function buildSrcdoc(
       // Harden 2: visibility-aware throttling. When the host reports the widget
       // is off-screen or scrolled away, script authors can check KK.isVisible()
       // to pause expensive rAF/animation loops.
-      var _kkVisible = true;
       KK.isVisible = function () { return _kkVisible; };
       window.addEventListener('message', function (event) {
         var data = event.data;
         if (!data || !data.kk || data.type !== 'setVisible') return;
         _kkVisible = data.visible === true;
+        if (_kkVisible) scheduleKkRafPump(0);
       });
 
       document.addEventListener('click', function (event) {

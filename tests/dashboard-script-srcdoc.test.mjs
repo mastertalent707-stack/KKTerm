@@ -95,6 +95,35 @@ test("script widget host exposes measured viewport bridge", async () => {
   assert.match(srcdoc, /new ResizeObserver\(notify\)/);
 });
 
+test("script widget host caps animation and tight timer loops", async () => {
+  const { buildSrcdoc } = await importTypeScriptModule(
+    new URL("../src/dashboard/script/permissions.ts", import.meta.url),
+  );
+  const srcdoc = buildSrcdoc({
+    source: "requestAnimationFrame(() => {}); setInterval(() => {}, 0);",
+    permissions: { network: false },
+  });
+
+  assert.match(srcdoc, /KK_RAF_MIN_INTERVAL_MS = 33/);
+  assert.match(srcdoc, /window\.requestAnimationFrame = function \(callback\)/);
+  assert.match(srcdoc, /window\.setInterval = function \(handler, timeout\)/);
+  assert.match(srcdoc, /KK_SET_INTERVAL_MIN_MS = 100/);
+  assert.match(srcdoc, /if \(!_kkVisible\) return;/);
+});
+
+test("script widget parent bridge rate-limits expensive messages", async () => {
+  const hostSource = await readFile(
+    new URL("../src/dashboard/script/ScriptWidgetHost.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(hostSource, /BRIDGE_RATE_LIMITS_MS/);
+  assert.match(hostSource, /getPerformanceCounters:\s*1000/);
+  assert.match(hostSource, /setSettings:\s*500/);
+  assert.match(hostSource, /allowBridgeMessage\("getPerformanceCounters"\)/);
+  assert.match(hostSource, /allowBridgeMessage\("setSettings"\)/);
+});
+
 test("script widget host exposes app-owned UI primitives", async () => {
   const { buildSrcdoc } = await importTypeScriptModule(
     new URL("../src/dashboard/script/permissions.ts", import.meta.url),

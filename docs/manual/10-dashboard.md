@@ -107,7 +107,7 @@ Validation errors surface as:
 - Missing references: `dashboard.missingBuiltInWidget`, `dashboard.missingCustomWidget`.
 - Resource cap: `dashboard.scriptWidgetCapped`.
 
-Hardening details: `docs/ADR/0006-dashboard-script-widget-hardening.md`.
+Hardening details: `docs/ADR/0006-dashboard-script-widget-hardening.md`. Script widgets are isolated in iframes, capped by the active-script-widget limit, run animation/timer guardrails inside the iframe, and have parent bridge throttles for expensive host requests.
 
 ### Agent widget dialog
 
