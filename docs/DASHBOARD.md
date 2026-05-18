@@ -229,6 +229,8 @@ Curated local libraries are registered in `src/dashboard/script/widgetLibraries.
 
 Matter.js is the default 2D physics building block for script widgets. It is registered under the `matter` library key, exposes the `Matter` global, and should be used for widget-sized games, physics toys, collision, gravity, rigid bodies, and constraints instead of custom per-widget physics loops. Matter.js widgets should size their canvas from `KK.getViewport()`, update renderer bounds and static wall/floor bodies on `KK.onViewportResize`, keep all bodies bounded to the widget arena, and stop runners or animation loops when gameplay is paused, finished, or otherwise inactive.
 
+Unused library declarations are invalid at storage validation time: a key in `body.libraries` must correspond to a referenced documented global in the script source. The AI tool boundary may sanitize structured assistant submissions by dropping unused declarations before validation, because a model can over-declare helpers such as `dayjs` while using native APIs. Keep that sanitizer narrow to `dashboard_create_widget` / structured `dashboard_update_custom_widget.patch.body`; do not relax the Rust storage validator or paper over the failure with UI error boundaries.
+
 When adding or renaming a script-widget library:
 
 - Add the npm package dependency if the library is not already present.

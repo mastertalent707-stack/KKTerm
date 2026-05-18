@@ -75,6 +75,18 @@ A new bundled library that is not added to `KNOWN_LIBRARY_GLOBALS` silently
 skips this check — soft degradation, but reviewers must remember to update
 both files in the same change.
 
+Assistant-created widget bodies have one narrow repair path before this
+validator runs: `dashboard_create_widget` and structured
+`dashboard_update_custom_widget.patch.body` call
+`drop_unused_script_libraries` to remove declared libraries whose documented
+globals are not referenced in source. This exists because models often list a
+plausible helper such as `dayjs` and then implement the widget with native
+`Date`; failing the whole user-visible creation in that case is noisy but does
+not protect the renderer. Do not weaken the storage validator to accept unused
+libraries generally, and do not add broad prompt-only fixes for this class of
+error. Keep the repair at the assistant tool boundary, then let normal
+validation remain the final authority.
+
 ### 3. Active-widget cap with eviction notification
 
 `ScriptWidgetHost` tracks active script widgets in a module-level
@@ -206,6 +218,11 @@ the prompt missed.
   `src-tauri/src/dashboard_validation.rs` alongside
   `src/dashboard/script/widgetLibraries.ts`. Without the Rust-side entry the
   unused-library check is silently skipped for that key.
+- If the AI Assistant trips `Validation(UnusedLibrary)`, first check whether
+  the tool boundary is still sanitizing structured bodies with
+  `drop_unused_script_libraries`. The right fix is usually to remove unused
+  declarations before validation, not to add a Dashboard widget error boundary,
+  relax `validate_script_body_json_detailed`, or depend on more prompt text.
 - Matter.js is the blessed bundled 2D physics library for script widgets.
   Its catalog key is `matter`, its global is `Matter`, and the AI contract
   requires generated physics widgets to declare `body.libraries: ["matter"]`
