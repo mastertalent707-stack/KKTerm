@@ -2625,6 +2625,13 @@ h2 {
   width: max-content;
 }
 
+.terminal-menu.ai-coding-add-menu {
+  position: fixed;
+  right: auto;
+  z-index: 160;
+  width: max-content;
+}
+
 .terminal-menu-item {
   display: flex;
   gap: 8px;
@@ -10326,6 +10333,13 @@ fieldset.connection-specific-options > legend {
   gap: 8px;
 }
 
+.ai-coding-usage-actions,
+.ai-coding-provider-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .ai-coding-usage-title {
   font-size: 12px;
   font-weight: 650;
@@ -10346,6 +10360,34 @@ fieldset.connection-specific-options > legend {
   display: grid;
   gap: 8px;
   min-height: 0;
+}
+
+.ai-coding-usage-empty {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 96px;
+  place-content: center;
+  gap: 4px;
+  padding: 18px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.ai-coding-usage-empty h4,
+.ai-coding-usage-empty p {
+  margin: 0;
+}
+
+.ai-coding-usage-empty h4 {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.ai-coding-usage-empty p {
+  max-width: 240px;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .ai-coding-provider {
@@ -10415,9 +10457,30 @@ fieldset.connection-specific-options > legend {
 }
 
 .ai-coding-connect:disabled,
-.ai-coding-usage-refresh:disabled {
+.ai-coding-usage-refresh:disabled,
+.ai-coding-usage-add:disabled {
   cursor: default;
   opacity: 0.55;
+}
+
+.ai-coding-install-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.ai-coding-install-link:hover,
+.ai-coding-install-link:focus-visible {
+  color: var(--text);
 }
 
 .ai-coding-meter {

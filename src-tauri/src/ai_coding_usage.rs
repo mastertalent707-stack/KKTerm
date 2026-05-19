@@ -3,7 +3,9 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
+    ffi::{OsStr, OsString},
     io::{BufRead, BufReader, Write},
+    path::PathBuf,
     process::{Command, Stdio},
     sync::mpsc,
     time::{Duration, Instant},
@@ -88,7 +90,8 @@ pub async fn ai_coding_usage_connect(
     storage: tauri::State<'_, storage::Storage>,
     provider: AiCodingUsageProvider,
 ) -> Result<AiCodingUsageProviderState, String> {
-    let result = run_provider_connect(app, provider).await;
+    let cli_paths = provider_cli_paths(&storage)?;
+    let result = run_provider_connect(app, provider, cli_paths).await;
     storage.with_connection_mut(|connection| {
         match result {
             Ok(update) => {
@@ -108,9 +111,13 @@ pub async fn ai_coding_usage_refresh(
     provider: Option<AiCodingUsageProvider>,
 ) -> Result<AiCodingUsageState, String> {
     let providers = provider.map_or_else(|| PROVIDERS.to_vec(), |provider| vec![provider]);
+    let cli_paths = provider_cli_paths(&storage)?;
     let mut updates = Vec::new();
     for provider in providers {
-        updates.push((provider, run_provider_refresh(provider).await));
+        updates.push((
+            provider,
+            run_provider_refresh(provider, cli_paths.clone()).await,
+        ));
     }
 
     storage.with_connection_mut(|connection| {
@@ -153,6 +160,7 @@ struct ProviderUpdate {
     auth_state: &'static str,
     snapshot: Option<ProviderSnapshot>,
     raw_provider_json: Option<Value>,
+    last_error: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -161,22 +169,40 @@ struct ProviderSnapshot {
     weekly: AiCodingUsageQuotaWindow,
 }
 
+#[derive(Clone, Debug, Default)]
+struct ProviderCliPaths {
+    claude: Option<String>,
+    codex: Option<String>,
+}
+
+fn provider_cli_paths(storage: &storage::Storage) -> Result<ProviderCliPaths, String> {
+    let settings = storage.ai_provider_settings()?;
+    Ok(ProviderCliPaths {
+        claude: settings.claude_cli_path().map(str::to_string),
+        codex: settings.codex_cli_path().map(str::to_string),
+    })
+}
+
 async fn run_provider_connect(
     app: tauri::AppHandle,
     provider: AiCodingUsageProvider,
+    cli_paths: ProviderCliPaths,
 ) -> Result<ProviderUpdate, String> {
     tauri::async_runtime::spawn_blocking(move || match provider {
-        AiCodingUsageProvider::Codex => connect_codex(app),
-        AiCodingUsageProvider::ClaudeCode => connect_claude(),
+        AiCodingUsageProvider::Codex => connect_codex(app, &cli_paths),
+        AiCodingUsageProvider::ClaudeCode => connect_claude(&cli_paths),
     })
     .await
     .map_err(|error| format!("provider connect task failed: {error}"))?
 }
 
-async fn run_provider_refresh(provider: AiCodingUsageProvider) -> Result<ProviderUpdate, String> {
+async fn run_provider_refresh(
+    provider: AiCodingUsageProvider,
+    cli_paths: ProviderCliPaths,
+) -> Result<ProviderUpdate, String> {
     tauri::async_runtime::spawn_blocking(move || match provider {
-        AiCodingUsageProvider::Codex => refresh_codex(),
-        AiCodingUsageProvider::ClaudeCode => refresh_claude(),
+        AiCodingUsageProvider::Codex => refresh_codex(&cli_paths),
+        AiCodingUsageProvider::ClaudeCode => refresh_claude(&cli_paths),
     })
     .await
     .map_err(|error| format!("provider refresh task failed: {error}"))?
@@ -278,24 +304,26 @@ fn save_provider_update(
     update: ProviderUpdate,
 ) -> Result<(), String> {
     let now = now_rfc3339()?;
+    let last_error = update.last_error.as_deref().map(scrub_provider_error);
     connection
         .execute(
             "INSERT INTO ai_coding_usage_accounts
                 (provider, account_label, account_email, auth_state, last_refresh_at, last_error, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
              ON CONFLICT(provider) DO UPDATE SET
                 account_label = excluded.account_label,
                 account_email = excluded.account_email,
                 auth_state = excluded.auth_state,
                 last_refresh_at = excluded.last_refresh_at,
-                last_error = NULL,
+                last_error = excluded.last_error,
                 updated_at = CURRENT_TIMESTAMP",
             params![
                 provider.as_str(),
                 update.account_label,
                 update.account_email,
                 update.auth_state,
-                now
+                now,
+                last_error,
             ],
         )
         .map_err(|error| format!("failed to save usage account: {error}"))?;
@@ -357,8 +385,11 @@ fn save_provider_error(
     Ok(())
 }
 
-fn connect_codex(app: tauri::AppHandle) -> Result<ProviderUpdate, String> {
-    let mut session = CodexRpcSession::start()?;
+fn connect_codex(
+    app: tauri::AppHandle,
+    cli_paths: &ProviderCliPaths,
+) -> Result<ProviderUpdate, String> {
+    let mut session = CodexRpcSession::start(cli_paths)?;
     session.initialize()?;
     let login = session.request(json!({
         "method": "account/login/start",
@@ -373,11 +404,11 @@ fn connect_codex(app: tauri::AppHandle) -> Result<ProviderUpdate, String> {
         .open_url(auth_url, None::<&str>)
         .map_err(|error| format!("failed to open Codex OAuth URL: {error}"))?;
     session.wait_for_notification("account/login/completed", PROVIDER_TIMEOUT)?;
-    refresh_codex()
+    refresh_codex(cli_paths)
 }
 
-fn refresh_codex() -> Result<ProviderUpdate, String> {
-    let mut session = CodexRpcSession::start()?;
+fn refresh_codex(cli_paths: &ProviderCliPaths) -> Result<ProviderUpdate, String> {
+    let mut session = CodexRpcSession::start(cli_paths)?;
     session.initialize()?;
     let account = session.request(json!({
         "method": "account/read",
@@ -411,16 +442,27 @@ fn refresh_codex() -> Result<ProviderUpdate, String> {
         auth_state: "connected",
         snapshot: Some(snapshot),
         raw_provider_json: Some(rate_limits),
+        last_error: None,
     })
 }
 
-fn connect_claude() -> Result<ProviderUpdate, String> {
-    run_command("claude", &["auth", "login"], PROVIDER_TIMEOUT)?;
-    refresh_claude()
+fn connect_claude(cli_paths: &ProviderCliPaths) -> Result<ProviderUpdate, String> {
+    let command = resolve_provider_command(
+        cli_paths.claude.as_deref(),
+        "claude",
+        AiCodingUsageProvider::ClaudeCode,
+    );
+    run_command(&command, &["auth", "login"], PROVIDER_TIMEOUT)?;
+    refresh_claude(cli_paths)
 }
 
-fn refresh_claude() -> Result<ProviderUpdate, String> {
-    let output = run_command("claude", &["auth", "status"], Duration::from_secs(30))?;
+fn refresh_claude(cli_paths: &ProviderCliPaths) -> Result<ProviderUpdate, String> {
+    let command = resolve_provider_command(
+        cli_paths.claude.as_deref(),
+        "claude",
+        AiCodingUsageProvider::ClaudeCode,
+    );
+    let output = run_command(&command, &["auth", "status"], Duration::from_secs(30))?;
     let value =
         serde_json::from_str::<Value>(&output).unwrap_or_else(|_| json!({ "text": output }));
     let email = find_string_key(&value, &["email", "accountEmail", "username"]);
@@ -428,6 +470,11 @@ fn refresh_claude() -> Result<ProviderUpdate, String> {
         .clone()
         .or_else(|| find_string_key(&value, &["account", "login", "name"]));
     let snapshot = normalize_claude_rate_limits(&value);
+    let last_error = if snapshot_has_usage(&snapshot) {
+        None
+    } else {
+        Some("Claude Code did not expose quota windows in auth status. Claude.ai quota windows are only available to Claude Code statusline scripts after a session receives an API response.".to_string())
+    };
     Ok(ProviderUpdate {
         account_label: label
             .or_else(|| Some(AiCodingUsageProvider::ClaudeCode.label().to_string())),
@@ -435,6 +482,7 @@ fn refresh_claude() -> Result<ProviderUpdate, String> {
         auth_state: "connected",
         snapshot: Some(snapshot),
         raw_provider_json: Some(value),
+        last_error,
     })
 }
 
@@ -445,14 +493,24 @@ struct CodexRpcSession {
 }
 
 impl CodexRpcSession {
-    fn start() -> Result<Self, String> {
-        let mut child = Command::new("codex")
+    fn start(cli_paths: &ProviderCliPaths) -> Result<Self, String> {
+        let command = resolve_provider_command(
+            cli_paths.codex.as_deref(),
+            "codex",
+            AiCodingUsageProvider::Codex,
+        );
+        let mut child = Command::new(command.as_os_str())
             .args(["app-server", "--listen", "stdio://"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(|error| format!("failed to start Codex app-server: {error}"))?;
+            .map_err(|error| {
+                format!(
+                    "failed to start Codex app-server with {}: {error}",
+                    command.display()
+                )
+            })?;
         let stdin = child
             .stdin
             .take()
@@ -566,33 +624,133 @@ impl Drop for CodexRpcSession {
     }
 }
 
-fn run_command(command: &str, args: &[&str], timeout: Duration) -> Result<String, String> {
-    let mut child = Command::new(command)
+#[derive(Clone, Debug)]
+struct ProviderCommand {
+    program: OsString,
+    display: String,
+}
+
+impl ProviderCommand {
+    fn as_os_str(&self) -> &OsStr {
+        self.program.as_os_str()
+    }
+
+    fn display(&self) -> &str {
+        &self.display
+    }
+}
+
+fn resolve_provider_command(
+    configured: Option<&str>,
+    fallback_name: &str,
+    provider: AiCodingUsageProvider,
+) -> ProviderCommand {
+    if let Some(path) = configured.filter(|path| !path.trim().is_empty()) {
+        return ProviderCommand {
+            program: OsString::from(path),
+            display: path.to_string(),
+        };
+    }
+
+    if let Some(path) = common_provider_command_path(provider) {
+        return ProviderCommand {
+            display: path.display().to_string(),
+            program: path.into_os_string(),
+        };
+    }
+
+    ProviderCommand {
+        program: OsString::from(fallback_name),
+        display: fallback_name.to_string(),
+    }
+}
+
+fn common_provider_command_path(provider: AiCodingUsageProvider) -> Option<PathBuf> {
+    let names: &[&str] = match provider {
+        AiCodingUsageProvider::Codex => &["codex.exe", "codex.cmd"],
+        AiCodingUsageProvider::ClaudeCode => &["claude.exe", "claude.cmd"],
+    };
+    common_user_bin_candidates(names)
+        .into_iter()
+        .chain(match provider {
+            AiCodingUsageProvider::Codex => codex_vscode_extension_candidates(),
+            AiCodingUsageProvider::ClaudeCode => Vec::new(),
+        })
+        .find(|path| path.is_file())
+}
+
+fn common_user_bin_candidates(names: &[&str]) -> Vec<PathBuf> {
+    let mut roots = Vec::new();
+    if let Some(profile) = std::env::var_os("USERPROFILE") {
+        roots.push(PathBuf::from(&profile).join(".local").join("bin"));
+    }
+    if let Some(appdata) = std::env::var_os("APPDATA") {
+        roots.push(PathBuf::from(appdata).join("npm"));
+    }
+    if let Some(nvm_symlink) = std::env::var_os("NVM_SYMLINK") {
+        roots.push(PathBuf::from(nvm_symlink));
+    }
+
+    roots
+        .into_iter()
+        .flat_map(|root| names.iter().map(move |name| root.join(name)))
+        .collect()
+}
+
+fn codex_vscode_extension_candidates() -> Vec<PathBuf> {
+    let Some(profile) = std::env::var_os("USERPROFILE") else {
+        return Vec::new();
+    };
+    let extensions = PathBuf::from(profile).join(".vscode").join("extensions");
+    let Ok(entries) = std::fs::read_dir(extensions) else {
+        return Vec::new();
+    };
+    let mut paths = entries
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(OsStr::to_str)
+                .is_some_and(|name| name.starts_with("openai.chatgpt-"))
+        })
+        .map(|path| path.join("bin").join("windows-x86_64").join("codex.exe"))
+        .collect::<Vec<_>>();
+    paths.sort();
+    paths.reverse();
+    paths
+}
+
+fn run_command(
+    command: &ProviderCommand,
+    args: &[&str],
+    timeout: Duration,
+) -> Result<String, String> {
+    let mut child = Command::new(command.as_os_str())
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|error| format!("failed to start {command}: {error}"))?;
+        .map_err(|error| format!("failed to start {}: {error}", command.display()))?;
     let start = Instant::now();
     loop {
         if start.elapsed() > timeout {
             let _ = child.kill();
-            return Err(format!("{command} timed out"));
+            return Err(format!("{} timed out", command.display()));
         }
         if let Some(status) = child
             .try_wait()
-            .map_err(|error| format!("failed to wait for {command}: {error}"))?
+            .map_err(|error| format!("failed to wait for {}: {error}", command.display()))?
         {
             let output = child
                 .wait_with_output()
-                .map_err(|error| format!("failed to read {command} output: {error}"))?;
+                .map_err(|error| format!("failed to read {} output: {error}", command.display()))?;
             if status.success() {
                 return Ok(String::from_utf8_lossy(&output.stdout).trim().to_string());
             }
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             return Err(if stderr.is_empty() {
-                format!("{command} exited with {status}")
+                format!("{} exited with {status}", command.display())
             } else {
                 stderr
             });
@@ -635,6 +793,13 @@ fn normalize_claude_rate_limits(value: &Value) -> ProviderSnapshot {
         .and_then(quota_window_from_value)
         .unwrap_or_else(AiCodingUsageQuotaWindow::unknown);
     ProviderSnapshot { five_hour, weekly }
+}
+
+fn snapshot_has_usage(snapshot: &ProviderSnapshot) -> bool {
+    snapshot.five_hour.used_percent.is_some()
+        || snapshot.five_hour.resets_at.is_some()
+        || snapshot.weekly.used_percent.is_some()
+        || snapshot.weekly.resets_at.is_some()
 }
 
 #[derive(Debug)]
@@ -828,5 +993,17 @@ mod tests {
     fn provider_labels_are_stable() {
         assert_eq!(AiCodingUsageProvider::Codex.label(), "Codex");
         assert_eq!(AiCodingUsageProvider::ClaudeCode.label(), "Claude Code");
+    }
+
+    #[test]
+    fn configured_cli_path_wins_over_discovery() {
+        let command = resolve_provider_command(
+            Some("C:\\Tools\\codex.exe"),
+            "codex",
+            AiCodingUsageProvider::Codex,
+        );
+
+        assert_eq!(command.display(), "C:\\Tools\\codex.exe");
+        assert_eq!(command.as_os_str(), OsStr::new("C:\\Tools\\codex.exe"));
     }
 }

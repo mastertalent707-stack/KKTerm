@@ -650,6 +650,14 @@ impl AiProviderSettings {
         &self.tool_permission_mode
     }
 
+    pub(crate) fn claude_cli_path(&self) -> Option<&str> {
+        self.claude_cli_path.as_deref()
+    }
+
+    pub(crate) fn codex_cli_path(&self) -> Option<&str> {
+        self.codex_cli_path.as_deref()
+    }
+
     pub(crate) fn search_provider(&self) -> &str {
         &self.search_provider
     }
