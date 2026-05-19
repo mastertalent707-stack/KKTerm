@@ -1,10 +1,46 @@
 import type { ScriptBody } from "../types";
+import type { DashboardVisualContext } from "../visualContext";
 
 export interface ResolvedWidgetLibrary {
   key: string;
   global: string;
   source: string;
 }
+
+export interface ScriptWidgetTheme {
+  colorScheme: "light" | "dark";
+  text: string;
+  muted: string;
+  border: string;
+  surface: string;
+  surfaceMuted: string;
+  readableSurface: string;
+  readableSurfaceText: string;
+  accent: string;
+  accentSoft: string;
+  visualContext: DashboardVisualContext;
+}
+
+const DEFAULT_VISUAL_CONTEXT: DashboardVisualContext = {
+  colorScheme: "light",
+  backgroundKind: "app",
+  backgroundTone: "light",
+  requiresOpaqueTextSurface: false,
+};
+
+export const DEFAULT_SCRIPT_WIDGET_THEME: ScriptWidgetTheme = {
+  colorScheme: "light",
+  text: "#111827",
+  muted: "#64748b",
+  border: "#d8dee8",
+  surface: "#ffffff",
+  surfaceMuted: "#f6f8fb",
+  readableSurface: "#ffffff",
+  readableSurfaceText: "#111827",
+  accent: "#2563eb",
+  accentSoft: "rgba(37, 99, 235, 0.12)",
+  visualContext: DEFAULT_VISUAL_CONTEXT,
+};
 
 export function buildCsp(perm: ScriptBody["permissions"]): string {
   const connect = perm.network ? "*" : "'none'";
@@ -20,6 +56,12 @@ export function buildCsp(perm: ScriptBody["permissions"]): string {
   ].join("; ");
 }
 
+function cssValue(value: string, fallback: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || /[;{}<>]/.test(trimmed)) return fallback;
+  return trimmed;
+}
+
 function scriptStringLiteral(value: string): string {
   return JSON.stringify(value)
     .replace(/</g, "\\u003c")
@@ -31,11 +73,21 @@ export function buildSrcdoc(
   body: ScriptBody,
   settingsValuesJson = "{}",
   libraries: ResolvedWidgetLibrary[] = [],
+  theme: ScriptWidgetTheme = DEFAULT_SCRIPT_WIDGET_THEME,
 ): string {
   const csp = buildCsp(body.permissions);
   const shim = body.htmlShim?.trim().length ? body.htmlShim : '<div id="root"></div>';
   const source = scriptStringLiteral(body.source);
   const settings = scriptStringLiteral(settingsValuesJson);
+  const normalizedTheme: ScriptWidgetTheme = {
+    ...DEFAULT_SCRIPT_WIDGET_THEME,
+    ...theme,
+    visualContext: {
+      ...DEFAULT_VISUAL_CONTEXT,
+      ...theme.visualContext,
+    },
+  };
+  const themeJson = scriptStringLiteral(JSON.stringify(normalizedTheme));
   const libraryEntries = libraries
     .map((lib) => `[${scriptStringLiteral(lib.key)},${scriptStringLiteral(lib.source)}]`)
     .join(",");
@@ -45,14 +97,16 @@ export function buildSrcdoc(
   <meta http-equiv="Content-Security-Policy" content="${csp.replace(/"/g, "&quot;")}" />
   <style>
     :root {
-      color-scheme: light;
-      --kk-text: #111827;
-      --kk-muted: #64748b;
-      --kk-border: #d8dee8;
-      --kk-surface: #ffffff;
-      --kk-surface-muted: #f6f8fb;
-      --kk-accent: #2563eb;
-      --kk-accent-soft: rgba(37, 99, 235, 0.12);
+      color-scheme: ${normalizedTheme.colorScheme === "dark" ? "dark" : "light"};
+      --kk-text: ${cssValue(normalizedTheme.text, DEFAULT_SCRIPT_WIDGET_THEME.text)};
+      --kk-muted: ${cssValue(normalizedTheme.muted, DEFAULT_SCRIPT_WIDGET_THEME.muted)};
+      --kk-border: ${cssValue(normalizedTheme.border, DEFAULT_SCRIPT_WIDGET_THEME.border)};
+      --kk-surface: ${cssValue(normalizedTheme.surface, DEFAULT_SCRIPT_WIDGET_THEME.surface)};
+      --kk-surface-muted: ${cssValue(normalizedTheme.surfaceMuted, DEFAULT_SCRIPT_WIDGET_THEME.surfaceMuted)};
+      --kk-readable-surface: ${cssValue(normalizedTheme.readableSurface, DEFAULT_SCRIPT_WIDGET_THEME.readableSurface)};
+      --kk-readable-surface-text: ${cssValue(normalizedTheme.readableSurfaceText, DEFAULT_SCRIPT_WIDGET_THEME.readableSurfaceText)};
+      --kk-accent: ${cssValue(normalizedTheme.accent, DEFAULT_SCRIPT_WIDGET_THEME.accent)};
+      --kk-accent-soft: ${cssValue(normalizedTheme.accentSoft, DEFAULT_SCRIPT_WIDGET_THEME.accentSoft)};
     }
     html, body {
       margin: 0;
@@ -135,7 +189,8 @@ export function buildSrcdoc(
       min-width: 0;
       border: 1px solid var(--kk-border);
       border-radius: 8px;
-      background: var(--kk-surface);
+      background: var(--kk-readable-surface);
+      color: var(--kk-readable-surface-text);
       box-shadow: 0 8px 22px -20px rgba(15, 23, 42, 0.45);
     }
     .kk-panel { padding: 10px; }
@@ -198,7 +253,8 @@ export function buildSrcdoc(
     .kk-result {
       border: 1px solid var(--kk-border);
       border-radius: 6px;
-      background: var(--kk-surface-muted);
+      background: var(--kk-readable-surface);
+      color: var(--kk-readable-surface-text);
       padding: 8px;
       font-weight: 700;
     }
@@ -215,6 +271,13 @@ export function buildSrcdoc(
           settings = parsedSettings;
         }
       } catch (_err) {}
+      var theme = {};
+      try {
+        theme = JSON.parse(${themeJson});
+      } catch (_err) {}
+      function copyTheme() {
+        return JSON.parse(JSON.stringify(theme));
+      }
       function readViewport() {
         var target = document.getElementById('root') || document.documentElement || document.body;
         var rect = target && target.getBoundingClientRect ? target.getBoundingClientRect() : null;
@@ -406,6 +469,7 @@ export function buildSrcdoc(
       }
       const KK = {
         getSettings: function () { return JSON.parse(JSON.stringify(settings)); },
+        getTheme: function () { return copyTheme(); },
         getViewport: readViewport,
         onViewportResize: function (callback) {
           if (typeof callback !== 'function') return function () {};

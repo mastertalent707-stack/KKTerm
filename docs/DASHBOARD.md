@@ -67,6 +67,8 @@ Generated widgets must also treat the widget root as the full allocated surface.
 
 Generated widgets must preserve readable contrast. Script widgets should prefer host CSS variables (`--kk-text`, `--kk-muted`, `--kk-surface`, `--kk-accent`) and only override backgrounds when text and control colors remain explicit and legible.
 
+The Assistant page context includes a compact `activeView.visualContext` object so widget authors know whether the active Dashboard background is light, dark, or mixed without carrying a full CSS payload. Script widgets can read the exact runtime token values with `KK.getTheme()` and should use `--kk-readable-surface` / `--kk-readable-surface-text` for text-bearing areas when `requiresOpaqueTextSurface` is true, especially over image, video, or dynamic backgrounds.
+
 If a script widget displays remote images, the assistant must set `permissions.network: true`; otherwise KKTerm's CSP blocks those image requests. Plain `<img src="https://...">` loads do not normally require CORS unless widget code tries to read the image data through canvas/fetch or the remote site blocks hotlinking. Fetching images with `fetch()` is subject to normal browser CORS and may fail even when CSP allows network access.
 
 ## Persistence

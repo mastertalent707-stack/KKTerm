@@ -3,8 +3,8 @@
 ## AI grep hints
 
 - Keys: `dashboard.*` (full namespace)
-- Topics: Dashboard Views, Widget Instances, presets (panel / ambient / tile / hero / action), accents, icons, backgrounds, density, edit layout, catalog, custom script widgets, AI-authored widgets, agent widget JSON
-- Synonyms: "homepage", "tiles", "cards", "widgets", "report", "background image", "wallpaper", "translucent widget", "see-through widget", "canvas opacity"
+- Topics: Dashboard Views, Widget Instances, presets (panel / ambient / tile / hero / action), accents, icons, backgrounds, density, edit layout, catalog, custom script widgets, AI-authored widgets, agent widget JSON, widget visual context
+- Synonyms: "homepage", "tiles", "cards", "widgets", "report", "background image", "wallpaper", "translucent widget", "see-through widget", "canvas opacity", "low contrast widget", "hard to read widget"
 
 > **Terms:** see `CONTEXT.md`. **Dashboard View** is a durable SQLite-backed tab; **Widget Instance** is a placed widget on a View with its own preset/accent/title/layout. **Dashboard Custom Widget** is an AI-authored script-widget definition. Architecture details live in `docs/DASHBOARD.md`.
 
@@ -108,6 +108,8 @@ Validation errors surface as:
 - Resource cap: `dashboard.scriptWidgetCapped`.
 
 Hardening details: `docs/ADR/0006-dashboard-script-widget-hardening.md`. Script widgets are isolated in iframes, capped by the active-script-widget limit, run animation/timer guardrails inside the iframe, and have parent bridge throttles for expensive host requests.
+
+Visual context for AI-authored script widgets is supplied as `activeView.visualContext` in Dashboard Assistant context. The iframe exposes exact theme values through `KK.getTheme()` and CSS variables such as `--kk-readable-surface`; widgets should place text on readable surfaces when the View background is image, video, dynamic, or otherwise mixed.
 
 ### Agent widget dialog
 

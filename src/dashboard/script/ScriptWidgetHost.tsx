@@ -18,9 +18,16 @@ import {
   validateScriptWidgetBody,
   validateWidgetSettingsSchemaJson,
 } from "../schema";
-import { buildSrcdoc, type ResolvedWidgetLibrary } from "./permissions";
+import {
+  buildSrcdoc,
+  DEFAULT_SCRIPT_WIDGET_THEME,
+  type ResolvedWidgetLibrary,
+  type ScriptWidgetTheme,
+} from "./permissions";
 import { loadWidgetLibraries, resolveWidgetLibraryKeys } from "./widgetLibraries";
 import type { NativeContextMenuPosition } from "../../lib/nativeContextMenu";
+import { dashboardVisualContextForView } from "../visualContext";
+import { resolveAccent } from "../registry/palette";
 
 // Harden 3: cap the number of concurrently active script widgets to prevent
 // too many simultaneous rAF/animation loops from saturating the renderer.
@@ -147,6 +154,7 @@ export function ScriptWidgetHost({
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const bridgeLastAcceptedRef = useRef(new Map<RateLimitedBridgeMessage, number>());
   const updateInstance = useDashboardStore((s) => s.updateInstance);
+  const views = useDashboardStore((s) => s.views);
   const maxActiveScriptWidgets = useWorkspaceStore(
     (s) => s.dashboardSettings.maxActiveScriptWidgets,
   );
@@ -174,6 +182,15 @@ export function ScriptWidgetHost({
     [parsed],
   );
   const requestedLibKey = requestedLibraries.join("|");
+  const activeView = views.find((view) => view.id === instance.viewId);
+  const visualContext = useMemo(
+    () => dashboardVisualContextForView({ background: activeView?.background ?? null }),
+    [activeView?.background],
+  );
+  const scriptTheme = useMemo(
+    () => readScriptWidgetTheme(instance.accentName, visualContext),
+    [instance.accentName, visualContext],
+  );
 
   // Harden 3: register this widget in the active set. If the cap is exceeded,
   // show a lightweight placeholder instead of the full iframe. Re-runs when
@@ -231,8 +248,8 @@ export function ScriptWidgetHost({
     };
   }, [parsed, capped, requestedLibraries, requestedLibKey]);
   const srcdoc = useMemo(
-    () => (parsed && libraries ? buildSrcdoc(parsed, settingsValuesJson, libraries) : ""),
-    [parsed, settingsValuesJson, libraries],
+    () => (parsed && libraries ? buildSrcdoc(parsed, settingsValuesJson, libraries, scriptTheme) : ""),
+    [parsed, settingsValuesJson, libraries, scriptTheme],
   );
 
   // Harden 2: post visibility messages to the sandbox when the iframe
@@ -665,6 +682,38 @@ function isScriptWidgetCallMcpToolMessage(value: unknown): value is {
     typeof candidate.toolName === "string" &&
     candidate.toolName.length > 0
   );
+}
+
+function readScriptWidgetTheme(
+  accentName: DashboardWidgetInstance["accentName"],
+  visualContext: ScriptWidgetTheme["visualContext"],
+): ScriptWidgetTheme {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return { ...DEFAULT_SCRIPT_WIDGET_THEME, visualContext };
+  }
+  const style = window.getComputedStyle(document.documentElement);
+  const accent = resolveAccent(accentName);
+  const text = cssVar(style, "--text", DEFAULT_SCRIPT_WIDGET_THEME.text);
+  const surface = cssVar(style, "--surface", DEFAULT_SCRIPT_WIDGET_THEME.surface);
+  return {
+    colorScheme: visualContext.colorScheme,
+    text,
+    muted: cssVar(style, "--text-muted", DEFAULT_SCRIPT_WIDGET_THEME.muted),
+    border: cssVar(style, "--border", DEFAULT_SCRIPT_WIDGET_THEME.border),
+    surface,
+    surfaceMuted: cssVar(style, "--surface-muted", DEFAULT_SCRIPT_WIDGET_THEME.surfaceMuted),
+    readableSurface: visualContext.requiresOpaqueTextSurface
+      ? surface
+      : cssVar(style, "--surface", DEFAULT_SCRIPT_WIDGET_THEME.readableSurface),
+    readableSurfaceText: text,
+    accent: accent.color,
+    accentSoft: accent.soft,
+    visualContext,
+  };
+}
+
+function cssVar(style: CSSStyleDeclaration, name: string, fallback: string): string {
+  return style.getPropertyValue(name).trim() || fallback;
 }
 
 function isScriptWidgetPerformanceCountersMessage(value: unknown): value is {

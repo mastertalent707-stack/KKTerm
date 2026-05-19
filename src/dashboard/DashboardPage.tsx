@@ -17,6 +17,7 @@ import {
 import { libraryCatalogForAi } from "./script/widgetLibraries";
 import { useDashboardStore } from "./state/dashboardStore";
 import type { DashboardView, DashboardWidgetInstance, GridDensity } from "./types";
+import { dashboardVisualContextForView } from "./visualContext";
 import { DashboardBackgroundHost } from "./view/DashboardBackgroundHost";
 import { DashboardCanvas, DENSITY_SETTINGS } from "./view/DashboardCanvas";
 
@@ -101,6 +102,10 @@ export function DashboardPage({
     () => new Set(viewInstances.filter((instance) => instance.kind !== "builtIn").map((instance) => instance.sourceId)),
     [viewInstances],
   );
+  const visualContext = useMemo(
+    () => dashboardVisualContextForView({ background: activeView?.background ?? null }),
+    [activeView?.background],
+  );
   const densitySettings = DENSITY_SETTINGS[activeView?.gridDensity ?? "default"];
   const canvasGridStyle = {
     "--dw-row-height": `${densitySettings.rowHeight}px`,
@@ -116,6 +121,8 @@ export function DashboardPage({
         id: activeView.id,
         title: activeView.title,
         gridDensity: activeView.gridDensity,
+        background: activeView.background,
+        visualContext,
       },
       instances: viewInstances.map((instance) => ({
         id: instance.id,
@@ -160,7 +167,8 @@ export function DashboardPage({
         "Choose preset, accentName, iconName, and grid size intentionally from the widget purpose. Default to panel for ordinary tools, use ambient for lightweight notes or subtle widgets, and reserve hero for rare high-priority summaries. Choose an accent color that fits the widget theme; if no accent is clearly preferable, choose a random non-default accent.",
         "Be boundary-aware: choose a gridW/gridH that fits the actual controls and content without inner scrollbars. Simple timers/counters should normally be at least 4x3; forms, image widgets, and lists should be larger, commonly 5x4 or more.",
         "Use calm app-style accents: blue/teal/slate/emerald for normal utility widgets, amber for warnings, red/rose only for destructive or error-oriented widgets. If no purpose-specific color fits, choose a random non-default accent. Keep labels concise and controls dense, aligned, and consistent with KKTerm's desktop UI.",
-        "Never create low-contrast UI. Use the script host's CSS variables and default text styles unless there is a strong reason to override them; if you set backgrounds, explicitly keep text readable.",
+        "Visual context is included under activeView.visualContext as a compact background contract. Script widgets can read exact runtime theme tokens with KK.getTheme(); use --kk-text, --kk-muted, --kk-surface, --kk-surface-muted, --kk-readable-surface, --kk-readable-surface-text, --kk-border, --kk-accent, and --kk-accent-soft instead of inventing a color system. If activeView.visualContext.requiresOpaqueTextSurface is true, put all text-bearing regions on kk-panel, kk-card, kk-result, or another surface using --kk-readable-surface.",
+        "Never create low-contrast UI. Use the script host's CSS variables and default text styles unless there is a strong reason to override them; if you set backgrounds, explicitly keep text readable and avoid translucent text surfaces over mixed image/video/dynamic backgrounds.",
         "For polished script-widget UI, use KKTerm's built-in classes before writing custom CSS: kk-shell, kk-toolbar, kk-cluster, kk-title, kk-subtitle, kk-muted, kk-panel, kk-card, kk-grid, kk-stat, kk-stat-value, kk-stat-label, kk-pill, kk-badge, kk-stage, and kk-fill. Compose a compact desktop control surface with a small toolbar/header, grouped controls, and one primary content region; avoid default unstyled browser controls and oversized explanatory text.",
         "If the widget needs per-instance persistent options, include settingsSchema.fields in dashboard_create_widget. KKTerm renders that schema in the widget settings UI and stores instance values; script widgets can read non-secret values with KK.getSettings() and save via KK.setSetting(key, value).",
         "Passwords, API keys, tokens, and similar sensitive options must use settingsSchema field type secret. KKTerm stores those values in the OS keychain as widgetSecret entries; Dashboard instance JSON stores only secretRef objects. Scripts read a secret only when needed with await KK.getSecret('fieldKey').",
@@ -178,7 +186,7 @@ export function DashboardPage({
         JSON.stringify(dashboardSnapshot, null, 2),
       ].join("\n"),
     });
-  }, [activeView, viewInstances, activeCustomSourceIds, customWidgets, mcpServers, onAssistantContextChange, t]);
+  }, [activeView, visualContext, viewInstances, activeCustomSourceIds, customWidgets, mcpServers, onAssistantContextChange, t]);
 
   if (!ready || !activeView) {
     return (

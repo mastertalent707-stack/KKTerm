@@ -95,6 +95,45 @@ test("script widget host exposes measured viewport bridge", async () => {
   assert.match(srcdoc, /new ResizeObserver\(notify\)/);
 });
 
+test("script widget host exposes runtime theme contract without prompt payload bloat", async () => {
+  const { buildSrcdoc } = await importTypeScriptModule(
+    new URL("../src/dashboard/script/permissions.ts", import.meta.url),
+  );
+  const srcdoc = buildSrcdoc(
+    {
+      source: "const theme = KK.getTheme();",
+      permissions: { network: false },
+    },
+    "{}",
+    [],
+    {
+      colorScheme: "dark",
+      text: "#f8fafc",
+      muted: "#cbd5e1",
+      border: "#475569",
+      surface: "#0f172a",
+      surfaceMuted: "#1e293b",
+      readableSurface: "rgba(15, 23, 42, 0.92)",
+      readableSurfaceText: "#f8fafc",
+      accent: "#38bdf8",
+      accentSoft: "rgba(56, 189, 248, 0.18)",
+      visualContext: {
+        colorScheme: "dark",
+        backgroundKind: "preset",
+        backgroundTone: "dark",
+        backgroundId: "graphite",
+        requiresOpaqueTextSurface: false,
+      },
+    },
+  );
+
+  assert.match(srcdoc, /color-scheme: dark;/);
+  assert.match(srcdoc, /--kk-readable-surface: rgba\(15, 23, 42, 0\.92\);/);
+  assert.match(srcdoc, /getTheme: function \(\)/);
+  assert.match(srcdoc, /\\"backgroundTone\\":\\"dark\\"/);
+  assert.match(srcdoc, /\\"requiresOpaqueTextSurface\\":false/);
+});
+
 test("script widget host notifies generated animation code when visibility changes", async () => {
   const { buildSrcdoc } = await importTypeScriptModule(
     new URL("../src/dashboard/script/permissions.ts", import.meta.url),
