@@ -465,25 +465,24 @@ fn refresh_claude(cli_paths: &ProviderCliPaths) -> Result<ProviderUpdate, String
     let output = run_command(&command, &["auth", "status"], Duration::from_secs(30))?;
     let value =
         serde_json::from_str::<Value>(&output).unwrap_or_else(|_| json!({ "text": output }));
+    Ok(claude_update_from_status_value(value))
+}
+
+fn claude_update_from_status_value(value: Value) -> ProviderUpdate {
     let email = find_string_key(&value, &["email", "accountEmail", "username"]);
     let label = email
         .clone()
         .or_else(|| find_string_key(&value, &["account", "login", "name"]));
     let snapshot = normalize_claude_rate_limits(&value);
-    let last_error = if snapshot_has_usage(&snapshot) {
-        None
-    } else {
-        Some("Claude Code did not expose quota windows in auth status. Claude.ai quota windows are only available to Claude Code statusline scripts after a session receives an API response.".to_string())
-    };
-    Ok(ProviderUpdate {
+    ProviderUpdate {
         account_label: label
             .or_else(|| Some(AiCodingUsageProvider::ClaudeCode.label().to_string())),
         account_email: email,
         auth_state: "connected",
         snapshot: Some(snapshot),
         raw_provider_json: Some(value),
-        last_error,
-    })
+        last_error: None,
+    }
 }
 
 struct CodexRpcSession {
@@ -795,13 +794,6 @@ fn normalize_claude_rate_limits(value: &Value) -> ProviderSnapshot {
     ProviderSnapshot { five_hour, weekly }
 }
 
-fn snapshot_has_usage(snapshot: &ProviderSnapshot) -> bool {
-    snapshot.five_hour.used_percent.is_some()
-        || snapshot.five_hour.resets_at.is_some()
-        || snapshot.weekly.used_percent.is_some()
-        || snapshot.weekly.resets_at.is_some()
-}
-
 #[derive(Debug)]
 struct QuotaCandidate {
     used_percent: Option<f64>,
@@ -963,6 +955,22 @@ mod tests {
             snapshot.weekly.resets_at.as_deref(),
             Some("2026-02-06T17:46:40Z")
         );
+    }
+
+    #[test]
+    fn claude_auth_status_without_rate_limits_is_not_an_error() {
+        let value = serde_json::json!({
+            "loggedIn": true,
+            "authMethod": "claude.ai",
+            "email": "ryan@example.com",
+            "subscriptionType": "pro"
+        });
+
+        let update = claude_update_from_status_value(value);
+
+        assert_eq!(update.auth_state, "connected");
+        assert_eq!(update.last_error, None);
+        assert_eq!(update.snapshot.unwrap().five_hour.used_percent, None);
     }
 
     #[test]

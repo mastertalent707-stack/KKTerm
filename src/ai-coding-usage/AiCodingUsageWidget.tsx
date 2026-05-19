@@ -315,6 +315,7 @@ function ProviderSlot({
   const { t } = useTranslation();
   const label = t(`dashboard.aiCodingUsageProvider.${provider.provider}`);
   const connected = provider.authState === "connected";
+  const displayError = providerDisplayError(provider);
   const Icon = provider.provider === "codex" ? Code2 : Bot;
 
   return (
@@ -400,10 +401,10 @@ function ProviderSlot({
         </>
       ) : (
         <div className="ai-coding-provider-empty">
-          {provider.lastError
-            ? t("dashboard.aiCodingUsageProviderError", { message: provider.lastError })
+          {displayError
+            ? t("dashboard.aiCodingUsageProviderError", { message: displayError })
             : t("dashboard.aiCodingUsageProviderHint")}
-          {provider.lastError && isCliNotFoundError(provider.lastError) ? (
+          {displayError && isCliNotFoundError(displayError) ? (
             <button
               type="button"
               className="ai-coding-install-link"
@@ -416,9 +417,9 @@ function ProviderSlot({
         </div>
       )}
 
-      {connected && provider.lastError ? (
+      {connected && displayError ? (
         <div className="ai-coding-provider-warning">
-          {t("dashboard.aiCodingUsageProviderError", { message: provider.lastError })}
+          {t("dashboard.aiCodingUsageProviderError", { message: displayError })}
         </div>
       ) : null}
     </section>
@@ -554,6 +555,20 @@ function errorMessage(error: unknown) {
 function isCliNotFoundError(message: string) {
   const normalized = message.toLowerCase();
   return normalized.includes("program not found") || normalized.includes("failed to start");
+}
+
+function providerDisplayError(provider: AiCodingUsageProviderState) {
+  if (!provider.lastError || isLegacyClaudeStatuslineNotice(provider)) {
+    return null;
+  }
+  return provider.lastError;
+}
+
+function isLegacyClaudeStatuslineNotice(provider: AiCodingUsageProviderState) {
+  return (
+    provider.provider === "claudeCode" &&
+    provider.lastError?.includes("did not expose quota windows in auth status")
+  );
 }
 
 function createAiCodingUsagePortal(node: ReactNode) {
