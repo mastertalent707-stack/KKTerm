@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import type { AccentName, IconName, WidgetPreset } from "../types";
+import { AiCodingUsageBody } from "../widgets/AiCodingUsageBody";
 import { AppLauncherBody } from "../widgets/AppLauncherBody";
 import { ConnectionWidgetBody } from "../widgets/ConnectionWidgetBody";
 import { NotesBody } from "../widgets/NotesBody";
@@ -22,6 +23,17 @@ export interface BuiltInWidgetEntry {
 }
 
 export const BUILT_IN_WIDGETS: BuiltInWidgetEntry[] = [
+  {
+    id: "aiCodingUsage",
+    titleKey: "dashboard.aiCodingUsageTitle",
+    summaryKey: "dashboard.aiCodingUsageSummary",
+    category: "monitor",
+    defaultPreset: "panel",
+    defaultAccent: "teal",
+    defaultIcon: "Activity",
+    defaultSize: { w: 6, h: 4 },
+    Body: AiCodingUsageBody,
+  },
   {
     id: "appLauncher",
     titleKey: "appLauncher.title",

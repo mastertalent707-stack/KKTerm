@@ -235,6 +235,28 @@ CREATE INDEX IF NOT EXISTS idx_assistant_chat_threads_updated_at
 
 CREATE INDEX IF NOT EXISTS idx_assistant_chat_threads_created_at
     ON assistant_chat_threads(created_at);
+
+CREATE TABLE IF NOT EXISTS ai_coding_usage_accounts (
+    provider TEXT PRIMARY KEY CHECK (provider IN ('codex', 'claudeCode')),
+    account_label TEXT,
+    account_email TEXT,
+    auth_state TEXT NOT NULL DEFAULT 'disconnected'
+        CHECK (auth_state IN ('disconnected', 'connected', 'expired', 'error')),
+    last_refresh_at TEXT,
+    last_error TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS ai_coding_usage_snapshots (
+    provider TEXT PRIMARY KEY CHECK (provider IN ('codex', 'claudeCode')),
+    five_hour_used_percent REAL,
+    five_hour_resets_at TEXT,
+    weekly_used_percent REAL,
+    weekly_resets_at TEXT,
+    raw_provider_json TEXT,
+    captured_at TEXT NOT NULL
+);
 "#;
 
 pub struct Storage {
