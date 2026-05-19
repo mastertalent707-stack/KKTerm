@@ -10285,3 +10285,167 @@ fieldset.connection-specific-options > legend {
 .manual-error {
   color: var(--danger, #c33);
 }
+
+.ai-coding-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.ai-coding-usage-toolbar,
+.ai-coding-provider-header,
+.ai-coding-provider-identity,
+.ai-coding-meter-row {
+  display: flex;
+  align-items: center;
+}
+
+.ai-coding-usage-toolbar {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ai-coding-usage-title {
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.ai-coding-usage-subtitle,
+.ai-coding-provider-account,
+.ai-coding-provider-meta,
+.ai-coding-provider-empty,
+.ai-coding-meter-reset {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.ai-coding-usage-providers {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+}
+
+.ai-coding-provider {
+  display: grid;
+  gap: 7px;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.ai-coding-provider:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.ai-coding-provider-header {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ai-coding-provider-identity {
+  min-width: 0;
+  gap: 7px;
+}
+
+.ai-coding-provider-identity > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.ai-coding-provider-icon {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ai-coding-provider-name {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-coding-provider-account {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-coding-connect {
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--surface);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.ai-coding-connect:disabled,
+.ai-coding-usage-refresh:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.ai-coding-meter {
+  display: grid;
+  gap: 4px;
+}
+
+.ai-coding-meter-row {
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ai-coding-meter-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.ai-coding-meter-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 180ms ease;
+}
+
+.ai-coding-meter[data-state="warning"] .ai-coding-meter-track span {
+  background: var(--amber);
+}
+
+.ai-coding-meter[data-state="danger"] .ai-coding-meter-track span {
+  background: var(--red);
+}
+
+.ai-coding-meter[data-state="unknown"] .ai-coding-meter-track span {
+  background: var(--border-strong);
+}
+
+.ai-coding-provider-warning,
+.ai-coding-usage-error {
+  color: var(--red);
+  font-size: 11px;
+  line-height: 1.3;
+}

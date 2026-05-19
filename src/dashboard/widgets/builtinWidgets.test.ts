@@ -39,6 +39,10 @@ if (!builtInIds.includes("connectionPane")) {
   throw new Error("Dashboard built-in registry is missing the Connection Pane widget.");
 }
 
+if (!builtInIds.includes("aiCodingUsage")) {
+  throw new Error("Dashboard built-in registry is missing the AI Coding Usage widget.");
+}
+
 void bodyProps;
 void connectionTab;
 void defaultAccent;

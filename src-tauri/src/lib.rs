@@ -1,4 +1,5 @@
 mod ai;
+mod ai_coding_usage;
 mod app_launcher;
 mod app_tray;
 mod dashboard_commands;
@@ -2366,6 +2367,10 @@ pub fn run() {
             complete_assistant_tool_approval_request,
             run_ai_agent,
             run_ai_agent_streaming,
+            ai_coding_usage::ai_coding_usage_load,
+            ai_coding_usage::ai_coding_usage_connect,
+            ai_coding_usage::ai_coding_usage_refresh,
+            ai_coding_usage::ai_coding_usage_disconnect,
             keychain_status,
             get_performance_snapshot,
             get_host_usage_snapshot,

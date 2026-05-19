@@ -77,6 +77,11 @@ import type {
   IconName,
   GridDensity,
 } from "../dashboard/types";
+import type {
+  AiCodingUsageProvider,
+  AiCodingUsageProviderState,
+  AiCodingUsageState,
+} from "../ai-coding-usage/types";
 
 type BrowserFileHandle = {
   createWritable: () => Promise<{
@@ -1015,6 +1020,22 @@ type CommandMap = {
   run_ai_agent_streaming: {
     args: { channel: Channel<AiStreamEvent>; request: AgentRunRequest };
     result: AgentRunResponse;
+  };
+  ai_coding_usage_load: {
+    args: undefined;
+    result: AiCodingUsageState;
+  };
+  ai_coding_usage_connect: {
+    args: { provider: AiCodingUsageProvider };
+    result: AiCodingUsageProviderState;
+  };
+  ai_coding_usage_refresh: {
+    args: { provider?: AiCodingUsageProvider | null };
+    result: AiCodingUsageState;
+  };
+  ai_coding_usage_disconnect: {
+    args: { provider: AiCodingUsageProvider };
+    result: AiCodingUsageProviderState;
   };
   keychain_status: {
     args: undefined;
