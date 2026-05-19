@@ -1,4 +1,4 @@
-import { Palette, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
@@ -73,7 +73,6 @@ export function ConnectionIconBackgroundPicker({
           className={currentColor ? "connection-icon-bg-preview active" : "connection-icon-bg-preview"}
           style={{ "--connection-icon-bg-preview": currentColor ?? "transparent" } as CSSProperties}
         >
-          <Palette size={15} />
         </span>
       </button>
       {open ? (
