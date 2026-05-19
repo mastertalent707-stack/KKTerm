@@ -1223,6 +1223,7 @@ export function AssistantPanel({
     setAssistantIntent("chat");
     setPendingToolApprovals([]);
     allowToolApprovalsForCurrentResponseRef.current = false;
+    setDisplayedIntentExamples([]);
     setShowAllChats(false);
   }
 
@@ -1281,6 +1282,7 @@ export function AssistantPanel({
     setAssistantIntent("chat");
     setPendingToolApprovals([]);
     allowToolApprovalsForCurrentResponseRef.current = false;
+    setDisplayedIntentExamples([]);
     setShowAllChats(false);
   }
 
@@ -1303,6 +1305,7 @@ export function AssistantPanel({
       setAssistantIntent("chat");
       setPendingToolApprovals([]);
       allowToolApprovalsForCurrentResponseRef.current = false;
+      setDisplayedIntentExamples([]);
     }
   }
 
@@ -1713,6 +1716,7 @@ export function AssistantPanel({
 
   function handleClearAssistantIntent() {
     setAssistantIntent("chat");
+    setDisplayedIntentExamples([]);
     window.requestAnimationFrame(() => {
       composerTextareaRef.current?.focus();
     });
@@ -2671,10 +2675,10 @@ export function AssistantPanel({
             </div>
             {displayedIntentExamples.length > 0 ? (
               <div className="assistant-intent-examples">
-                {displayedIntentExamples.map((example) => (
+                {displayedIntentExamples.map((example, i) => (
                   <button
                     className="assistant-intent-example-bubble"
-                    key={example}
+                    key={i}
                     onClick={() => handleUseIntentExample(example)}
                     type="button"
                   >
