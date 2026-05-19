@@ -23,7 +23,7 @@ This is not a `window.confirm`. Users explicitly approve the new key; the truste
 
 A live SSH Session has **no app-side idle timeout**. Quiet and unfocused Sessions stay connected until the remote, network, or an explicit user close ends them.
 
-For tmux-enabled SSH Sessions, an unexpected channel close may silently attempt a small bounded reattach to the same Pane tmux id (the friendly `kkterm-<sci-fi-name><number>` form, e.g. `kkterm-cockpit001`). The Pane tmux id lives in frontend workspace storage; it is not durable Connection model state.
+For tmux-enabled SSH Sessions, an unexpected channel close may silently attempt a small bounded reattach to the same Pane tmux id. New Pane tmux ids are drawn directly from the active locale's `ai.tmuxSessionLabels` pool, so the actual remote tmux session name is localized. The Pane tmux id lives in frontend workspace storage; it is not durable Connection model state.
 
 ## tmux sessions
 

@@ -94,7 +94,7 @@ If WebGL is not active, record this in the run notes; the budgets in this docume
 
 ## SSH Idle Behavior
 
-Native SSH terminal Sessions do not use an app-side inactivity timeout. Idle performance runs may leave SSH Panes quiet and unfocused without expecting KKTerm to disconnect them. If a tmux-enabled native SSH channel unexpectedly closes after startup, KKTerm attempts a small bounded silent reattach to the same friendly Pane tmux session id. Server-side SSH idle policies, firewall idle reaping, sleep/resume, and network drops remain external causes and should be recorded separately from app CPU or memory measurements.
+Native SSH terminal Sessions do not use an app-side inactivity timeout. Idle performance runs may leave SSH Panes quiet and unfocused without expecting KKTerm to disconnect them. If a tmux-enabled native SSH channel unexpectedly closes after startup, KKTerm attempts a small bounded silent reattach to the same locale-generated Pane tmux session id. Server-side SSH idle policies, firewall idle reaping, sleep/resume, and network drops remain external causes and should be recorded separately from app CPU or memory measurements.
 
 ## Terminal Compatibility Checklist
 
@@ -105,7 +105,7 @@ The detailed manual checklist lives in `docs/TERMINAL_COMPATIBILITY_CHECKLIST.md
 | `vim` or `nvim` opens, edits, saves, and exits | Alternate screen restores the shell prompt cleanly |
 | `tmux` starts, splits panes, switches panes, and exits | Mouse and resize behavior remain usable |
 | Native SSH stays idle while unfocused or minimized | Session remains usable after returning to the app |
-| tmux-backed native SSH transport recovers after a short break | Pane reattaches to the same friendly tmux session id within the bounded retry window |
+| tmux-backed native SSH transport recovers after a short break | Pane reattaches to the same locale-generated tmux session id within the bounded retry window |
 | `htop` or `btop` runs | Full-screen redraws are stable and input remains responsive |
 | `git status`, `git log`, and pager navigation | Scroll, search, and quit behavior match normal terminal expectations |
 | Search terminal scrollback from a pane | Matches are highlighted, next/previous navigation wraps through scrollback, and closing search clears decorations |

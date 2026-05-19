@@ -50,10 +50,8 @@ const LAYOUT_STORAGE_PREFIX = "kkterm.layout.";
 const TMUX_SESSION_STORAGE_PREFIX = "kkterm.tmuxSessions.";
 const TMUX_SESSION_ID_PATTERN = /^[^\s:;]+$/u;
 let statusBarNoticeSequence = 0;
-// Stable fallback slugs. New tmux session ids use ai.tmuxSessionLabels
-// for the active locale when those labels are safe for tmux.
-// ja, zh-CN, zh-TW: anime sci-fi themed labels
-// All other locales: normal sci-fi themed labels
+// English fallback names used only when the active locale has no tmux-safe
+// ai.tmuxSessionLabels pool. Locales own their pool; names do not map by index.
 const TMUX_SESSION_NAMES = [
   "airlock",
   "andromeda",
@@ -156,23 +154,6 @@ const TMUX_SESSION_NAMES = [
   "sunspot",
   "supernova",
 ];
-
-export function getTmuxSessionLabel(slug: string): string {
-  const match = /^(?:kkterm-)?([a-z]+)((?:[0-9]{2}|[0-9]{3})?)$/i.exec(slug);
-  const baseSlug = match?.[1] ?? slug;
-  const suffix = match?.[2] ?? "";
-  const index = TMUX_SESSION_NAMES.indexOf(baseSlug.toLowerCase());
-  if (index === -1) return slug;
-  try {
-    const labels = i18next.t("ai.tmuxSessionLabels", { returnObjects: true });
-    if (Array.isArray(labels) && index < labels.length && typeof labels[index] === "string") {
-      return `${labels[index]}${suffix}`;
-    }
-  } catch {
-    // Fall through to slug
-  }
-  return slug;
-}
 
 export function forgetTmuxSessionId(connectionId: string, sessionId: string) {
   const sessionIds = loadStoredTmuxSessionIds(connectionId).filter((entry) => entry !== sessionId);
@@ -301,24 +282,25 @@ function appendTmuxSessionId(connection: Connection) {
 
 function generateTmuxSessionId(existingSessionIds: string[]) {
   const existing = new Set(existingSessionIds);
+  const namePool = tmuxSessionNamePool();
 
-  for (let attempt = 0; attempt < TMUX_SESSION_NAMES.length * 2; attempt += 1) {
-    const candidate = randomTmuxName();
+  for (let attempt = 0; attempt < namePool.length * 2; attempt += 1) {
+    const candidate = randomTmuxName(namePool);
     if (!existing.has(candidate)) {
       return candidate;
     }
   }
 
   for (let suffix = 2; suffix <= 99; suffix += 1) {
-    for (let attempt = 0; attempt < TMUX_SESSION_NAMES.length; attempt += 1) {
-      const candidate = `${randomTmuxName()}${formatTmuxSessionNumber(suffix)}`;
+    for (let attempt = 0; attempt < namePool.length; attempt += 1) {
+      const candidate = `${randomTmuxName(namePool)}${formatTmuxSessionNumber(suffix)}`;
       if (!existing.has(candidate)) {
         return candidate;
       }
     }
   }
 
-  return `${randomTmuxName()}${formatTmuxSessionNumber((Date.now() % 98) + 2)}`;
+  return `${randomTmuxName(namePool)}${formatTmuxSessionNumber((Date.now() % 98) + 2)}`;
 }
 
 function isCurrentTmuxSessionId(value: unknown): value is string {
@@ -329,19 +311,24 @@ function isCurrentTmuxSessionId(value: unknown): value is string {
   );
 }
 
-function randomTmuxName() {
-  const index = randomTmuxIndex(TMUX_SESSION_NAMES.length);
-  return localizedTmuxSessionName(index) ?? TMUX_SESSION_NAMES[index] ?? "airlock";
-}
-
-function localizedTmuxSessionName(index: number) {
+function tmuxSessionNamePool() {
   try {
     const labels = i18next.t("ai.tmuxSessionLabels", { returnObjects: true });
-    const label = Array.isArray(labels) ? labels[index] : undefined;
-    return typeof label === "string" && isCurrentTmuxSessionId(label) ? label : undefined;
+    if (Array.isArray(labels)) {
+      const names = labels.filter((label): label is string => isCurrentTmuxSessionId(label));
+      if (names.length > 0) {
+        return names;
+      }
+    }
   } catch {
-    return undefined;
+    // Fall back below.
   }
+  return TMUX_SESSION_NAMES;
+}
+
+function randomTmuxName(namePool: string[]) {
+  const index = randomTmuxIndex(namePool.length);
+  return namePool[index] ?? "airlock";
 }
 
 function randomTmuxIndex(max: number) {

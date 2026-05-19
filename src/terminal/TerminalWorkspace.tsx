@@ -14,7 +14,7 @@ import i18next from "../i18n/config";
 import { ariaInvalid, dialogButtonAria, menuButtonAria } from "../lib/aria";
 import { invokeCommand, isTauriRuntime, saveTextFile, type RemoteLoopbackPort, type TerminalOutput, type TmuxSession } from "../lib/tauri";
 import { defaultTerminalSettings } from "../app-defaults";
-import { forgetTmuxSessionId, getTmuxSessionLabel, useWorkspaceStore } from "../store";
+import { forgetTmuxSessionId, useWorkspaceStore } from "../store";
 import { createTerminalRenderer, type TerminalDimensions, type TerminalRenderer } from "./renderer";
 import { ensureLayout } from "../workspace/layout";
 import { getPaneRenderer, registerPaneInputWriter, registerPaneRenderer, unregisterPaneInputWriter, unregisterPaneRenderer } from "../workspace/paneRegistry";
@@ -580,7 +580,7 @@ function TmuxSessionTag({
           title={t("terminal.showTmux")}
           type="button"
         >
-          tmux {sessionId ? getTmuxSessionLabel(sessionId) : sessionId}
+          tmux {sessionId}
         </button>
       </div>
       {open ? (
@@ -607,7 +607,7 @@ function TmuxSessionTag({
               const isExpanded = expandedSessionId === session.id;
               const isRenaming = editingSessionId === session.id;
               const mouseOn = mouseEnabledIds.has(session.id);
-              const sessionLabel = getTmuxSessionLabel(session.id);
+              const sessionLabel = session.id;
               const sessionStatus = isInApp
                 ? t("terminal.open")
                 : session.attached
