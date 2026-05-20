@@ -1383,6 +1383,8 @@
     "clearAllSettings": "Hapus Semua Pengaturan",
     "clearShard": "Bersihkan shard",
     "clipboardReadSaved": "Pengaturan pembacaan clipboard disimpan.",
+    "autoStartWithWindows": "Mulai dengan Windows dalam keadaan diminimalkan",
+    "autoStartWithWindowsHint": "Meluncurkan KKTerm secara otomatis saat Anda masuk ke Windows dan memulainya dalam keadaan diminimalkan. Jika perilaku baki diaktifkan, jendela disembunyikan ke baki sistem.",
     "colorDepth": "Kedalaman warna",
     "colorLevel": "Level warna",
     "colorScheme": "Skema Warna",

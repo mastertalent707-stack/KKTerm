@@ -1383,6 +1383,8 @@
     "clearAllSettings": "Cancella tutte le impostazioni",
     "clearShard": "Cancella partizione",
     "clipboardReadSaved": "Impostazione lettura appunti salvata.",
+    "autoStartWithWindows": "Avvia con Windows ridotto a icona",
+    "autoStartWithWindowsHint": "Avvia KKTerm automaticamente quando accedi a Windows e lo apre ridotto a icona. Se il comportamento nell'area di notifica è attivo, la finestra viene nascosta nell'area di notifica.",
     "colorDepth": "Profondità colore",
     "colorLevel": "Livello colore",
     "colorScheme": "Schema colori",

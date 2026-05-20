@@ -1383,6 +1383,8 @@
     "clearAllSettings": "Borrar todos los ajustes",
     "clearShard": "Vaciar partición",
     "clipboardReadSaved": "Configuración de lectura del portapapeles guardada.",
+    "autoStartWithWindows": "Iniciar con Windows minimizado",
+    "autoStartWithWindowsHint": "Inicia KKTerm automáticamente cuando inicias sesión en Windows y lo abre minimizado. Si el comportamiento de la bandeja está activado, la ventana se oculta en la bandeja del sistema.",
     "colorDepth": "Profundidad de color",
     "colorLevel": "Nivel de color",
     "colorScheme": "Esquema de color",

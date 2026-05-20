@@ -1383,6 +1383,8 @@
     "clearAllSettings": "すべての設定をクリア",
     "clearShard": "シャードをクリア",
     "clipboardReadSaved": "クリップボード読み取り設定を保存しました。",
+    "autoStartWithWindows": "Windows 起動時に最小化して開始",
+    "autoStartWithWindowsHint": "Windows にサインインすると KKTerm を自動的に起動し、最小化した状態で開始します。トレイ動作が有効な場合、ウィンドウはシステムトレイに隠れます。",
     "colorDepth": "色深度",
     "colorLevel": "カラーレベル",
     "colorScheme": "カラースキーム",

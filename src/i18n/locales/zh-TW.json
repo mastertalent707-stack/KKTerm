@@ -1383,6 +1383,8 @@
     "clearAllSettings": "清除所有設定",
     "clearShard": "清除分區",
     "clipboardReadSaved": "剪貼簿讀取設定已儲存。",
+    "autoStartWithWindows": "隨 Windows 啟動並最小化",
+    "autoStartWithWindowsHint": "在你登入 Windows 時自動啟動 KKTerm，並以最小化狀態啟動。如果已啟用系統匣行為，視窗會隱藏到系統匣。",
     "colorDepth": "色彩深度",
     "colorLevel": "色彩等級",
     "colorScheme": "色彩配置",

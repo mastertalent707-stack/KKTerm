@@ -1383,6 +1383,8 @@
     "clearAllSettings": "Limpar todas as configurações",
     "clearShard": "Limpar partição",
     "clipboardReadSaved": "Configuração de leitura da área de transferência salva.",
+    "autoStartWithWindows": "Iniciar com o Windows minimizado",
+    "autoStartWithWindowsHint": "Inicia o KKTerm automaticamente quando você entra no Windows e o abre minimizado. Se o comportamento da bandeja estiver ativado, a janela fica oculta na bandeja do sistema.",
     "colorDepth": "Profundidade de cor",
     "colorLevel": "Nível de cor",
     "colorScheme": "Esquema de cores",

@@ -1383,6 +1383,8 @@
     "clearAllSettings": "Clear All Settings",
     "clearShard": "Clear shard",
     "clipboardReadSaved": "Đã lưu cài đặt đọc clipboard.",
+    "autoStartWithWindows": "Khởi động cùng Windows ở chế độ thu nhỏ",
+    "autoStartWithWindowsHint": "Tự động mở KKTerm khi bạn đăng nhập vào Windows và khởi động ở chế độ thu nhỏ. Nếu hành vi khay được bật, cửa sổ sẽ ẩn vào khay hệ thống.",
     "colorDepth": "Color depth",
     "colorLevel": "Color level",
     "colorScheme": "Color Scheme",

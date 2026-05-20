@@ -1383,6 +1383,8 @@
     "clearAllSettings": "Effacer tous les paramètres",
     "clearShard": "Effacer la partition",
     "clipboardReadSaved": "Paramètre de lecture du presse-papiers enregistré.",
+    "autoStartWithWindows": "Démarrer avec Windows en mode réduit",
+    "autoStartWithWindowsHint": "Lance KKTerm automatiquement lorsque vous ouvrez une session Windows et le démarre en mode réduit. Si le comportement de la barre d'état est activé, la fenêtre est masquée dans la zone de notification.",
     "colorDepth": "Profondeur de couleur",
     "colorLevel": "Niveau de couleur",
     "colorScheme": "Jeu de couleurs",

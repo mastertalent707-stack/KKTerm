@@ -1383,6 +1383,8 @@
     "clearAllSettings": "모든 설정 지우기",
     "clearShard": "샤드 지우기",
     "clipboardReadSaved": "클립보드 읽기 설정이 저장되었습니다.",
+    "autoStartWithWindows": "Windows 시작 시 최소화로 실행",
+    "autoStartWithWindowsHint": "Windows에 로그인할 때 KKTerm을 자동으로 실행하고 최소화된 상태로 시작합니다. 트레이 동작이 활성화되어 있으면 창이 시스템 트레이로 숨겨집니다.",
     "colorDepth": "색상 깊이",
     "colorLevel": "색상 레벨",
     "colorScheme": "색상 구성",

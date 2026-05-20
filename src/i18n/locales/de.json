@@ -1383,6 +1383,8 @@
     "clearAllSettings": "Alle Einstellungen löschen",
     "clearShard": "Partition leeren",
     "clipboardReadSaved": "Zwischenablage-Lese-Einstellung gespeichert.",
+    "autoStartWithWindows": "Mit Windows minimiert starten",
+    "autoStartWithWindowsHint": "Startet KKTerm automatisch, wenn Sie sich bei Windows anmelden, und öffnet es minimiert. Wenn das Tray-Verhalten aktiviert ist, wird das Fenster im System-Tray ausgeblendet.",
     "colorDepth": "Farbtiefe",
     "colorLevel": "Farbstufe",
     "colorScheme": "Farbschema",

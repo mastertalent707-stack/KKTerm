@@ -1383,6 +1383,8 @@
     "clearAllSettings": "ล้างการตั้งค่าทั้งหมด",
     "clearShard": "ล้างพาร์ติชัน",
     "clipboardReadSaved": "บันทึกการตั้งค่าการอ่านคลิปบอร์ดแล้ว",
+    "autoStartWithWindows": "เริ่มพร้อม Windows แบบย่อหน้าต่าง",
+    "autoStartWithWindowsHint": "เปิด KKTerm โดยอัตโนมัติเมื่อคุณลงชื่อเข้าใช้ Windows และเริ่มแบบย่อหน้าต่าง หากเปิดใช้ลักษณะการทำงานของถาด หน้าต่างจะซ่อนไปยังถาดระบบ",
     "colorDepth": "ความลึกของสี",
     "colorLevel": "ระดับสี",
     "colorScheme": "ชุดสี",
