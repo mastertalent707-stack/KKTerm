@@ -223,6 +223,12 @@ export interface DashboardSettings {
    * the storage boundary. See ADR 0006.
    */
   maxActiveScriptWidgets: number;
+  /**
+   * Global kill-switch for KK.net.* APIs in script widgets. When false, no
+   * widget-origin network Tauri commands run regardless of per-widget flags.
+   * Has no effect on AI assistant standalone network tools.
+   */
+  allowWidgetNetworkTools: boolean;
 }
 
 export interface PreparedAppLauncherEntry {
@@ -408,7 +414,8 @@ export type AiAssistantToolId =
   | "connections"
   | "sessions"
   | "tutorial"
-  | "manual";
+  | "manual"
+  | "network";
 
 export type AiAssistantToolSettings = Record<AiAssistantToolId, boolean>;
 
