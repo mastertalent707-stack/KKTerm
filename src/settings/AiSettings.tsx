@@ -39,6 +39,7 @@ import {
   sortModelOptionsForProvider,
 } from "../ai/providerModelOptions";
 import { McpServersControl } from "./McpServers";
+import { AssistantSkillsControl } from "./AssistantSkills";
 import { SettingsSectionHeader } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { shouldShowStoredAiProviderKeyMask } from "./aiProviderKeyField";
@@ -1244,6 +1245,8 @@ export function AiSettings() {
         searchApiKeyDraft={searchApiKeyDraft}
         searchApiKeyStoredMask={searchApiKeyStoredMask}
       />
+
+      <AssistantSkillsControl />
 
       <McpServersControl />
 

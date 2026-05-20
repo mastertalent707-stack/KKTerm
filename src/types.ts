@@ -439,6 +439,7 @@ export interface AiProviderSettings {
   toolPermissionMode: AiToolPermissionMode;
   claudeCliPath?: string;
   codexCliPath?: string;
+  disabledSkillNames: string[];
   tools: AiAssistantToolSettings;
   searchProvider: SearchProvider;
   searxngUrl: string;

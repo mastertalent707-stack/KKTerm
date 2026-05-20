@@ -1,0 +1,394 @@
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+    path::{Path, PathBuf},
+};
+use tauri::{AppHandle, Manager};
+use tauri_plugin_opener::OpenerExt;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssistantSkill {
+    pub name: String,
+    pub description: String,
+    pub instructions: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssistantSkillSummary {
+    pub name: String,
+    pub description: String,
+    pub enabled: bool,
+    pub folder_path: String,
+    pub invalid_reason: Option<String>,
+}
+
+pub fn assistant_skills_root(app: &AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("failed to resolve app data folder: {error}"))?;
+    Ok(app_data_dir.join("assistant-skills"))
+}
+
+pub fn list_skill_summaries(
+    root: &Path,
+    disabled_names: &[String],
+) -> Result<Vec<AssistantSkillSummary>, String> {
+    fs::create_dir_all(root)
+        .map_err(|error| format!("failed to create assistant skills folder: {error}"))?;
+    let disabled = disabled_names.iter().cloned().collect::<HashSet<_>>();
+    let mut summaries = Vec::new();
+    for entry in fs::read_dir(root)
+        .map_err(|error| format!("failed to read assistant skills folder: {error}"))?
+    {
+        let entry = entry.map_err(|error| format!("failed to read skill entry: {error}"))?;
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        match parse_skill_dir(&path) {
+            Ok(skill) => summaries.push(AssistantSkillSummary {
+                enabled: !disabled.contains(&skill.name),
+                folder_path: path.to_string_lossy().into_owned(),
+                invalid_reason: None,
+                name: skill.name,
+                description: skill.description,
+            }),
+            Err(error) => {
+                let name = path
+                    .file_name()
+                    .and_then(|value| value.to_str())
+                    .unwrap_or("invalid-skill")
+                    .to_string();
+                summaries.push(AssistantSkillSummary {
+                    name,
+                    description: String::new(),
+                    enabled: false,
+                    folder_path: path.to_string_lossy().into_owned(),
+                    invalid_reason: Some(error),
+                });
+            }
+        }
+    }
+    summaries.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(summaries)
+}
+
+pub fn resolve_invoked_skills(
+    root: &Path,
+    disabled_names: &[String],
+    requested_names: &[String],
+    prompt: &str,
+) -> Result<Vec<AssistantSkill>, String> {
+    let disabled = disabled_names.iter().cloned().collect::<HashSet<_>>();
+    let requested = requested_names
+        .iter()
+        .map(|name| name.trim().to_string())
+        .filter(|name| !name.is_empty())
+        .collect::<HashSet<_>>();
+    let mut skills = Vec::new();
+    for summary in list_skill_summaries(root, disabled_names)? {
+        if summary.invalid_reason.is_some() || !summary.enabled || disabled.contains(&summary.name)
+        {
+            continue;
+        }
+        if !requested.is_empty() && !requested.contains(&summary.name) {
+            continue;
+        }
+        let skill = parse_skill_dir(&PathBuf::from(&summary.folder_path))?;
+        if !requested.is_empty() || skill_matches_prompt(&skill, prompt) {
+            skills.push(skill);
+        }
+        if skills.len() >= 3 {
+            break;
+        }
+    }
+    Ok(skills)
+}
+
+pub fn open_skills_folder(app: &AppHandle) -> Result<(), String> {
+    let root = assistant_skills_root(app)?;
+    fs::create_dir_all(&root)
+        .map_err(|error| format!("failed to create assistant skills folder: {error}"))?;
+    app.opener()
+        .open_path(root.to_string_lossy(), None::<&str>)
+        .map_err(|error| format!("failed to open assistant skills folder: {error}"))
+}
+
+pub fn open_skill_folder(app: &AppHandle, name: &str) -> Result<(), String> {
+    validate_skill_name(name)?;
+    let root = assistant_skills_root(app)?;
+    let path = root.join(name);
+    parse_skill_dir(&path)?;
+    app.opener()
+        .open_path(path.to_string_lossy(), None::<&str>)
+        .map_err(|error| format!("failed to open assistant skill folder: {error}"))
+}
+
+pub fn parse_skill_dir(dir: &Path) -> Result<AssistantSkill, String> {
+    let skill_path = dir.join("SKILL.md");
+    let content = fs::read_to_string(&skill_path)
+        .map_err(|error| format!("failed to read {}: {error}", skill_path.display()))?;
+    let (frontmatter, instructions) = split_frontmatter(&content)?;
+    let metadata = parse_frontmatter(frontmatter)?;
+    let name = metadata
+        .get("name")
+        .cloned()
+        .ok_or_else(|| "SKILL.md missing required name".to_string())?;
+    let description = metadata
+        .get("description")
+        .cloned()
+        .ok_or_else(|| "SKILL.md missing required description".to_string())?;
+    validate_skill_name(&name)?;
+    validate_skill_description(&description)?;
+    let dir_name = dir
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "skill directory must have a valid UTF-8 name".to_string())?;
+    if dir_name != name {
+        return Err(format!(
+            "skill name '{name}' must match directory name '{dir_name}'"
+        ));
+    }
+    let instructions = instructions.trim().to_string();
+    if instructions.is_empty() {
+        return Err("SKILL.md instructions are empty".to_string());
+    }
+
+    Ok(AssistantSkill {
+        name,
+        description,
+        instructions: truncate_instructions(&instructions),
+    })
+}
+
+pub fn skill_matches_prompt(skill: &AssistantSkill, prompt: &str) -> bool {
+    let prompt = normalize_match_text(prompt);
+    if prompt.is_empty() {
+        return false;
+    }
+    let name = normalize_match_text(&skill.name);
+    if prompt.contains(&name) {
+        return true;
+    }
+    let name_phrase = normalize_match_text(&skill.name.replace('-', " "));
+    if prompt.contains(&name_phrase) {
+        return true;
+    }
+
+    let prompt_words = word_set(&prompt);
+    let keywords = word_set(&skill.description)
+        .into_iter()
+        .filter(|word| word.len() >= 4 && !COMMON_WORDS.contains(&word.as_str()))
+        .collect::<Vec<_>>();
+    let matches = keywords
+        .iter()
+        .filter(|word| prompt_words.contains(*word))
+        .take(2)
+        .count();
+    matches >= 2
+}
+
+fn split_frontmatter(content: &str) -> Result<(&str, &str), String> {
+    let Some(rest) = content.strip_prefix("---") else {
+        return Err("SKILL.md must start with YAML frontmatter".to_string());
+    };
+    let rest = rest
+        .strip_prefix("\r\n")
+        .or_else(|| rest.strip_prefix('\n'))
+        .unwrap_or(rest);
+    let Some(end_index) = rest.find("\n---") else {
+        return Err("SKILL.md frontmatter is not closed".to_string());
+    };
+    let frontmatter = &rest[..end_index];
+    let after = &rest[end_index + "\n---".len()..];
+    let after = after
+        .strip_prefix("\r\n")
+        .or_else(|| after.strip_prefix('\n'))
+        .unwrap_or(after);
+    Ok((frontmatter, after))
+}
+
+fn parse_frontmatter(frontmatter: &str) -> Result<HashMap<String, String>, String> {
+    let mut metadata = HashMap::new();
+    for line in frontmatter.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let Some((key, value)) = line.split_once(':') else {
+            return Err(format!("invalid SKILL.md frontmatter line: {line}"));
+        };
+        let key = key.trim();
+        if key.is_empty() {
+            return Err("SKILL.md frontmatter contains an empty key".to_string());
+        }
+        let value = unquote_scalar(value.trim());
+        metadata.insert(key.to_string(), value);
+    }
+    Ok(metadata)
+}
+
+fn unquote_scalar(value: &str) -> String {
+    if value.len() >= 2 {
+        let bytes = value.as_bytes();
+        if (bytes[0] == b'"' && bytes[value.len() - 1] == b'"')
+            || (bytes[0] == b'\'' && bytes[value.len() - 1] == b'\'')
+        {
+            return value[1..value.len() - 1].to_string();
+        }
+    }
+    value.to_string()
+}
+
+fn validate_skill_name(name: &str) -> Result<(), String> {
+    if name.is_empty() || name.len() > 64 {
+        return Err("skill name must be 1-64 characters".to_string());
+    }
+    if !name
+        .chars()
+        .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-')
+    {
+        return Err("skill name must use lowercase letters, numbers, and hyphens".to_string());
+    }
+    Ok(())
+}
+
+pub fn normalize_skill_names(values: Vec<String>) -> Vec<String> {
+    let mut names = values
+        .into_iter()
+        .map(|value| value.trim().to_string())
+        .filter(|value| validate_skill_name(value).is_ok())
+        .collect::<Vec<_>>();
+    names.sort();
+    names.dedup();
+    names
+}
+
+fn validate_skill_description(description: &str) -> Result<(), String> {
+    if description.trim().is_empty() || description.len() > 1024 {
+        return Err("skill description must be 1-1024 characters".to_string());
+    }
+    if description.contains('<') || description.contains('>') {
+        return Err("skill description cannot contain XML tags".to_string());
+    }
+    Ok(())
+}
+
+fn normalize_match_text(value: &str) -> String {
+    value
+        .to_ascii_lowercase()
+        .chars()
+        .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { ' ' })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn word_set(value: &str) -> Vec<String> {
+    let mut words = normalize_match_text(value)
+        .split_whitespace()
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    words.sort();
+    words.dedup();
+    words
+}
+
+const COMMON_WORDS: &[&str] = &[
+    "and", "for", "with", "this", "that", "when", "from", "into", "your", "about", "using",
+    "problems",
+];
+
+fn truncate_instructions(instructions: &str) -> String {
+    const MAX_CHARS: usize = 16_000;
+    if instructions.chars().count() <= MAX_CHARS {
+        return instructions.to_string();
+    }
+    instructions.chars().take(MAX_CHARS).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{fs, path::PathBuf};
+
+    fn temp_skill_root(name: &str) -> PathBuf {
+        let root =
+            std::env::temp_dir().join(format!("kkterm-skill-test-{}-{}", std::process::id(), name));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).expect("create temp skill root");
+        root
+    }
+
+    #[test]
+    fn parse_skill_dir_reads_frontmatter_and_body() {
+        let root = temp_skill_root("valid");
+        let dir = root.join("ssh-troubleshooter");
+        fs::create_dir_all(&dir).expect("create skill dir");
+        fs::write(
+            dir.join("SKILL.md"),
+            r#"---
+name: ssh-troubleshooter
+description: Diagnose SSH connection failures and host key problems.
+---
+
+# SSH Troubleshooter
+
+Follow a cautious read-before-write flow.
+"#,
+        )
+        .expect("write skill");
+
+        let skill = parse_skill_dir(&dir).expect("skill parses");
+
+        assert_eq!(skill.name, "ssh-troubleshooter");
+        assert_eq!(
+            skill.description,
+            "Diagnose SSH connection failures and host key problems."
+        );
+        assert!(skill.instructions.contains("read-before-write"));
+    }
+
+    #[test]
+    fn parse_skill_dir_rejects_name_that_does_not_match_directory() {
+        let root = temp_skill_root("mismatch");
+        let dir = root.join("dashboard-helper");
+        fs::create_dir_all(&dir).expect("create skill dir");
+        fs::write(
+            dir.join("SKILL.md"),
+            "---\nname: other-name\ndescription: Help with dashboards.\n---\n",
+        )
+        .expect("write skill");
+
+        let error = parse_skill_dir(&dir).expect_err("mismatched skill is rejected");
+
+        assert!(error.contains("must match"));
+    }
+
+    #[test]
+    fn skill_matches_prompt_is_conservative() {
+        let skill = AssistantSkill {
+            name: "ssh-troubleshooter".to_string(),
+            description: "Diagnose SSH connection failures and host key problems.".to_string(),
+            instructions: "Use SSH diagnostics.".to_string(),
+        };
+
+        assert!(skill_matches_prompt(
+            &skill,
+            "Use ssh-troubleshooter on this failed connection"
+        ));
+        assert!(skill_matches_prompt(
+            &skill,
+            "Diagnose this SSH host key problem"
+        ));
+        assert!(!skill_matches_prompt(
+            &skill,
+            "Create a dashboard clock widget"
+        ));
+    }
+}

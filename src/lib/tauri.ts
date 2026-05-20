@@ -414,6 +414,14 @@ export interface AgentChatMessage {
   reasoningContent?: string;
 }
 
+export interface AssistantSkillSummary {
+  name: string;
+  description: string;
+  enabled: boolean;
+  folderPath: string;
+  invalidReason?: string | null;
+}
+
   export interface AgentRunRequest {
     prompt: string;
     contextLabel: string;
@@ -442,6 +450,7 @@ export interface AgentChatMessage {
   messages: AgentChatMessage[];
   outputLanguage?: string;
   allowTools?: boolean;
+  skillNames?: string[];
 }
 
 export interface AgentRunResponse {
@@ -970,6 +979,22 @@ type CommandMap = {
   update_ai_provider_settings: {
     args: { request: AiProviderSettings };
     result: AiProviderSettings;
+  };
+  list_assistant_skills: {
+    args: undefined;
+    result: AssistantSkillSummary[];
+  };
+  set_assistant_skill_enabled: {
+    args: { name: string; enabled: boolean };
+    result: AiProviderSettings;
+  };
+  open_assistant_skills_folder: {
+    args: undefined;
+    result: null;
+  };
+  open_assistant_skill: {
+    args: { name: string };
+    result: null;
   };
   list_assistant_chat_threads: {
     args: undefined;

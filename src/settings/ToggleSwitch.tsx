@@ -2,11 +2,15 @@ import { type KeyboardEvent } from "react";
 
 interface ToggleSwitchProps {
   checked: boolean;
+  disabled?: boolean;
   onChange: (checked: boolean) => void;
 }
 
-export function ToggleSwitch({ checked, onChange }: ToggleSwitchProps) {
+export function ToggleSwitch({ checked, disabled = false, onChange }: ToggleSwitchProps) {
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (disabled) {
+      return;
+    }
     if (event.key === " " || event.key === "Enter") {
       event.preventDefault();
       onChange(!checked);
@@ -16,11 +20,14 @@ export function ToggleSwitch({ checked, onChange }: ToggleSwitchProps) {
   return (
     <div
       aria-checked={checked}
-      className={`toggle-switch ${checked ? "toggle-switch-on" : ""}`}
-      onClick={() => onChange(!checked)}
+      aria-disabled={disabled}
+      className={`toggle-switch ${checked ? "toggle-switch-on" : ""}${disabled ? " toggle-switch-disabled" : ""}`}
+      onClick={() => {
+        if (!disabled) onChange(!checked);
+      }}
       onKeyDown={handleKeyDown}
       role="switch"
-      tabIndex={0}
+      tabIndex={disabled ? -1 : 0}
     >
       <span className="toggle-switch-track">
         <span className="toggle-switch-knob" />

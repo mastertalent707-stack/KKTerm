@@ -43,6 +43,7 @@ import { invokeCommand, isTauriRuntime, openExternalUrl } from "../lib/tauri";
 import type {
   AiProviderModelOption,
   AiStreamEvent,
+  AssistantSkillSummary,
   AssistantChatThreadRecord,
   CaptureScreenshotRequest,
 } from "../lib/tauri";
@@ -107,6 +108,7 @@ type AssistantChatMessage = {
   intent?: AssistantPromptIntent;
   createdAt: string;
   toolCalls?: AssistantToolCallStatus[];
+  skillNames?: string[];
   workStartedAt?: string;
   workCompletedAt?: string;
   isStreaming?: boolean;
@@ -623,6 +625,70 @@ async function loadAssistantChatHistoryFromStorage(): Promise<AssistantChatThrea
   }
 }
 
+async function loadAssistantSkillsForChat(): Promise<AssistantSkillSummary[]> {
+  if (!isTauriRuntime()) {
+    return [];
+  }
+  try {
+    const skills = await invokeCommand("list_assistant_skills", undefined);
+    return skills.filter((skill) => skill.enabled && !skill.invalidReason);
+  } catch {
+    return [];
+  }
+}
+
+function invokedAssistantSkillNames(
+  skills: readonly AssistantSkillSummary[],
+  prompt: string,
+): string[] {
+  return skills
+    .filter((skill) => assistantSkillMatchesPrompt(skill, prompt))
+    .slice(0, 3)
+    .map((skill) => skill.name);
+}
+
+function assistantSkillMatchesPrompt(skill: AssistantSkillSummary, prompt: string) {
+  const normalizedPrompt = normalizeSkillMatchText(prompt);
+  if (!normalizedPrompt) {
+    return false;
+  }
+  const normalizedName = normalizeSkillMatchText(skill.name);
+  if (normalizedPrompt.includes(normalizedName)) {
+    return true;
+  }
+  const namePhrase = normalizeSkillMatchText(skill.name.replace(/-/g, " "));
+  if (normalizedPrompt.includes(namePhrase)) {
+    return true;
+  }
+  const promptWords = new Set(normalizedPrompt.split(" "));
+  const keywords = Array.from(new Set(normalizeSkillMatchText(skill.description).split(" ")))
+    .filter((word) => word.length >= 4 && !COMMON_SKILL_WORDS.has(word));
+  return keywords.filter((word) => promptWords.has(word)).length >= 2;
+}
+
+function normalizeSkillMatchText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+const COMMON_SKILL_WORDS = new Set([
+  "and",
+  "for",
+  "with",
+  "this",
+  "that",
+  "when",
+  "from",
+  "into",
+  "your",
+  "about",
+  "using",
+  "problems",
+]);
+
 function normalizeAssistantChatThread(value: unknown): AssistantChatThread[] {
   if (!value || typeof value !== "object") {
     return [];
@@ -684,10 +750,26 @@ function normalizeAssistantChatMessage(value: unknown): AssistantChatMessage[] {
           : undefined,
       createdAt: normalizeDateString(candidate.createdAt) ?? new Date().toISOString(),
       toolCalls: normalizeAssistantToolCalls(candidate.toolCalls),
+      skillNames: normalizeAssistantSkillNames(candidate.skillNames),
       workStartedAt: normalizeDateString(candidate.workStartedAt),
       workCompletedAt: normalizeDateString(candidate.workCompletedAt),
     },
   ];
+}
+
+function normalizeAssistantSkillNames(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const names = Array.from(
+    new Set(
+      value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter((item) => /^[a-z0-9-]{1,64}$/.test(item)),
+    ),
+  );
+  return names.length > 0 ? names : undefined;
 }
 
 function normalizeAssistantToolCalls(value: unknown): AssistantToolCallStatus[] | undefined {
@@ -819,6 +901,7 @@ export function AssistantPanel({
   const [chatHistory, setChatHistory] = useState<AssistantChatThread[]>(() =>
     isTauriRuntime() ? [] : readLegacyAssistantChatHistory(),
   );
+  const [assistantSkills, setAssistantSkills] = useState<AssistantSkillSummary[]>([]);
   const [showAllChats, setShowAllChats] = useState(false);
   const [chatError, setChatError] = useState("");
   const [isSendingPrompt, setIsSendingPrompt] = useState(false);
@@ -993,6 +1076,23 @@ export function AssistantPanel({
     void loadAssistantChatHistoryFromStorage().then((threads) => {
       if (!disposed) {
         setChatHistory(threads);
+      }
+    });
+
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    let disposed = false;
+    void loadAssistantSkillsForChat().then((skills) => {
+      if (!disposed) {
+        setAssistantSkills(skills);
       }
     });
 
@@ -1862,6 +1962,13 @@ export function AssistantPanel({
         }
       }
     }
+    const currentAssistantSkills = isTauriRuntime()
+      ? await loadAssistantSkillsForChat()
+      : assistantSkills;
+    if (isTauriRuntime()) {
+      setAssistantSkills(currentAssistantSkills);
+    }
+    const invokedSkillNames = invokedAssistantSkillNames(currentAssistantSkills, normalizedPrompt);
     const userMessage = createAssistantChatMessage(
       "user",
       normalizedPrompt,
@@ -1953,6 +2060,7 @@ export function AssistantPanel({
         requestIntent,
       );
       streamingMessage.isStreaming = true;
+      streamingMessage.skillNames = invokedSkillNames.length > 0 ? invokedSkillNames : undefined;
       streamingMessage.workStartedAt = workStartedAt;
       let streamingMessageSnapshot = streamingMessage;
       const messagesWithStreaming = [...nextMessages, streamingMessage];
@@ -2009,6 +2117,7 @@ export function AssistantPanel({
           systemContext,
           messages: history,
           outputLanguage: resolveAssistantOutputLanguage(aiProviderSettings.outputLanguage),
+          skillNames: invokedSkillNames,
         },
       });
 
@@ -3196,6 +3305,11 @@ function AssistantMessageView({
                   <small>{formatBytes(file.size)}</small>
                 </div>
               ))}
+            </div>
+          ) : null}
+          {message.role === "assistant" && message.skillNames?.length ? (
+            <div className="assistant-skill-invoked">
+              {t("ai.skillInvoked", { skills: message.skillNames.join(", ") })}
             </div>
           ) : null}
           {message.role === "assistant" ? <AssistantWorkPanel message={message} /> : null}

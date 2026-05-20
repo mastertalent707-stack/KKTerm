@@ -53,6 +53,7 @@ export function providerDefaultsFor(kind: AiProviderKind): AiProviderSettings {
     toolPermissionMode: "prompt",
     claudeCliPath: "",
     codexCliPath: "",
+    disabledSkillNames: [],
     tools: DEFAULT_AI_ASSISTANT_TOOLS,
     searchProvider: "scraper",
     searxngUrl: "",
@@ -107,6 +108,7 @@ export function normalizeAiProviderDraft(draft: AiProviderSettings): AiProviderS
     toolPermissionMode: draft.toolPermissionMode === "allowAll" ? "allowAll" : "prompt",
     claudeCliPath: draft.claudeCliPath?.trim() ?? "",
     codexCliPath: draft.codexCliPath?.trim() ?? "",
+    disabledSkillNames: normalizeDisabledSkillNames(draft.disabledSkillNames),
     tools: { ...DEFAULT_AI_ASSISTANT_TOOLS, ...(draft.tools ?? {}) },
     searchProvider: normalizeSearchProvider(draft.searchProvider),
     searxngUrl: draft.searxngUrl?.trim() ?? "",
@@ -118,6 +120,18 @@ export function normalizeAiProviderDraft(draft: AiProviderSettings): AiProviderS
     smtpUsername: draft.smtpUsername?.trim() ?? "",
     smtpSecurity: normalizeSmtpSecurity(draft.smtpSecurity),
   };
+}
+
+function normalizeDisabledSkillNames(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(
+    new Set(
+      value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter((item) => /^[a-z0-9-]{1,64}$/.test(item)),
+    ),
+  ).sort();
 }
 
 function normalizeSearchProvider(value: string | undefined): SearchProvider {

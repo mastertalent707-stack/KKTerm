@@ -86,6 +86,7 @@ const SETTINGS_SECTIONS: Record<SettingsSectionId, SettingsSectionSummary> = {
       { key: "settings.aiProvider", description: "AI provider and model selection." },
       { key: "settings.aiToolsTitle", description: "Assistant tool enablement toggles." },
       { key: "settings.aiCustomInstructions", description: "Assistant custom instruction text." },
+      { key: "settings.assistantSkillsTitle", description: "Local Assistant Skills management." },
     ],
   },
   "ssh-settings": {

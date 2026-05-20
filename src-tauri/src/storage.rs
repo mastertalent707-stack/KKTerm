@@ -608,6 +608,8 @@ pub struct AiProviderSettings {
     claude_cli_path: Option<String>,
     #[serde(default)]
     codex_cli_path: Option<String>,
+    #[serde(default)]
+    disabled_skill_names: Vec<String>,
     #[serde(default = "default_ai_assistant_tool_settings")]
     tools: AiAssistantToolSettings,
     #[serde(default = "default_search_provider")]
@@ -681,6 +683,22 @@ impl AiProviderSettings {
 
     pub(crate) fn codex_cli_path(&self) -> Option<&str> {
         self.codex_cli_path.as_deref()
+    }
+
+    pub(crate) fn disabled_skill_names(&self) -> &[String] {
+        &self.disabled_skill_names
+    }
+
+    pub(crate) fn set_skill_enabled(&mut self, name: String, enabled: bool) {
+        if enabled {
+            self.disabled_skill_names
+                .retain(|existing| existing != &name);
+        } else if !self.disabled_skill_names.contains(&name) {
+            self.disabled_skill_names.push(name);
+        }
+        self.disabled_skill_names = crate::assistant_skills::normalize_skill_names(std::mem::take(
+            &mut self.disabled_skill_names,
+        ));
     }
 
     pub(crate) fn search_provider(&self) -> &str {
@@ -4309,6 +4327,7 @@ fn default_ai_provider_settings() -> AiProviderSettings {
         tool_permission_mode: default_ai_tool_permission_mode(),
         claude_cli_path: None,
         codex_cli_path: None,
+        disabled_skill_names: Vec::new(),
         tools: default_ai_assistant_tool_settings(),
         search_provider: default_search_provider(),
         searxng_url: String::new(),
@@ -4713,6 +4732,8 @@ fn validate_ai_provider_settings(
     settings.extra_headers = settings.extra_headers.trim().to_string();
     settings.claude_cli_path = trim_optional(settings.claude_cli_path);
     settings.codex_cli_path = trim_optional(settings.codex_cli_path);
+    settings.disabled_skill_names =
+        crate::assistant_skills::normalize_skill_names(settings.disabled_skill_names);
 
     if !(settings.base_url.starts_with("https://") || settings.base_url.starts_with("http://")) {
         return Err("AI provider endpoint must start with https:// or http://".to_string());
@@ -6647,6 +6668,7 @@ mod tests {
                 tool_permission_mode: " Allow All ".to_string(),
                 claude_cli_path: Some("  C:\\Tools\\claude.exe  ".to_string()),
                 codex_cli_path: Some("  codex  ".to_string()),
+                disabled_skill_names: vec!["ssh-helper".to_string(), "bad name".to_string()],
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),
@@ -6678,6 +6700,7 @@ mod tests {
             Some("C:\\Tools\\claude.exe")
         );
         assert_eq!(updated.codex_cli_path.as_deref(), Some("codex"));
+        assert_eq!(updated.disabled_skill_names, vec!["ssh-helper".to_string()]);
 
         let reloaded = storage
             .ai_provider_settings()
@@ -6736,6 +6759,7 @@ mod tests {
                 tool_permission_mode: "autoDeleteEverything".to_string(),
                 claude_cli_path: None,
                 codex_cli_path: None,
+                disabled_skill_names: Vec::new(),
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),
@@ -6775,6 +6799,7 @@ mod tests {
                 tool_permission_mode: "prompt".to_string(),
                 claude_cli_path: None,
                 codex_cli_path: None,
+                disabled_skill_names: Vec::new(),
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),
@@ -6818,6 +6843,7 @@ mod tests {
                 tool_permission_mode: "prompt".to_string(),
                 claude_cli_path: None,
                 codex_cli_path: None,
+                disabled_skill_names: Vec::new(),
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),
@@ -6858,6 +6884,7 @@ mod tests {
                 tool_permission_mode: "prompt".to_string(),
                 claude_cli_path: None,
                 codex_cli_path: None,
+                disabled_skill_names: Vec::new(),
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),
@@ -6912,6 +6939,7 @@ mod tests {
                 tool_permission_mode: "prompt".to_string(),
                 claude_cli_path: Some("claude".to_string()),
                 codex_cli_path: Some("codex".to_string()),
+                disabled_skill_names: Vec::new(),
                 tools: default_ai_assistant_tool_settings(),
                 search_provider: default_search_provider(),
                 searxng_url: String::new(),

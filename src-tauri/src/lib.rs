@@ -2,6 +2,7 @@ mod ai;
 mod ai_coding_usage;
 mod app_launcher;
 mod app_tray;
+mod assistant_skills;
 mod auto_start;
 mod dashboard_commands;
 mod dashboard_ids;
@@ -879,6 +880,37 @@ fn update_ai_provider_settings(
     request: storage::AiProviderSettings,
 ) -> Result<storage::AiProviderSettings, String> {
     storage.update_ai_provider_settings(request)
+}
+
+#[tauri::command]
+fn list_assistant_skills(
+    app: tauri::AppHandle,
+    storage: tauri::State<'_, storage::Storage>,
+) -> Result<Vec<assistant_skills::AssistantSkillSummary>, String> {
+    let settings = storage.ai_provider_settings()?;
+    let root = assistant_skills::assistant_skills_root(&app)?;
+    assistant_skills::list_skill_summaries(&root, settings.disabled_skill_names())
+}
+
+#[tauri::command]
+fn set_assistant_skill_enabled(
+    storage: tauri::State<'_, storage::Storage>,
+    name: String,
+    enabled: bool,
+) -> Result<storage::AiProviderSettings, String> {
+    let mut settings = storage.ai_provider_settings()?;
+    settings.set_skill_enabled(name, enabled);
+    storage.update_ai_provider_settings(settings)
+}
+
+#[tauri::command]
+fn open_assistant_skills_folder(app: tauri::AppHandle) -> Result<(), String> {
+    assistant_skills::open_skills_folder(&app)
+}
+
+#[tauri::command]
+fn open_assistant_skill(app: tauri::AppHandle, name: String) -> Result<(), String> {
+    assistant_skills::open_skill_folder(&app, &name)
 }
 
 #[tauri::command]
@@ -2380,6 +2412,10 @@ pub fn run() {
             update_screenshot_settings,
             get_ai_provider_settings,
             update_ai_provider_settings,
+            list_assistant_skills,
+            set_assistant_skill_enabled,
+            open_assistant_skills_folder,
+            open_assistant_skill,
             list_assistant_chat_threads,
             upsert_assistant_chat_thread,
             delete_assistant_chat_thread,
