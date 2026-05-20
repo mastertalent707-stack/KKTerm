@@ -106,6 +106,8 @@ pub const DYNAMIC_BACKGROUND_IDS: &[&str] = &[
     "sakura",
     "fireflies",
     "bubbles",
+    "ricefield",
+    "lanterns",
     "starfield",
     "nebula",
     "embers",
@@ -114,6 +116,7 @@ pub const DYNAMIC_BACKGROUND_IDS: &[&str] = &[
     "topo",
     "synthwave",
     "cyberpunk",
+    "taipei101",
     "thunderstorm",
     "confetti",
 ];

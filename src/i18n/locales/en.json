@@ -124,6 +124,8 @@
       "sakura": "Sakura",
       "fireflies": "Fireflies",
       "bubbles": "Bubbles",
+      "ricefield": "Ricefield",
+      "lanterns": "Sky Lanterns",
       "starfield": "Night Sky",
       "nebula": "Nebula",
       "embers": "Embers",
@@ -132,6 +134,7 @@
       "topo": "Topo Map",
       "synthwave": "Synthwave",
       "cyberpunk": "Cyberpunk",
+      "taipei101": "Taipei 101",
       "thunderstorm": "Thunderstorm",
       "confetti": "Confetti"
     },
