@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `settings.*` (full namespace — over 400 keys; section roots listed below), including General keys `settings.autoStartWithWindows`, `settings.minimizeToTray`, and AI provider keys `settings.apiMode`, `settings.apiModeChatCompletions`, `settings.apiModeResponses`, `settings.extraHeaders`, `settings.extraHeadersPlaceholder`, and `settings.assistantSkills*`
-- Topics: General, Appearance, Dashboard, Credentials & MCP, AI Assistant, assistant tool defaults, Assistant Skills, SKILL.md, SSH, Terminal, Screenshots, RDP, VNC, URL, About; settings draft/save/reset; backup ZIP; settings import; reset all; Windows startup; launch minimized
+- Topics: General, Appearance, Dashboard, Credentials & MCP, AI Assistant, assistant tool defaults, Assistant Skills, bundled skills, SKILL.md, SSH, Terminal, Screenshots, RDP, VNC, URL, About; settings draft/save/reset; backup ZIP; settings import; reset all; Windows startup; launch minimized
 - Synonyms: "preferences", "options", "config", "theme", "dark mode", "color", "language", "API key", "import settings", "factory reset", "show me where", "start with Windows", "run at login", "launch minimized"
 
 > Settings page styling is consistent across sections. Related controls live inside the shared `settings-subsection settings-fieldset` group so the group title sits in the border. Editable controls look editable; disabled / readonly controls stay muted. Delete buttons inside Settings are icon-only red trash cans (no visible "Delete" text). Destructive Settings-wide actions live in **General → Settings data**, behind app-owned confirmation dialogs — not inside feature-specific sections.
@@ -88,7 +88,7 @@ Section header `settings.sectionAiAssistant`. Owned by `src/settings/AiSettings.
 - API keys go into the OS keychain under `AI_PROVIDER_SECRET_OWNER_ID`; never written to SQLite or settings JSON.
 - Tool permission default (`ai.toolPermissionMode`) is set here as well.
 - Assistant tools default enabled except `settings.aiTools.email.label`, which stays off until the user enables and configures delivery. The Tutorial tool is `settings.aiTools.tutorial.label` / `settings.aiTools.tutorial.description`.
-- Assistant Skills subgroup: title `settings.assistantSkillsTitle` (hint `settings.assistantSkillsHint`, empty `settings.assistantSkillsEmpty`). `settings.assistantSkillsOpenFolder` opens the local app-data folder where users add or edit one SKILL.md-compatible directory per skill. Per-row actions open that skill directory (`settings.assistantSkillsOpen`) and toggle whether it can be invoked (`settings.assistantSkillsEnabled` / `settings.assistantSkillsDisabled`). v1 does not execute skill scripts.
+- Assistant Skills subgroup: title `settings.assistantSkillsTitle` (hint `settings.assistantSkillsHint`, empty `settings.assistantSkillsEmpty`). KKTerm copies missing bundled starter skills into the local app-data skills folder: `dashboard-widget-builder`, `remote-desktop-helper`, `sftp-transfer-helper`, `ssh-troubleshooter`, and `terminal-command-planner`. `settings.assistantSkillsOpenFolder` opens that folder where users add or edit one SKILL.md-compatible directory per skill. Per-row actions open that skill directory (`settings.assistantSkillsOpen`) and toggle whether it can be invoked (`settings.assistantSkillsEnabled` / `settings.assistantSkillsDisabled`). v1 does not execute skill scripts.
 
 ## SSH
 

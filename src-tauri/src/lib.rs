@@ -888,6 +888,7 @@ fn list_assistant_skills(
     storage: tauri::State<'_, storage::Storage>,
 ) -> Result<Vec<assistant_skills::AssistantSkillSummary>, String> {
     let settings = storage.ai_provider_settings()?;
+    assistant_skills::ensure_bundled_skills_installed(&app)?;
     let root = assistant_skills::assistant_skills_root(&app)?;
     assistant_skills::list_skill_summaries(&root, settings.disabled_skill_names())
 }

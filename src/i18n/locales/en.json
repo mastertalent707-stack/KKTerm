@@ -460,7 +460,7 @@
     "deleteCredential": "Delete credential",
     "deleteCredentialConfirmBody": "Are you sure? This cannot be undone",
     "assistantSkillsTitle": "Assistant Skills",
-    "assistantSkillsHint": "Local SKILL.md folders that teach the AI Assistant focused workflows. Scripts are not executed in this version; use the folder button to add or edit skills.",
+    "assistantSkillsHint": "Local SKILL.md folders that teach the AI Assistant focused workflows. Bundled starter skills are copied here automatically. Scripts are not executed in this version; use the folder button to add or edit skills.",
     "assistantSkillsEmpty": "No Assistant Skills found.",
     "assistantSkillsOpenFolder": "Open skills folder",
     "assistantSkillsOpen": "Open {{name}}",

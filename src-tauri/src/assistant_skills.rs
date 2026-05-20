@@ -4,6 +4,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
+use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::OpenerExt;
 
@@ -31,6 +32,16 @@ pub fn assistant_skills_root(app: &AppHandle) -> Result<PathBuf, String> {
         .app_data_dir()
         .map_err(|error| format!("failed to resolve app data folder: {error}"))?;
     Ok(app_data_dir.join("assistant-skills"))
+}
+
+pub fn ensure_bundled_skills_installed(app: &AppHandle) -> Result<(), String> {
+    let user_root = assistant_skills_root(app)?;
+    fs::create_dir_all(&user_root)
+        .map_err(|error| format!("failed to create assistant skills folder: {error}"))?;
+    for bundled_root in bundled_skill_roots(app) {
+        copy_missing_skill_dirs(&bundled_root, &user_root)?;
+    }
+    Ok(())
 }
 
 pub fn list_skill_summaries(
@@ -110,6 +121,7 @@ pub fn resolve_invoked_skills(
 }
 
 pub fn open_skills_folder(app: &AppHandle) -> Result<(), String> {
+    ensure_bundled_skills_installed(app)?;
     let root = assistant_skills_root(app)?;
     fs::create_dir_all(&root)
         .map_err(|error| format!("failed to create assistant skills folder: {error}"))?;
@@ -119,6 +131,7 @@ pub fn open_skills_folder(app: &AppHandle) -> Result<(), String> {
 }
 
 pub fn open_skill_folder(app: &AppHandle, name: &str) -> Result<(), String> {
+    ensure_bundled_skills_installed(app)?;
     validate_skill_name(name)?;
     let root = assistant_skills_root(app)?;
     let path = root.join(name);
@@ -210,6 +223,73 @@ fn split_frontmatter(content: &str) -> Result<(&str, &str), String> {
         .or_else(|| after.strip_prefix('\n'))
         .unwrap_or(after);
     Ok((frontmatter, after))
+}
+
+fn bundled_skill_roots(app: &AppHandle) -> Vec<PathBuf> {
+    let mut roots = Vec::new();
+    if let Ok(root) = app
+        .path()
+        .resolve("assistant-skills", BaseDirectory::Resource)
+    {
+        if root.is_dir() {
+            roots.push(root);
+        }
+    }
+
+    let source_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .map(|path| path.join("assistant-skills"));
+    if let Some(root) = source_root.filter(|path| path.is_dir()) {
+        if !roots.iter().any(|existing| existing == &root) {
+            roots.push(root);
+        }
+    }
+    roots
+}
+
+fn copy_missing_skill_dirs(source_root: &Path, user_root: &Path) -> Result<(), String> {
+    for entry in fs::read_dir(source_root)
+        .map_err(|error| format!("failed to read bundled assistant skills: {error}"))?
+    {
+        let entry = entry.map_err(|error| format!("failed to read bundled skill entry: {error}"))?;
+        let source_dir = entry.path();
+        if !source_dir.is_dir() {
+            continue;
+        }
+        let Some(name) = source_dir.file_name() else {
+            continue;
+        };
+        let destination_dir = user_root.join(name);
+        if destination_dir.exists() {
+            continue;
+        }
+        copy_skill_dir(&source_dir, &destination_dir)?;
+    }
+    Ok(())
+}
+
+fn copy_skill_dir(source: &Path, destination: &Path) -> Result<(), String> {
+    fs::create_dir_all(destination)
+        .map_err(|error| format!("failed to create assistant skill folder: {error}"))?;
+    for entry in fs::read_dir(source)
+        .map_err(|error| format!("failed to read bundled assistant skill: {error}"))?
+    {
+        let entry = entry.map_err(|error| format!("failed to read bundled skill file: {error}"))?;
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        if source_path.is_dir() {
+            copy_skill_dir(&source_path, &destination_path)?;
+        } else if source_path.is_file() {
+            fs::copy(&source_path, &destination_path).map_err(|error| {
+                format!(
+                    "failed to copy {} to {}: {error}",
+                    source_path.display(),
+                    destination_path.display()
+                )
+            })?;
+        }
+    }
+    Ok(())
 }
 
 fn parse_frontmatter(frontmatter: &str) -> Result<HashMap<String, String>, String> {
@@ -390,5 +470,56 @@ Follow a cautious read-before-write flow.
             &skill,
             "Create a dashboard clock widget"
         ));
+    }
+
+    #[test]
+    fn bundled_skill_files_parse_from_source_tree() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("manifest has repo parent")
+            .join("assistant-skills");
+        let mut names = fs::read_dir(&root)
+            .expect("bundled skill root exists")
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .filter(|path| path.is_dir())
+            .map(|path| parse_skill_dir(&path).expect("bundled skill parses").name)
+            .collect::<Vec<_>>();
+
+        names.sort();
+
+        assert_eq!(
+            names,
+            vec![
+                "dashboard-widget-builder",
+                "remote-desktop-helper",
+                "sftp-transfer-helper",
+                "ssh-troubleshooter",
+                "terminal-command-planner",
+            ]
+        );
+    }
+
+    #[test]
+    fn copy_missing_skill_dirs_preserves_existing_user_skill() {
+        let source_root = temp_skill_root("bundled-source");
+        let user_root = temp_skill_root("bundled-user");
+        let source_dir = source_root.join("ssh-troubleshooter");
+        let user_dir = user_root.join("ssh-troubleshooter");
+        fs::create_dir_all(&source_dir).expect("create source skill");
+        fs::create_dir_all(&user_dir).expect("create user skill");
+        fs::write(
+            source_dir.join("SKILL.md"),
+            "---\nname: ssh-troubleshooter\ndescription: Bundled source skill.\n---\nBundled\n",
+        )
+        .expect("write bundled skill");
+        fs::write(user_dir.join("SKILL.md"), "User copy").expect("write user skill");
+
+        copy_missing_skill_dirs(&source_root, &user_root).expect("copy bundled skills");
+
+        assert_eq!(
+            fs::read_to_string(user_dir.join("SKILL.md")).expect("read user skill"),
+            "User copy"
+        );
     }
 }

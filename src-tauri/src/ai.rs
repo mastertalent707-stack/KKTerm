@@ -5987,6 +5987,7 @@ fn resolve_invoked_skills_for_request(
     requested_names: &[String],
     prompt: &str,
 ) -> Result<Vec<AssistantSkill>, String> {
+    assistant_skills::ensure_bundled_skills_installed(app)?;
     let root = assistant_skills::assistant_skills_root(app)?;
     assistant_skills::resolve_invoked_skills(&root, disabled_names, requested_names, prompt)
 }
