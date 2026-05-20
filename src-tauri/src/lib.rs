@@ -6,6 +6,7 @@ mod dashboard_commands;
 mod dashboard_ids;
 mod dashboard_storage;
 mod dashboard_validation;
+mod debug_heartbeat;
 mod diagnostics;
 mod favicon;
 mod ftp;
@@ -29,7 +30,6 @@ mod storage;
 mod telnet;
 mod vnc;
 mod webview;
-mod webview_runtime;
 mod wiki;
 mod window_state;
 #[cfg(target_os = "windows")]
@@ -119,6 +119,11 @@ fn app_bootstrap(
 #[tauri::command]
 fn is_debug_build() -> bool {
     cfg!(debug_assertions)
+}
+
+#[tauri::command]
+fn debug_frontend_heartbeat() {
+    debug_heartbeat::record_frontend_heartbeat();
 }
 
 #[tauri::command]
@@ -2206,7 +2211,7 @@ fn focus_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     logging::init();
-    webview_runtime::apply_startup_workarounds();
+    debug_heartbeat::start();
 
     configure_single_instance(tauri::Builder::default())
         .plugin(tauri_plugin_dialog::init())
@@ -2303,6 +2308,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app_bootstrap,
             is_debug_build,
+            debug_frontend_heartbeat,
             list_connection_tree,
             create_connection,
             create_connection_folder,

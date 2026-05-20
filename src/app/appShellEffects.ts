@@ -16,6 +16,35 @@ export function useFrontendLaunchTimestamp() {
   }, [setFrontendLaunchMs]);
 }
 
+export function useDebugFrontendHeartbeat() {
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    let disposed = false;
+    let intervalId = 0;
+    const sendHeartbeat = () => {
+      void invokeCommand("debug_frontend_heartbeat").catch(() => undefined);
+    };
+
+    void invokeCommand("is_debug_build").then((debugBuild) => {
+      if (disposed || !debugBuild) {
+        return;
+      }
+      sendHeartbeat();
+      intervalId = window.setInterval(sendHeartbeat, 2_000);
+    });
+
+    return () => {
+      disposed = true;
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
+    };
+  }, []);
+}
+
 export function useHostUsagePolling() {
   const setHostUsageSnapshot = useWorkspaceStore((state) => state.setHostUsageSnapshot);
 

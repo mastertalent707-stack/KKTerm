@@ -12,6 +12,7 @@ import {
 } from "./app/TutorialOverlay";
 import {
   useAppShellAppearance,
+  useDebugFrontendHeartbeat,
   useFrontendLaunchTimestamp,
   useGlobalContextMenuSuppression,
   useHostUsagePolling,
@@ -86,6 +87,7 @@ function App() {
 
   const { generalSettingsReady } = useBootstrapSettings();
   useDashboardBackendInvalidation();
+  useDebugFrontendHeartbeat();
   useFrontendLaunchTimestamp();
   useHostUsagePolling();
   useGlobalContextMenuSuppression();

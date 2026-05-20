@@ -725,6 +725,10 @@ type CommandMap = {
     args: undefined;
     result: boolean;
   };
+  debug_frontend_heartbeat: {
+    args: undefined;
+    result: void;
+  };
   list_connection_tree: {
     args: undefined;
     result: ConnectionTree;
