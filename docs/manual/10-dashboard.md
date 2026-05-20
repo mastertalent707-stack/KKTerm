@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `dashboard.*` (full namespace)
-- Topics: Dashboard Views, Widget Instances, presets (panel / ambient / tile / hero / action), accents, icons, backgrounds, density, edit layout, catalog, custom script widgets, AI-authored widgets, agent widget JSON, widget visual context, AI coding usage, Codex usage, Claude Code usage, adding AI coding tools, missing CLI binaries, five-hour limit, weekly limit, quota, rate limits
+- Topics: Dashboard Views, Widget Instances, presets (panel / ambient / tile / hero / action), accents, icons, backgrounds, density, edit layout, catalog, custom script widgets, AI-authored widgets, widget design preflight, agent widget JSON, widget visual context, AI coding usage, Codex usage, Claude Code usage, adding AI coding tools, missing CLI binaries, five-hour limit, weekly limit, quota, rate limits
 - Synonyms: "homepage", "tiles", "cards", "widgets", "report", "background image", "wallpaper", "translucent widget", "see-through widget", "canvas opacity", "low contrast widget", "hard to read widget", "Codex quota", "Claude quota", "5h usage", "7d usage", "AI coding meter", "add Codex", "add Claude Code", "install Codex", "install Claude Code", "program not found"
 
 > **Terms:** see `CONTEXT.md`. **Dashboard View** is a durable SQLite-backed tab; **Widget Instance** is a placed widget on a View with its own preset/accent/title/layout. **Dashboard Custom Widget** is an AI-authored script-widget definition. Architecture details live in `docs/DASHBOARD.md`.
@@ -100,6 +100,8 @@ Copy any output value with `dashboard.copyValue`.
 Custom Widgets are authored by the AI Assistant (`ai.createWidget`), not by users directly in v1. AI-authored widgets are script widgets:
 
 - **`script`** — JavaScript hosted inside an isolated `iframe srcdoc` host with declared `dashboard.scriptNetwork` permissions and `dashboard.scriptPollSeconds`. Source viewable via `dashboard.scriptViewSource`. iframe accessible title: `dashboard.scriptWidgetFrameTitle`.
+
+When creating a Custom Widget, the assistant uses an OpenDesign-style preflight before calling the Dashboard tool. It picks an internal visual direction (operator console, data observatory, desktop object, spatial canvas, or branded vignette), chooses the rendering library or DOM/canvas approach, sizes the Widget Instance, then critiques contrast, hierarchy, density, responsiveness, and motion cost before saving the widget.
 
 Validation errors surface as:
 

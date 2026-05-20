@@ -46,6 +46,16 @@ It does not own:
 
 The AI Assistant must choose `preset`, `accent_name`, `icon_name`, and grid size as part of widget design, not as arbitrary required fields. Generated widgets should feel like built-in KKTerm surfaces: quiet, dense, desktop-oriented, and consistent with the app's typography and control spacing.
 
+Widget creation follows an OpenDesign-style structure before the assistant calls `dashboard_create_widget`: pick a bounded visual direction, plan the artifact, then critique the plan before emitting source. The assistant chooses one internal direction from KKTerm's widget library:
+
+- **Operator console** — dense technical surfaces, terminal-adjacent contrast, grids, meters, log-like rhythm, and restrained signal colors.
+- **Data observatory** — charts, gauges, timelines, maps, and numeric hierarchy where the data is the main visual.
+- **Desktop object** — a single tactile object such as a clock, dial, calculator, tray, note, scanner, or instrument.
+- **Spatial canvas** — canvas/WebGL/SVG-first widgets such as 3D scenes, physics toys, diagrams, weather, maps, or animated monitors.
+- **Branded vignette** — image-led or editorial widgets for user-supplied brands, references, places, or media.
+
+Before creation, the assistant should silently preflight the selected direction, visual metaphor, data hierarchy, library/native rendering choice, preset/accent/icon/grid size, state handling, and motion budget. It should self-critique contrast, hierarchy, density, responsiveness, and motion cost, then revise before the first tool call if the plan would produce low contrast, too much prose, a generic form layout, inner scrollbars, unbounded animation, or a widget that does not look like a finished singleton object.
+
 Preset guidance:
 
 - `panel` — default for ordinary tools, forms, checklists, and mixed content.
