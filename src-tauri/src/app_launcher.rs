@@ -484,17 +484,11 @@ fn icon_handle_to_data_url(icon: WindowsIconHandle, icon_size: i32) -> Option<St
             pixel[3] = 255;
         }
     }
-    if !rgba_has_visible_pixels(&rgba) {
-        return None;
-    }
+    let (rgba, png_width, png_height) =
+        trim_icon_transparent_padding(&rgba, icon_size as u32, icon_size as u32)?;
     let mut png = Vec::new();
     PngEncoder::new(&mut png)
-        .write_image(
-            &rgba,
-            icon_size as u32,
-            icon_size as u32,
-            ColorType::Rgba8.into(),
-        )
+        .write_image(&rgba, png_width, png_height, ColorType::Rgba8.into())
         .ok()?;
     Some(format!("data:image/png;base64,{}", STANDARD.encode(png)))
 }
@@ -538,9 +532,59 @@ fn system_time_to_unix_ms(time: SystemTime) -> Option<u64> {
     u64::try_from(millis).ok()
 }
 
+#[cfg(test)]
 fn rgba_has_visible_pixels(rgba: &[u8]) -> bool {
-    rgba.chunks_exact(4)
-        .any(|pixel| pixel[3] > 0 && (pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0))
+    rgba.chunks_exact(4).any(icon_pixel_is_visible)
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn trim_icon_transparent_padding(
+    rgba: &[u8],
+    width: u32,
+    height: u32,
+) -> Option<(Vec<u8>, u32, u32)> {
+    if width == 0 || height == 0 || rgba.len() != (width as usize * height as usize * 4) {
+        return None;
+    }
+
+    let mut min_x = width;
+    let mut min_y = height;
+    let mut max_x = 0;
+    let mut max_y = 0;
+    let mut has_visible_pixel = false;
+
+    for y in 0..height {
+        for x in 0..width {
+            let index = ((y * width + x) * 4) as usize;
+            if icon_pixel_is_visible(&rgba[index..index + 4]) {
+                min_x = min_x.min(x);
+                min_y = min_y.min(y);
+                max_x = max_x.max(x);
+                max_y = max_y.max(y);
+                has_visible_pixel = true;
+            }
+        }
+    }
+
+    if !has_visible_pixel {
+        return None;
+    }
+
+    let cropped_width = max_x - min_x + 1;
+    let cropped_height = max_y - min_y + 1;
+    let mut cropped = Vec::with_capacity((cropped_width * cropped_height * 4) as usize);
+    for y in min_y..=max_y {
+        let start = ((y * width + min_x) * 4) as usize;
+        let end = start + (cropped_width * 4) as usize;
+        cropped.extend_from_slice(&rgba[start..end]);
+    }
+
+    Some((cropped, cropped_width, cropped_height))
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn icon_pixel_is_visible(pixel: &[u8]) -> bool {
+    pixel[3] > 0 && (pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0)
 }
 
 #[cfg(target_os = "windows")]
@@ -621,6 +665,27 @@ mod tests {
     fn visible_icon_pixels_reject_all_transparent_images() {
         assert!(!rgba_has_visible_pixels(&[0, 0, 0, 0, 0, 0, 0, 0]));
         assert!(rgba_has_visible_pixels(&[0, 0, 0, 0, 12, 34, 56, 255]));
+    }
+
+    #[test]
+    fn icon_bitmap_trimming_removes_transparent_padding() {
+        let rgba = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //
+            0, 0, 0, 0, 20, 40, 60, 255, 21, 41, 61, 255, //
+            0, 0, 0, 0, 22, 42, 62, 255, 23, 43, 63, 255, //
+        ];
+
+        let (trimmed, width, height) =
+            trim_icon_transparent_padding(&rgba, 3, 3).expect("visible icon pixels");
+
+        assert_eq!((width, height), (2, 2));
+        assert_eq!(
+            trimmed,
+            vec![
+                20, 40, 60, 255, 21, 41, 61, 255, //
+                22, 42, 62, 255, 23, 43, 63, 255,
+            ]
+        );
     }
 
     #[cfg(target_os = "windows")]
