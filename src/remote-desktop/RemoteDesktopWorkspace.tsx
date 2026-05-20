@@ -94,7 +94,6 @@ export function RemoteDesktopWorkspace({
   const rdpControlRef = useRef("");
   const rdpSuppressionCaptureInFlightRef = useRef(false);
   const rdpPreCaptureInFlightRef = useRef(false);
-  const rdpStatusPollInFlightRef = useRef(false);
   const preCachedSnapshotRef = useRef<AssistantScreenshot | null>(null);
   const preCaptureLastRef = useRef(0);
   const vncButtonMaskRef = useRef(0);
@@ -554,7 +553,6 @@ export function RemoteDesktopWorkspace({
     rdpControlRef.current = "";
     rdpSuppressionCaptureInFlightRef.current = false;
     rdpPreCaptureInFlightRef.current = false;
-    rdpStatusPollInFlightRef.current = false;
     setRdpSnapshot(null);
   };
 
@@ -937,16 +935,6 @@ export function RemoteDesktopWorkspace({
   }, [rdpPreCaptureSignal]);
 
   useEffect(() => {
-    if (!canStartRdp || !isActive || !isTauriRuntime()) {
-      return;
-    }
-    triggerPreCapture();
-    const intervalId = window.setInterval(triggerPreCapture, RDP_PRE_CAPTURE_INTERVAL_MS);
-    return () => window.clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canStartRdp, isActive]);
-
-  useEffect(() => {
     if (!canStartRdp || !isTauriRuntime() || !sessionStartedRef.current) {
       return;
     }
@@ -960,38 +948,16 @@ export function RemoteDesktopWorkspace({
     }
 
     const intervalId = window.setInterval(() => {
-      const sessionId = sessionIdRef.current;
-      if (!sessionStartedRef.current || !sessionId || rdpStatusPollInFlightRef.current) {
+      if (
+        !sessionStartedRef.current ||
+        displayReadyRef.current ||
+        displaySyncInFlightRef.current
+      ) {
         return;
       }
 
-      rdpStatusPollInFlightRef.current = true;
-      void invokeCommand("get_rdp_session_status", {
-        request: { sessionId },
-      })
-        .then((status) => {
-          if (!displayReadyRef.current) {
-            attemptRdpDisplaySync();
-          }
-          if (sessionIdRef.current !== status.sessionId) {
-            return;
-          }
-          if (status.connected) {
-            markRdpConnectionStarted();
-            if (displayReadyRef.current) {
-              setRdpStatus(t("remoteDesktop.connected"));
-            }
-          } else {
-            handleRdpDisconnectedStatus(status.connectionState);
-          }
-        })
-        .catch((error) => {
-          setRdpError(error instanceof Error ? error.message : String(error));
-        })
-        .finally(() => {
-          rdpStatusPollInFlightRef.current = false;
-        });
-    }, displayReadyRef.current ? 2000 : 1000);
+      attemptRdpDisplaySync();
+    }, 1000);
 
     return () => {
       window.clearInterval(intervalId);
