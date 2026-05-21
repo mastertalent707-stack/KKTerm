@@ -85,7 +85,7 @@ export function TabStrip() {
   }
 
   return (
-    <div className="tab-strip" aria-label={t("workspace.tabs")}>
+    <div className="tab-strip" aria-label={t("workspace.tabs")} data-tutorial-id="workspace.tabStrip">
       {canScrollLeft ? (
         <button
           aria-label={t("workspace.scrollTabsLeft")}
@@ -153,8 +153,8 @@ export function WorkspaceCanvas({
 
   if (tabs.length === 0) {
     return (
-      <div className="workspace-canvas">
-        <section className="empty-workspace">
+      <div className="workspace-canvas" data-tutorial-id="workspace.canvas">
+        <section className="empty-workspace" data-tutorial-id="workspace.emptyState">
           <Terminal size={28} />
           <h2>{t("workspace.noActiveSession")}</h2>
           <p>{t("workspace.openFromTree")}</p>
@@ -164,7 +164,7 @@ export function WorkspaceCanvas({
   }
 
   return (
-    <div className="workspace-canvas">
+    <div className="workspace-canvas" data-tutorial-id="workspace.canvas">
       {tabs.map((tab) => {
         if (tab.kind === "sftp") {
           return (

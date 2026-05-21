@@ -1481,7 +1481,7 @@ export function ConnectionSidebar({
   }
 
   return (
-    <aside className="connection-sidebar">
+    <aside className="connection-sidebar" data-tutorial-id="connections.panel">
       <div className="sidebar-header">
         <div>
           <h1>{t("connections.title")}</h1>
@@ -1491,6 +1491,7 @@ export function ConnectionSidebar({
             <button
               {...dialogButtonAria(addConnectionMenuOpen)}
               className="icon-button"
+              data-tutorial-id="connections.addConnection"
               aria-label={t("connections.addConnection")}
               title={t("connections.addConnection")}
               onClick={(event) => void handleAddConnectionButtonClick(event)}
@@ -1517,7 +1518,7 @@ export function ConnectionSidebar({
         </div>
       </div>
 
-      <label className="search-box">
+      <label className="search-box" data-tutorial-id="connections.search">
         <Search size={15} />
         <input
           value={query}
@@ -1530,6 +1531,7 @@ export function ConnectionSidebar({
         <button
           {...dialogButtonAria(quickConnectMenuOpen)}
           className="quick-connect"
+          data-tutorial-id="connections.quickConnect"
           onClick={(event) => void handleQuickConnectButtonClick(event)}
         >
           <Play size={15} />
@@ -1550,7 +1552,11 @@ export function ConnectionSidebar({
           />
         ) : null}
       </div>
-      <div className="tree-folder-controls" aria-label={t("connections.folderTreeControls")}>
+      <div
+        className="tree-folder-controls"
+        aria-label={t("connections.folderTreeControls")}
+        data-tutorial-id="connections.folderControls"
+      >
         <button
           aria-label={t("connections.newFolder")}
           className="tree-folder-control"
@@ -1584,6 +1590,7 @@ export function ConnectionSidebar({
       <div
         className={`tree-list ${dropTarget === "root" ? "drop-target" : ""}`}
         aria-label={t("connections.connectionTree")}
+        data-tutorial-id="connections.tree"
         data-connection-count={filteredTree.connections.length}
         data-folder-count={filteredTree.folders.length}
         data-tree-drop-kind="root"

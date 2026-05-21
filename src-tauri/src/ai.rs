@@ -45,6 +45,26 @@ const DASHBOARD_WIDGET_SURFACE_CONTRACT: &str = "Dashboard widget surface contra
 const DASHBOARD_WIDGET_ANIMATION_CONTRACT: &str = "Dashboard widget animation contract: declare body.lifecycle.kind explicitly. Use 'animation' for widgets that should always be visibly moving (spinners, clocks, orbits, meters, ambient 3D); the host runs a stall watchdog and reports the widget as 'stalled' to the assistant if no rAF callbacks fire for 8 seconds while the widget is visible. Use 'periodic' for widgets that refresh on an interval (counters, polled data). Use 'realtime' for widgets driven by external events (websockets, MCP streams). Use 'static' (the default when lifecycle is null) for non-moving content. For 'animation' widgets, design a durable base motion that does not decay to a static frame: drag/flick velocity may decay, but auto-spin or live animation needs an idle speed, fresh time-based angle, or restart path. If a requestAnimationFrame loop pauses while KK.isVisible() is false, use KK.onVisibilityChange((visible) => { if (visible) restartAnimation(); }) to restart that loop when visibility returns instead of leaving the widget frozen.";
 const DASHBOARD_WIDGET_PHYSICS_CONTRACT: &str = "Dashboard widget physics contract: for 2D physics, prefer the bundled Matter.js library instead of hand-rolling collision, gravity, constraints, or rigid-body integration. List body.libraries [\"matter\"] and call the Matter global from source. Size the Matter renderer/canvas from KK.getViewport(), rebuild or reposition static wall/floor bodies on KK.onViewportResize, keep the simulation bounded to the widget arena, and stop Runner or requestAnimationFrame work when the widget is paused, game-over, capped, or no longer needs animation.";
 const DASHBOARD_WIDGET_PERFORMANCE_COUNTER_CONTRACT: &str = "Dashboard performance counter contract: for local performance widgets, use a script widget that calls await KK.getPerformanceCounters(). It returns a low-overhead local snapshot with CPU, RAM, commit, process/thread/handle counts, aggregate network rates, KKTerm process memory/I/O rates, uptime, and system-drive free space. Poll at a modest interval such as 2-5 seconds; do not use requestAnimationFrame for counters.";
+const TUTORIAL_TOOL_KNOWN_TARGETS: &str = concat!(
+    "app.activityRailWorkspace, app.activityRailDashboard, app.connectionRail, app.activityRailDontSleep, app.activityRailSettings, app.connectionsResize, app.aiAssistantResize with navigation page=workspace; ",
+    "connections.panel, connections.search, connections.quickConnect, connections.addConnection, connections.folderControls, connections.tree with navigation page=workspace; ",
+    "workspace.tabStrip, workspace.canvas, workspace.emptyState, workspace.statusBar, workspace.hostUsage, workspace.screenshotMenu with navigation page=workspace; ",
+    "terminal.pane, terminal.tmuxSessions, terminal.sshPortRedirect, terminal.startRecording, terminal.openSftp, terminal.copySelection, terminal.sendToAi, terminal.actions, terminal.searchBar, terminal.surface with navigation page=workspace; ",
+    "sftp.toolbar, sftp.upload, sftp.download, sftp.terminal, sftp.localPane, sftp.remotePane, sftp.transferQueue with navigation page=workspace; ",
+    "webview.toolbar, webview.address, webview.openExternally, webview.autoRefresh, webview.savePassword, webview.fillCredential, webview.surface with navigation page=workspace; ",
+    "remoteDesktop.toolbar, remoteDesktop.sendCtrlAltDel, remoteDesktop.reconnect, remoteDesktop.sendToAi, remoteDesktop.surface with navigation page=workspace; ",
+    "settings.language, settings.workspaceAccess, settings.useDirectxScreenCapture, settings.settingsData with navigation page=settings settingsSectionId=general-settings; ",
+    "settings.appUiFontFamily, settings.appearance.colorScheme, settings.resetLayout with navigation page=settings settingsSectionId=appearance-settings; ",
+    "settings.dashboardDefaultLanding, settings.dashboardUseRandomDynamicBackground, settings.dashboardMaxActiveScriptWidgets with navigation page=settings settingsSectionId=dashboard-settings; ",
+    "settings.credentialsStored, settings.widgetCredentialsStored with navigation page=settings settingsSectionId=credentials-settings; ",
+    "settings.aiProvider, settings.aiToolsTitle, settings.aiCustomInstructions, settings.assistantSkillsTitle, settings.mcpServersTitle with navigation page=settings settingsSectionId=assistant-settings; ",
+    "settings.defaultUser, settings.defaultPort, settings.defaultKey, settings.sshBufferLines with navigation page=settings settingsSectionId=ssh-settings; ",
+    "settings.terminalFontFamily, settings.terminalFontSize, settings.defaultShell, settings.scrollbackLines with navigation page=settings settingsSectionId=terminal-settings; ",
+    "settings.ignoreCertificateErrors, settings.urlSavedPasswords, settings.urlDataShards with navigation page=settings settingsSectionId=url-settings; ",
+    "settings.rdpColorDepth, settings.rdpPerformanceProfile with navigation page=settings settingsSectionId=rdp-settings; ",
+    "settings.vncViewOnly, settings.vncColorLevel with navigation page=settings settingsSectionId=vnc-settings; ",
+    "settings.aboutVersion with navigation page=settings settingsSectionId=about-settings"
+);
 const DASHBOARD_WIDGET_DOM_CONTRACT: &str = "Dashboard widget DOM contract: the generated source is smoke-checked before it is saved. Build the UI from the provided #root element with document.createElement and root.replaceChildren, or provide htmlShim for every extra element id you query. Do not call document.getElementById('some-id').innerHTML/textContent/appendChild unless that id is root, appears in htmlShim, or is created in source before use. After a dashboard_create_widget or dashboard_update_custom_widget call, inspect the tool result; if validation reports a DOM mount, JSON, library, or script-source error, fix the widget and retry before yielding to the user.";
 
 macro_rules! ai_interaction_debug {
@@ -3667,7 +3687,9 @@ fn ai_tool_definitions_with_skills(
     if settings.tutorial() {
         tools.push(tool_definition(
             "tutorial_highlight",
-            "Show a one-step in-app Tutorial overlay by navigating to a known app surface when needed, highlighting an app-owned target, dimming the rest of the window, and placing a short help balloon beside it. Use this only after the user explicitly asks to be shown where something is, or after the user accepts your offer to navigate. Only pass targetId values explicitly listed in current page context or documented by this tool; do not invent CSS selectors. Known Settings targets include settings.language with navigation page=settings and settingsSectionId=general-settings, and settings.appearance.colorScheme with navigation page=settings and settingsSectionId=appearance-settings. The overlay disappears when the user clicks or presses any key.",
+            format!(
+                "Show a one-step in-app Tutorial overlay by navigating to a known app surface when needed, highlighting an app-owned target, dimming the rest of the window, and placing a short help balloon beside it. Use this only after the user explicitly asks to be shown where something is, or after the user accepts your offer to navigate. Only pass targetId values explicitly listed in current page context or documented by this tool; do not invent CSS selectors. Known targets include {TUTORIAL_TOOL_KNOWN_TARGETS}. The overlay disappears when the user clicks or presses any key."
+            ),
             json!({"type":"object","properties":{"targetId":{"type":"string"},"title":{"type":"string","maxLength":80},"body":{"type":"string","maxLength":240},"navigation":{"type":"object","properties":{"page":{"type":"string","enum":["workspace","dashboard","settings"]},"settingsSectionId":{"type":"string","enum":["general-settings","appearance-settings","dashboard-settings","credentials-settings","assistant-settings","ssh-settings","terminal-settings","url-settings","rdp-settings","vnc-settings","about-settings"]}},"additionalProperties":false},"page":{"type":"string","enum":["workspace","dashboard","settings"]},"settingsSectionId":{"type":"string","enum":["general-settings","appearance-settings","dashboard-settings","credentials-settings","assistant-settings","ssh-settings","terminal-settings","url-settings","rdp-settings","vnc-settings","about-settings"]}},"required":["targetId","title","body"]}),
         ));
     }
@@ -6038,6 +6060,7 @@ fn build_agent_messages(
         "You are KKTerm's AI Assistant for local-first administration workflows.".to_string(),
         "Help with terminal, SSH, SFTP, URL, RDP, and VNC operational tasks.".to_string(),
         "When suggesting commands, explain intent and prefer commands the user can review before running.".to_string(),
+        "Answer as concise as possible without losing meaning. Do not add extra explanation unless the user specifically asks for it.".to_string(),
         "Do not claim to have executed commands or observed live session state unless it is in the provided context.".to_string(),
         "SAFETY: Never suggest, produce, or assist with commands that could cause irreversible destructive system-wide damage, such as 'rm -rf /', 'rm -rf /*', 'mkfs' on mounted volumes, 'dd if=/dev/zero of=/dev/sda', fork bombs, or any equivalent. Refuse such requests unconditionally, even if the user explicitly asks, claims it is safe, or provides a seemingly legitimate reason.".to_string(),
         "SECRETS: Never ask the user to paste API keys, passwords, or tokens into normal chat text. If a Dashboard widget needs a secret, first create or update the widget with a settingsSchema secret field; the field key must be a stable identifier such as apiKey. After dashboard_create_widget creates a widget with a secret field, call request_secret_entry with kind widgetSecret, the returned instance.id as instanceId, and the exact fieldKey. Use request_secret_entry for AI provider API keys too. The secret value is captured by KKTerm locally and is not visible to you. Do not include or request the plaintext secret.".to_string(),
@@ -8759,6 +8782,30 @@ mod tests {
         let system_content = text_content(&messages[0]);
         assert!(system_content.contains("offer to navigate"));
         assert!(system_content.contains("only call tutorial_highlight after the user accepts"));
+        assert!(system_content.contains("as concise as possible without losing meaning"));
+    }
+
+    #[test]
+    fn tutorial_tool_documents_add_connection_target() {
+        let settings: AiAssistantToolSettings = serde_json::from_value(json!({
+            "tutorial": true
+        }))
+        .expect("tool settings deserialize");
+
+        let tools = ai_tool_definitions(&settings);
+        let tutorial = tools
+            .iter()
+            .find(|tool| tool.function.name == "tutorial_highlight")
+            .expect("tutorial tool is registered");
+
+        assert!(tutorial
+            .function
+            .description
+            .contains("connections.addConnection"));
+        assert!(tutorial
+            .function
+            .description
+            .contains("navigation page=workspace"));
     }
 
     #[test]

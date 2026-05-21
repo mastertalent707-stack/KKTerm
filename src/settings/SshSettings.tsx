@@ -149,7 +149,7 @@ export function SshSettings() {
           <p className="field-hint">{t("settings.sshConnectionDefaultsHint")}</p>
         </div>
         <div className="form-grid ssh-default-basic-grid">
-          <label>
+          <label data-tutorial-id="settings.defaultUser">
             <span>{t("settings.defaultUser")}</span>
             <input
               autoComplete="username"
@@ -164,7 +164,7 @@ export function SshSettings() {
             />
             <small className="field-hint">{t("settings.defaultSshUserHint")}</small>
           </label>
-          <label>
+          <label data-tutorial-id="settings.defaultPort">
             <span>{t("settings.defaultPort")}</span>
             <input
               inputMode="numeric"
@@ -206,7 +206,10 @@ export function SshSettings() {
           <p className="field-hint">{t("settings.sshAuthenticationHint")}</p>
         </div>
         <div className="form-grid ssh-default-path-grid">
-          <label className="ssh-key-path-setting">
+          <label
+            className="ssh-key-path-setting"
+            data-tutorial-id="settings.defaultKey"
+          >
             <span>{t("settings.defaultKey")}</span>
             <div className="input-with-button ssh-key-input-actions">
               <input
@@ -248,7 +251,7 @@ export function SshSettings() {
           <p className="field-hint">{t("settings.sshTerminalHint")}</p>
         </div>
         <div className="form-grid ssh-default-basic-grid">
-          <label>
+          <label data-tutorial-id="settings.sshBufferLines">
             <span>{t("settings.sshBufferLines")}</span>
             <input
               inputMode="numeric"

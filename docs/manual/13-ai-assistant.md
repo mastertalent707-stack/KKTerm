@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `ai.*` (full namespace), `app.aiAssistant`, `settings.mcp*`, `settings.assistantSkills*`, `settings.aiToolsTitle`, `settings.sectionAiAssistant`, `settings.credentialKindAiApiKey`, `settings.aiTools.tutorial.*`, `common.expand`, `common.collapse`
-- Topics: AI panel, chats, new chat, history, SQLite, tool permission modes, tool defaults, collapsible assistant tools, collapsible Assistant Skills, bundled skills, SKILL.md, Tutorial overlay, tutorial navigation, intents (Watchdog / Create Widget / Extension Draft), MCP servers, attachments (files, screenshots, terminal buffer), provider keys, send-to-terminal
+- Topics: AI panel, chats, new chat, history, SQLite, tool permission modes, tool defaults, collapsible assistant tools, collapsible Assistant Skills, bundled skills, SKILL.md, Tutorial overlay, tutorial navigation, `connections.addConnection`, intents (Watchdog / Create Widget / Extension Draft), MCP servers, attachments (files, screenshots, terminal buffer), provider keys, send-to-terminal
 - Synonyms: "chat", "copilot", "AI bot", "tools", "approval", "MCP", "agent", "skill", "skills", "SKILL.md", "workflow", "ssh-troubleshooter", "dashboard-widget-builder", "terminal-command-planner", "sftp-transfer-helper", "remote-desktop-helper", "network-connectivity-troubleshooter", "dns-dhcp-troubleshooter", "firewall-port-troubleshooter", "tls-certificate-troubleshooter", "network troubleshooting", "DNS", "DHCP", "firewall", "port check", "TLS", "certificate", "watchdog", "highlight this", "show me where", "where are chats stored", "clear chat storage", "expand tools", "collapse skills"
 
 ## Panel
@@ -78,7 +78,14 @@ Names shown during a tool call (`ai.toolCallRunning` → `ai.toolCallComplete`):
 
 ### Tutorial overlay
 
-The Tutorial tool is enabled by `settings.aiTools.tutorial.label`. For UI "how do I..." questions, the assistant should answer with concise steps first and offer to navigate to the relevant UI when a known target exists. If the user accepts that offer, the assistant calls `tutorial_highlight` for an app-owned target listed in the current page context or documented by the tool. The assistant can include navigation to a known app page or Settings section before the UI dims the window, scrolls the target into view, highlights the target control, and shows a short balloon beside it. The overlay dismisses on the next click or key press. Known examples include `settings.language` in Settings → General and `settings.appearance.colorScheme` in Settings → Appearance.
+The Tutorial tool is enabled by `settings.aiTools.tutorial.label`. For UI "how do I..." questions, the assistant should answer with concise steps first and offer to navigate to the relevant UI when a known target exists. If the user accepts that offer, the assistant calls `tutorial_highlight` for an app-owned target listed in the current page context or documented by the tool. The assistant can include navigation to a known app page or Settings section before the UI dims the window, scrolls the target into view, highlights the target control, and shows a short balloon beside it. The overlay dismisses on the next click or key press.
+
+Known tutorial targets:
+
+- `connections.addConnection` in Workspace.
+- Settings targets listed in [15-settings.md](15-settings.md), including General, Appearance, Dashboard, Credentials, AI Assistant, SSH, Terminal, URL, RDP, VNC, and About sections.
+
+When adding a new tutorial target, add the `data-tutorial-id` anchor, route it in `src/app/tutorialNavigationModel.ts`, document it in `tutorial_highlight` metadata, and include it in the owning manual chapter's `## AI grep hints`. `npm run check` verifies the anchor and navigation registry stay aligned.
 
 Thinking / progress markers:
 

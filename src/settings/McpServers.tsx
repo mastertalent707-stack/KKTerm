@@ -63,7 +63,10 @@ export function McpServersControl() {
   }
 
   return (
-    <fieldset className="settings-subsection settings-fieldset">
+    <fieldset
+      className="settings-subsection settings-fieldset"
+      data-tutorial-id="settings.mcpServersTitle"
+    >
       <legend>{t("settings.mcpServersTitle")}</legend>
       <div>
         <p className="field-hint">{t("settings.mcpServersHint")}</p>

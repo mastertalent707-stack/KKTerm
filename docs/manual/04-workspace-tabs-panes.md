@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `workspace.tabs`, `workspace.newTab`, `workspace.closeTab`, `workspace.noActiveSession`, `workspace.openFromTree`, `workspace.terminalPane`, `workspace.sftpBrowser`, `workspace.webview`, `terminal.splitLayout`, `terminal.splitRight`, `terminal.splitLeft`, `terminal.splitDown`, `terminal.splitUp`, `terminal.closePane`, `terminal.closePaneTitle`, `terminal.focusPane`, `terminal.openLeft`, `terminal.openRight`, `terminal.openAbove`, `terminal.openBelow`
-- Topics: tab strip, new tab, close tab, drag tabs, split panes, focus pane
+- Topics: tab strip, new tab, close tab, drag tabs, split panes, focus pane, tutorial targets `workspace.tabStrip`, `workspace.canvas`, `workspace.emptyState`
 - Synonyms: "split view", "open side by side", "horizontal split", "new pane"
 
 ## Tab Strip
@@ -18,6 +18,8 @@ A new tab opens via:
 - "Open in pane" from the rail (`app.openConnectedConnection`).
 
 Empty state (no Tabs open) shows `workspace.noActiveSession` over the Default Launch State.
+
+Tutorial targets: `workspace.tabStrip`, `workspace.canvas`, `workspace.emptyState`.
 
 ## Tab right-click menu
 

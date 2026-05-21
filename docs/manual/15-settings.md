@@ -10,7 +10,21 @@
 
 Settings is owned by `src/settings/SettingsPage.tsx`. Persisted bootstrap (`useBootstrapSettings`) lives in `src/lib/settings.ts`; add new persisted settings there, not via cloned effects in `src/App.tsx`.
 
-The universal AI Assistant panel remains visible on Settings. `src/settings/settingsAssistantContext.ts` publishes the active section and visible control keys to the assistant. General exposes tutorial target `settings.language`, Appearance exposes `settings.appearance.colorScheme`, and the Tutorial tool can navigate to the owning Settings section before highlighting known targets after the user accepts a navigation offer.
+The universal AI Assistant panel remains visible on Settings. `src/settings/settingsAssistantContext.ts` publishes the active section, visible control keys, and tutorial targets to the assistant. The Tutorial tool can navigate to the owning Settings section before highlighting known targets after the user accepts a navigation offer.
+
+Settings tutorial targets:
+
+- General: `settings.language`, `settings.workspaceAccess`, `settings.useDirectxScreenCapture`, `settings.settingsData`.
+- Appearance: `settings.appUiFontFamily`, `settings.appearance.colorScheme`, `settings.resetLayout`.
+- Dashboard: `settings.dashboardDefaultLanding`, `settings.dashboardUseRandomDynamicBackground`, `settings.dashboardMaxActiveScriptWidgets`.
+- Credentials: `settings.credentialsStored`, `settings.widgetCredentialsStored`.
+- AI Assistant: `settings.aiProvider`, `settings.aiToolsTitle`, `settings.aiCustomInstructions`, `settings.assistantSkillsTitle`, `settings.mcpServersTitle`.
+- SSH: `settings.defaultUser`, `settings.defaultPort`, `settings.defaultKey`, `settings.sshBufferLines`.
+- Terminal: `settings.terminalFontFamily`, `settings.terminalFontSize`, `settings.defaultShell`, `settings.scrollbackLines`.
+- URL: `settings.ignoreCertificateErrors`, `settings.urlSavedPasswords`, `settings.urlDataShards`.
+- RDP: `settings.rdpColorDepth`, `settings.rdpPerformanceProfile`.
+- VNC: `settings.vncViewOnly`, `settings.vncColorLevel`.
+- About: `settings.aboutVersion`.
 
 ## Page chrome
 

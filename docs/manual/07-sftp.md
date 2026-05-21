@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `sftp.*` (full namespace), `terminal.openSftp`, `terminal.sftp`
-- Topics: dual-pane browser, upload, download, conflicts, rename, delete, new folder, properties, chmod/chown, sort, transfer queue
+- Topics: dual-pane browser, upload, download, conflicts, rename, delete, new folder, properties, chmod/chown, sort, transfer queue, tutorial targets `sftp.toolbar`, `sftp.upload`, `sftp.download`, `sftp.terminal`, `sftp.localPane`, `sftp.remotePane`, `sftp.transferQueue`
 - Synonyms: "file transfer", "scp", "upload to server", "download from server", "remote files"
 
 ## Opening an SFTP browser
@@ -35,6 +35,8 @@ A bottom strip shows the **Transfer Activity** queue (`sftp.transferActivity`):
 - Clear completed: `sftp.clear`
 - Empty state: `sftp.noTransfers`
 
+Tutorial targets: `sftp.toolbar`, `sftp.localPane`, `sftp.remotePane`, `sftp.transferQueue`.
+
 ## Per-pane toolbar
 
 Both panes share the same set of actions (with `Aria` siblings for accessibility):
@@ -51,6 +53,8 @@ Double-click affordance hint: `sftp.doubleClickToOpen`, `sftp.doubleClickToOpenF
 ## Transferring files
 
 Use drag/drop between panes or the explicit toolbar buttons `sftp.upload` and `sftp.download`. The terminal column also exposes a `sftp.terminal` action that reopens the parent SSH terminal in the originating Pane.
+
+Tutorial targets: `sftp.upload`, `sftp.download`, `sftp.terminal`.
 
 Each transfer flows through this lifecycle, reflected in the transfer queue:
 

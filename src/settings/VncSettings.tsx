@@ -64,7 +64,7 @@ export function VncSettings() {
               <option value="raw">{t("settings.vncEncodingRaw")}</option>
             </select>
           </label>
-          <label>
+          <label data-tutorial-id="settings.vncColorLevel">
             <span>{t("settings.colorLevel")}</span>
             <select
               value={draft.colorLevel}
@@ -96,7 +96,10 @@ export function VncSettings() {
               <small>{t("settings.vncSharedSessionHint")}</small>
             </span>
           </label>
-          <label className="settings-toggle-row">
+          <label
+            className="settings-toggle-row"
+            data-tutorial-id="settings.vncViewOnly"
+          >
             <ToggleSwitch
               checked={draft.viewOnly}
               onChange={(checked) => setDraft((settings) => ({ ...settings, viewOnly: checked }))}

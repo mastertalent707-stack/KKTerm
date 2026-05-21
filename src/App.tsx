@@ -90,6 +90,7 @@ function App() {
   const {
     aiPanelLayout,
     connectionPanelLayout,
+    expandConnectionPanel,
     expandAiPanel,
     handleAiPanelResize,
     handleConnectionPanelResize,
@@ -122,8 +123,15 @@ function App() {
     return undefined;
   }
 
+  function shouldRevealConnectionPanelForTutorial(targetId: string) {
+    return targetId.trim().startsWith("connections.");
+  }
+
   async function handleTutorialRequest(request: TutorialHighlightRequest) {
     navigateForTutorial(request);
+    if (shouldRevealConnectionPanelForTutorial(request.targetId)) {
+      expandConnectionPanel();
+    }
     const target = await waitForTutorialTarget(request.targetId);
     if (!target) {
       return { ok: false, error: t("ai.tutorialTargetNotFound") };
@@ -158,6 +166,7 @@ function App() {
         ) : (
           <PanelResizeHandle
             ariaLabel={t("app.resizeConnections")}
+            dataTutorialId="app.connectionsResize"
             side="left"
             onPointerDown={handleConnectionPanelResize}
           />
@@ -170,6 +179,7 @@ function App() {
       <PanelResizeHandle
         key="ai-resize-handle"
         ariaLabel={t("app.resizeAiAssistant")}
+        dataTutorialId="app.aiAssistantResize"
         side="right"
         collapsed={aiPanelLayout.collapsed}
         collapsedLabel={t("app.aiAssistant")}

@@ -90,7 +90,7 @@ export function TerminalSettings() {
           <p className="field-hint">{t("settings.terminalTextHint")}</p>
         </div>
         <div className="form-grid three-columns">
-          <label>
+          <label data-tutorial-id="settings.terminalFontFamily">
             <span>{t("settings.fontFamily")}</span>
             <input
               onChange={(event) => {
@@ -103,7 +103,7 @@ export function TerminalSettings() {
               value={draft.fontFamily}
             />
           </label>
-          <label>
+          <label data-tutorial-id="settings.terminalFontSize">
             <span>{t("settings.fontSize")}</span>
             <input
               inputMode="numeric"
@@ -165,7 +165,7 @@ export function TerminalSettings() {
           <p className="field-hint">{t("settings.terminalSessionHint")}</p>
         </div>
         <div className="form-grid three-columns">
-          <label>
+          <label data-tutorial-id="settings.defaultShell">
             <span>{t("settings.defaultShell")}</span>
             <select
               onChange={(event) => {
@@ -182,7 +182,7 @@ export function TerminalSettings() {
               <option value="wsl.exe">{t("settings.wsl")}</option>
             </select>
           </label>
-          <label>
+          <label data-tutorial-id="settings.scrollbackLines">
             <span>{t("settings.scrollbackLines")}</span>
             <input
               inputMode="numeric"

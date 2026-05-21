@@ -48,7 +48,7 @@ export function RdpSettings() {
       <fieldset className="settings-subsection settings-fieldset">
         <legend>{t("settings.display")}</legend>
         <div className="form-grid two-columns">
-          <label>
+          <label data-tutorial-id="settings.rdpColorDepth">
             <span>{t("settings.colorDepth")}</span>
             <select
               value={draft.colorDepth}
@@ -66,7 +66,7 @@ export function RdpSettings() {
               <option value={15}>{t("settings.rdpColorDepth15")}</option>
             </select>
           </label>
-          <label>
+          <label data-tutorial-id="settings.rdpPerformanceProfile">
             <span>{t("settings.performanceFlags")}</span>
             <select
               value={draft.performanceProfile}

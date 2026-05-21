@@ -645,6 +645,7 @@ function AiAssistantToolsControl({
     <SettingsCollapsibleFieldset
       className="settings-fieldset ai-tool-settings"
       collapseLabel={t("common.collapse")}
+      dataTutorialId="settings.aiToolsTitle"
       expandLabel={t("common.expand")}
       legend={t("settings.aiToolsTitle")}
     >
@@ -1112,7 +1113,10 @@ export function AiSettings() {
         title={t("settings.aiProvider")}
       />
 
-      <fieldset className="settings-subsection settings-fieldset">
+      <fieldset
+        className="settings-subsection settings-fieldset"
+        data-tutorial-id="settings.aiProvider"
+      >
         <legend>{t("settings.aiProviderConnection")}</legend>
         <div>
           <p className="field-hint">{t("settings.aiProviderConnectionHint")}</p>
@@ -1220,6 +1224,7 @@ export function AiSettings() {
               }))
             }
           />
+          <div data-tutorial-id="settings.aiCustomInstructions">
           <AiCustomInstructionsControl
             draft={draft}
             onDraftChange={(patch) =>
@@ -1229,6 +1234,7 @@ export function AiSettings() {
               }))
             }
           />
+          </div>
         </div>
       </fieldset>
 

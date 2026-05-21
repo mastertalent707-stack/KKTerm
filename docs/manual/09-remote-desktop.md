@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `remoteDesktop.*` (full namespace), `connections.windowsRdp`, `connections.screenControl`
-- Topics: RDP via mstscax ActiveX, VNC via vnc-rs, Ctrl+Alt+Del, reconnect, framebuffer waiting
+- Topics: RDP via mstscax ActiveX, VNC via vnc-rs, Ctrl+Alt+Del, reconnect, framebuffer waiting, tutorial targets `remoteDesktop.toolbar`, `remoteDesktop.sendCtrlAltDel`, `remoteDesktop.reconnect`, `remoteDesktop.sendToAi`, `remoteDesktop.surface`
 - Synonyms: "remote desktop", "screen sharing", "mstsc", "VNC viewer", "send three-finger salute"
 
 ## Connection kinds
@@ -14,6 +14,8 @@
 Both store host, optional port, and non-secret account metadata in SQLite; passwords are in the Windows Credential Manager.
 
 Type label: `remoteDesktop.typeLabel`. Generic Session label: `remoteDesktop.session`. Display accessible label: `remoteDesktop.displayAria`.
+
+Tutorial target: `remoteDesktop.surface`.
 
 ## Connection lifecycle
 
@@ -34,6 +36,8 @@ Transport labels for status messages: `remoteDesktop.rdpActiveX`, `remoteDesktop
 
 - `remoteDesktop.sendCtrlAltDel` — sends Ctrl+Alt+Del to the remote (RDP). Required for the Windows lock screen; the local OS intercepts the real key combo.
 - `remoteDesktop.reconnect` — explicit reconnect button.
+
+Tutorial targets: `remoteDesktop.toolbar`, `remoteDesktop.sendCtrlAltDel`, `remoteDesktop.reconnect`, `remoteDesktop.sendToAi`.
 
 ## RDP overlay parking (implementation note)
 

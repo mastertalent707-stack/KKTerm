@@ -49,98 +49,227 @@ const SETTINGS_SECTIONS: Record<SettingsSectionId, SettingsSectionSummary> = {
         description: "UI language selector.",
         tutorialTargetId: "settings.language",
       },
-      { key: "settings.workspaceAccess", description: "Workspace access and runtime toggles." },
-      { key: "settings.useDirectxScreenCapture", description: "DXGI Desktop Duplication screenshot acceleration toggle." },
+      {
+        key: "settings.workspaceAccess",
+        description: "Workspace access and runtime toggles.",
+        tutorialTargetId: "settings.workspaceAccess",
+      },
+      {
+        key: "settings.useDirectxScreenCapture",
+        description: "DXGI Desktop Duplication screenshot acceleration toggle.",
+        tutorialTargetId: "settings.useDirectxScreenCapture",
+      },
       { key: "settings.autoStartWithWindows", description: "Launch KKTerm minimized when the user signs in to Windows." },
-      { key: "settings.settingsData", description: "Backup, import, database folder, and reset actions." },
+      {
+        key: "settings.settingsData",
+        description: "Backup, import, database folder, and reset actions.",
+        tutorialTargetId: "settings.settingsData",
+      },
     ],
   },
   "appearance-settings": {
     labelKey: "settings.sectionAppearance",
     fallbackLabel: "Appearance",
     controls: [
-      { key: "settings.appUiFontFamily", description: "App UI font family selector." },
+      {
+        key: "settings.appUiFontFamily",
+        description: "App UI font family selector.",
+        tutorialTargetId: "settings.appUiFontFamily",
+      },
       {
         key: "settings.colorScheme",
         description: "App color scheme selector and preview swatches.",
         tutorialTargetId: "settings.appearance.colorScheme",
       },
-      { key: "settings.resetLayout", description: "Workspace chrome and pane layout reset action." },
+      {
+        key: "settings.resetLayout",
+        description: "Workspace chrome and pane layout reset action.",
+        tutorialTargetId: "settings.resetLayout",
+      },
     ],
   },
   "dashboard-settings": {
     labelKey: "settings.sectionDashboard",
     fallbackLabel: "Dashboard",
     controls: [
-      { key: "settings.dashboardDefaultLanding", description: "Default landing view behavior." },
-      { key: "settings.dashboardUseRandomDynamicBackground", description: "Automatically assign a random dynamic background to new Dashboard Views." },
-      { key: "settings.dashboardMaxActiveScriptWidgets", description: "Active script widget iframe cap." },
+      {
+        key: "settings.dashboardDefaultLanding",
+        description: "Default landing view behavior.",
+        tutorialTargetId: "settings.dashboardDefaultLanding",
+      },
+      {
+        key: "settings.dashboardUseRandomDynamicBackground",
+        description: "Automatically assign a random dynamic background to new Dashboard Views.",
+        tutorialTargetId: "settings.dashboardUseRandomDynamicBackground",
+      },
+      {
+        key: "settings.dashboardMaxActiveScriptWidgets",
+        description: "Active script widget iframe cap.",
+        tutorialTargetId: "settings.dashboardMaxActiveScriptWidgets",
+      },
     ],
   },
   "credentials-settings": {
     labelKey: "settings.sectionCredentials",
     fallbackLabel: "Credentials",
     controls: [
-      { key: "settings.credentialsStored", description: "Stored credential summaries and delete actions." },
+      {
+        key: "settings.credentialsStored",
+        description: "Stored credential summaries and delete actions.",
+        tutorialTargetId: "settings.credentialsStored",
+      },
+      {
+        key: "settings.widgetCredentialsStored",
+        description: "Stored Dashboard widget secrets.",
+        tutorialTargetId: "settings.widgetCredentialsStored",
+      },
     ],
   },
   "assistant-settings": {
     labelKey: "settings.sectionAiAssistant",
     fallbackLabel: "AI Assistant",
     controls: [
-      { key: "settings.aiProvider", description: "AI provider and model selection." },
-      { key: "settings.aiToolsTitle", description: "Assistant tool enablement toggles." },
-      { key: "settings.aiCustomInstructions", description: "Assistant custom instruction text." },
-      { key: "settings.assistantSkillsTitle", description: "Local Assistant Skills management." },
+      {
+        key: "settings.aiProvider",
+        description: "AI provider and model selection.",
+        tutorialTargetId: "settings.aiProvider",
+      },
+      {
+        key: "settings.aiToolsTitle",
+        description: "Assistant tool enablement toggles.",
+        tutorialTargetId: "settings.aiToolsTitle",
+      },
+      {
+        key: "settings.aiCustomInstructions",
+        description: "Assistant custom instruction text.",
+        tutorialTargetId: "settings.aiCustomInstructions",
+      },
+      {
+        key: "settings.assistantSkillsTitle",
+        description: "Local Assistant Skills management.",
+        tutorialTargetId: "settings.assistantSkillsTitle",
+      },
+      {
+        key: "settings.mcpServersTitle",
+        description: "MCP server management.",
+        tutorialTargetId: "settings.mcpServersTitle",
+      },
     ],
   },
   "ssh-settings": {
     labelKey: "settings.sectionSsh",
     fallbackLabel: "SSH",
     controls: [
-      { key: "settings.defaultUser", description: "Default SSH username." },
-      { key: "settings.defaultPort", description: "Default SSH port." },
-      { key: "settings.sshBufferLines", description: "SSH terminal buffer behavior." },
+      {
+        key: "settings.defaultUser",
+        description: "Default SSH username.",
+        tutorialTargetId: "settings.defaultUser",
+      },
+      {
+        key: "settings.defaultPort",
+        description: "Default SSH port.",
+        tutorialTargetId: "settings.defaultPort",
+      },
+      {
+        key: "settings.defaultKey",
+        description: "Default SSH identity file.",
+        tutorialTargetId: "settings.defaultKey",
+      },
+      {
+        key: "settings.sshBufferLines",
+        description: "SSH terminal buffer behavior.",
+        tutorialTargetId: "settings.sshBufferLines",
+      },
     ],
   },
   "terminal-settings": {
     labelKey: "settings.sectionTerminal",
     fallbackLabel: "Terminal",
     controls: [
-      { key: "settings.terminalFontFamily", description: "Local terminal font." },
-      { key: "settings.terminalFontSize", description: "Local terminal font size." },
-      { key: "settings.defaultShell", description: "Default local shell." },
+      {
+        key: "settings.terminalFontFamily",
+        description: "Local terminal font.",
+        tutorialTargetId: "settings.terminalFontFamily",
+      },
+      {
+        key: "settings.terminalFontSize",
+        description: "Local terminal font size.",
+        tutorialTargetId: "settings.terminalFontSize",
+      },
+      {
+        key: "settings.defaultShell",
+        description: "Default local shell.",
+        tutorialTargetId: "settings.defaultShell",
+      },
+      {
+        key: "settings.scrollbackLines",
+        description: "Terminal scrollback line count.",
+        tutorialTargetId: "settings.scrollbackLines",
+      },
     ],
   },
   "url-settings": {
     labelKey: "settings.sectionUrl",
     fallbackLabel: "URL",
     controls: [
-      { key: "settings.ignoreCertificateErrors", description: "URL Connection certificate handling." },
-      { key: "settings.urlSavedPasswords", description: "Saved website password metadata." },
+      {
+        key: "settings.ignoreCertificateErrors",
+        description: "URL Connection certificate handling.",
+        tutorialTargetId: "settings.ignoreCertificateErrors",
+      },
+      {
+        key: "settings.urlSavedPasswords",
+        description: "Saved website password metadata.",
+        tutorialTargetId: "settings.urlSavedPasswords",
+      },
+      {
+        key: "settings.urlDataShards",
+        description: "URL data shard management.",
+        tutorialTargetId: "settings.urlDataShards",
+      },
     ],
   },
   "rdp-settings": {
     labelKey: "settings.sectionRdp",
     fallbackLabel: "Remote Desktop",
     controls: [
-      { key: "settings.rdpColorDepth", description: "RDP color depth default." },
-      { key: "settings.rdpPerformanceProfile", description: "RDP performance profile default." },
+      {
+        key: "settings.rdpColorDepth",
+        description: "RDP color depth default.",
+        tutorialTargetId: "settings.rdpColorDepth",
+      },
+      {
+        key: "settings.rdpPerformanceProfile",
+        description: "RDP performance profile default.",
+        tutorialTargetId: "settings.rdpPerformanceProfile",
+      },
     ],
   },
   "vnc-settings": {
     labelKey: "settings.sectionVnc",
     fallbackLabel: "VNC",
     controls: [
-      { key: "settings.vncViewOnly", description: "VNC view-only default." },
-      { key: "settings.vncColorLevel", description: "VNC color level default." },
+      {
+        key: "settings.vncViewOnly",
+        description: "VNC view-only default.",
+        tutorialTargetId: "settings.vncViewOnly",
+      },
+      {
+        key: "settings.vncColorLevel",
+        description: "VNC color level default.",
+        tutorialTargetId: "settings.vncColorLevel",
+      },
     ],
   },
   "about-settings": {
     labelKey: "settings.sectionAbout",
     fallbackLabel: "About",
     controls: [
-      { key: "settings.aboutVersion", description: "Product version and open-source component information." },
+      {
+        key: "settings.aboutVersion",
+        description: "Product version and open-source component information.",
+        tutorialTargetId: "settings.aboutVersion",
+      },
     ],
   },
 };

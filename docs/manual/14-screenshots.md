@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `screenshots.*` (full namespace), `workspace.takeScreenshot`, `workspace.copyRegion`, `workspace.copyEntirePanel`, `workspace.sendRegionToAi`, `workspace.sendEntirePanelToAi`, `workspace.sentToAi`, `workspace.copied`, `workspace.selectRegion`, `workspace.screenshot`, `workspace.screenshotsRequireRuntime`, `workspace.screenshotCaptureError`, `sftp.screenshotTarget`, `webview.screenshotTarget`
-- Topics: capture region / window / fullscreen, send to AI, copy to clipboard, screenshots library
+- Topics: capture region / window / fullscreen, send to AI, copy to clipboard, screenshots library, tutorial target `workspace.screenshotMenu`
 - Synonyms: "snip", "grab", "screen capture", "send to AI"
 
 ## Capture from a Pane
@@ -14,6 +14,8 @@ Each workspace surface exposes a screenshot toolbar menu (native Tauri context m
 - `workspace.copyEntirePanel` — whole window/Pane → clipboard.
 - `workspace.sendRegionToAi` — region capture → AI Assistant input. Status `workspace.sentToAi`.
 - `workspace.sendEntirePanelToAi` — whole Pane → AI Assistant input.
+
+Tutorial target: `workspace.screenshotMenu`.
 
 Region selection overlay accessible label: `workspace.selectRegion`. Generic noun: `workspace.screenshot`.
 

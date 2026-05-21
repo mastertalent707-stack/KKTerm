@@ -64,7 +64,7 @@ export function DashboardSettings() {
       <fieldset className="settings-subsection settings-fieldset">
         <legend>{t("settings.dashboardGeneral")}</legend>
         <div className="form-grid">
-          <label>
+          <label data-tutorial-id="settings.dashboardDefaultLanding">
             <span>{t("settings.dashboardDefaultLanding")}</span>
             <select
               value={draft.defaultLandingView}
@@ -82,7 +82,10 @@ export function DashboardSettings() {
           </label>
         </div>
         <div className="settings-toggle-list">
-          <label className="settings-toggle-row">
+          <label
+            className="settings-toggle-row"
+            data-tutorial-id="settings.dashboardUseRandomDynamicBackground"
+          >
             <ToggleSwitch
               checked={draft.useRandomDynamicBackground}
               onChange={(checked) => setDraft((s) => ({ ...s, useRandomDynamicBackground: checked }))}
@@ -109,7 +112,7 @@ export function DashboardSettings() {
       <fieldset className="settings-subsection settings-fieldset">
         <legend>{t("settings.dashboardPerformance")}</legend>
         <div className="form-grid">
-          <label>
+          <label data-tutorial-id="settings.dashboardMaxActiveScriptWidgets">
             <span>{t("settings.dashboardMaxActiveScriptWidgets")}</span>
             <input
               inputMode="numeric"

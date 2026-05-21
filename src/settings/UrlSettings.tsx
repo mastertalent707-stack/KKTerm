@@ -177,7 +177,10 @@ export function UrlSettings() {
           <p className="field-hint">{t("settings.urlSecurityHint")}</p>
         </div>
         <div className="settings-toggle-list">
-          <label className="settings-toggle-row">
+          <label
+            className="settings-toggle-row"
+            data-tutorial-id="settings.ignoreCertificateErrors"
+          >
             <ToggleSwitch
               checked={draft.ignoreCertificateErrors}
               onChange={(checked) =>
@@ -193,7 +196,7 @@ export function UrlSettings() {
       </fieldset>
 
       <fieldset className="settings-subsection settings-fieldset">
-        <legend>{t("settings.savedWebsitePasswords")}</legend>
+        <legend data-tutorial-id="settings.urlSavedPasswords">{t("settings.savedWebsitePasswords")}</legend>
         <div>
           <p className="field-hint">{t("settings.savedWebsitePasswordsHint")}</p>
         </div>
@@ -305,7 +308,7 @@ export function UrlSettings() {
       ) : null}
 
       <fieldset className="settings-subsection settings-fieldset">
-        <legend>{t("settings.urlDataShards")}</legend>
+        <legend data-tutorial-id="settings.urlDataShards">{t("settings.urlDataShards")}</legend>
         <div>
           <p className="field-hint">{t("settings.urlDataShardsHint")}</p>
         </div>

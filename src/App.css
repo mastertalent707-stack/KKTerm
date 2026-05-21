@@ -2730,7 +2730,7 @@ h2 {
 }
 
 .terminal-pane-recording {
-  outline: 1px solid rgba(196, 62, 62, 0.72);
+  outline: 3px solid rgba(196, 62, 62, 0.72);
   outline-offset: 0;
 }
 

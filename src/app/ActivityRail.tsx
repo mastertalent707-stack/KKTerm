@@ -554,6 +554,7 @@ export function ActivityRail({
           connectionsCollapsed ? "connections-collapsed-indicator" : ""
         }`}
         aria-label={t("workspace.workspace")}
+        data-tutorial-id="app.activityRailWorkspace"
         onClick={handleConnectionsClick}
       >
         <LayoutDashboard size={18} />
@@ -562,6 +563,7 @@ export function ActivityRail({
       <button
         className={`rail-button ${activePage === "dashboard" ? "active" : ""}`}
         aria-label={t("dashboard.title")}
+        data-tutorial-id="app.activityRailDashboard"
         onClick={() => onNavigate("dashboard")}
       >
         <Gauge size={18} />
@@ -577,6 +579,7 @@ export function ActivityRail({
               : ""
           }`}
           aria-label={t("app.connectionRail")}
+          data-tutorial-id="app.connectionRail"
         >
           {connectedRailItems.map((item) => (
             <button
@@ -673,6 +676,7 @@ export function ActivityRail({
         aria-label={
           dontSleepEnabled ? t("app.dontSleepDisable") : t("app.dontSleepEnable")
         }
+        data-tutorial-id="app.activityRailDontSleep"
         {...ariaPressed(dontSleepEnabled)}
         disabled={dontSleepUpdating}
         onClick={() => void handleDontSleepClick()}
@@ -683,6 +687,7 @@ export function ActivityRail({
       <button
         className={`rail-button rail-button-settings ${activePage === "settings" ? "active" : ""}`}
         aria-label={t("app.settings")}
+        data-tutorial-id="app.activityRailSettings"
         onClick={() => onNavigate("settings")}
       >
         <Settings size={18} />

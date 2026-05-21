@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `app.primaryNav`, `app.connectionRail`, `app.connectedConnectionsRail`, `app.resizeConnections`, `app.resizeAiAssistant`, `app.openConnectedConnection`, `app.openPinnedConnection`, `workspace.workspaceSurface`, `workspace.hostUsage`
-- Topics: Activity Rail, panel resize, pinned Connections on the rail, Connections panel collapse, universal AI Assistant panel, universal host usage status bar
+- Topics: Activity Rail, panel resize, pinned Connections on the rail, Connections panel collapse, universal AI Assistant panel, universal host usage status bar, tutorial targets `app.activityRailWorkspace`, `app.activityRailDashboard`, `app.connectionRail`, `app.activityRailDontSleep`, `app.activityRailSettings`, `app.connectionsResize`, `app.aiAssistantResize`, `workspace.statusBar`, `workspace.hostUsage`
 - Synonyms: "left bar", "sidebar", "right panel", "AI sidebar", "make panel wider", "hide the AI panel"
 
 ## Activity Rail (48 px, left edge)
@@ -19,6 +19,8 @@ Vertical icon bar. Owned by `src/app/`. Always visible. Sections, top to bottom:
 
 The whole rail uses `app.primaryNav` as its accessible label. Tooltips come from `RailTooltip` (delayed hover/focus). Native `title` tooltips are forbidden here.
 
+Tutorial targets: `app.activityRailWorkspace`, `app.activityRailDashboard`, `app.connectionRail`, `app.activityRailDontSleep`, `app.activityRailSettings`.
+
 Non-Workspace pages (Dashboard, App Launcher, File Explorer, Settings, Wiki) stay inset from the 48 px rail so its hover tooltips keep working while those pages are active.
 
 ## Connections Panel (left, inside Workspace module)
@@ -27,6 +29,8 @@ Resizable. Collapsed/expanded state persists across launches. See [03-connection
 
 - Collapse: `connections.collapseColumn`
 - Resize handle: `app.resizeConnections`
+
+Tutorial target: `app.connectionsResize`.
 
 The panel only appears inside the Workspace module. Switching to Dashboard, File Explorer, Wiki, or Settings replaces this region with that module's own content.
 
@@ -44,6 +48,8 @@ Resizable, collapsible. State is app-wide — the same width and collapsed state
 - Collapse: `ai.collapsePanel`
 - Resize handle: `app.resizeAiAssistant`
 
+Tutorial target: `app.aiAssistantResize`.
+
 The panel remains available on Settings and receives a Settings page context so how-to answers can refer to the active Settings section. Panel internals are covered in [13-ai-assistant.md](13-ai-assistant.md).
 
 ## Status Bar (bottom)
@@ -55,6 +61,8 @@ Owned by `src/workspace/StatusBar.tsx`. Two roles:
    - `workspace.ram` / `workspace.ramUsage` / `workspace.memory`
    - `workspace.network` / `workspace.networkUsage`, broken into `workspace.networkDownstream` and `workspace.networkUpstream`
 2. **Transient notifications** — driven by the shared `showStatusBarNotice` store action. Success messages default to 5 seconds, then fade. Do not implement one-off toast surfaces; route through `showStatusBarNotice`.
+
+Tutorial targets: `workspace.statusBar`, `workspace.hostUsage`.
 
 ## Workspace chrome resize behaviour
 

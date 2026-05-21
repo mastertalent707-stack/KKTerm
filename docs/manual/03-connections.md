@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `connections.*` (full namespace), `app.connectionRail`
-- Topics: Connection Tree, folders, search, Quick Connect, Add Connection, rename, delete, duplicate, pin to rail, drag/drop, properties dialog, icon image, icon background
+- Topics: Connection Tree, folders, search, Quick Connect, Add Connection, tutorial targets `connections.panel`, `connections.search`, `connections.quickConnect`, `connections.addConnection`, `connections.folderControls`, `connections.tree`, rename, delete, duplicate, pin to rail, drag/drop, properties dialog, icon image, icon background
 - Synonyms: "saved host", "profile", "ssh entry", "create folder", "favourites", "icon color", "connection color"
 
 > **Term:** "Connection" is the canonical name for a durable openable resource. Do not use "profile", "host entry", or "saved session". A Connection only becomes a live **Session** when opened; switching Tabs does not end the Session.
@@ -27,7 +27,7 @@ SFTP is not a standalone Connection kind — it is opened from an SSH Connection
 Header row (top of the panel):
 
 - Title: `connections.title`
-- Add Connection: `connections.addConnection`
+- Add Connection: `connections.addConnection`, tutorial target `connections.addConnection`
 - Quick Connect: `connections.quickConnect`
 - New Folder: `connections.newFolder`
 - Collapse / Expand all: `connections.collapseAll`, `connections.expandAll`
@@ -35,6 +35,8 @@ Header row (top of the panel):
 - Column collapse: `connections.collapseColumn`
 
 Tree accessible label: `connections.connectionTree`. Expand/collapse chevrons use `connections.expand` / `connections.collapse`.
+
+Tutorial targets: `connections.panel`, `connections.search`, `connections.quickConnect`, `connections.addConnection`, `connections.folderControls`, `connections.tree`.
 
 ## Right-click context menu (native Tauri menu)
 

@@ -638,7 +638,7 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
     >
       <article className="terminal-pane webview-pane">
         <header>
-          <div className="webview-nav-group">
+          <div className="webview-nav-group" data-tutorial-id="webview.toolbar">
             <Globe2 className="webview-nav-globe" size={13} />
             <button
               className="terminal-pane-action"
@@ -671,6 +671,7 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
               <input
                 aria-label={t("webview.address")}
                 className="webview-address-input"
+                data-tutorial-id="webview.address"
                 onChange={(event) => setAddressInput(event.currentTarget.value)}
                 placeholder={t("webview.urlPlaceholder")}
                 value={addressInput}
@@ -685,6 +686,7 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
             <button
               aria-label={t("webview.openExternally")}
               className="terminal-pane-action"
+              data-tutorial-id="webview.openExternally"
               disabled={!addressInput.trim()}
               onClick={handleOpenExternal}
               title={t("webview.openExternally")}
@@ -695,6 +697,7 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
             <select
               aria-label={t("webview.autoRefresh")}
               className="webview-auto-refresh-select"
+              data-tutorial-id="webview.autoRefresh"
               onChange={(event) => handleAutoRefreshChange(event.currentTarget.value)}
               title={t("webview.autoRefresh")}
               value={autoRefreshSeconds}
@@ -711,6 +714,7 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
               <>
                 <button
                   className="terminal-pane-action"
+                  data-tutorial-id="webview.savePassword"
                   onClick={handleSaveCredential}
                   title={t("webview.savePasswordTitle")}
                   type="button"
@@ -719,6 +723,7 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
                 </button>
                 <button
                   className="terminal-pane-action"
+                  data-tutorial-id="webview.fillCredential"
                   disabled={!canFillCredential}
                   onClick={handleFillCredential}
                   title={canFillCredential ? t("webview.fillSavedCredential") : t("webview.noSavedCredential")}
@@ -730,12 +735,13 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
             ) : null}
             <ScreenshotMenu
               buttonClassName="terminal-pane-action"
+              dataTutorialId="workspace.screenshotMenu"
               targetLabel={t("webview.screenshotTarget", { title: tab.title })}
               targetRef={workspaceRef}
             />
           </div>
         </header>
-        <div ref={placeholderRef} className="webview-placeholder">
+        <div ref={placeholderRef} className="webview-placeholder" data-tutorial-id="webview.surface">
           {!initialUrl ? (
             <p className="webview-placeholder-message">{t("webview.noUrlConfigured")}</p>
           ) : !isTauriRuntime() ? (

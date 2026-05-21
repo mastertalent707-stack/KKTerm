@@ -75,6 +75,7 @@ export function AssistantSkillsControl() {
   return (
     <SettingsCollapsibleFieldset
       collapseLabel={t("common.collapse")}
+      dataTutorialId="settings.assistantSkillsTitle"
       expandLabel={t("common.expand")}
       legend={t("settings.assistantSkillsTitle")}
     >

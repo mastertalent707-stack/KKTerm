@@ -137,7 +137,10 @@ export function CredentialsSettings() {
         title={t("settings.credentialsTitle")}
       />
 
-      <fieldset className="settings-subsection settings-fieldset">
+      <fieldset
+        className="settings-subsection settings-fieldset"
+        data-tutorial-id="settings.credentialsStored"
+      >
         <legend>{t("settings.credentialsStored")}</legend>
         <p className="field-hint">{t("settings.credentialsHint")}</p>
         {storedCredentials.length === 0 ? (
@@ -162,7 +165,10 @@ export function CredentialsSettings() {
         )}
       </fieldset>
 
-      <fieldset className="settings-subsection settings-fieldset">
+      <fieldset
+        className="settings-subsection settings-fieldset"
+        data-tutorial-id="settings.widgetCredentialsStored"
+      >
         <legend>{t("settings.widgetCredentialsStored")}</legend>
         <p className="field-hint">{t("settings.widgetCredentialsHint")}</p>
         {widgetCredentials.length === 0 ? (

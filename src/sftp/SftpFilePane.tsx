@@ -212,7 +212,10 @@ export function FilePane({
   }
 
   return (
-    <article className="file-pane">
+    <article
+      className="file-pane"
+      data-tutorial-id={side === "local" ? "sftp.localPane" : "sftp.remotePane"}
+    >
       <header>
         <div>
           <strong>{title}</strong>

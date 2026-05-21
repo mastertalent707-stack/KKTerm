@@ -58,7 +58,7 @@ export function StatusBar({
   }, [isNoticeExiting, notice]);
 
   return (
-    <footer className="status-bar">
+    <footer className="status-bar" data-tutorial-id="workspace.statusBar">
       <div className="status-bar-module">
         <WorkspaceHostMetrics t={t} />
         <AiCodingUsageStatusBar onOpenDashboardView={onOpenDashboardView} />
@@ -114,7 +114,7 @@ function WorkspaceHostMetrics({ t }: { t: (key: string) => string }) {
   const hostUsage = useWorkspaceStore((state) => state.performanceMetrics.hostUsage);
 
   return (
-    <div className="host-metrics" aria-label={t("workspace.hostUsage")}>
+    <div className="host-metrics" aria-label={t("workspace.hostUsage")} data-tutorial-id="workspace.hostUsage">
       <Metric
         icon={<Cpu size={13} />}
         label={t("workspace.cpu")}

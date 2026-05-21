@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `terminal.verifyingHostKey`, `terminal.sshHostKeyChanged`, `terminal.sshHostKeyChangedDetail`, `terminal.sshHostKeyChangeDetail`, `terminal.trustHostKey`, `terminal.hostKeyNotTrusted`, `terminal.selectKeyFile`, `terminal.sshContextUnavailable`, `terminal.showTmux`, `terminal.editTmuxSession`, `terminal.tmuxSessionName`, `terminal.tmuxSessionNameRequired`, `terminal.tmuxSessionNameInvalid`, `terminal.tmuxSessionRenamed`, `terminal.tmuxSessions`, `terminal.refreshTmux`, `terminal.noTmuxSessions`, `terminal.attached`, `terminal.detached`, `terminal.detachTmux`, `terminal.closeTmux`, `terminal.openInPane`, `terminal.openLeft`, `terminal.openRight`, `terminal.openAbove`, `terminal.openBelow`, `terminal.mouseOn`, `terminal.mouseOff`, `terminal.sshPortRedirect`, `terminal.remoteLoopbackPorts`, `terminal.refreshPorts`, `terminal.scanningPorts`, `terminal.noRemoteLoopbackPorts`, `terminal.remoteLoopbackPort`, `terminal.openPortInBrowser`, `terminal.sshPortForwardOpened`
-- Topics: SSH host key trust, tmux session list, attach / detach / rename tmux, SSH local port forward for remote loopback services
+- Topics: SSH host key trust, tmux session list, attach / detach / rename tmux, SSH local port forward for remote loopback services, tutorial targets `terminal.tmuxSessions`, `terminal.sshPortRedirect`
 - Synonyms: "trust this host", "key fingerprint changed", "MITM warning", "tmux session", "screen", "port forward", "tunnel"
 
 ## Host key trust
@@ -33,6 +33,8 @@ SSH Connections may opt into tmux. When tmux is enabled, opening the Connection 
 
 Opened from the Pane toolbar `terminal.showTmux`.
 
+Tutorial target: `terminal.tmuxSessions`.
+
 - Header: `terminal.tmuxSessions`
 - Refresh: `terminal.refreshTmux`
 - Loading state: `terminal.loading`
@@ -60,5 +62,7 @@ For probing a remote service exposed on the remote's loopback interface:
 - `terminal.refreshPorts` rescans the remote for listening loopback ports. While scanning: `terminal.scanningPorts`. Empty state: `terminal.noRemoteLoopbackPorts`.
 - Each row uses `terminal.remoteLoopbackPort` and provides `terminal.openPortInBrowser`, which sets up a local port forward to `127.0.0.1:<port>` and opens it.
 - Confirmation: `terminal.sshPortForwardOpened`.
+
+Tutorial target: `terminal.sshPortRedirect`.
 
 This path uses the existing SSH channel for the tunnel — it does not create a second SSH login.

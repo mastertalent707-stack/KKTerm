@@ -265,7 +265,7 @@ Before touching code, read these definitions — they matter for naming, storage
 - `docs/AI_PROVIDERS.md` — rules for adding or changing AI provider entries
 - `docs/DASHBOARD.md` — Dashboard module durable architecture (views, widget instances, script widget security)
 - `docs/PERFORMANCE.md` — performance notes and targets
-- `docs/manual/INDEX.md` — **operation manual** shipped with the app. One chapter per user-facing module; each chapter starts with an `## AI grep hints` block listing i18n keys and synonyms. When a user asks "how do I…" inside the app, the built-in AI Assistant searches this folder. **When a PR changes UI behavior, update the matching chapter in `docs/manual/` in the same PR**, and prefer referencing i18n keys (e.g. `connections.quickConnect`) over English label text so locale changes don't invalidate the manual.
+- `docs/manual/INDEX.md` — **operation manual** shipped with the app. One chapter per user-facing module; each chapter starts with an `## AI grep hints` block listing i18n keys and synonyms. When a user asks "how do I…" inside the app, the built-in AI Assistant searches this folder. **When a PR changes UI behavior, update the matching chapter in `docs/manual/` in the same PR**, and prefer referencing i18n keys (e.g. `connections.quickConnect`) over English label text so locale changes don't invalidate the manual. If the assistant can offer to show the user a UI element, add a stable `data-tutorial-id`, route it in `src/app/tutorialNavigationModel.ts`, document it in the `tutorial_highlight` tool metadata, and keep `npm run check` green.
 
 ---
 

@@ -571,7 +571,7 @@ function TmuxSessionTag({
   }
 
   return (
-    <div className="tmux-session-wrapper" ref={menuRef}>
+    <div className="tmux-session-wrapper" data-tutorial-id="terminal.tmuxSessions" ref={menuRef}>
       <div className="tmux-session-tag-group">
         <button
           className="tmux-session-tag"
@@ -850,7 +850,12 @@ function SshPortForwardMenu({
   }
 
   return (
-    <div className="tmux-session-wrapper" ref={menuRef} role={triggerRole ? "none" : undefined}>
+    <div
+      className="tmux-session-wrapper"
+      data-tutorial-id="terminal.sshPortRedirect"
+      ref={menuRef}
+      role={triggerRole ? "none" : undefined}
+    >
       <button
         className={triggerClassName}
         aria-label={t("terminal.sshPortRedirect")}
@@ -1633,6 +1638,7 @@ function TerminalPaneView({
       ]
         .filter(Boolean)
         .join(" ")}
+      data-tutorial-id="terminal.pane"
       onMouseDown={() => onFocus()}
       ref={paneRef}
     >
@@ -1649,6 +1655,7 @@ function TerminalPaneView({
           <button
             className={`terminal-pane-action terminal-recording-button${recordingInfo ? " active" : ""}`}
             aria-label={recordingInfo ? t("terminal.stopRecording") : t("terminal.startRecording")}
+            data-tutorial-id="terminal.startRecording"
             disabled={recordingBusy}
             onClick={() => void handleToggleRecording()}
             title={recordingInfo ? t("terminal.stopRecording") : t("terminal.startRecording")}
@@ -1660,6 +1667,7 @@ function TerminalPaneView({
             <button
               className="terminal-pane-action terminal-pane-action-text"
               aria-label={t("terminal.openSftp")}
+              data-tutorial-id="terminal.openSftp"
               onClick={handleOpenSftp}
               title={t("terminal.openSftp")}
               type="button"
@@ -1671,6 +1679,7 @@ function TerminalPaneView({
           <button
             className="terminal-pane-action"
             aria-label={t("terminal.copySelection")}
+            data-tutorial-id="terminal.copySelection"
             disabled={!selectedTerminalText}
             onMouseDown={(e) => e.preventDefault()}
             onClick={handleCopyTerminalSelection}
@@ -1681,12 +1690,14 @@ function TerminalPaneView({
           </button>
           <ScreenshotMenu
             buttonClassName="terminal-pane-action"
+            dataTutorialId="workspace.screenshotMenu"
             targetLabel={`${pane.connection?.name ?? pane.title} ${t("workspace.terminalPane")}`}
             targetRef={paneRef}
           />
           <button
             className="terminal-pane-action"
             aria-label={t("terminal.sendToAi")}
+            data-tutorial-id="terminal.sendToAi"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => void handleSendBufferToAssistant()}
             title={t("terminal.sendToAi")}
@@ -1698,6 +1709,7 @@ function TerminalPaneView({
             <button
               className="terminal-pane-action"
               aria-label={t("terminal.actions")}
+              data-tutorial-id="terminal.actions"
               {...menuButtonAria(actionsMenuOpen)}
               onClick={() => setActionsMenuOpen((open) => !open)}
               title={t("terminal.actions")}
@@ -1848,7 +1860,7 @@ function TerminalPaneView({
         </div>
       </header>
       {searchOpen ? (
-        <div className="terminal-search-bar">
+        <div className="terminal-search-bar" data-tutorial-id="terminal.searchBar">
           <Search size={13} />
           <input
             aria-label={t("terminal.findInScrollback")}
@@ -1893,7 +1905,12 @@ function TerminalPaneView({
         </div>
       ) : null}
       {pane.connection ? (
-        <div className="xterm-host" onContextMenu={handleTerminalContextMenu} ref={terminalElementRef} />
+        <div
+          className="xterm-host"
+          data-tutorial-id="terminal.surface"
+          onContextMenu={handleTerminalContextMenu}
+          ref={terminalElementRef}
+        />
       ) : (
         <pre>
           <code>{pane.buffer}</code>

@@ -888,7 +888,7 @@ export function SftpWorkspace({
       className={isActive ? "sftp-workspace active" : "sftp-workspace"}
       ref={workspaceRef}
     >
-      <div className="workspace-toolbar">
+      <div className="workspace-toolbar" data-tutorial-id="sftp.toolbar">
         <div>
           <strong>{toolbarTitle}</strong>
           <span>{status === t("sftp.connected") ? tab.subtitle : status}</span>
@@ -896,6 +896,7 @@ export function SftpWorkspace({
         <div className="toolbar-cluster">
           <button
             className="toolbar-button"
+            data-tutorial-id="sftp.upload"
             disabled={!isConnected || selectedLocalFiles.length === 0}
             onClick={() => handleUpload()}
             type="button"
@@ -905,6 +906,7 @@ export function SftpWorkspace({
           </button>
           <button
             className="toolbar-button"
+            data-tutorial-id="sftp.download"
             disabled={!isConnected || selectedRemoteFiles.length === 0 || !localPath}
             onClick={() => handleDownload()}
             type="button"
@@ -914,6 +916,7 @@ export function SftpWorkspace({
           </button>
           <button
             className="toolbar-button"
+            data-tutorial-id="sftp.terminal"
             disabled={!isConnected}
             onClick={handleOpenTerminalHere}
             type="button"
@@ -921,7 +924,11 @@ export function SftpWorkspace({
             <Terminal size={15} />
             {t("sftp.terminal")}
           </button>
-          <ScreenshotMenu targetLabel={t("sftp.screenshotTarget", { title: tab.title })} targetRef={workspaceRef} />
+          <ScreenshotMenu
+            dataTutorialId="workspace.screenshotMenu"
+            targetLabel={t("sftp.screenshotTarget", { title: tab.title })}
+            targetRef={workspaceRef}
+          />
         
         </div>
       </div>
@@ -963,7 +970,7 @@ export function SftpWorkspace({
         />
       </div>
 
-      <div className="transfer-queue">
+      <div className="transfer-queue" data-tutorial-id="sftp.transferQueue">
         <header>
           <strong>{t("sftp.transferActivity")}</strong>
           <div className="transfer-queue-actions">

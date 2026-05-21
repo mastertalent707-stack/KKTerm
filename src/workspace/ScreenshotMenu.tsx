@@ -19,11 +19,13 @@ type ScreenshotRegionState = {
 
 export function ScreenshotMenu({
   buttonClassName = "icon-button",
+  dataTutorialId = "workspace.screenshotMenu",
   targetRef,
   targetLabel: _targetLabel,
   onPreCapture,
 }: {
   buttonClassName?: string;
+  dataTutorialId?: string;
   targetRef: RefObject<HTMLElement | null>;
   targetLabel?: string;
   onPreCapture?: () => void;
@@ -218,6 +220,7 @@ export function ScreenshotMenu({
           aria-label={t("workspace.takeScreenshot")}
           {...menuButtonAria(menuOpen)}
           className={buttonClassName}
+          data-tutorial-id={dataTutorialId}
           onClick={(event) => void handleButtonClick(event)}
           onMouseEnter={() => onPreCapture?.()}
           title={copiedStatus || t("workspace.takeScreenshot")}

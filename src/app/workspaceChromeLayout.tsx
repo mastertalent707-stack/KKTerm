@@ -155,6 +155,11 @@ export function useWorkspaceChromeLayout(resetAllLayouts: () => void) {
     setConnectionPanelLayout((layout) => ({ ...layout, collapsed: !layout.collapsed }));
   }
 
+  function expandConnectionPanel() {
+    beginPanelAnimation();
+    setConnectionPanelLayout((layout) => ({ ...layout, collapsed: false }));
+  }
+
   function toggleAiPanel() {
     beginPanelAnimation();
     setAiPanelLayout((layout) => ({ ...layout, collapsed: !layout.collapsed }));
@@ -213,6 +218,7 @@ export function useWorkspaceChromeLayout(resetAllLayouts: () => void) {
   return {
     aiPanelLayout,
     connectionPanelLayout,
+    expandConnectionPanel,
     expandAiPanel,
     handleAiPanelResize,
     handleConnectionPanelResize,
@@ -227,6 +233,7 @@ export function PanelResizeHandle({
   ariaLabel,
   collapsed,
   collapsedLabel,
+  dataTutorialId,
   onClick,
   side,
   onPointerDown,
@@ -234,6 +241,7 @@ export function PanelResizeHandle({
   ariaLabel: string;
   collapsed?: boolean;
   collapsedLabel?: string;
+  dataTutorialId?: string;
   onClick?: () => void;
   side: "left" | "right";
   onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
@@ -244,6 +252,7 @@ export function PanelResizeHandle({
       className={`panel-resize-handle panel-resize-handle-${side} ${
         collapsed ? "panel-resize-handle-collapsed" : ""
       }`}
+      data-tutorial-id={dataTutorialId}
       onClick={onClick}
       onPointerDown={collapsed ? undefined : onPointerDown}
       title={ariaLabel}

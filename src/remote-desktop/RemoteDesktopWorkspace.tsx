@@ -1223,13 +1223,14 @@ export function RemoteDesktopWorkspace({
             <Icon size={13} />
             {toolbarTitle}
           </span>
-          <div className="terminal-pane-actions">
+          <div className="terminal-pane-actions" data-tutorial-id="remoteDesktop.toolbar">
             {tab.subtitle ? <small>{tab.subtitle}</small> : null}
           {rdpStatus ? <span className="webview-toolbar-status">{rdpStatus}</span> : null}
           {canStartRdp || canStartVnc ? (
             <button
               aria-label={`${t("remoteDesktop.sendCtrlAltDel")} ${typeLabel} ${t("remoteDesktop.session")}`}
               className="terminal-pane-action"
+              data-tutorial-id="remoteDesktop.sendCtrlAltDel"
               disabled={!isTauriRuntime() || !sessionStartedRef.current}
               onClick={handleSendCtrlAltDelete}
               title={t("remoteDesktop.sendCtrlAltDel")}
@@ -1242,6 +1243,7 @@ export function RemoteDesktopWorkspace({
             <button
               aria-label={`${t("remoteDesktop.reconnect")} ${typeLabel} ${t("remoteDesktop.session")}`}
               className="terminal-pane-action"
+              data-tutorial-id="remoteDesktop.reconnect"
               disabled={!isTauriRuntime()}
               onClick={handleReconnect}
               title={t("remoteDesktop.reconnect")}
@@ -1252,12 +1254,14 @@ export function RemoteDesktopWorkspace({
           ) : null}
           <ScreenshotMenu
             buttonClassName="terminal-pane-action"
+            dataTutorialId="workspace.screenshotMenu"
             targetRef={connection?.type === "rdp" || connection?.type === "vnc" ? hostRef : workspaceRef}
           />
           {canStartRdp || canStartVnc ? (
             <button
               aria-label={t("workspace.sendEntirePanelToAi")}
               className="terminal-pane-action"
+              data-tutorial-id="remoteDesktop.sendToAi"
               disabled={!isTauriRuntime()}
               onClick={() => void captureTargetScreenshotForAssistant()}
               title={t("workspace.sendEntirePanelToAi")}
@@ -1271,6 +1275,7 @@ export function RemoteDesktopWorkspace({
         </header>
       <div
         className="remote-desktop-workspace"
+        data-tutorial-id="remoteDesktop.surface"
         ref={hostRef}
       >
         {connection?.type === "rdp" && rdpSnapshot ? (

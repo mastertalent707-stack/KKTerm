@@ -277,7 +277,7 @@ export function AppearanceSettings({ onResetLayout }: { onResetLayout: () => voi
           <p className="field-hint">{t("settings.typographyHint")}</p>
         </div>
         <div className="form-grid appearance-font-grid">
-          <label>
+          <label data-tutorial-id="settings.appUiFontFamily">
             <span>{t("settings.appUiFontFamily")}</span>
             <div className="input-with-button">
               <select
@@ -369,7 +369,10 @@ export function AppearanceSettings({ onResetLayout }: { onResetLayout: () => voi
           </div>
         </div>
       </fieldset>
-      <div className="settings-reset-layout">
+      <div
+        className="settings-reset-layout"
+        data-tutorial-id="settings.resetLayout"
+      >
         <div>
           <strong>{t("settings.layout")}</strong>
           <span>{t("settings.resetLayoutDescription")}</span>

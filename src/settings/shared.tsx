@@ -35,6 +35,7 @@ export function SettingsCollapsibleFieldset({
   children,
   className = "settings-subsection settings-fieldset",
   collapseLabel,
+  dataTutorialId,
   defaultCollapsed = true,
   expandLabel,
   legend,
@@ -42,6 +43,7 @@ export function SettingsCollapsibleFieldset({
   children: ReactNode;
   className?: string;
   collapseLabel: string;
+  dataTutorialId?: string;
   defaultCollapsed?: boolean;
   expandLabel: string;
   legend: string;
@@ -51,7 +53,10 @@ export function SettingsCollapsibleFieldset({
   const toggleLabel = expanded ? collapseLabel : expandLabel;
 
   return (
-    <fieldset className={`${className} settings-collapsible-fieldset`}>
+    <fieldset
+      className={`${className} settings-collapsible-fieldset`}
+      data-tutorial-id={dataTutorialId}
+    >
       <legend>
         <button
           aria-controls={contentId}

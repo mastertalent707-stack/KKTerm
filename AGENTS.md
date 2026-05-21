@@ -10,6 +10,8 @@ End-user operation docs live in `docs/manual/` and ship with the app. `docs/manu
 
 **Update rule:** any PR that changes UI behavior in a chapter's scope must update that chapter in the same PR. When a key is renamed or removed, run `git grep "<old.key>" docs/manual` and fix every reference. New UI surfaces require either a new chapter or a new section in the closest existing chapter — choose by activity-rail module, matching `INDEX.md`. Do not document English label text directly; reference the i18n key. The in-app AI Assistant grep-searches `docs/manual/` to answer "how do I…" questions, so keep each chapter's `## AI grep hints` block accurate (keys, file paths, common synonyms).
 
+**Tutorial navigation rule:** any UI element that the AI Assistant can offer to show must have a stable `data-tutorial-id`, a matching navigation entry in `src/app/tutorialNavigationModel.ts`, and matching `tutorial_highlight` tool metadata in `src-tauri/src/ai.rs`. Update the relevant manual chapter's `## AI grep hints` with the target id. `npm run check` scans these anchors and mappings; do not add tutorial-capable UI without making that check pass.
+
 ## Constitution
 
 These rules apply to every task in this project unless explicitly overridden.

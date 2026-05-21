@@ -61,7 +61,10 @@ export function AboutSettings() {
         <PackageOpen size={34} />
       </div>
 
-      <div className="settings-summary-grid">
+      <div
+        className="settings-summary-grid"
+        data-tutorial-id="settings.aboutVersion"
+      >
         <SettingsSummary label={t("settings.developer")} value={ABOUT_PRODUCT.developer} />
         <SettingsSummary label={t("settings.version")} value={ABOUT_PRODUCT.version} />
         <SettingsSummary label={t("settings.license")} value={ABOUT_PRODUCT.license} />

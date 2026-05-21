@@ -377,13 +377,19 @@ new CustomEvent("kkterm:connection-tree-invalidated"),
         </div>
       </fieldset>
 
-      <fieldset className="settings-subsection settings-fieldset">
+      <fieldset
+        className="settings-subsection settings-fieldset"
+        data-tutorial-id="settings.workspaceAccess"
+      >
         <legend>{t("settings.performance")}</legend>
         <div>
           <p className="field-hint">{t("settings.performanceHint")}</p>
         </div>
         <div className="settings-toggle-list">
-          <label className="settings-toggle-row">
+          <label
+            className="settings-toggle-row"
+            data-tutorial-id="settings.useDirectxScreenCapture"
+          >
             <ToggleSwitch
               checked={draft.useDirectxScreenCapture}
               onChange={(checked) =>
@@ -398,7 +404,10 @@ new CustomEvent("kkterm:connection-tree-invalidated"),
         </div>
       </fieldset>
 
-      <fieldset className="settings-subsection settings-fieldset">
+      <fieldset
+        className="settings-subsection settings-fieldset"
+        data-tutorial-id="settings.settingsData"
+      >
         <legend>{t("settings.settingsData")}</legend>
         <div>
           <p className="field-hint">
