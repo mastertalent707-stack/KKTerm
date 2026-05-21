@@ -53,7 +53,7 @@ const TUTORIAL_TOOL_KNOWN_TARGETS: &str = concat!(
     "sftp.toolbar, sftp.upload, sftp.download, sftp.terminal, sftp.localPane, sftp.remotePane, sftp.transferQueue with navigation page=workspace; ",
     "webview.toolbar, webview.address, webview.openExternally, webview.autoRefresh, webview.savePassword, webview.fillCredential, webview.surface with navigation page=workspace; ",
     "remoteDesktop.toolbar, remoteDesktop.sendCtrlAltDel, remoteDesktop.reconnect, remoteDesktop.sendToAi, remoteDesktop.surface with navigation page=workspace; ",
-    "settings.language, settings.workspaceAccess, settings.useDirectxScreenCapture, settings.settingsData with navigation page=settings settingsSectionId=general-settings; ",
+    "settings.language, settings.workspaceAccess, settings.useDirectxScreenCapture, settings.statusBar, settings.settingsData with navigation page=settings settingsSectionId=general-settings; ",
     "settings.appUiFontFamily, settings.appearance.colorScheme, settings.resetLayout with navigation page=settings settingsSectionId=appearance-settings; ",
     "settings.dashboardDefaultLanding, settings.dashboardUseRandomDynamicBackground, settings.dashboardMaxActiveScriptWidgets with navigation page=settings settingsSectionId=dashboard-settings; ",
     "settings.credentialsStored, settings.widgetCredentialsStored with navigation page=settings settingsSectionId=credentials-settings; ",

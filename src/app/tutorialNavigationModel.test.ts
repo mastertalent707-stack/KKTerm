@@ -96,6 +96,7 @@ for (const targetId of workspaceTargets) {
 const settingsTargets = [
   ["settings.workspaceAccess", "general-settings"],
   ["settings.useDirectxScreenCapture", "general-settings"],
+  ["settings.statusBar", "general-settings"],
   ["settings.settingsData", "general-settings"],
   ["settings.appUiFontFamily", "appearance-settings"],
   ["settings.resetLayout", "appearance-settings"],

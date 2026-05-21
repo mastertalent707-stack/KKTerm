@@ -46,10 +46,16 @@ export function useDebugFrontendHeartbeat() {
 }
 
 export function useHostUsagePolling() {
+  const statusBarMonitorEnabled = useWorkspaceStore(
+    (state) => state.generalSettings.statusBarMonitorEnabled,
+  );
+  const statusBarMonitorIntervalSeconds = useWorkspaceStore(
+    (state) => state.generalSettings.statusBarMonitorIntervalSeconds,
+  );
   const setHostUsageSnapshot = useWorkspaceStore((state) => state.setHostUsageSnapshot);
 
   useEffect(() => {
-    if (!isTauriRuntime()) {
+    if (!isTauriRuntime() || !statusBarMonitorEnabled) {
       return;
     }
 
@@ -73,12 +79,13 @@ export function useHostUsagePolling() {
     }
 
     void refreshHostUsageSnapshot();
-    const interval = window.setInterval(() => void refreshHostUsageSnapshot(), 5_000);
+    const intervalMs = statusBarMonitorIntervalSeconds * 1_000;
+    const interval = window.setInterval(() => void refreshHostUsageSnapshot(), intervalMs);
     return () => {
       disposed = true;
       window.clearInterval(interval);
     };
-  }, [setHostUsageSnapshot]);
+  }, [setHostUsageSnapshot, statusBarMonitorEnabled, statusBarMonitorIntervalSeconds]);
 }
 
 export function useGlobalContextMenuSuppression() {

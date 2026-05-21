@@ -30,6 +30,8 @@ export const defaultGeneralSettings: GeneralSettings = {
   minimizeToTray: true,
   dontSleepEnabled: false,
   useDirectxScreenCapture: true,
+  statusBarMonitorEnabled: true,
+  statusBarMonitorIntervalSeconds: 5,
   lastBackupAt: null,
 };
 

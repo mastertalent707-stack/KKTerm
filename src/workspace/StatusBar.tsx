@@ -1,6 +1,7 @@
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  Coffee,
   Cpu,
   LoaderCircle,
   MemoryStick,
@@ -22,6 +23,9 @@ export function StatusBar({
 }) {
   const { t } = useTranslation();
   const notice = useWorkspaceStore((state) => state.statusBarNotice);
+  const statusBarMonitorEnabled = useWorkspaceStore(
+    (state) => state.generalSettings.statusBarMonitorEnabled,
+  );
   const clearStatusBarNotice = useWorkspaceStore((state) => state.clearStatusBarNotice);
   const [renderedNotice, setRenderedNotice] = useState(notice);
   const [isNoticeExiting, setIsNoticeExiting] = useState(false);
@@ -59,8 +63,8 @@ export function StatusBar({
 
   return (
     <footer className="status-bar" data-tutorial-id="workspace.statusBar">
-      <div className="status-bar-module">
-        <WorkspaceHostMetrics t={t} />
+      <div className={`status-bar-module ${statusBarMonitorEnabled ? "" : "metrics-disabled"}`}>
+        {statusBarMonitorEnabled ? <WorkspaceHostMetrics t={t} /> : null}
         <AiCodingUsageStatusBar onOpenDashboardView={onOpenDashboardView} />
       </div>
       <div className="status-bar-notice-area">
@@ -76,9 +80,35 @@ export function StatusBar({
         ) : null}
       </div>
       <div className="status-bar-actions">
+        <DontSleepStatusIcon />
         <AssistantWorkingStatusButton onOpenAssistant={onOpenAssistant} />
       </div>
     </footer>
+  );
+}
+
+function DontSleepStatusIcon() {
+  const { t } = useTranslation();
+  const dontSleepEnabled = useWorkspaceStore(
+    (state) => state.generalSettings.dontSleepEnabled,
+  );
+
+  if (!dontSleepEnabled) {
+    return null;
+  }
+
+  return (
+    <span
+      className="status-bar-action status-bar-dont-sleep-enabled"
+      aria-label={t("app.dontSleepStatusEnabled")}
+      aria-describedby="dont-sleep-status-tooltip"
+      role="status"
+    >
+      <Coffee size={14} />
+      <span className="status-bar-tooltip" id="dont-sleep-status-tooltip" role="tooltip">
+        {t("app.dontSleepStatusEnabled")}
+      </span>
+    </span>
   );
 }
 

@@ -5980,6 +5980,10 @@ progress {
   min-width: 438px;
 }
 
+.status-bar-module.metrics-disabled {
+  min-width: 0;
+}
+
 .status-bar-module-text {
   color: var(--text-muted);
   font-size: 12px;
@@ -6022,6 +6026,10 @@ progress {
 
 .status-bar-assistant-working {
   color: var(--accent);
+}
+
+.status-bar-dont-sleep-enabled {
+  color: var(--amber);
 }
 
 .status-bar-assistant-working svg {
