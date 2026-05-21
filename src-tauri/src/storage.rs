@@ -285,6 +285,10 @@ pub struct GeneralSettings {
     dont_sleep_enabled: bool,
     #[serde(default = "default_use_directx_screen_capture")]
     use_directx_screen_capture: bool,
+    #[serde(default = "default_status_bar_monitor_enabled")]
+    status_bar_monitor_enabled: bool,
+    #[serde(default = "default_status_bar_monitor_interval_seconds")]
+    status_bar_monitor_interval_seconds: u32,
     #[serde(default)]
     last_backup_at: Option<String>,
 }
@@ -4066,7 +4070,7 @@ fn required_field(field: &str, value: String) -> Result<String, String> {
 fn default_general_settings() -> GeneralSettings {
     GeneralSettings {
         auto_backup_enabled: true,
-        auto_update_checks_enabled: false,
+        auto_update_checks_enabled: default_auto_update_checks_enabled(),
         show_connected_connections_in_rail: true,
         pinned_connection_ids: Vec::new(),
         allow_clipboard_read: default_allow_clipboard_read(),
@@ -4074,6 +4078,8 @@ fn default_general_settings() -> GeneralSettings {
         minimize_to_tray: false,
         dont_sleep_enabled: false,
         use_directx_screen_capture: default_use_directx_screen_capture(),
+        status_bar_monitor_enabled: default_status_bar_monitor_enabled(),
+        status_bar_monitor_interval_seconds: default_status_bar_monitor_interval_seconds(),
         last_backup_at: None,
     }
 }
@@ -4144,11 +4150,19 @@ fn default_show_connected_connections_in_rail() -> bool {
 }
 
 fn default_auto_update_checks_enabled() -> bool {
-    false
+    true
 }
 
 fn default_allow_clipboard_read() -> bool {
     true
+}
+
+fn default_status_bar_monitor_enabled() -> bool {
+    true
+}
+
+fn default_status_bar_monitor_interval_seconds() -> u32 {
+    5
 }
 
 fn default_terminal_settings() -> TerminalSettings {
@@ -4452,6 +4466,11 @@ fn default_ai_api_mode() -> String {
 
 fn validate_general_settings(mut settings: GeneralSettings) -> Result<GeneralSettings, String> {
     settings.pinned_connection_ids = unique_non_empty_strings(settings.pinned_connection_ids);
+    settings.status_bar_monitor_interval_seconds = match settings.status_bar_monitor_interval_seconds
+    {
+        5 | 15 | 30 | 60 | 300 => settings.status_bar_monitor_interval_seconds,
+        _ => default_status_bar_monitor_interval_seconds(),
+    };
     Ok(settings)
 }
 
@@ -5979,7 +5998,7 @@ mod tests {
             .general_settings()
             .expect("default general settings load");
         assert!(defaults.auto_backup_enabled);
-        assert!(!defaults.auto_update_checks_enabled);
+        assert!(defaults.auto_update_checks_enabled);
         assert!(defaults.show_connected_connections_in_rail);
         assert!(defaults.pinned_connection_ids.is_empty());
         assert!(defaults.allow_clipboard_read);
@@ -5987,12 +6006,14 @@ mod tests {
         assert!(!defaults.minimize_to_tray);
         assert!(!defaults.dont_sleep_enabled);
         assert!(defaults.use_directx_screen_capture);
+        assert!(defaults.status_bar_monitor_enabled);
+        assert_eq!(defaults.status_bar_monitor_interval_seconds, 5);
         assert!(defaults.last_backup_at.is_none());
 
         let updated = storage
             .update_general_settings(GeneralSettings {
                 auto_backup_enabled: false,
-                auto_update_checks_enabled: true,
+                auto_update_checks_enabled: false,
                 show_connected_connections_in_rail: true,
                 pinned_connection_ids: vec![
                     " connection-a ".to_string(),
@@ -6005,10 +6026,13 @@ mod tests {
                 minimize_to_tray: true,
                 dont_sleep_enabled: true,
                 use_directx_screen_capture: false,
+                status_bar_monitor_enabled: false,
+                status_bar_monitor_interval_seconds: 30,
                 last_backup_at: None,
             })
             .expect("general settings update");
         assert!(!updated.auto_backup_enabled);
+        assert!(!updated.auto_update_checks_enabled);
         assert!(updated.show_connected_connections_in_rail);
         assert_eq!(
             updated.pinned_connection_ids,
@@ -6019,9 +6043,12 @@ mod tests {
         assert!(updated.minimize_to_tray);
         assert!(updated.dont_sleep_enabled);
         assert!(!updated.use_directx_screen_capture);
+        assert!(!updated.status_bar_monitor_enabled);
+        assert_eq!(updated.status_bar_monitor_interval_seconds, 30);
 
         let reloaded = storage.general_settings().expect("general settings reload");
         assert!(!reloaded.auto_backup_enabled);
+        assert!(!reloaded.auto_update_checks_enabled);
         assert!(reloaded.show_connected_connections_in_rail);
         assert_eq!(
             reloaded.pinned_connection_ids,
@@ -6032,6 +6059,8 @@ mod tests {
         assert!(reloaded.minimize_to_tray);
         assert!(reloaded.dont_sleep_enabled);
         assert!(!reloaded.use_directx_screen_capture);
+        assert!(!reloaded.status_bar_monitor_enabled);
+        assert_eq!(reloaded.status_bar_monitor_interval_seconds, 30);
         assert!(reloaded.last_backup_at.is_none());
     }
 
@@ -6266,6 +6295,8 @@ mod tests {
                 minimize_to_tray: true,
                 dont_sleep_enabled: true,
                 use_directx_screen_capture: false,
+                status_bar_monitor_enabled: false,
+                status_bar_monitor_interval_seconds: 15,
                 last_backup_at: None,
             })
             .expect("general settings update");
@@ -6283,6 +6314,8 @@ mod tests {
                 minimize_to_tray: false,
                 dont_sleep_enabled: false,
                 use_directx_screen_capture: true,
+                status_bar_monitor_enabled: true,
+                status_bar_monitor_interval_seconds: 5,
                 last_backup_at: None,
             })
             .expect("general settings changes after export");
@@ -6303,6 +6336,11 @@ mod tests {
         assert!(imported.general_settings.minimize_to_tray);
         assert!(imported.general_settings.dont_sleep_enabled);
         assert!(!imported.general_settings.use_directx_screen_capture);
+        assert!(!imported.general_settings.status_bar_monitor_enabled);
+        assert_eq!(
+            imported.general_settings.status_bar_monitor_interval_seconds,
+            15
+        );
         assert_eq!(
             imported.general_settings.last_backup_at.as_deref(),
             Some(imported.backup.created_at.as_str())

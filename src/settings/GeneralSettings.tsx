@@ -44,6 +44,8 @@ import {
 import { SettingsSectionHeader } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
 
+const STATUS_BAR_MONITOR_INTERVAL_OPTIONS = [5, 15, 30, 60, 300] as const;
+
 function formatBackupDate(value?: string | null) {
   if (!value) {
     return null;
@@ -400,6 +402,51 @@ new CustomEvent("kkterm:connection-tree-invalidated"),
               <strong>{t("settings.useDirectxScreenCapture")}</strong>
               <small>{t("settings.useDirectxScreenCaptureHint")}</small>
             </span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset
+        className="settings-subsection settings-fieldset"
+        data-tutorial-id="settings.statusBar"
+      >
+        <legend>{t("settings.statusBar")}</legend>
+        <div>
+          <p className="field-hint">{t("settings.statusBarHint")}</p>
+        </div>
+        <div className="settings-toggle-list">
+          <label className="settings-toggle-row">
+            <ToggleSwitch
+              checked={draft.statusBarMonitorEnabled}
+              onChange={(checked) =>
+                setDraft((s) => ({ ...s, statusBarMonitorEnabled: checked }))
+              }
+            />
+            <span>
+              <strong>{t("settings.statusBarMonitor")}</strong>
+              <small>{t("settings.statusBarMonitorHint")}</small>
+            </span>
+          </label>
+        </div>
+        <div className="form-grid general-settings-grid">
+          <label>
+            <span>{t("settings.statusBarMonitorInterval")}</span>
+            <select
+              disabled={!draft.statusBarMonitorEnabled}
+              value={draft.statusBarMonitorIntervalSeconds}
+              onChange={(event) =>
+                setDraft((s) => ({
+                  ...s,
+                  statusBarMonitorIntervalSeconds: Number(event.currentTarget.value),
+                }))
+              }
+            >
+              {STATUS_BAR_MONITOR_INTERVAL_OPTIONS.map((seconds) => (
+                <option key={seconds} value={seconds}>
+                  {t(`settings.statusBarMonitorInterval${seconds}`)}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
       </fieldset>

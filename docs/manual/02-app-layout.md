@@ -2,9 +2,9 @@
 
 ## AI grep hints
 
-- Keys: `app.primaryNav`, `app.connectionRail`, `app.connectedConnectionsRail`, `app.resizeConnections`, `app.resizeAiAssistant`, `app.openConnectedConnection`, `app.openPinnedConnection`, `workspace.workspaceSurface`, `workspace.hostUsage`
-- Topics: Activity Rail, panel resize, pinned Connections on the rail, Connections panel collapse, universal AI Assistant panel, universal host usage status bar, tutorial targets `app.activityRailWorkspace`, `app.activityRailDashboard`, `app.connectionRail`, `app.activityRailDontSleep`, `app.activityRailSettings`, `app.connectionsResize`, `app.aiAssistantResize`, `workspace.statusBar`, `workspace.hostUsage`
-- Synonyms: "left bar", "sidebar", "right panel", "AI sidebar", "make panel wider", "hide the AI panel"
+- Keys: `app.primaryNav`, `app.connectionRail`, `app.connectedConnectionsRail`, `app.resizeConnections`, `app.resizeAiAssistant`, `app.openConnectedConnection`, `app.openPinnedConnection`, `app.dontSleepStatusEnabled`, `workspace.workspaceSurface`, `workspace.hostUsage`
+- Topics: Activity Rail, panel resize, pinned Connections on the rail, Connections panel collapse, universal AI Assistant panel, universal host usage status bar, Don't Sleep Status Bar indicator, tutorial targets `app.activityRailWorkspace`, `app.activityRailDashboard`, `app.connectionRail`, `app.activityRailDontSleep`, `app.activityRailSettings`, `app.connectionsResize`, `app.aiAssistantResize`, `workspace.statusBar`, `workspace.hostUsage`
+- Synonyms: "left bar", "sidebar", "right panel", "AI sidebar", "make panel wider", "hide the AI panel", "bottom bar", "coffee icon", "don't sleep indicator"
 
 ## Activity Rail (48 px, left edge)
 
@@ -54,13 +54,15 @@ The panel remains available on Settings and receives a Settings page context so 
 
 ## Status Bar (bottom)
 
-Owned by `src/workspace/StatusBar.tsx`. Two roles:
+Owned by `src/workspace/StatusBar.tsx`. Three roles:
 
 1. **Host usage metrics** (left side, visible in every module/page):
    - `workspace.cpu` / `workspace.cpuUsage`
    - `workspace.ram` / `workspace.ramUsage` / `workspace.memory`
    - `workspace.network` / `workspace.networkUsage`, broken into `workspace.networkDownstream` and `workspace.networkUpstream`
+   General Settings → `settings.statusBar` can disable this monitor completely with `settings.statusBarMonitor`; when disabled, host usage polling stops instead of only hiding the metrics. `settings.statusBarMonitorInterval` controls the polling interval while enabled.
 2. **Transient notifications** — driven by the shared `showStatusBarNotice` store action. Success messages default to 5 seconds, then fade. Do not implement one-off toast surfaces; route through `showStatusBarNotice`.
+3. **Don't Sleep state** — when Don't Sleep mode is enabled, the right side shows a coffee icon with tooltip `app.dontSleepStatusEnabled`.
 
 Tutorial targets: `workspace.statusBar`, `workspace.hostUsage`.
 

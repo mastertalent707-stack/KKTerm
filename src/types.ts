@@ -184,6 +184,8 @@ export interface GeneralSettings {
   minimizeToTray: boolean;
   dontSleepEnabled: boolean;
   useDirectxScreenCapture: boolean;
+  statusBarMonitorEnabled: boolean;
+  statusBarMonitorIntervalSeconds: number;
   lastBackupAt?: string | null;
 }
 

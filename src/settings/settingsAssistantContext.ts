@@ -59,6 +59,11 @@ const SETTINGS_SECTIONS: Record<SettingsSectionId, SettingsSectionSummary> = {
         description: "DXGI Desktop Duplication screenshot acceleration toggle.",
         tutorialTargetId: "settings.useDirectxScreenCapture",
       },
+      {
+        key: "settings.statusBar",
+        description: "Status Bar CPU/RAM/Network monitor visibility and polling interval.",
+        tutorialTargetId: "settings.statusBar",
+      },
       { key: "settings.autoStartWithWindows", description: "Launch KKTerm minimized when the user signs in to Windows." },
       {
         key: "settings.settingsData",

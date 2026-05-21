@@ -32,6 +32,10 @@ if (!general.text.includes("Tutorial target: settings.language.")) {
   throw new Error("General context should include the language tutorial target.");
 }
 
+if (!general.text.includes("Tutorial target: settings.statusBar.")) {
+  throw new Error("General context should include the Status Bar tutorial target.");
+}
+
 const colorTarget = settingsTutorialTargetForPrompt(
   "How do I change color?",
   "appearance-settings",
