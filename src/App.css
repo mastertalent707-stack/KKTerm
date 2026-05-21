@@ -10833,14 +10833,16 @@ fieldset.connection-specific-options > legend {
   border-top: 1px solid var(--border);
 }
 
-.ai-coding-provider:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-
 .ai-coding-provider-header {
   justify-content: space-between;
   gap: 8px;
+}
+
+.ai-coding-provider-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .ai-coding-provider-identity {
