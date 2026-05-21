@@ -75,7 +75,7 @@ Plus a few things you didn't know you wanted:
 
 - A **Dashboard** where you tell an AI *"build me a widget that pings my router every 30 seconds"* and it appears, sandboxed, on your grid.
 - **SSH panes that auto-attach to named tmux sessions** so your remote `claude` / `codex` / `aider` session survives every Wi-Fi tantrum your laptop throws.
-- Nine **animated canvas backgrounds** (yes, including `matrix`) for the dashboard, because we are not above it.
+- Twenty-one **animated canvas backgrounds** (yes, including `matrix`) for the dashboard, because we are not above it.
 
 Oh, and the AI assistant can turn a sentence into a tiny dashboard tool you actually keep using.
 
@@ -209,15 +209,15 @@ Every widget you keep is yours. They persist in SQLite next to your **Connection
 
 #### Animated dashboard backgrounds (because we wanted to)
 
-The dashboard has nine canvas-animated backgrounds you can pick per **Dashboard View**:
+The dashboard has twenty-one canvas-animated backgrounds you can pick per **Dashboard View**:
 
 | Mood | Backgrounds |
 | --- | --- |
-| Calm | `aurora`, `raindrops` |
+| Calm | `aurora`, `clouds`, `ocean`, `raindrops`, `snow`, `sakura`, `fireflies`, `bubbles`, `ricefield`, `lanterns` |
 | Spacey | `starfield`, `nebula` |
 | Warm | `embers`, `lava` |
-| Geeky | `matrix`, `synthwave` |
-| Erratic | `confetti` |
+| Geeky | `matrix`, `topo`, `synthwave` |
+| Erratic | `cyberpunk`, `taipei101`, `thunderstorm`, `confetti` |
 
 They run on a single shared `requestAnimationFrame` and respect window focus, so they cost roughly nothing when you're elsewhere. Pair `matrix` with your AI assistant for a vibe that says "I am extremely productive and also possibly in a Wachowski film." Or pick `mist` and look like a serious person. We do not judge either choice.
 
