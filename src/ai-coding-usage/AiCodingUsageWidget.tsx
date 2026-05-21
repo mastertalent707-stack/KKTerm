@@ -314,53 +314,64 @@ function ProviderSlot({
             </span>
           </span>
         </div>
-        {connected ? (
-          <div className="ai-coding-provider-actions">
-            <button
-              type="button"
-              className="dashboard-widget-icon-button"
-              onClick={onDisconnect}
-              disabled={busy}
-              aria-label={t("dashboard.aiCodingUsageDisconnectProvider", { provider: label })}
-              title={t("dashboard.aiCodingUsageDisconnectProvider", { provider: label })}
-            >
-              <LogOut size={13} />
-            </button>
-            <button
-              type="button"
-              className="dashboard-widget-icon-button"
-              onClick={onRemove}
-              disabled={busy}
-              aria-label={t("dashboard.aiCodingUsageRemoveProvider", { provider: label })}
-              title={t("dashboard.aiCodingUsageRemoveProvider", { provider: label })}
-            >
-              <X size={13} />
-            </button>
-          </div>
-        ) : (
-          <div className="ai-coding-provider-actions">
-            <button
-              type="button"
-              className="dashboard-widget-icon-button"
-              onClick={onRemove}
-              disabled={busy}
-              aria-label={t("dashboard.aiCodingUsageRemoveProvider", { provider: label })}
-              title={t("dashboard.aiCodingUsageRemoveProvider", { provider: label })}
-            >
-              <X size={13} />
-            </button>
-            <button
-              type="button"
-              className="ai-coding-connect"
-              onClick={onConnect}
-              disabled={busy}
-            >
-              {busy
-                ? t("dashboard.aiCodingUsageConnecting")
-                : t("dashboard.aiCodingUsageConnectProvider", { provider: label })}
-            </button>
-          </div>
-        )}
+        <div className="ai-coding-provider-header-right">
+          {connected ? (
+            <div className="ai-coding-provider-meta">
+              {provider.lastRefreshAt
+                ? t("dashboard.aiCodingUsageLastRefresh", {
+                    time: formatDateTime(provider.lastRefreshAt),
+                  })
+                : t("dashboard.aiCodingUsageNeverRefreshed")}
+            </div>
+          ) : null}
+          {connected ? (
+            <div className="ai-coding-provider-actions">
+              <button
+                type="button"
+                className="dashboard-widget-icon-button"
+                onClick={onDisconnect}
+                disabled={busy}
+                aria-label={t("dashboard.aiCodingUsageDisconnectProvider", { provider: label })}
+                title={t("dashboard.aiCodingUsageDisconnectProvider", { provider: label })}
+              >
+                <LogOut size={13} />
+              </button>
+              <button
+                type="button"
+                className="dashboard-widget-icon-button"
+                onClick={onRemove}
+                disabled={busy}
+                aria-label={t("dashboard.aiCodingUsageRemoveProvider", { provider: label })}
+                title={t("dashboard.aiCodingUsageRemoveProvider", { provider: label })}
+              >
+                <X size={13} />
+              </button>
+            </div>
+          ) : (
+            <div className="ai-coding-provider-actions">
+              <button
+                type="button"
+                className="dashboard-widget-icon-button"
+                onClick={onRemove}
+                disabled={busy}
+                aria-label={t("dashboard.aiCodingUsageRemoveProvider", { provider: label })}
+                title={t("dashboard.aiCodingUsageRemoveProvider", { provider: label })}
+              >
+                <X size={13} />
+              </button>
+              <button
+                type="button"
+                className="ai-coding-connect"
+                onClick={onConnect}
+                disabled={busy}
+              >
+                {busy
+                  ? t("dashboard.aiCodingUsageConnecting")
+                  : t("dashboard.aiCodingUsageConnectProvider", { provider: label })}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {connected ? (
@@ -373,13 +384,6 @@ function ProviderSlot({
             label={t("dashboard.aiCodingUsageWeekly")}
             quota={provider.weekly}
           />
-          <div className="ai-coding-provider-meta">
-            {provider.lastRefreshAt
-              ? t("dashboard.aiCodingUsageLastRefresh", {
-                  time: formatDateTime(provider.lastRefreshAt),
-                })
-              : t("dashboard.aiCodingUsageNeverRefreshed")}
-          </div>
         </>
       ) : (
         <div className="ai-coding-provider-empty">
