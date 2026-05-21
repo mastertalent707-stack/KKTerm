@@ -1504,9 +1504,9 @@ function Taipei101Bg() {
       state.parts ??= [];
       state.bucket ??= -1;
       state.last = time;
-      const segH = Math.max(18, nextHeight * 0.075);
-      const baseW = Math.max(18, nextWidth * 0.025);
-      state.tower = { cx: nextWidth * 0.52, base: nextHeight * 0.94, segH, baseW };
+      const segH = Math.max(20, Math.min(nextHeight * 0.074, nextWidth * 0.18));
+      const baseW = Math.max(18, segH * 0.42);
+      state.tower = { cx: nextWidth * 0.52, base: nextHeight + 1, segH, baseW };
       if (!state.skyline) {
         state.skyline = [];
         let x = 0;
@@ -1530,10 +1530,7 @@ function Taipei101Bg() {
       [50, 95, 70],
       [120, 80, 60],
     ] as const;
-    const halfW = (index: number) => {
-      const flare = 1 + 0.14 * Math.sin((index / 7) * Math.PI);
-      return (tower.baseW + index * 1.2) * flare;
-    };
+    const halfW = () => tower.baseW * 1.5;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, height);
     gradient.addColorStop(0, "#03050d");
@@ -1564,39 +1561,178 @@ function Taipei101Bg() {
       }
     }
 
-    ctx.fillStyle = "#050810";
-    ctx.strokeStyle = "rgba(80,120,170,0.45)";
-    ctx.lineWidth = 1.1;
-    for (let i = 0; i < 8; i += 1) {
-      const segmentBottom = tower.base - i * tower.segH;
-      const segmentTop = segmentBottom - tower.segH;
-      const halfBottom = halfW(i);
-      const halfTop = halfW(i + 1) * 0.92;
+    const towerFill = "#03070e";
+    const towerStroke = "rgba(140,190,235,0.62)";
+    const lightStroke = "rgba(185,235,255,0.72)";
+    const windowLight = (seed: number) => {
+      const flick = 0.55 + 0.45 * Math.sin(time * (0.8 + (seed % 5) * 0.11) + seed * 1.73);
+      return `rgba(210,245,255,${0.35 + flick * 0.42})`;
+    };
+    const drawPath = (points: Array<[number, number]>, fill = towerFill, stroke = towerStroke) => {
       ctx.beginPath();
-      ctx.moveTo(tower.cx - halfBottom, segmentBottom);
-      ctx.lineTo(tower.cx + halfBottom, segmentBottom);
-      ctx.lineTo(tower.cx + halfTop, segmentTop);
-      ctx.lineTo(tower.cx - halfTop, segmentTop);
+      ctx.moveTo(points[0][0], points[0][1]);
+      for (let i = 1; i < points.length; i += 1) ctx.lineTo(points[i][0], points[i][1]);
       ctx.closePath();
-      ctx.fillStyle = "#050810";
+      ctx.fillStyle = fill;
       ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1.15;
       ctx.stroke();
-      ctx.fillStyle = "rgba(120,180,255,0.18)";
-      ctx.fillRect(tower.cx - halfBottom - 0.5, segmentBottom - 2, halfBottom * 2 + 1, 1);
+    };
+    const drawWindowGrid = (
+      centerX: number,
+      top: number,
+      rows: number,
+      cols: number,
+      cellW: number,
+      cellH: number,
+      gapX: number,
+      gapY: number,
+      seedBase: number,
+    ) => {
+      const totalW = cols * cellW + (cols - 1) * gapX;
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          const seed = seedBase + row * 13 + col * 7;
+          const lit = (seed % 9) !== 0;
+          ctx.strokeStyle = lit ? windowLight(seed) : "rgba(80,125,150,0.32)";
+          ctx.lineWidth = 0.72;
+          ctx.strokeRect(
+            centerX - totalW / 2 + col * (cellW + gapX),
+            top + row * (cellH + gapY),
+            cellW,
+            cellH,
+          );
+        }
+      }
+    };
+
+    const baseHeight = tower.segH * 1.72;
+    const baseTop = tower.base - baseHeight;
+    const baseBottomHalf = tower.baseW * 1.72;
+    const baseTopHalf = tower.baseW * 1.28;
+    drawPath([
+      [tower.cx - baseBottomHalf, tower.base],
+      [tower.cx + baseBottomHalf, tower.base],
+      [tower.cx + baseTopHalf, baseTop],
+      [tower.cx - baseTopHalf, baseTop],
+    ]);
+    ctx.strokeStyle = lightStroke;
+    ctx.lineWidth = 0.85;
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(tower.cx + side * baseBottomHalf * 0.52, tower.base - 3);
+      ctx.lineTo(tower.cx + side * baseTopHalf * 0.62, baseTop + 8);
+      ctx.stroke();
     }
-    const topY = tower.base - 8 * tower.segH;
-    ctx.fillStyle = "#080d18";
+    drawWindowGrid(tower.cx, baseTop + tower.segH * 0.22, 9, 3, tower.baseW * 0.26, 2.6, 3.3, 4.2, 320);
+    for (let row = 0; row < 12; row += 1) {
+      const y = baseTop + 8 + row * ((baseHeight - 18) / 12);
+      ctx.strokeStyle = windowLight(430 + row);
+      ctx.lineWidth = 0.72;
+      for (const side of [-1, 1]) {
+        ctx.strokeRect(tower.cx + side * tower.baseW * 0.65 - (side === 1 ? 0 : tower.baseW * 0.36), y, tower.baseW * 0.36, 2.4);
+      }
+    }
+    const medallionY = baseTop + tower.segH * 0.1;
+    ctx.fillStyle = "#07111d";
+    ctx.strokeStyle = `rgba(220,245,255,${0.75 + 0.2 * Math.sin(time * 1.8)})`;
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.moveTo(tower.cx - 3, topY);
-    ctx.lineTo(tower.cx + 3, topY);
-    ctx.lineTo(tower.cx + 0.7, topY - tower.segH * 0.85);
-    ctx.lineTo(tower.cx - 0.7, topY - tower.segH * 0.85);
+    ctx.arc(tower.cx, medallionY, tower.baseW * 0.26, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    for (let i = 0; i < 8; i += 1) {
+      const moduleBottom = baseTop - i * tower.segH;
+      const moduleTop = moduleBottom - tower.segH * 1.14;
+      const ledgeY = moduleBottom - tower.segH * 0.012;
+      const halfTop = halfW();
+      const halfBottom = halfTop * 0.76;
+      const innerHalf = halfBottom * 0.64;
+      const segmentGlow = 0.35 + 0.25 * Math.sin(time * 1.4 + i * 0.7);
+      drawPath([
+        [tower.cx - halfBottom, moduleBottom],
+        [tower.cx + halfBottom, moduleBottom],
+        [tower.cx + halfTop, moduleTop],
+        [tower.cx - halfTop, moduleTop],
+      ]);
+      ctx.fillStyle = "#050810";
+      ctx.fillRect(tower.cx - halfTop * 1.08, ledgeY, halfTop * 2.16, tower.segH * 0.055);
+      ctx.strokeStyle = `rgba(125,200,255,${0.35 + segmentGlow * 0.34})`;
+      ctx.lineWidth = 1.05;
+      ctx.strokeRect(tower.cx - halfTop * 1.08, ledgeY, halfTop * 2.16, tower.segH * 0.055);
+      for (const side of [-1, 1]) {
+        ctx.strokeStyle = `rgba(175,235,255,${0.38 + segmentGlow * 0.28})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(tower.cx + side * halfBottom * 1.06, moduleBottom - 2);
+        ctx.lineTo(tower.cx + side * halfTop * 1.12, moduleTop + 2);
+        ctx.moveTo(tower.cx + side * halfBottom * 0.9, moduleBottom - 2);
+        ctx.lineTo(tower.cx + side * halfTop * 0.94, moduleTop + 2);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = `rgba(115,205,255,${0.32 + segmentGlow * 0.28})`;
+      ctx.lineWidth = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(tower.cx, moduleBottom - 3);
+      ctx.lineTo(tower.cx, moduleTop + 6);
+      ctx.stroke();
+      drawWindowGrid(tower.cx, moduleTop + tower.segH * 0.24, 5, 5, innerHalf * 0.26, 2.6, 2.8, 4.2, 500 + i * 41);
+      ctx.strokeStyle = `rgba(185,235,255,${0.42 + segmentGlow * 0.2})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(tower.cx - tower.baseW * 0.14, moduleBottom - tower.segH * 0.1);
+      ctx.lineTo(tower.cx, moduleBottom - tower.segH * 0.16);
+      ctx.lineTo(tower.cx + tower.baseW * 0.14, moduleBottom - tower.segH * 0.1);
+      ctx.stroke();
+    }
+    const topY = baseTop - 8 * tower.segH;
+    const crownGlow = 0.72 + 0.28 * Math.sin(time * 2.2);
+    const crownHalf = tower.baseW * 0.82;
+    const crownHeight = tower.segH * 0.82;
+    const crownY = topY - crownHeight * 0.88;
+    const crownHalo = ctx.createRadialGradient(tower.cx, crownY, 0, tower.cx, crownY, tower.segH * 2.3);
+    crownHalo.addColorStop(0, `rgba(95,170,255,${0.32 * crownGlow})`);
+    crownHalo.addColorStop(0.42, `rgba(70,130,255,${0.16 * crownGlow})`);
+    crownHalo.addColorStop(1, "rgba(70,130,255,0)");
+    ctx.fillStyle = crownHalo;
+    ctx.beginPath();
+    ctx.arc(tower.cx, crownY, tower.segH * 2.3, 0, Math.PI * 2);
+    ctx.fill();
+    drawPath(
+      [
+        [tower.cx - crownHalf * 0.78, topY],
+        [tower.cx + crownHalf * 0.78, topY],
+        [tower.cx + crownHalf, crownY],
+        [tower.cx - crownHalf, crownY],
+      ],
+      "#081326",
+      `rgba(160,215,255,${0.5 + crownGlow * 0.25})`,
+    );
+    ctx.fillStyle = `rgba(120,205,255,${0.55 + crownGlow * 0.25})`;
+    ctx.fillRect(tower.cx - crownHalf * 0.54, crownY + crownHeight * 0.18, crownHalf * 1.08, 2);
+    drawWindowGrid(tower.cx, crownY + crownHeight * 0.28, 4, 4, crownHalf * 0.24, 2.5, 2.5, 3.8, 900);
+    const spireTop = crownY - tower.segH * 0.88;
+    ctx.fillStyle = "#dbeeff";
+    ctx.beginPath();
+    ctx.moveTo(tower.cx - 2.2, crownY);
+    ctx.lineTo(tower.cx + 2.2, crownY);
+    ctx.lineTo(tower.cx + 0.75, spireTop);
+    ctx.lineTo(tower.cx - 0.75, spireTop);
     ctx.closePath();
     ctx.fill();
-    const blink = Math.sin(time * 1.8) > 0 ? 1 : 0.25;
-    ctx.fillStyle = `rgba(255,70,70,${blink})`;
+    const tipGlow = ctx.createRadialGradient(tower.cx, spireTop - 4, 0, tower.cx, spireTop - 4, tower.segH * 0.75);
+    tipGlow.addColorStop(0, `rgba(255,220,120,${0.92 * crownGlow})`);
+    tipGlow.addColorStop(0.45, `rgba(255,110,45,${0.38 * crownGlow})`);
+    tipGlow.addColorStop(1, "rgba(255,110,45,0)");
+    ctx.fillStyle = tipGlow;
     ctx.beginPath();
-    ctx.arc(tower.cx, topY - tower.segH * 0.85 - 2, 2, 0, Math.PI * 2);
+    ctx.arc(tower.cx, spireTop - 4, tower.segH * 0.75, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = `rgba(255,205,95,${0.86 + crownGlow * 0.14})`;
+    ctx.beginPath();
+    ctx.arc(tower.cx, spireTop - 4, 2.2, 0, Math.PI * 2);
     ctx.fill();
 
     const bucket = Math.floor(time / 0.45);
@@ -1608,8 +1744,8 @@ function Taipei101Bg() {
         state.parts!.push({ ...particle, trail: [] });
       };
       const fireSegment = (segmentIndex: number, intensity: number) => {
-        const cy = tower.base - (segmentIndex + 0.5) * tower.segH;
-        const halfWidth = halfW(segmentIndex + 0.5);
+        const cy = baseTop - (segmentIndex + 0.42) * tower.segH;
+        const halfWidth = halfW();
         const count = Math.floor(18 * intensity);
         for (const side of [-1, 1]) {
           const originX = tower.cx + side * halfWidth;
@@ -1633,7 +1769,7 @@ function Taipei101Bg() {
         }
       };
       const fireSpire = () => {
-        const cy = tower.base - 8 * tower.segH - tower.segH * 0.4;
+        const cy = spireTop - 4;
         for (let i = 0; i < 32; i += 1) {
           const angle = (i / 32) * Math.PI * 2 + Math.random() * 0.15;
           const velocity = 110 + Math.random() * 100;
@@ -1651,6 +1787,27 @@ function Taipei101Bg() {
           });
         }
       };
+      const fireSkyBurst = (count: number) => {
+        const side = Math.random() > 0.5 ? 1 : -1;
+        const x = tower.cx + side * (tower.baseW * 3.8 + Math.random() * width * 0.26);
+        const y = height * (0.15 + Math.random() * 0.38);
+        for (let i = 0; i < count; i += 1) {
+          const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.22;
+          const velocity = 55 + Math.random() * 145;
+          addParticle({
+            x,
+            y,
+            vx: Math.cos(angle) * velocity,
+            vy: Math.sin(angle) * velocity,
+            life: 0,
+            ttl: 1.3 + Math.random() * 1.1,
+            hue: hue + (Math.random() - 0.5) * 34,
+            sat,
+            l: lit + (Math.random() - 0.5) * 12,
+            sz: 0.9 + Math.random() * 1.2,
+          });
+        }
+      };
       if (slot < 8) {
         fireSegment(slot, 1);
         fireSegment((slot + 3) % 8, 0.6);
@@ -1659,6 +1816,9 @@ function Taipei101Bg() {
         fireSpire();
         fireSegment(6, 0.8);
         fireSegment(7, 0.8);
+      }
+      if (slot === 1 || slot === 4 || slot === 8 || Math.random() < 0.24) {
+        fireSkyBurst(32 + Math.floor(Math.random() * 22));
       }
     }
 
