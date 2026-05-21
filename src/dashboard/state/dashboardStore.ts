@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import * as persistence from "./persistence";
+import { resolveNewDashboardViewBackground } from "../newViewBackground";
 import { useWorkspaceStore } from "../../store";
 import type {
   DashboardCustomWidget, DashboardView, DashboardWidgetInstance,
@@ -166,7 +167,13 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
 
   createView: async (title) => {
     try {
-      const view = await persistence.createView(title);
+      const background = resolveNewDashboardViewBackground(
+        useWorkspaceStore.getState().dashboardSettings.useRandomDynamicBackground,
+      );
+      const created = await persistence.createView(title);
+      const view = background
+        ? await persistence.updateView(created.id, { background })
+        : created;
       set((s) => ({ views: [...s.views, view], activeViewId: view.id }));
       return view;
     } catch (e) { set({ lastError: String(e) }); return null; }

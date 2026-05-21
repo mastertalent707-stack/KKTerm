@@ -45,6 +45,7 @@ export const defaultDashboardSettings: DashboardSettings = {
   defaultLandingView: "lastActive",
   maxActiveScriptWidgets: MAX_ACTIVE_SCRIPT_WIDGETS_DEFAULT,
   allowWidgetNetworkTools: true,
+  useRandomDynamicBackground: false,
 };
 
 export const defaultTerminalSettings: TerminalSettings = {

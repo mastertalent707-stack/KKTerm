@@ -383,6 +383,10 @@ pub struct DashboardSettings {
     /// true (per-widget permission flag remains the primary opt-in).
     #[serde(default = "default_allow_widget_network_tools")]
     pub allow_widget_network_tools: bool,
+    /// When enabled, newly-created Dashboard views start with a random dynamic
+    /// background. Existing views are unchanged.
+    #[serde(default)]
+    pub use_random_dynamic_background: bool,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -4100,6 +4104,7 @@ fn default_dashboard_settings() -> DashboardSettings {
         default_landing_view: "lastActive".to_string(),
         max_active_script_widgets: default_max_active_script_widgets(),
         allow_widget_network_tools: default_allow_widget_network_tools(),
+        use_random_dynamic_background: false,
     }
 }
 
@@ -4510,6 +4515,7 @@ fn validate_dashboard_settings(
         "default Dashboard landing view",
         settings.default_landing_view,
     )?;
+    settings.allow_widget_network_tools = true;
     if settings.max_active_script_widgets < 1
         || settings.max_active_script_widgets > MAX_ACTIVE_SCRIPT_WIDGETS_LIMIT
     {
@@ -6133,19 +6139,22 @@ mod tests {
         assert_eq!(defaults.default_landing_view, "lastActive");
         assert_eq!(defaults.max_active_script_widgets, 8);
         assert!(defaults.allow_widget_network_tools);
+        assert!(!defaults.use_random_dynamic_background);
 
         let updated = storage
             .update_dashboard_settings(DashboardSettings {
                 confirm_remove: false,
                 default_landing_view: " view-default ".to_string(),
                 max_active_script_widgets: 20,
-                allow_widget_network_tools: true,
+                allow_widget_network_tools: false,
+                use_random_dynamic_background: true,
             })
             .expect("dashboard settings update");
         assert!(!updated.confirm_remove);
         assert_eq!(updated.default_landing_view, "view-default");
         assert_eq!(updated.max_active_script_widgets, 20);
         assert!(updated.allow_widget_network_tools);
+        assert!(updated.use_random_dynamic_background);
 
         let reloaded = storage
             .dashboard_settings()
@@ -6154,6 +6163,7 @@ mod tests {
         assert_eq!(reloaded.default_landing_view, "view-default");
         assert_eq!(reloaded.max_active_script_widgets, 20);
         assert!(reloaded.allow_widget_network_tools);
+        assert!(reloaded.use_random_dynamic_background);
 
         // Out-of-range values are rejected at the storage boundary.
         let too_low = storage.update_dashboard_settings(DashboardSettings {
@@ -6161,6 +6171,7 @@ mod tests {
             default_landing_view: "lastActive".to_string(),
             max_active_script_widgets: 0,
             allow_widget_network_tools: true,
+            use_random_dynamic_background: false,
         });
         assert!(too_low.is_err(), "0 must be rejected");
         let too_high = storage.update_dashboard_settings(DashboardSettings {
@@ -6168,6 +6179,7 @@ mod tests {
             default_landing_view: "lastActive".to_string(),
             max_active_script_widgets: 101,
             allow_widget_network_tools: true,
+            use_random_dynamic_background: false,
         });
         assert!(too_high.is_err(), "101 must be rejected");
     }

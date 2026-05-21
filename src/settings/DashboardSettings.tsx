@@ -20,6 +20,7 @@ export function DashboardSettings() {
   const showStatusBarNotice = useWorkspaceStore((s) => s.showStatusBarNotice);
   const [draft, setDraft] = useState<DashboardSettingsState>(dashboardSettings);
   const hasChanges = JSON.stringify(draft) !== JSON.stringify(dashboardSettings);
+  const showWidgetNetworkToolsSetting = false;
 
   useEffect(() => {
     setDraft(dashboardSettings);
@@ -27,9 +28,10 @@ export function DashboardSettings() {
 
   async function handleSave() {
     try {
+      const request = { ...draft, allowWidgetNetworkTools: true };
       const saved = isTauriRuntime()
-        ? await invokeCommand("update_dashboard_settings", { request: draft })
-        : draft;
+        ? await invokeCommand("update_dashboard_settings", { request })
+        : request;
       setDashboardSettings(saved);
       setDraft(saved);
       showStatusBarNotice(t("settings.dashboardSaved"), { tone: "success" });
@@ -82,6 +84,17 @@ export function DashboardSettings() {
         <div className="settings-toggle-list">
           <label className="settings-toggle-row">
             <ToggleSwitch
+              checked={draft.useRandomDynamicBackground}
+              onChange={(checked) => setDraft((s) => ({ ...s, useRandomDynamicBackground: checked }))}
+            />
+            <span>
+              <strong>{t("settings.dashboardUseRandomDynamicBackground")}</strong>
+              <small>{t("settings.dashboardUseRandomDynamicBackgroundDesc")}</small>
+            </span>
+          </label>
+          {showWidgetNetworkToolsSetting && (
+          <label className="settings-toggle-row">
+            <ToggleSwitch
               checked={draft.allowWidgetNetworkTools}
               onChange={(checked) => setDraft((s) => ({ ...s, allowWidgetNetworkTools: checked }))}
             />
@@ -90,6 +103,7 @@ export function DashboardSettings() {
               <small>{t("settings.dashboardAllowWidgetNetworkToolsDesc")}</small>
             </span>
           </label>
+          )}
         </div>
       </fieldset>
       <fieldset className="settings-subsection settings-fieldset">

@@ -72,7 +72,7 @@ const SETTINGS_SECTIONS: Record<SettingsSectionId, SettingsSectionSummary> = {
     fallbackLabel: "Dashboard",
     controls: [
       { key: "settings.dashboardDefaultLanding", description: "Default landing view behavior." },
-      { key: "settings.dashboardAllowWidgetNetworkTools", description: "Global network-tools toggle for script widgets." },
+      { key: "settings.dashboardUseRandomDynamicBackground", description: "Automatically assign a random dynamic background to new Dashboard Views." },
       { key: "settings.dashboardMaxActiveScriptWidgets", description: "Active script widget iframe cap." },
     ],
   },

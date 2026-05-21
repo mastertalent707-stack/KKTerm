@@ -230,6 +230,11 @@ export interface DashboardSettings {
    * Has no effect on AI assistant standalone network tools.
    */
   allowWidgetNetworkTools: boolean;
+  /**
+   * When true, newly-created Dashboard Views automatically start with a random
+   * local dynamic background. Existing Views are unchanged.
+   */
+  useRandomDynamicBackground: boolean;
 }
 
 export interface PreparedAppLauncherEntry {
