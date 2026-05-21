@@ -53,7 +53,7 @@ const TUTORIAL_TOOL_KNOWN_TARGETS: &str = concat!(
     "sftp.toolbar, sftp.upload, sftp.download, sftp.terminal, sftp.localPane, sftp.remotePane, sftp.transferQueue with navigation page=workspace; ",
     "webview.toolbar, webview.address, webview.openExternally, webview.autoRefresh, webview.savePassword, webview.fillCredential, webview.surface with navigation page=workspace; ",
     "remoteDesktop.toolbar, remoteDesktop.sendCtrlAltDel, remoteDesktop.reconnect, remoteDesktop.sendToAi, remoteDesktop.surface with navigation page=workspace; ",
-    "settings.language, settings.workspaceAccess, settings.useDirectxScreenCapture, settings.statusBar, settings.settingsData with navigation page=settings settingsSectionId=general-settings; ",
+    "settings.language, settings.workspaceAccess, settings.useDirectxScreenCapture, settings.statusBar, settings.settingsData, settings.debug with navigation page=settings settingsSectionId=general-settings; ",
     "settings.appUiFontFamily, settings.appearance.colorScheme, settings.resetLayout with navigation page=settings settingsSectionId=appearance-settings; ",
     "settings.dashboardDefaultLanding, settings.dashboardUseRandomDynamicBackground, settings.dashboardMaxActiveScriptWidgets with navigation page=settings settingsSectionId=dashboard-settings; ",
     "settings.credentialsStored, settings.widgetCredentialsStored with navigation page=settings settingsSectionId=credentials-settings; ",
@@ -69,7 +69,7 @@ const DASHBOARD_WIDGET_DOM_CONTRACT: &str = "Dashboard widget DOM contract: the 
 
 macro_rules! ai_interaction_debug {
     ($event:expr, $payload:expr) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) || crate::logging::advanced_debugging_enabled() {
             let payload = $payload;
             crate::logging::ai_assistant_debug($event, &payload);
         }
@@ -1058,7 +1058,7 @@ fn log_provider_response(
 
 macro_rules! ai_debug {
     ($($arg:tt)*) => {
-        if cfg!(debug_assertions) {
+        if cfg!(debug_assertions) || crate::logging::advanced_debugging_enabled() {
             eprintln!("[kkterm-ai] {}", format!($($arg)*));
         }
     };
@@ -4708,7 +4708,10 @@ fn dashboard_tool(app: &tauri::AppHandle, name: &str, args: Value) -> String {
                     "instance": &instance,
                 })
             );
-            Ok(json!({ "customWidget": custom_widget, "instance": instance }))
+            Ok(dashboard_mutating_widget_result_for_ai(
+                Some(serde_json::to_value(custom_widget).unwrap_or(Value::Null)),
+                Some(serde_json::to_value(instance).unwrap_or(Value::Null)),
+            ))
         }
         "dashboard_create_custom_widget" => {
             let title = arg_string(&args, "title");
@@ -4731,7 +4734,12 @@ fn dashboard_tool(app: &tauri::AppHandle, name: &str, args: Value) -> String {
                 settings_schema_json.as_deref(),
                 &created_by,
             )
-            .map(|v| serde_json::to_value(v).unwrap_or(Value::Null))
+            .map(|v| {
+                dashboard_mutating_widget_result_for_ai(
+                    Some(serde_json::to_value(v).unwrap_or(Value::Null)),
+                    None,
+                )
+            })
             .map_err(|e| e.to_string())
         }
         "dashboard_update_custom_widget" => {
@@ -4745,7 +4753,12 @@ fn dashboard_tool(app: &tauri::AppHandle, name: &str, args: Value) -> String {
                 )?)
                 .map_err(|e| format!("invalid patch: {e}"))?;
             ds::update_custom_widget(conn, &id, &patch)
-                .map(|v| serde_json::to_value(v).unwrap_or(Value::Null))
+                .map(|v| {
+                    dashboard_mutating_widget_result_for_ai(
+                        Some(serde_json::to_value(v).unwrap_or(Value::Null)),
+                        None,
+                    )
+                })
                 .map_err(|e| e.to_string())
         }
         "dashboard_remove_custom_widget" => {
@@ -5760,6 +5773,55 @@ fn dashboard_widget_source_for_ai(state: &Value, widget_id: &str) -> Result<Valu
         }
     }
     Ok(Value::Object(object))
+}
+
+fn dashboard_mutating_widget_result_for_ai(
+    custom_widget: Option<Value>,
+    instance: Option<Value>,
+) -> Value {
+    let mut result = serde_json::Map::new();
+    if let Some(custom_widget) = custom_widget {
+        result.insert(
+            "customWidget".to_string(),
+            redact_dashboard_custom_widget_for_ai(custom_widget),
+        );
+    }
+    if let Some(instance) = instance {
+        result.insert("instance".to_string(), redact_dashboard_instance_for_ai(instance));
+    }
+    Value::Object(result)
+}
+
+fn redact_dashboard_custom_widget_for_ai(mut widget: Value) -> Value {
+    let Some(object) = widget.as_object_mut() else {
+        return widget;
+    };
+    let body_json = object
+        .remove("bodyJson")
+        .and_then(|value| value.as_str().map(str::to_string));
+    let settings_schema_json = object
+        .remove("settingsSchemaJson")
+        .and_then(|value| value.as_str().map(str::to_string));
+    object.insert(
+        "hasBodySource".to_string(),
+        Value::Bool(body_json.is_some()),
+    );
+    object.insert(
+        "bodyMeta".to_string(),
+        dashboard_body_meta(body_json.as_deref()),
+    );
+    object.insert(
+        "settingsMeta".to_string(),
+        dashboard_settings_meta(settings_schema_json.as_deref()),
+    );
+    widget
+}
+
+fn redact_dashboard_instance_for_ai(mut instance: Value) -> Value {
+    if let Some(object) = instance.as_object_mut() {
+        object.remove("settingsValuesJson");
+    }
+    instance
 }
 
 #[derive(Default)]
@@ -7678,6 +7740,43 @@ mod tests {
         assert!(serialized.contains("const watchdog = true"));
         assert!(!serialized.contains("const clock = true"));
         assert_eq!(source["id"].as_str(), Some("cw-2"));
+    }
+
+    #[test]
+    fn dashboard_mutating_tool_result_redacts_widget_source() {
+        let custom_widget = json!({
+            "id": "cw-1",
+            "title": "Bandwidth Watchdog",
+            "summary": "Alerts on bandwidth spikes.",
+            "category": "Monitoring",
+            "bodyJson": "{\"source\":\"const secret = 'do not replay';\",\"permissions\":{\"network\":false},\"libraries\":[\"chartjs\"]}",
+            "settingsSchemaJson": "{\"fields\":[{\"key\":\"threshold\",\"type\":\"number\"}]}",
+            "createdBy": "agent",
+            "createdAt": "2026-05-22T00:00:00Z",
+            "updatedAt": "2026-05-22T00:00:00Z"
+        });
+        let instance = json!({
+            "id": "inst-1",
+            "sourceId": "cw-1",
+            "settingsValuesJson": "{\"threshold\":90}"
+        });
+
+        let redacted = dashboard_mutating_widget_result_for_ai(
+            Some(custom_widget),
+            Some(instance),
+        );
+        let serialized = redacted.to_string();
+
+        assert!(!serialized.contains("do not replay"));
+        assert!(!serialized.contains("bodyJson"));
+        assert!(!serialized.contains("settingsSchemaJson"));
+        assert!(!serialized.contains("settingsValuesJson"));
+        assert_eq!(redacted["customWidget"]["id"].as_str(), Some("cw-1"));
+        assert_eq!(
+            redacted["customWidget"]["bodyMeta"]["libraries"][0].as_str(),
+            Some("chartjs")
+        );
+        assert_eq!(redacted["instance"]["id"].as_str(), Some("inst-1"));
     }
 
     #[test]

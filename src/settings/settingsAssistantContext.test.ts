@@ -36,6 +36,14 @@ if (!general.text.includes("Tutorial target: settings.statusBar.")) {
   throw new Error("General context should include the Status Bar tutorial target.");
 }
 
+if (!general.text.includes("settings.advancedDebugging")) {
+  throw new Error("General context should include the Advanced Debugging control key.");
+}
+
+if (!general.text.includes("Tutorial target: settings.debug.")) {
+  throw new Error("General context should include the Debug tutorial target.");
+}
+
 const colorTarget = settingsTutorialTargetForPrompt(
   "How do I change color?",
   "appearance-settings",

@@ -28,6 +28,7 @@ AI decisions:
 - Commands proposed by AI require explicit user approval before execution unless the user has explicitly enabled an automatic tool path for that class of operation.
 - Destructive or credential-touching commands should receive extra confirmation where detectable.
 - Assistant tools must preserve domain boundaries: saved Connection tools operate on durable SQLite Connection data, while live Session tools operate only on currently open runtime surfaces such as terminal Panes, RDP/VNC Sessions, and SFTP/FTP browser Sessions.
+- Assistant context surfaces must be compact projections rather than raw state dumps. Passive page context should prefer ids, labels, summaries, counts, and small metadata. Full source code, full schemas, terminal buffers, screenshots, file contents, data URLs, and other large or sensitive payloads require an explicit user attachment or a narrow read tool. Dashboard AI Created Widget source is available through a single-widget source-read tool, not through always-on page context or successful create/update tool results.
 - OpenAI-compatible API keys are bring-your-own and stored in keychain.
 - Claude Code CLI and Codex CLI integrations should be constrained to suggest-only/ask-before-execute where possible.
 
@@ -37,6 +38,7 @@ Telemetry decisions:
 - No automatic crash upload in v0.1.
 - Local structured logs only.
 - Terminal contents are not logged by default.
+- Full AI Assistant debug logs are local diagnostic artifacts. Debug builds may write them automatically; release builds write them only when the user enables Advanced Debugging in Settings. These logs are sensitive and may include prompts, attachments, tool payloads, and generated widget source.
 - Provide a diagnostics bundle command with redaction rules.
 
 Licensing decisions:

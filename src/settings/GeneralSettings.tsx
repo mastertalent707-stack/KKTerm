@@ -536,6 +536,30 @@ new CustomEvent("kkterm:connection-tree-invalidated"),
         </div>
       </fieldset>
 
+      <fieldset
+        className="settings-subsection settings-fieldset"
+        data-tutorial-id="settings.debug"
+      >
+        <legend>{t("settings.debug")}</legend>
+        <div>
+          <p className="field-hint">{t("settings.debugHint")}</p>
+        </div>
+        <div className="settings-toggle-list">
+          <label className="settings-toggle-row">
+            <ToggleSwitch
+              checked={draft.advancedDebuggingEnabled}
+              onChange={(checked) =>
+                setDraft((s) => ({ ...s, advancedDebuggingEnabled: checked }))
+              }
+            />
+            <span>
+              <strong>{t("settings.advancedDebugging")}</strong>
+              <small>{t("settings.advancedDebuggingHint")}</small>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
       {importDialogOpen ? (
         <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
           <div

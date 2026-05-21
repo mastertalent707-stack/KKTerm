@@ -186,6 +186,7 @@ export interface GeneralSettings {
   useDirectxScreenCapture: boolean;
   statusBarMonitorEnabled: boolean;
   statusBarMonitorIntervalSeconds: number;
+  advancedDebuggingEnabled: boolean;
   lastBackupAt?: string | null;
 }
 

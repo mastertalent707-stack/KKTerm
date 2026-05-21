@@ -3,7 +3,7 @@
 ## AI grep hints
 
 - Keys: `dashboard.*` (full namespace)
-- Topics: Dashboard Views, Widget Instances, presets (panel / ambient / tile / hero / action), accents, icons, backgrounds, density, edit layout, catalog, custom script widgets, AI-authored widgets, widget design preflight, agent widget JSON, widget visual context, AI coding usage, Codex usage, Claude Code usage, adding AI coding tools, missing CLI binaries, five-hour limit, weekly limit, quota, rate limits
+- Topics: Dashboard Views, Widget Instances, presets (panel / ambient / tile / hero / action), accents, icons, backgrounds, density, edit layout, catalog, custom script widgets, AI-authored widgets, widget design preflight, agent widget JSON, widget visual context, compact AI context, duplicate widget detection, AI coding usage, Codex usage, Claude Code usage, adding AI coding tools, missing CLI binaries, five-hour limit, weekly limit, quota, rate limits
 - Synonyms: "homepage", "tiles", "cards", "widgets", "report", "background image", "wallpaper", "translucent widget", "see-through widget", "canvas opacity", "low contrast widget", "hard to read widget", "Codex quota", "Claude quota", "5h usage", "7d usage", "AI coding meter", "add Codex", "add Claude Code", "install Codex", "install Claude Code", "program not found"
 
 > **Terms:** see `CONTEXT.md`. **Dashboard View** is a durable SQLite-backed tab; **Widget Instance** is a placed widget on a View with its own preset/accent/title/layout. **Dashboard Custom Widget** is an AI-authored script-widget definition. Architecture details live in `docs/DASHBOARD.md`.
@@ -113,6 +113,8 @@ Validation errors surface as:
 Hardening details: `docs/ADR/0006-dashboard-script-widget-hardening.md`. Script widgets are isolated in iframes, capped by the active-script-widget limit, run animation/timer guardrails inside the iframe, and have parent bridge throttles for expensive host requests.
 
 Visual context for AI-authored script widgets is supplied as `activeView.visualContext` in Dashboard Assistant context. The iframe exposes exact theme values through `KK.getTheme()` and CSS variables such as `--kk-readable-surface`; widgets should place text on readable surfaces when the View background is image, video, dynamic, or otherwise mixed.
+
+The Dashboard context sent to the AI Assistant is metadata-only. It includes active View information, Widget Instance placement, AI Created Widget titles/summaries/categories, compact body/settings metadata, widget health errors, compact visual context, and compact library keys/globals. It does not include full script source, `bodyJson`, `settingsSchemaJson`, or per-instance settings values. The assistant uses this metadata to detect likely duplicate AI Created Widgets and offer to edit, place, or create a separate widget. Full source is read only through the scoped `dashboard_read_widget_source` tool after one widget id is selected for checking or editing.
 
 ### Agent widget dialog
 

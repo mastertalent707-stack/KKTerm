@@ -70,6 +70,11 @@ const SETTINGS_SECTIONS: Record<SettingsSectionId, SettingsSectionSummary> = {
         description: "Backup, import, database folder, and reset actions.",
         tutorialTargetId: "settings.settingsData",
       },
+      {
+        key: "settings.advancedDebugging",
+        description: "Advanced Debugging log toggle for full AI Assistant debug logs.",
+        tutorialTargetId: "settings.debug",
+      },
     ],
   },
   "appearance-settings": {

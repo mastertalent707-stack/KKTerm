@@ -3,8 +3,8 @@
 ## AI grep hints
 
 - Keys: `ai.*` (full namespace), `app.aiAssistant`, `settings.mcp*`, `settings.assistantSkills*`, `settings.aiToolsTitle`, `settings.sectionAiAssistant`, `settings.credentialKindAiApiKey`, `settings.aiTools.tutorial.*`, `common.expand`, `common.collapse`
-- Topics: AI panel, chats, new chat, history, SQLite, tool permission modes, tool defaults, collapsible assistant tools, collapsible Assistant Skills, bundled skills, SKILL.md, Tutorial overlay, tutorial navigation, `connections.addConnection`, intents (Watchdog / Create Widget / Extension Draft), MCP servers, attachments (files, screenshots, terminal buffer), provider keys, send-to-terminal
-- Synonyms: "chat", "copilot", "AI bot", "tools", "approval", "MCP", "agent", "skill", "skills", "SKILL.md", "workflow", "ssh-troubleshooter", "dashboard-widget-builder", "terminal-command-planner", "sftp-transfer-helper", "remote-desktop-helper", "network-connectivity-troubleshooter", "dns-dhcp-troubleshooter", "firewall-port-troubleshooter", "tls-certificate-troubleshooter", "network troubleshooting", "DNS", "DHCP", "firewall", "port check", "TLS", "certificate", "watchdog", "highlight this", "show me where", "where are chats stored", "clear chat storage", "expand tools", "collapse skills"
+- Topics: AI panel, chats, new chat, history, SQLite, tool permission modes, tool defaults, collapsible assistant tools, collapsible Assistant Skills, bundled skills, SKILL.md, Tutorial overlay, tutorial navigation, `connections.addConnection`, intents (Watchdog / Create Widget / Extension Draft), MCP servers, attachments (files, screenshots, terminal buffer), provider keys, send-to-terminal, compact page context, Advanced Debugging, AI Assistant debug logs
+- Synonyms: "chat", "copilot", "AI bot", "tools", "approval", "MCP", "agent", "skill", "skills", "SKILL.md", "workflow", "ssh-troubleshooter", "dashboard-widget-builder", "terminal-command-planner", "sftp-transfer-helper", "remote-desktop-helper", "network-connectivity-troubleshooter", "dns-dhcp-troubleshooter", "firewall-port-troubleshooter", "tls-certificate-troubleshooter", "network troubleshooting", "DNS", "DHCP", "firewall", "port check", "TLS", "certificate", "watchdog", "highlight this", "show me where", "where are chats stored", "clear chat storage", "expand tools", "collapse skills", "debug log", "aiassistant.debug.log", "context too large"
 
 ## Panel
 
@@ -34,6 +34,16 @@ Default placeholder `ai.composerPlaceholder`. Send `ai.sendMessage` / `ai.send`.
 - Image input unsupported (current provider model): `ai.imageInputNotSupported`.
 
 `ai.clearContext` clears the current chat's pinned context.
+
+## Context sent to providers
+
+Every request includes the user's prompt, recent chat history, the active context label, and any active page context. Page context is intentionally compact:
+
+- Dashboard sends the active Dashboard View, Widget Instance placement, AI Created Widget metadata, health errors, compact visual context, and compact script-library keys/globals. It does not send full widget source, `bodyJson`, `settingsSchemaJson`, or per-instance settings values.
+- Settings sends the active Settings section, visible control keys, and tutorial targets.
+- Workspace context is sent only for explicit attachments or active Session helpers, such as selected terminal output, terminal buffer, screenshots, files, or live Session tools.
+
+Large or sensitive payloads should enter the conversation only through explicit user actions or narrow tools. For Dashboard editing/checking, the assistant first identifies a widget from metadata, then uses `dashboard_read_widget_source` for that one AI Created Widget.
 
 ## Intents
 
@@ -105,6 +115,10 @@ On any assistant message:
 - `ai.sendToTerminal` — paste a command into the focused terminal Pane. Status `ai.addedToPane`.
 
 Error prefix `ai.errorPrefix`. Provider-level errors include `ai.providerError`, missing endpoint/key/model `ai.providerEndpointRequired`, `ai.apiKeyRequired`, `ai.modelRequired`. Copilot-flow gate `ai.copilotConnectRequired`.
+
+## Debug logging
+
+`aiassistant.debug.log` is a local troubleshooting log for AI Assistant interactions. Debug builds write it automatically; release builds write full AI Assistant debug logs only when Settings → General → Debug → `settings.advancedDebugging` is enabled. The log may include raw prompts, attached context, screenshots/data URLs, tool calls/results, and generated Dashboard widget source. Users should review it before sharing.
 
 ## Secret-request card
 

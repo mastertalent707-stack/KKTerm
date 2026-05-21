@@ -32,6 +32,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   useDirectxScreenCapture: true,
   statusBarMonitorEnabled: true,
   statusBarMonitorIntervalSeconds: 5,
+  advancedDebuggingEnabled: false,
   lastBackupAt: null,
 };
 

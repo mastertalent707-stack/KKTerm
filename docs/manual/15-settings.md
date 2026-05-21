@@ -2,9 +2,9 @@
 
 ## AI grep hints
 
-- Keys: `settings.*` (full namespace — over 400 keys; section roots listed below), including General keys `settings.autoStartWithWindows`, `settings.minimizeToTray`, `settings.useDirectxScreenCapture`, `settings.statusBar`, `settings.statusBarMonitor`, `settings.statusBarMonitorInterval`, and AI provider keys `settings.apiMode`, `settings.apiModeChatCompletions`, `settings.apiModeResponses`, `settings.extraHeaders`, `settings.extraHeadersPlaceholder`, and `settings.assistantSkills*`
-- Topics: General, Appearance, Dashboard, Credentials & MCP, AI Assistant, assistant tool defaults, collapsible assistant tools, collapsible Assistant Skills, bundled skills, SKILL.md, SSH, Terminal, network troubleshooting, DNS, DHCP, firewall, TLS certificates, Screenshots, RDP, VNC, URL, About; settings draft/save/reset; backup ZIP; settings import; reset all; Windows startup; launch minimized; DirectX screenshot capture; Status Bar CPU/RAM/Network monitor; random dynamic Dashboard backgrounds
-- Synonyms: "preferences", "options", "config", "theme", "dark mode", "color", "language", "API key", "import settings", "factory reset", "show me where", "start with Windows", "run at login", "launch minimized", "DirectX", "DXGI", "screen capture", "screenshot acceleration", "status bar", "CPU monitor", "RAM monitor", "network monitor", "host usage", "performance overhead", "expand tools", "collapse skills", "random wallpaper", "dynamic wallpaper", "dashboard background", "network-connectivity-troubleshooter", "dns-dhcp-troubleshooter", "firewall-port-troubleshooter", "tls-certificate-troubleshooter"
+- Keys: `settings.*` (full namespace — over 400 keys; section roots listed below), including General keys `settings.autoStartWithWindows`, `settings.minimizeToTray`, `settings.useDirectxScreenCapture`, `settings.statusBar`, `settings.statusBarMonitor`, `settings.statusBarMonitorInterval`, `settings.debug`, `settings.advancedDebugging`, and AI provider keys `settings.apiMode`, `settings.apiModeChatCompletions`, `settings.apiModeResponses`, `settings.extraHeaders`, `settings.extraHeadersPlaceholder`, and `settings.assistantSkills*`
+- Topics: General, Appearance, Dashboard, Credentials & MCP, AI Assistant, assistant tool defaults, collapsible assistant tools, collapsible Assistant Skills, bundled skills, SKILL.md, SSH, Terminal, network troubleshooting, DNS, DHCP, firewall, TLS certificates, Screenshots, RDP, VNC, URL, About; settings draft/save/reset; backup ZIP; settings import; reset all; Windows startup; launch minimized; DirectX screenshot capture; Status Bar CPU/RAM/Network monitor; Advanced Debugging; AI Assistant debug logs; random dynamic Dashboard backgrounds
+- Synonyms: "preferences", "options", "config", "theme", "dark mode", "color", "language", "API key", "import settings", "factory reset", "show me where", "start with Windows", "run at login", "launch minimized", "DirectX", "DXGI", "screen capture", "screenshot acceleration", "status bar", "CPU monitor", "RAM monitor", "network monitor", "host usage", "performance overhead", "debug", "diagnostics", "AI debug log", "aiassistant.debug.log", "expand tools", "collapse skills", "random wallpaper", "dynamic wallpaper", "dashboard background", "network-connectivity-troubleshooter", "dns-dhcp-troubleshooter", "firewall-port-troubleshooter", "tls-certificate-troubleshooter"
 
 > Settings page styling is consistent across sections. Related controls live inside the shared `settings-subsection settings-fieldset` group so the group title sits in the border. Editable controls look editable; disabled / readonly controls stay muted. Delete buttons inside Settings are icon-only red trash cans (no visible "Delete" text). Destructive Settings-wide actions live in **General → Settings data**, behind app-owned confirmation dialogs — not inside feature-specific sections.
 
@@ -14,7 +14,7 @@ The universal AI Assistant panel remains visible on Settings. `src/settings/sett
 
 Settings tutorial targets:
 
-- General: `settings.language`, `settings.workspaceAccess`, `settings.useDirectxScreenCapture`, `settings.statusBar`, `settings.settingsData`.
+- General: `settings.language`, `settings.workspaceAccess`, `settings.useDirectxScreenCapture`, `settings.statusBar`, `settings.settingsData`, `settings.debug`.
 - Appearance: `settings.appUiFontFamily`, `settings.appearance.colorScheme`, `settings.resetLayout`.
 - Dashboard: `settings.dashboardDefaultLanding`, `settings.dashboardUseRandomDynamicBackground`, `settings.dashboardMaxActiveScriptWidgets`.
 - Credentials: `settings.credentialsStored`, `settings.widgetCredentialsStored`.
@@ -56,6 +56,7 @@ Settings tutorial targets:
   - Backup: `settings.backupSettings` → `settings.backupSettingsComplete`. Backup ZIP uses the same shape as importable KKTerm settings export.
   - Import: `settings.importSettings`, confirmation `settings.importSettingsConfirm`, success `settings.importSettingsComplete`.
   - Reset all: `settings.resetAllSettings`, confirmation `settings.resetAllSettingsConfirm`, success `settings.resetAllSettingsComplete`.
+- Debug subsection `settings.debug`: toggle `settings.advancedDebugging` (hint `settings.advancedDebuggingHint`) enables full AI Assistant debug log writing even in release builds. These local logs may include prompts, tool arguments, screenshots, and generated Dashboard AI Created Widget source.
 
 > Automatic database backups do **not** run from app-window close. The supported shape is startup or manual backup ZIP creation.
 

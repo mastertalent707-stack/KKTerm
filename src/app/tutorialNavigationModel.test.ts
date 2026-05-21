@@ -98,6 +98,7 @@ const settingsTargets = [
   ["settings.useDirectxScreenCapture", "general-settings"],
   ["settings.statusBar", "general-settings"],
   ["settings.settingsData", "general-settings"],
+  ["settings.debug", "general-settings"],
   ["settings.appUiFontFamily", "appearance-settings"],
   ["settings.resetLayout", "appearance-settings"],
   ["settings.dashboardDefaultLanding", "dashboard-settings"],

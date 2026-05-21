@@ -2,6 +2,7 @@ use std::{
     fs::{self, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
+    sync::atomic::{AtomicBool, Ordering},
     sync::OnceLock,
 };
 
@@ -9,6 +10,7 @@ use serde_json::{json, Value};
 
 static LOG_STATUS: OnceLock<String> = OnceLock::new();
 static LOG_PATH: OnceLock<PathBuf> = OnceLock::new();
+static ADVANCED_DEBUGGING_ENABLED: AtomicBool = AtomicBool::new(false);
 
 pub fn init() {
     let status = match write_startup_line() {
@@ -35,25 +37,27 @@ pub fn status() -> String {
 }
 
 pub fn ai_assistant_debug(event: &str, payload: &Value) {
-    #[cfg(debug_assertions)]
-    {
-        let Some(log_path) = LOG_PATH
-            .get()
-            .map(|path| ai_assistant_debug_log_path_for(path))
-        else {
-            return;
-        };
-        let line = format_ai_assistant_debug_log_entry(event, payload);
-        if let Err(error) = append_ai_assistant_debug_line(&log_path, &line) {
-            eprintln!("failed to write AI Assistant debug log: {error}");
-        }
+    if !cfg!(debug_assertions) && !advanced_debugging_enabled() {
+        return;
     }
+    let Some(log_path) = LOG_PATH
+        .get()
+        .map(|path| ai_assistant_debug_log_path_for(path))
+    else {
+        return;
+    };
+    let line = format_ai_assistant_debug_log_entry(event, payload);
+    if let Err(error) = append_ai_assistant_debug_line(&log_path, &line) {
+        eprintln!("failed to write AI Assistant debug log: {error}");
+    }
+}
 
-    #[cfg(not(debug_assertions))]
-    {
-        let _ = event;
-        let _ = payload;
-    }
+pub fn set_advanced_debugging_enabled(enabled: bool) {
+    ADVANCED_DEBUGGING_ENABLED.store(enabled, Ordering::Relaxed);
+}
+
+pub fn advanced_debugging_enabled() -> bool {
+    ADVANCED_DEBUGGING_ENABLED.load(Ordering::Relaxed)
 }
 
 fn write_startup_line() -> std::io::Result<PathBuf> {
@@ -89,7 +93,6 @@ fn format_ai_assistant_debug_log_entry(event: &str, payload: &Value) -> String {
     format!("{line}\n")
 }
 
-#[cfg(debug_assertions)]
 fn append_ai_assistant_debug_line(path: &Path, line: &str) -> std::io::Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;

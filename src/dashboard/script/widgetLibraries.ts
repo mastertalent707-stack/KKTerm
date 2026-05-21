@@ -296,3 +296,10 @@ export function libraryCatalogForAi(): string {
     .map((lib) => `  - ${lib.key} (global: ${lib.global}): ${lib.description}`)
     .join("\n");
 }
+
+/** Compact catalog summary for always-on Dashboard page context. */
+export function compactLibraryCatalogForAi(): string {
+  return Object.values(WIDGET_LIBRARIES)
+    .map((lib) => `${lib.key}=${lib.global}`)
+    .join(", ");
+}

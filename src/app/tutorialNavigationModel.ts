@@ -26,6 +26,7 @@ const SETTINGS_TUTORIAL_TARGET_SECTIONS: Record<string, SettingsSectionId> = {
   "settings.useDirectxScreenCapture": "general-settings",
   "settings.statusBar": "general-settings",
   "settings.settingsData": "general-settings",
+  "settings.debug": "general-settings",
   "settings.appUiFontFamily": "appearance-settings",
   "settings.appearance.colorScheme": "appearance-settings",
   "settings.resetLayout": "appearance-settings",

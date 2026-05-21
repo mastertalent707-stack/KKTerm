@@ -290,6 +290,8 @@ pub struct GeneralSettings {
     #[serde(default = "default_status_bar_monitor_interval_seconds")]
     status_bar_monitor_interval_seconds: u32,
     #[serde(default)]
+    advanced_debugging_enabled: bool,
+    #[serde(default)]
     last_backup_at: Option<String>,
 }
 
@@ -312,6 +314,10 @@ impl GeneralSettings {
 
     pub(crate) fn use_directx_screen_capture(&self) -> bool {
         self.use_directx_screen_capture
+    }
+
+    pub(crate) fn advanced_debugging_enabled(&self) -> bool {
+        self.advanced_debugging_enabled
     }
 }
 
@@ -4080,6 +4086,7 @@ fn default_general_settings() -> GeneralSettings {
         use_directx_screen_capture: default_use_directx_screen_capture(),
         status_bar_monitor_enabled: default_status_bar_monitor_enabled(),
         status_bar_monitor_interval_seconds: default_status_bar_monitor_interval_seconds(),
+        advanced_debugging_enabled: false,
         last_backup_at: None,
     }
 }
@@ -6008,6 +6015,7 @@ mod tests {
         assert!(defaults.use_directx_screen_capture);
         assert!(defaults.status_bar_monitor_enabled);
         assert_eq!(defaults.status_bar_monitor_interval_seconds, 5);
+        assert!(!defaults.advanced_debugging_enabled);
         assert!(defaults.last_backup_at.is_none());
 
         let updated = storage
@@ -6028,6 +6036,7 @@ mod tests {
                 use_directx_screen_capture: false,
                 status_bar_monitor_enabled: false,
                 status_bar_monitor_interval_seconds: 30,
+                advanced_debugging_enabled: true,
                 last_backup_at: None,
             })
             .expect("general settings update");
@@ -6045,6 +6054,7 @@ mod tests {
         assert!(!updated.use_directx_screen_capture);
         assert!(!updated.status_bar_monitor_enabled);
         assert_eq!(updated.status_bar_monitor_interval_seconds, 30);
+        assert!(updated.advanced_debugging_enabled);
 
         let reloaded = storage.general_settings().expect("general settings reload");
         assert!(!reloaded.auto_backup_enabled);
@@ -6061,6 +6071,7 @@ mod tests {
         assert!(!reloaded.use_directx_screen_capture);
         assert!(!reloaded.status_bar_monitor_enabled);
         assert_eq!(reloaded.status_bar_monitor_interval_seconds, 30);
+        assert!(reloaded.advanced_debugging_enabled);
         assert!(reloaded.last_backup_at.is_none());
     }
 
@@ -6297,6 +6308,7 @@ mod tests {
                 use_directx_screen_capture: false,
                 status_bar_monitor_enabled: false,
                 status_bar_monitor_interval_seconds: 15,
+                advanced_debugging_enabled: true,
                 last_backup_at: None,
             })
             .expect("general settings update");
@@ -6316,6 +6328,7 @@ mod tests {
                 use_directx_screen_capture: true,
                 status_bar_monitor_enabled: true,
                 status_bar_monitor_interval_seconds: 5,
+                advanced_debugging_enabled: false,
                 last_backup_at: None,
             })
             .expect("general settings changes after export");
@@ -6341,6 +6354,7 @@ mod tests {
             imported.general_settings.status_bar_monitor_interval_seconds,
             15
         );
+        assert!(imported.general_settings.advanced_debugging_enabled);
         assert_eq!(
             imported.general_settings.last_backup_at.as_deref(),
             Some(imported.backup.created_at.as_str())

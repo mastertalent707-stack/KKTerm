@@ -15,6 +15,8 @@ The Dashboard module owns:
 - The Tauri commands the AI Assistant uses to manipulate the dashboard.
 - The page-context payload supplied to the shared AI Assistant panel.
 
+That page-context payload is an AI-facing projection, not a serialization of the Dashboard store. It must remain compact enough for every Assistant request and narrow enough for privacy: active View metadata, Widget Instance placement, AI Created Widget title/summary/category plus body/settings metadata, health errors, compact visual context, and compact library key/global hints. Do not put full `bodyJson`, `settingsSchemaJson`, per-instance `settings_values_json`, generated source code, full library descriptions, or other large catalog blobs in passive context.
+
 It does not own:
 
 - App-wide color schemes (handled by `src/App.css` + `AppearanceSettings`).
@@ -104,7 +106,8 @@ Each command is a thin handler over the storage layer with up-front validation:
 
 | Command | Notes |
 | --- | --- |
-| `dashboard_load_state` | One batched read on mount; returns `{ views, instances, customWidgets }`. |
+| `dashboard_load_state` | AI-facing compact state read; returns Views, Widget Instances, AI Created Widget titles/summaries/categories/body metadata/settings metadata. Does not return script source, `bodyJson`, `settingsSchemaJson`, or per-instance settings values. |
+| `dashboard_read_widget_source` | AI-facing scoped source read. Returns full `bodyJson` / `settingsSchemaJson` for one requested AI Created Widget id only, after the assistant has selected it from metadata for checking or editing. |
 | `dashboard_create_view` | Returns the new view. |
 | `dashboard_update_view` | Patch over `title`, `gridDensity`, `sortOrder`, `background`, and `tabColor`. |
 | `dashboard_remove_view` | Cascade to instances. |
@@ -114,9 +117,9 @@ Each command is a thin handler over the storage layer with up-front validation:
 | `dashboard_read_widget_secret` | Script-widget bridge command. Validates that the requested key is a `secret` field on that exact widget instance and that the instance stores the expected `secretRef`, then reads the OS-keychain `widgetSecret` value. |
 | `dashboard_remove_instance` | Hard delete. |
 | `dashboard_apply_layout` | Batched layout commit used by the debounced drag/resize pipeline. |
-| `dashboard_create_widget` | AI-facing atomic helper: validates a structured `body` and optional `settingsSchema`, creates the AI Created Widget, and places an instance on the supplied selected view. Use this when the user expects a visible widget. |
-| `dashboard_create_custom_widget` | Definition-only command; validates `bodyJson` against the script body schema and optional `settingsSchemaJson` but does not place an instance. |
-| `dashboard_update_custom_widget` | Validates patched `bodyJson` per kind and patched `settingsSchemaJson`. |
+| `dashboard_create_widget` | AI-facing atomic helper: validates a structured `body` and optional `settingsSchema`, creates the AI Created Widget, and places an instance on the supplied selected view. Use this when the user expects a visible widget. Successful assistant tool results are redacted to metadata and instance id; they do not echo full source. |
+| `dashboard_create_custom_widget` | Definition-only command; validates `bodyJson` against the script body schema and optional `settingsSchemaJson` but does not place an instance. Successful assistant tool results are redacted to metadata. |
+| `dashboard_update_custom_widget` | Validates patched `bodyJson` per kind and patched `settingsSchemaJson`. Successful assistant tool results are redacted to metadata. |
 | `dashboard_remove_custom_widget` | Requires `forceDeleteInstances` if instances reference the widget. |
 
 Rust validation invariants:
@@ -131,7 +134,9 @@ Rust validation invariants:
 - Settings values are per-instance JSON objects capped at 32 KB. For `secret` fields, Rust rejects plaintext values; the only valid stored shape is a `secretRef` whose owner id matches `dashboard-widget-secret:<instanceId>:<fieldKey>`.
 - Frontend renderers use the matching TypeScript validator in `src/dashboard/schema.ts` before rendering script widgets, so malformed stored JSON falls back to the existing invalid-body state instead of partially rendering.
 
-Validation failures return structured error text to the AI Assistant so it can self-correct. The Assistant page context tells the model to call `dashboard_create_widget` with the active view id for creation requests; after any dashboard mutating tool completes, the frontend reloads Dashboard state and the newly mounted widget frame runs the canvas fade-in animation.
+Validation failures return structured error text to the AI Assistant so it can self-correct. Successful create/update results intentionally do not replay the widget source into the next model turn; the model already supplied the source as tool arguments, and future inspection should go through `dashboard_read_widget_source` for one selected widget. The Assistant page context tells the model to call `dashboard_create_widget` with the active view id for creation requests; after any dashboard mutating tool completes, the frontend reloads Dashboard state and the newly mounted widget frame runs the canvas fade-in animation.
+
+Duplicate detection must work from metadata. Before creating a new AI Created Widget, the assistant should compare the user's request against existing AI Created Widget `title`, `summary`, `category`, active-on-view state, declared libraries, permissions, lifecycle, source byte count, and settings field metadata. If an existing widget substantially overlaps, it should offer to edit the existing widget, create a separate new one, or place the existing one on the current View. Full source is only read after the user chooses an edit/check path.
 
 Dashboard mutating tools run from the Rust Assistant tool loop, outside the frontend Dashboard store. To keep the live Dashboard view in sync, every successful mutating dashboard tool emits a `dashboard-changed` event. `src/dashboard/state/invalidation.ts` listens once at the app shell and reloads `useDashboardStore`. The streaming `toolCallEnd` refresh remains a useful fallback, but the backend event is the authoritative invalidation path for out-of-band mutations.
 
@@ -169,7 +174,7 @@ src/dashboard/
 
 Adding a new built-in widget = drop a `Body` file in `widgets/` and add one entry to `builtInRegistry.ts`. There are no switch statements outside the registries. The registry shape (`BuiltInWidgetEntry`) carries default preset/accent/icon/size + the body component.
 
-State management is Zustand to match the rest of the app (`useWorkspaceStore`). The store exposes a compact read-projection for the AI Assistant's page-context payload.
+State management is Zustand to match the rest of the app (`useWorkspaceStore`). The store exposes a compact read-projection for the AI Assistant's page-context payload. Keep this projection metadata-only and review serialized output when adding fields; it should support duplicate detection and UI-aware answers without carrying full script source or bulky catalogs.
 
 ## Grid and Edit Mode
 
