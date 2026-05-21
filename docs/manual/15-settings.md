@@ -10,7 +10,7 @@
 
 Settings is owned by `src/settings/SettingsPage.tsx`. Persisted bootstrap (`useBootstrapSettings`) lives in `src/lib/settings.ts`; add new persisted settings there, not via cloned effects in `src/App.tsx`.
 
-The universal AI Assistant panel remains visible on Settings. `src/settings/settingsAssistantContext.ts` publishes the active section and visible control keys to the assistant; Appearance exposes tutorial target `settings.appearance.colorScheme` for guided color-scheme help, and the Tutorial tool can navigate to Settings → Appearance before highlighting that target.
+The universal AI Assistant panel remains visible on Settings. `src/settings/settingsAssistantContext.ts` publishes the active section and visible control keys to the assistant. General exposes tutorial target `settings.language`, Appearance exposes `settings.appearance.colorScheme`, and the Tutorial tool can navigate to the owning Settings section before highlighting known targets after the user accepts a navigation offer.
 
 ## Page chrome
 

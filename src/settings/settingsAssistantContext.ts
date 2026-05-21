@@ -44,7 +44,11 @@ const SETTINGS_SECTIONS: Record<SettingsSectionId, SettingsSectionSummary> = {
     labelKey: "settings.sectionGeneral",
     fallbackLabel: "General",
     controls: [
-      { key: "settings.language", description: "UI language selector." },
+      {
+        key: "settings.language",
+        description: "UI language selector.",
+        tutorialTargetId: "settings.language",
+      },
       { key: "settings.workspaceAccess", description: "Workspace access and runtime toggles." },
       { key: "settings.autoStartWithWindows", description: "Launch KKTerm minimized when the user signs in to Windows." },
       { key: "settings.settingsData", description: "Backup, import, database folder, and reset actions." },
@@ -165,7 +169,7 @@ export function buildSettingsAssistantContext(
       `Active Settings section: ${sectionLabel} (${sectionId}).`,
       "Visible controls and i18n keys:",
       controls,
-      "Use the tutorial_highlight tool for guided help only when a matching tutorial target is listed. Include navigation if the target belongs to another app surface.",
+      "For UI help, answer first and offer to navigate when a matching tutorial target is listed. Only call tutorial_highlight after the user accepts; include navigation if the target belongs to another app surface.",
     ].join("\n"),
   };
 }
@@ -183,6 +187,16 @@ export function settingsTutorialTargetForPrompt(
       targetId: "settings.appearance.colorScheme",
       titleKey: "ai.tutorial.colorSchemeTitle",
       bodyKey: "ai.tutorial.colorSchemeBody",
+    };
+  }
+  if (
+    sectionId === "general-settings" &&
+    /\b(language|locale|translation|translate|english|chinese|japanese|korean|thai|spanish|french|german|portuguese|indonesian)\b/.test(normalized)
+  ) {
+    return {
+      targetId: "settings.language",
+      titleKey: "settings.language",
+      bodyKey: "settings.language",
     };
   }
   return undefined;

@@ -22,6 +22,16 @@ if (!appearance.text.includes("settings.appUiFontFamily")) {
   throw new Error("Appearance context should include the UI font control key.");
 }
 
+const general = buildSettingsAssistantContext("general-settings");
+
+if (!general.text.includes("settings.language")) {
+  throw new Error("General context should include the language control key.");
+}
+
+if (!general.text.includes("Tutorial target: settings.language.")) {
+  throw new Error("General context should include the language tutorial target.");
+}
+
 const colorTarget = settingsTutorialTargetForPrompt(
   "How do I change color?",
   "appearance-settings",
@@ -38,6 +48,15 @@ const nonAppearanceTarget = settingsTutorialTargetForPrompt(
 
 if (nonAppearanceTarget) {
   throw new Error("Color scheme tutorial target should only be returned for Appearance settings.");
+}
+
+const languageTarget = settingsTutorialTargetForPrompt(
+  "How do I change language?",
+  "general-settings",
+);
+
+if (languageTarget?.targetId !== "settings.language") {
+  throw new Error("Language questions in General should resolve to the language target.");
 }
 
 const sectionIds: SettingsSectionId[] = [

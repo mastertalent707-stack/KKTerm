@@ -299,7 +299,7 @@ new CustomEvent("kkterm:connection-tree-invalidated"),
       />
 
       <div className="form-grid general-settings-grid">
-        <label>
+        <label data-tutorial-id="settings.language">
           <span>
             <Languages size={17} /> {t("settings.language")}
           </span>

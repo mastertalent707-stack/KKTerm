@@ -13,6 +13,16 @@ if (appearanceNavigation.settingsSectionId !== "appearance-settings") {
   throw new Error("Color scheme tutorial target should navigate to Appearance settings.");
 }
 
+const languageNavigation = tutorialNavigationForTarget("settings.language");
+
+if (languageNavigation?.page !== "settings") {
+  throw new Error("Language tutorial target should navigate to Settings.");
+}
+
+if (languageNavigation.settingsSectionId !== "general-settings") {
+  throw new Error("Language tutorial target should navigate to General settings.");
+}
+
 const parsedNavigation = normalizeTutorialNavigationTarget({
   page: "settings",
   settingsSectionId: "appearance-settings",

@@ -21,6 +21,10 @@ const SETTINGS_SECTION_IDS = new Set<SettingsSectionId>([
 ]);
 
 const TUTORIAL_TARGET_NAVIGATION: Record<string, TutorialNavigationTarget> = {
+  "settings.language": {
+    page: "settings",
+    settingsSectionId: "general-settings",
+  },
   "settings.appearance.colorScheme": {
     page: "settings",
     settingsSectionId: "appearance-settings",

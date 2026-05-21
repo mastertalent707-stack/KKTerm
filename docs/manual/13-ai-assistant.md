@@ -78,7 +78,7 @@ Names shown during a tool call (`ai.toolCallRunning` → `ai.toolCallComplete`):
 
 ### Tutorial overlay
 
-The Tutorial tool is enabled by `settings.aiTools.tutorial.label`. It lets the assistant call `tutorial_highlight` for app-owned targets listed in the current page context or documented by the tool. The assistant can include navigation to a known app page or Settings section before the UI dims the window, scrolls the target into view, highlights the target control, and shows a short balloon beside it. The overlay dismisses on the next click or key press. Example: a color/theme question can navigate to Settings → Appearance, highlight the fieldset carrying target `settings.appearance.colorScheme`, and explain `settings.colorScheme`.
+The Tutorial tool is enabled by `settings.aiTools.tutorial.label`. For UI "how do I..." questions, the assistant should answer with concise steps first and offer to navigate to the relevant UI when a known target exists. If the user accepts that offer, the assistant calls `tutorial_highlight` for an app-owned target listed in the current page context or documented by the tool. The assistant can include navigation to a known app page or Settings section before the UI dims the window, scrolls the target into view, highlights the target control, and shows a short balloon beside it. The overlay dismisses on the next click or key press. Known examples include `settings.language` in Settings → General and `settings.appearance.colorScheme` in Settings → Appearance.
 
 Thinking / progress markers:
 
