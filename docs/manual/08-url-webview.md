@@ -3,8 +3,8 @@
 ## AI grep hints
 
 - Keys: `webview.*` (full namespace), `connections.embeddedWebApp`
-- Topics: URL Connection, address bar, back/forward/reload, auto-refresh, credential fill, password capture, external open, downloads
-- Synonyms: "open a webpage", "embed a site", "browser tab", "internal web tool", "fill in saved password"
+- Topics: URL Connection, address bar, back/forward/reload, auto-refresh, credential fill, password capture, external open, Shift-click link, downloads
+- Synonyms: "open a webpage", "embed a site", "browser tab", "internal web tool", "fill in saved password", "open link in browser", "external browser"
 
 > **Term:** a **URL Connection** is a Connection of kind `url` storing one http(s) URL plus an optional `dataPartition` label. The `dataPartition` field is persisted but currently a no-op — Phase 1 WebView2 shares one user-data folder across all URL Connections. Real per-Connection isolation is deferred to Phase 2.
 
@@ -19,7 +19,8 @@ A URL Pane hosts a child WebView2 surface positioned over its Tab. The surface i
 - Reload: `webview.reload`
 - Address bar: `webview.address`, placeholder `webview.urlPlaceholder`. The bar accepts hosts without a scheme; the backend assumes `https://` when no scheme is present.
 - Auto-refresh: `webview.autoRefresh` / `webview.autoRefreshOff`. Interval label `webview.autoRefreshSeconds`.
-- Open externally: `webview.openExternally` (opens in the OS default browser).
+- Open externally: toolbar button `webview.openExternally` (opens the current URL in the OS default browser).
+- In-page link shortcut: Shift-click an http(s) link in the embedded page to open it in the OS default browser instead of navigating the URL Pane.
 - Fill saved credential: `webview.fill` / `webview.fillCredential` / `webview.fillSavedCredential`.
 - Save password: `webview.savePassword`, dialog title `webview.savePasswordTitle`.
 

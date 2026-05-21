@@ -520,6 +520,7 @@ export interface WebviewSessionStarted {
   sessionId: string;
   label: string;
   partition: string;
+  externalLinkToken: string;
 }
 
 export interface UpdateWebviewBoundsRequest {

@@ -6,6 +6,7 @@ use std::{
     },
 };
 
+use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use tauri::{
     webview::{DownloadEvent, PageLoadEvent},
@@ -313,6 +314,48 @@ const AUTOFILL_AGENT: &str = r#"
   });
 })();
 "#;
+const EXTERNAL_LINK_SHORTCUT_AGENT: &str = r#"
+(() => {
+  const TITLE_CHANNEL = "__KKTERM_URL_EXTERNAL_LINK__";
+  const BRIDGE_TOKEN = __KKTERM_EXTERNAL_LINK_BRIDGE_TOKEN__;
+
+  document.addEventListener("click", (event) => {
+    if (!event.shiftKey || event.defaultPrevented || event.button !== 0) {
+      return;
+    }
+    const anchor = event.target?.closest?.("a[href]");
+    if (!anchor) {
+      return;
+    }
+    const href = anchor.getAttribute("href");
+    if (!href) {
+      return;
+    }
+    let url;
+    try {
+      url = new URL(href, window.location.href);
+    } catch (_) {
+      return;
+    }
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    publish({ url: url.href, token: BRIDGE_TOKEN });
+  }, true);
+
+  function publish(payload) {
+    const previousTitle = document.title;
+    document.title = `${TITLE_CHANNEL}${JSON.stringify(payload)}`;
+    window.setTimeout(() => {
+      if (document.title.startsWith(TITLE_CHANNEL)) {
+        document.title = previousTitle;
+      }
+    }, 150);
+  }
+})();
+"#;
 pub struct WebviewSessionManager {
     sessions: Mutex<HashMap<String, Webview>>,
     starting_sessions: Mutex<HashSet<String>>,
@@ -339,6 +382,7 @@ pub struct WebviewSessionStarted {
     session_id: String,
     label: String,
     partition: String,
+    external_link_token: String,
 }
 
 #[derive(Deserialize)]
@@ -508,8 +552,13 @@ impl WebviewSessionManager {
         } else {
             parsed_url.clone()
         };
+        let external_link_token = external_link_bridge_token();
+        let initialization_script = format!(
+            "{AUTOFILL_AGENT}\n{}",
+            external_link_shortcut_agent(&external_link_token)?
+        );
         let builder = WebviewBuilder::new(&label, WebviewUrl::External(initial_webview_url))
-            .initialization_script(AUTOFILL_AGENT)
+            .initialization_script(initialization_script)
             .on_navigation(move |url| {
                 let _ = navigation_app.emit(
                     "webview-navigation",
@@ -598,6 +647,7 @@ impl WebviewSessionManager {
             session_id,
             label,
             partition,
+            external_link_token,
         })
     }
 
@@ -1042,4 +1092,22 @@ fn resolve_partition(data_partition: Option<String>) -> String {
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| DEFAULT_PARTITION.to_string())
+}
+
+fn external_link_bridge_token() -> String {
+    let mut random = [0_u8; 16];
+    rand::rng().fill_bytes(&mut random);
+    random
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>()
+}
+
+fn external_link_shortcut_agent(token: &str) -> Result<String, String> {
+    let token = serde_json::to_string(token)
+        .map_err(|error| format!("failed to prepare URL external-link token: {error}"))?;
+    Ok(EXTERNAL_LINK_SHORTCUT_AGENT.replace(
+        "__KKTERM_EXTERNAL_LINK_BRIDGE_TOKEN__",
+        &token,
+    ))
 }

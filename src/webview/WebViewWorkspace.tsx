@@ -1,12 +1,13 @@
 import { ScreenshotMenu } from "../workspace/ScreenshotMenu";
 import { documentHasWebviewBlockingOverlay } from "../workspace/nativeOverlay";
 
-import { ArrowLeft, ArrowRight, Globe2, KeyRound, RefreshCw, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, Globe2, KeyRound, RefreshCw, Save } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FormEvent } from "react";
-import { invokeCommand, isTauriRuntime } from "../lib/tauri";
+import { invokeCommand, isTauriRuntime, openExternalUrl } from "../lib/tauri";
+import type { WebviewSessionStarted } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
 import type { WorkspaceTab } from "../types";
 
@@ -35,7 +36,7 @@ type WebviewDownloadEvent = {
 };
 
 interface WebviewSessionLease {
-  promise: Promise<void>;
+  promise: Promise<WebviewSessionStarted>;
   refCount: number;
   closeTimer: number | null;
   started: boolean;
@@ -44,7 +45,7 @@ interface WebviewSessionLease {
 
 const webviewSessionLeases = new Map<string, WebviewSessionLease>();
 
-function acquireWebviewSession(sessionId: string, start: () => Promise<unknown>) {
+function acquireWebviewSession(sessionId: string, start: () => Promise<WebviewSessionStarted>) {
   const current = webviewSessionLeases.get(sessionId);
   if (current && !current.closed) {
     if (current.closeTimer !== null) {
@@ -58,8 +59,9 @@ function acquireWebviewSession(sessionId: string, start: () => Promise<unknown>)
   let lease: WebviewSessionLease;
   const promise = Promise.resolve()
     .then(start)
-    .then(() => {
+    .then((started) => {
       lease.started = true;
+      return started;
     });
   lease = {
     promise,
@@ -123,6 +125,7 @@ type CapturedCredentialPayload = {
 };
 
 const CREDENTIAL_TITLE_PREFIX = "__KKTERM_URL_CREDENTIAL__";
+const EXTERNAL_LINK_TITLE_PREFIX = "__KKTERM_URL_EXTERNAL_LINK__";
 const AUTO_REFRESH_INTERVALS_SECONDS = [0, 5, 15, 30, 60, 120] as const;
 type AutoRefreshIntervalSeconds = (typeof AUTO_REFRESH_INTERVALS_SECONDS)[number];
 
@@ -144,6 +147,7 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
   const rafRef = useRef<number | null>(null);
   const visibilityRef = useRef({ isActive, suppressed: false });
   const pendingCaptureNonceRef = useRef<string | null>(null);
+  const externalLinkTokenRef = useRef<string | null>(null);
   const faviconUpdatedRef = useRef(false);
   const credentialRef = useRef({ canFillCredential: false });
   const [navError, setNavError] = useState("");
@@ -259,11 +263,12 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
       }),
     );
     lease.promise
-      .then(() => {
+      .then((started) => {
         sessionStartingRef.current = false;
         if (disposed) {
           return;
         }
+        externalLinkTokenRef.current = started.externalLinkToken;
         sessionStartedRef.current = true;
         setWebviewReady(true);
         pushWebviewVisibility();
@@ -414,6 +419,18 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
         const title = event.payload.title.trim();
         if (title.startsWith(CREDENTIAL_TITLE_PREFIX)) {
           void handleCapturedCredential(title.slice(CREDENTIAL_TITLE_PREFIX.length));
+          return;
+        }
+        if (title.startsWith(EXTERNAL_LINK_TITLE_PREFIX)) {
+          const externalUrl = externalWebviewLinkUrl(
+            title.slice(EXTERNAL_LINK_TITLE_PREFIX.length),
+            externalLinkTokenRef.current,
+          );
+          if (externalUrl) {
+            void openExternalUrl(externalUrl).catch((error) => {
+              setNavError(error instanceof Error ? error.message : String(error));
+            });
+          }
           return;
         }
         if (title) {
@@ -597,6 +614,16 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
     void fillCredential({ automatic: false, showStatus: true });
   }
 
+  function handleOpenExternal() {
+    if (!addressInput.trim()) {
+      return;
+    }
+    setNavError("");
+    void openExternalUrl(addressInput).catch((error) => {
+      setNavError(error instanceof Error ? error.message : String(error));
+    });
+  }
+
   function handleAutoRefreshChange(value: string) {
     const seconds = Number(value);
     if (AUTO_REFRESH_INTERVALS_SECONDS.includes(seconds as AutoRefreshIntervalSeconds)) {
@@ -655,6 +682,16 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
           </span>
           <div className="terminal-pane-actions">
             {fillStatus ? <span className="webview-toolbar-status">{fillStatus}</span> : null}
+            <button
+              aria-label={t("webview.openExternally")}
+              className="terminal-pane-action"
+              disabled={!addressInput.trim()}
+              onClick={handleOpenExternal}
+              title={t("webview.openExternally")}
+              type="button"
+            >
+              <ExternalLink size={13} />
+            </button>
             <select
               aria-label={t("webview.autoRefresh")}
               className="webview-auto-refresh-select"
@@ -718,5 +755,21 @@ function formatWebviewSubtitle(url: string) {
     return new URL(url).host || url;
   } catch {
     return url;
+  }
+}
+
+function externalWebviewLinkUrl(rawPayload: string, expectedToken: string | null) {
+  if (!expectedToken) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(rawPayload) as { token?: unknown; url?: unknown };
+    if (payload.token !== expectedToken || typeof payload.url !== "string") {
+      return null;
+    }
+    const url = new URL(payload.url);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
   }
 }
