@@ -2,9 +2,9 @@
 
 ## AI grep hints
 
-- Keys: `ai.*` (full namespace), `app.aiAssistant`, `settings.mcp*`, `settings.assistantSkills*`, `settings.sectionAiAssistant`, `settings.credentialKindAiApiKey`, `settings.aiTools.tutorial.*`
-- Topics: AI panel, chats, new chat, history, SQLite, tool permission modes, tool defaults, Assistant Skills, bundled skills, SKILL.md, Tutorial overlay, intents (Watchdog / Create Widget / Extension Draft), MCP servers, attachments (files, screenshots, terminal buffer), provider keys, send-to-terminal
-- Synonyms: "chat", "copilot", "AI bot", "tools", "approval", "MCP", "agent", "skill", "skills", "SKILL.md", "workflow", "ssh-troubleshooter", "dashboard-widget-builder", "terminal-command-planner", "sftp-transfer-helper", "remote-desktop-helper", "watchdog", "highlight this", "show me where", "where are chats stored", "clear chat storage"
+- Keys: `ai.*` (full namespace), `app.aiAssistant`, `settings.mcp*`, `settings.assistantSkills*`, `settings.aiToolsTitle`, `settings.sectionAiAssistant`, `settings.credentialKindAiApiKey`, `settings.aiTools.tutorial.*`, `common.expand`, `common.collapse`
+- Topics: AI panel, chats, new chat, history, SQLite, tool permission modes, tool defaults, collapsible assistant tools, collapsible Assistant Skills, bundled skills, SKILL.md, Tutorial overlay, intents (Watchdog / Create Widget / Extension Draft), MCP servers, attachments (files, screenshots, terminal buffer), provider keys, send-to-terminal
+- Synonyms: "chat", "copilot", "AI bot", "tools", "approval", "MCP", "agent", "skill", "skills", "SKILL.md", "workflow", "ssh-troubleshooter", "dashboard-widget-builder", "terminal-command-planner", "sftp-transfer-helper", "remote-desktop-helper", "watchdog", "highlight this", "show me where", "where are chats stored", "clear chat storage", "expand tools", "collapse skills"
 
 ## Panel
 
@@ -114,6 +114,8 @@ Secrets land in the Windows Credential Manager under the AI-provider secret owne
 ## Providers and MCP
 
 Provider keys (`settings.credentialKindAiApiKey`) and per-provider model selection are configured in Settings → AI (`settings.sectionAiAssistant`). The known-model picker is a real `<select>` rendered from `src/ai/providerRegistry/`; custom model IDs go in the separate custom-model input. OpenAI Compatible endpoints can also choose API mode with `settings.apiMode`. See [15-settings.md](15-settings.md) §AI.
+
+Assistant tools (`settings.aiToolsTitle`) and Assistant Skills (`settings.assistantSkillsTitle`) are collapsed by default in Settings → AI; expand/collapse uses `common.expand` / `common.collapse`.
 
 Assistant Skills are local SKILL.md-compatible folders managed in Settings → AI (`settings.assistantSkillsTitle`, hint `settings.assistantSkillsHint`). KKTerm ships bundled starter skills and copies missing ones into the editable app-data skills folder when skills are listed or invoked: `dashboard-widget-builder`, `remote-desktop-helper`, `sftp-transfer-helper`, `ssh-troubleshooter`, and `terminal-command-planner`. Open `settings.assistantSkillsOpenFolder`, add or edit one folder per skill, then refresh. Each valid skill can be enabled/disabled with `settings.assistantSkillsEnabled` / `settings.assistantSkillsDisabled` and opened directly with `settings.assistantSkillsOpen`. The assistant sees enabled skill metadata and must invoke `assistant_use_skill` to load full instructions; KKTerm does not use keyword matching to pick skills. v1 loads skill instructions only; bundled `scripts/` are not executed.
 

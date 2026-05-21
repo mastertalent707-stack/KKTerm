@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { useId, useState, type ReactNode } from "react";
+import { ariaExpanded } from "../lib/aria";
 
 export function SettingsSectionHeader({
   actions,
@@ -26,6 +28,47 @@ export function SettingsSummary({ label, value }: { label: string; value: string
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+export function SettingsCollapsibleFieldset({
+  children,
+  className = "settings-subsection settings-fieldset",
+  collapseLabel,
+  defaultCollapsed = true,
+  expandLabel,
+  legend,
+}: {
+  children: ReactNode;
+  className?: string;
+  collapseLabel: string;
+  defaultCollapsed?: boolean;
+  expandLabel: string;
+  legend: string;
+}) {
+  const [expanded, setExpanded] = useState(!defaultCollapsed);
+  const contentId = useId();
+  const toggleLabel = expanded ? collapseLabel : expandLabel;
+
+  return (
+    <fieldset className={`${className} settings-collapsible-fieldset`}>
+      <legend>
+        <button
+          aria-controls={contentId}
+          aria-label={`${toggleLabel} ${legend}`}
+          className="settings-collapsible-legend-button"
+          onClick={() => setExpanded((current) => !current)}
+          type="button"
+          {...ariaExpanded(expanded)}
+        >
+          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          <span>{legend}</span>
+        </button>
+      </legend>
+      <div className="settings-collapsible-content" hidden={!expanded} id={contentId}>
+        {children}
+      </div>
+    </fieldset>
   );
 }
 

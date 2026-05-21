@@ -40,7 +40,7 @@ import {
 } from "../ai/providerModelOptions";
 import { McpServersControl } from "./McpServers";
 import { AssistantSkillsControl } from "./AssistantSkills";
-import { SettingsSectionHeader } from "./shared";
+import { SettingsCollapsibleFieldset, SettingsSectionHeader } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { shouldShowStoredAiProviderKeyMask } from "./aiProviderKeyField";
 import i18next from "../i18n/config";
@@ -642,8 +642,12 @@ function AiAssistantToolsControl({
   const { t } = useTranslation();
 
   return (
-    <fieldset className="settings-fieldset ai-tool-settings">
-      <legend>{t("settings.aiToolsTitle")}</legend>
+    <SettingsCollapsibleFieldset
+      className="settings-fieldset ai-tool-settings"
+      collapseLabel={t("common.collapse")}
+      expandLabel={t("common.expand")}
+      legend={t("settings.aiToolsTitle")}
+    >
       <p className="settings-help-text">{t("settings.aiToolsDescription")}</p>
       <div className="settings-toggle-list">
         {AI_ASSISTANT_TOOL_IDS.map((toolId) => (
@@ -688,7 +692,7 @@ function AiAssistantToolsControl({
         ))}
       </div>
       <p className="settings-help-text">{t("settings.aiToolsSafety")}</p>
-    </fieldset>
+    </SettingsCollapsibleFieldset>
   );
 }
 

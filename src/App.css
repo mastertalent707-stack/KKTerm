@@ -8086,6 +8086,41 @@ fieldset.connection-specific-options > legend {
   font-weight: 800;
 }
 
+.settings-collapsible-legend-button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  max-width: 100%;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.settings-collapsible-legend-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-collapsible-legend-button svg {
+  flex: 0 0 auto;
+}
+
+.settings-collapsible-content {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings-collapsible-content[hidden] {
+  display: none;
+}
+
 .settings-list {
   display: grid;
   gap: 8px;
@@ -9639,6 +9674,7 @@ fieldset.connection-specific-options > legend {
 }
 
 .settings-fieldset > div:has(> .field-hint:only-child),
+.settings-fieldset .settings-collapsible-content > div:has(> .field-hint:only-child),
 .settings-fieldset > .settings-section-title:has(.field-hint) {
   display: none;
 }

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invokeCommand, isTauriRuntime, type AssistantSkillSummary } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
+import { SettingsCollapsibleFieldset } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
 
 export function AssistantSkillsControl() {
@@ -72,8 +73,11 @@ export function AssistantSkillsControl() {
   }
 
   return (
-    <fieldset className="settings-subsection settings-fieldset">
-      <legend>{t("settings.assistantSkillsTitle")}</legend>
+    <SettingsCollapsibleFieldset
+      collapseLabel={t("common.collapse")}
+      expandLabel={t("common.expand")}
+      legend={t("settings.assistantSkillsTitle")}
+    >
       <div>
         <p className="field-hint">{t("settings.assistantSkillsHint")}</p>
       </div>
@@ -107,7 +111,7 @@ export function AssistantSkillsControl() {
           {t("settings.assistantSkillsOpenFolder")}
         </button>
       </div>
-    </fieldset>
+    </SettingsCollapsibleFieldset>
   );
 }
 
