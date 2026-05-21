@@ -55,7 +55,7 @@ Font family, default size, ligature settings, and cursor style are configured gl
 
 ## Recording output
 
-`terminal.startRecording` starts a local text recording for the current terminal Pane. KKTerm first writes the current frontend terminal buffer, then appends live output until recording stops. While active, the toolbar shows `terminal.recording` and the button changes to `terminal.stopRecording`.
+`terminal.startRecording` starts a local text recording for the current terminal Pane. KKTerm first writes the current frontend terminal buffer, then appends live output until recording stops. While active, the toolbar shows `terminal.recording`, the button changes to `terminal.stopRecording`, and the terminal Pane has a thin red outer border.
 
 Stopping the recording, closing the Pane, or ending the terminal Session finalizes the text file under KKTerm app data. The terminal actions menu item `terminal.openRecordings` opens `terminal.recordingsTitle`, listing saved `.txt` files for that Connection. `terminal.openRecordingsFolder` opens the Connection's local recordings folder. Deleting a Connection does not delete its recording files.
 

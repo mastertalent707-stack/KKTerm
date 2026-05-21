@@ -2729,6 +2729,11 @@ h2 {
   box-shadow: var(--shadow);
 }
 
+.terminal-pane-recording {
+  outline: 1px solid rgba(196, 62, 62, 0.72);
+  outline-offset: 0;
+}
+
 .terminal-pane-search-open {
   grid-template-rows: 34px auto minmax(0, 1fr);
 }
@@ -3067,12 +3072,15 @@ h2 {
 }
 
 .terminal-recording-button {
-  color: #d34242;
+  width: 20px;
+  height: 20px;
+  color: #a94d4d;
+  background: rgba(169, 77, 77, 0.06);
 }
 
 .terminal-recording-button.active {
-  background: rgba(211, 66, 66, 0.14);
-  color: #ff7070;
+  background: rgba(169, 77, 77, 0.1);
+  color: #bf5a5a;
 }
 
 .terminal-recording-status {

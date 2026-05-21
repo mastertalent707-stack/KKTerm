@@ -1628,6 +1628,7 @@ function TerminalPaneView({
       className={[
         "terminal-pane",
         searchOpen ? "terminal-pane-search-open" : "",
+        recordingInfo ? "terminal-pane-recording" : "",
         isFocused ? "terminal-pane-focused" : "terminal-pane-inactive",
       ]
         .filter(Boolean)
@@ -1653,7 +1654,7 @@ function TerminalPaneView({
             title={recordingInfo ? t("terminal.stopRecording") : t("terminal.startRecording")}
             type="button"
           >
-            {recordingInfo ? <Square size={12} fill="currentColor" /> : <Circle size={12} fill="currentColor" />}
+            {recordingInfo ? <Square size={9} fill="currentColor" /> : <Circle size={8} fill="currentColor" />}
           </button>
           {isSshPane ? (
             <button
