@@ -1,7 +1,7 @@
 import { ScreenshotMenu } from "../workspace/ScreenshotMenu";
 import { documentHasWebviewBlockingOverlay } from "../workspace/nativeOverlay";
 
-import { ArrowLeft, ArrowRight, ExternalLink, Globe2, KeyRound, RefreshCw, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, Globe2, KeyRound, RefreshCw, RotateCcw, Save } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -133,11 +133,22 @@ function createCredentialCaptureNonce() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: WorkspaceTab }) {
+export function WebViewWorkspace({
+  isActive,
+  layoutTabId,
+  tab,
+}: {
+  isActive: boolean;
+  layoutTabId?: string;
+  tab: WorkspaceTab;
+}) {
   const { t } = useTranslation();
   const updateWebviewTabMetadata = useWorkspaceStore((state) => state.updateWebviewTabMetadata);
   const refreshOpenConnectionMetadata = useWorkspaceStore((state) => state.refreshOpenConnectionMetadata);
   const ignoreCertificateErrors = useWorkspaceStore((state) => state.urlSettings.ignoreCertificateErrors);
+  const saveTabLayout = useWorkspaceStore((state) => state.saveTabLayout);
+  const resetTabLayout = useWorkspaceStore((state) => state.resetTabLayout);
+  const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const placeholderRef = useRef<HTMLDivElement | null>(null);
   const sessionStartedRef = useRef(false);
@@ -631,6 +642,16 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
     }
   }
 
+  function handleSaveLayout() {
+    saveTabLayout(layoutTabId ?? tab.id);
+    showStatusBarNotice(t("terminal.layoutSaved"), { tone: "success" });
+  }
+
+  function handleResetLayout() {
+    resetTabLayout(layoutTabId ?? tab.id);
+    showStatusBarNotice(t("terminal.layoutReset"), { tone: "success" });
+  }
+
   return (
     <section
       className={isActive ? "terminal-workspace webview-workspace active" : "terminal-workspace webview-workspace"}
@@ -739,6 +760,28 @@ export function WebViewWorkspace({ isActive, tab }: { isActive: boolean; tab: Wo
               targetLabel={t("webview.screenshotTarget", { title: tab.title })}
               targetRef={workspaceRef}
             />
+            {tab.connection ? (
+              <>
+                <button
+                  aria-label={t("terminal.saveLayout")}
+                  className="terminal-pane-action"
+                  onClick={handleSaveLayout}
+                  title={t("terminal.saveLayout")}
+                  type="button"
+                >
+                  <Save size={13} />
+                </button>
+                <button
+                  aria-label={t("terminal.resetLayout")}
+                  className="terminal-pane-action"
+                  onClick={handleResetLayout}
+                  title={t("terminal.resetLayout")}
+                  type="button"
+                >
+                  <RotateCcw size={13} />
+                </button>
+              </>
+            ) : null}
           </div>
         </header>
         <div ref={placeholderRef} className="webview-placeholder" data-tutorial-id="webview.surface">

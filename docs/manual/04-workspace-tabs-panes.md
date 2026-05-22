@@ -2,7 +2,7 @@
 
 ## AI grep hints
 
-- Keys: `workspace.tabs`, `workspace.newTab`, `workspace.closeTab`, `workspace.noActiveSession`, `workspace.openFromTree`, `workspace.terminalPane`, `workspace.sftpBrowser`, `workspace.webview`, `terminal.splitLayout`, `terminal.splitRight`, `terminal.splitLeft`, `terminal.splitDown`, `terminal.splitUp`, `terminal.closePane`, `terminal.closePaneTitle`, `terminal.focusPane`, `terminal.openLeft`, `terminal.openRight`, `terminal.openAbove`, `terminal.openBelow`
+- Keys: `workspace.tabs`, `workspace.newTab`, `workspace.closeTab`, `workspace.noActiveSession`, `workspace.openFromTree`, `workspace.terminalPane`, `workspace.sftpBrowser`, `workspace.webview`, `terminal.splitLayout`, `terminal.splitRight`, `terminal.splitLeft`, `terminal.splitDown`, `terminal.splitUp`, `terminal.saveLayout`, `terminal.resetLayout`, `terminal.layoutSaved`, `terminal.layoutReset`, `terminal.closePane`, `terminal.closePaneTitle`, `terminal.focusPane`, `terminal.openLeft`, `terminal.openRight`, `terminal.openAbove`, `terminal.openBelow`
 - Topics: tab strip, new tab, close tab, drag tabs, split panes, focus pane, tutorial targets `workspace.tabStrip`, `workspace.canvas`, `workspace.emptyState`
 - Synonyms: "split view", "open side by side", "horizontal split", "new pane"
 
@@ -43,7 +43,11 @@ When opening a Connection from the tree with a target Pane focused, the `connect
 
 ### Closing
 
-`terminal.closePane` / `terminal.closePaneTitle` closes a single Pane. Closing the last Pane in a Tab closes the Tab. Closing the last Tab returns to the Default Launch State.
+`terminal.closePane` / `terminal.closePaneTitle` closes a single Pane. The Pane toolbar close button is shown only when the Tab has multiple Panes; closing the whole single-Pane Tab uses the Tab Strip `workspace.closeTab` action. Closing the last Tab returns to the Default Launch State.
+
+### Saved layouts
+
+`terminal.saveLayout` saves the current split Pane layout for the Connection. `terminal.resetLayout` removes the saved layout. Status Bar confirmations use `terminal.layoutSaved` and `terminal.layoutReset`.
 
 > A Session ends only when its presenting Tab/Pane is explicitly closed or the remote/process ends itself. Switching Tabs does **not** end Sessions. Quiet SSH Sessions stay connected indefinitely — there is no app-side idle timeout.
 

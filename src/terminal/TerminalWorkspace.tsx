@@ -206,6 +206,7 @@ function TerminalLayoutView({
             isFocused={pane.id === focusedPaneId}
             onFocus={() => onFocusPane(pane.id)}
             canSplit={canSplit}
+            canClosePane={panes.length > 1}
             onFontChange={onFontChange}
             onOpenSftp={onOpenSftp}
             onSaveBuffer={onSaveBuffer}
@@ -216,6 +217,7 @@ function TerminalLayoutView({
             isActive={isActive}
             pane={pane}
             tabId={tabId}
+            canClosePane={panes.length > 1}
             onFocus={() => onFocusPane(pane.id)}
           />
         )}
@@ -258,11 +260,13 @@ function EmbeddedConnectionPane({
   isActive,
   pane,
   tabId,
+  canClosePane,
   onFocus,
 }: {
   isActive: boolean;
   pane: Exclude<WorkspacePane, TerminalPane>;
   tabId: string;
+  canClosePane: boolean;
   onFocus: () => void;
 }) {
   const closePane = useWorkspaceStore((state) => state.closePane);
@@ -286,17 +290,19 @@ function EmbeddedConnectionPane({
       className="embedded-workspace-pane"
       onMouseDown={onFocus}
     >
-      <button
-        aria-label={t("workspace.closeTab", { title: pane.title })}
-        className="embedded-pane-close"
-        onClick={() => closePane(tabId, pane.id)}
-        title={t("workspace.closeTab", { title: pane.title })}
-        type="button"
-      >
-        <X size={13} />
-      </button>
+      {canClosePane ? (
+        <button
+          aria-label={t("workspace.closeTab", { title: pane.title })}
+          className="embedded-pane-close"
+          onClick={() => closePane(tabId, pane.id)}
+          title={t("workspace.closeTab", { title: pane.title })}
+          type="button"
+        >
+          <X size={13} />
+        </button>
+      ) : null}
       {pane.kind === "webview" ? (
-        <WebViewWorkspace isActive={isActive} tab={embeddedTab} />
+        <WebViewWorkspace isActive={isActive} layoutTabId={tabId} tab={embeddedTab} />
       ) : (
         <RemoteDesktopWorkspace isActive={isActive} tab={embeddedTab} />
       )}
@@ -949,6 +955,7 @@ function TerminalPaneView({
   isFocused,
   onFocus,
   canSplit,
+  canClosePane,
   onFontChange,
   onOpenSftp,
   onSaveBuffer,
@@ -960,6 +967,7 @@ function TerminalPaneView({
   isFocused: boolean;
   onFocus: () => void;
   canSplit: boolean;
+  canClosePane: boolean;
   onFontChange: (delta: number | "reset") => void;
   onOpenSftp: (connection: Connection) => void;
   onSaveBuffer: (paneId: string) => void;
@@ -1848,15 +1856,17 @@ function TerminalPaneView({
               </div>
             ) : null}
           </div>
-          <button
-            className="terminal-pane-action terminal-pane-close"
-            aria-label={pane.tmuxSessionId ? t("terminal.detachTmux") : t("terminal.closePane")}
-            onClick={() => closePane(tabId, pane.id)}
-            title={pane.tmuxSessionId ? t("terminal.detachTmux") : t("terminal.closePane")}
-            type="button"
-          >
-            <X size={13} />
-          </button>
+          {canClosePane ? (
+            <button
+              className="terminal-pane-action terminal-pane-close"
+              aria-label={pane.tmuxSessionId ? t("terminal.detachTmux") : t("terminal.closePane")}
+              onClick={() => closePane(tabId, pane.id)}
+              title={pane.tmuxSessionId ? t("terminal.detachTmux") : t("terminal.closePane")}
+              type="button"
+            >
+              <X size={13} />
+            </button>
+          ) : null}
         </div>
       </header>
       {searchOpen ? (

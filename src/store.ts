@@ -373,26 +373,69 @@ function buildPanesForConnection(
 function buildPanesFromStoredLayout(
   connection: Connection,
   stored?: StoredConnectionLayout,
-): TerminalPane[] {
+): WorkspacePane[] {
   const paneCount = Math.max(1, stored?.paneCount ?? 1);
-  const fallback = buildPanesForConnection(connection, paneCount);
+  const fallback =
+    connection.type === "url" || isRemoteDesktopConnection(connection)
+      ? Array.from({ length: paneCount }, (_, index) => {
+          const pane = buildPaneForConnection(connection);
+          return pane ? { ...pane, id: `pane-${connection.id}-${index}-${Date.now()}` } : null;
+        }).filter((pane): pane is WorkspacePane => Boolean(pane))
+      : buildPanesForConnection(connection, paneCount);
   if (!stored?.panes?.length) {
     return fallback;
   }
-  return fallback.map((pane, index) => {
+  return Array.from({ length: paneCount }, (_, index) => {
+    const fallbackPane = fallback[index] ?? buildPaneForConnection(connection);
     const storedPane = stored.panes?.[index];
-    if (!storedPane?.connection) {
-      return pane;
+    const pane = storedPane?.connection
+      ? buildPaneFromStoredLayoutPane(storedPane, index)
+      : fallbackPane;
+    return pane ?? fallbackPane;
+  }).filter((pane): pane is WorkspacePane => Boolean(pane));
+}
+
+function buildPaneFromStoredLayoutPane(
+  storedPane: NonNullable<StoredConnectionLayout["panes"]>[number],
+  index: number,
+): WorkspacePane | null {
+  const connection = storedPane.connection;
+  const id = `pane-${connection.id}-${index}-${Date.now()}`;
+  const title = storedPane.title?.trim() || titleForConnectionPane(connection);
+  const toolbarTitle = toolbarTitleForConnection(connection);
+  if (connection.type === "url") {
+    if (!connection.url) {
+      return null;
     }
     return {
-      ...pane,
-      title: storedPane.title?.trim() || pane.title,
-      toolbarTitle: toolbarTitleForConnection(storedPane.connection),
-      cwd: storedPane.cwd?.trim() || pane.cwd,
-      connection: storedPane.connection,
-      tmuxSessionId: storedPane.tmuxSessionId,
+      kind: "webview",
+      id,
+      title,
+      toolbarTitle,
+      connection,
+      url: storedPane.url?.trim() || connection.url,
+      dataPartition: storedPane.dataPartition ?? connection.dataPartition,
     };
-  });
+  }
+  if (isRemoteDesktopConnection(connection)) {
+    return {
+      kind: "remoteDesktop",
+      id,
+      title,
+      toolbarTitle,
+      connection,
+    };
+  }
+  return {
+    kind: "terminal",
+    id,
+    title,
+    toolbarTitle,
+    cwd: storedPane.cwd?.trim() || defaultTerminalCwdForConnection(connection),
+    buffer: "",
+    connection,
+    tmuxSessionId: storedPane.tmuxSessionId,
+  };
 }
 
 function titleForConnectionPane(connection: Connection) {
@@ -891,6 +934,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       return;
     }
 
+    const stored = loadStoredLayout(connection.id);
+    const panes = buildPanesFromStoredLayout(connection, stored);
+    if (panes.length === 0) {
+      return;
+    }
+    const paneIds = panes.map((pane) => pane.id);
+    const layout =
+      (stored ? hydrateLayout(stored.layout, paneIds) : undefined) ??
+      defaultLayoutFor(panes);
+
     let subtitle = connection.url;
     try {
       subtitle = new URL(connection.url).host;
@@ -904,23 +957,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle,
       kind: "terminal",
-      panes: [
-        {
-          kind: "webview",
-          id: `pane-${connection.id}-${Date.now()}`,
-          title: connection.name,
-          toolbarTitle: toolbarTitleForConnection(connection),
-          connection,
-          url: connection.url,
-          dataPartition: connection.dataPartition,
-        },
-      ],
+      panes,
+      layout,
+      focusedPaneId: panes[0]?.id,
       connection,
       url: connection.url,
       dataPartition: connection.dataPartition,
     };
-    tab.layout = defaultLayoutFor(tab.panes);
-    tab.focusedPaneId = tab.panes[0]?.id;
 
     set((state) => ({
       tabs: [...state.tabs, tab],
@@ -1316,8 +1359,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const orderedPanes = orderedIds
       .map((id) => tab.panes.find((pane) => pane.id === id))
       .filter(
-        (pane): pane is TerminalPane =>
-          pane !== undefined && isTerminalPane(pane),
+        (pane): pane is WorkspacePane =>
+          pane !== undefined && Boolean(pane.connection),
       );
     if (orderedPanes.length !== tab.panes.length) {
       return;

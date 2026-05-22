@@ -166,10 +166,13 @@ export interface StoredConnectionLayout {
 }
 
 export interface StoredLayoutPane {
+  kind?: WorkspacePane["kind"];
   connection: Connection;
   title?: string;
   cwd?: string;
   tmuxSessionId?: string;
+  url?: string;
+  dataPartition?: string;
 }
 
 export type TerminalCursorStyle = "block" | "bar" | "underline";

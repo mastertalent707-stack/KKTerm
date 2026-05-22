@@ -5,7 +5,6 @@ import type {
   StoredConnectionLayout,
   StoredLayoutPane,
   StoredLayoutNode,
-  TerminalPane,
   WorkspacePane,
 } from "../types";
 
@@ -187,7 +186,7 @@ function trySplit(
 
 export function serializeLayout(
   layout: LayoutNode,
-  panes: TerminalPane[],
+  panes: WorkspacePane[],
 ): StoredConnectionLayout | undefined {
   const indexById = new Map(panes.map((pane, index) => [pane.id, index] as const));
   const stored = serializeNode(layout, indexById);
@@ -201,10 +200,13 @@ export function serializeLayout(
       continue;
     }
     storedPanes.push({
+      kind: pane.kind,
       connection,
       title: pane.title,
-      cwd: pane.cwd,
-      tmuxSessionId: pane.tmuxSessionId,
+      cwd: "cwd" in pane ? pane.cwd : undefined,
+      tmuxSessionId: "tmuxSessionId" in pane ? pane.tmuxSessionId : undefined,
+      url: pane.kind === "webview" ? pane.url : undefined,
+      dataPartition: pane.kind === "webview" ? pane.dataPartition : undefined,
     });
   }
   return { paneCount: panes.length, layout: stored, panes: storedPanes };
