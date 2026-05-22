@@ -14,6 +14,18 @@ test("workspace pane close buttons render only when a tab has multiple panes", a
   assert.match(source, /<WebViewWorkspace isActive=\{isActive\} layoutTabId=\{tabId\} tab=\{embeddedTab\} \/>/);
 });
 
+test("embedded URL and remote desktop headers reserve close-button space only when close is visible", async () => {
+  const css = await readFile(
+    new URL("../src/terminal/terminal.css", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotMatch(css, /\.embedded-workspace-pane\s*>\s*\.webview-workspace\s+\.webview-pane\s*>\s*header\s*\{\s*padding-right:\s*40px;/);
+  assert.doesNotMatch(css, /\.embedded-workspace-pane\s*>\s*\.remote-desktop-shell\s+\.remote-desktop-pane\s*>\s*header\s*\{\s*padding-right:\s*40px;/);
+  assert.match(css, /\.embedded-workspace-pane:has\(\s*>\s*\.embedded-pane-close\s*\)\s*>\s*\.webview-workspace\s+\.webview-pane\s*>\s*header\s*\{\s*padding-right:\s*40px;/);
+  assert.match(css, /\.embedded-workspace-pane:has\(\s*>\s*\.embedded-pane-close\s*\)\s*>\s*\.remote-desktop-shell\s+\.remote-desktop-pane\s*>\s*header\s*\{\s*padding-right:\s*40px;/);
+});
+
 test("stored Connection layouts include URL panes and URL Connections hydrate them on open", async () => {
   const layoutSource = await readFile(
     new URL("../src/workspace/layout.ts", import.meta.url),

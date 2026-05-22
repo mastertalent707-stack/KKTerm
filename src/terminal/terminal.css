@@ -105,11 +105,11 @@
   background: var(--chrome-strong);
 }
 
-.embedded-workspace-pane > .webview-workspace .webview-pane > header {
+.embedded-workspace-pane:has(> .embedded-pane-close) > .webview-workspace .webview-pane > header {
   padding-right: 40px;
 }
 
-.embedded-workspace-pane > .remote-desktop-shell .remote-desktop-pane > header {
+.embedded-workspace-pane:has(> .embedded-pane-close) > .remote-desktop-shell .remote-desktop-pane > header {
   padding-right: 40px;
 }
 
