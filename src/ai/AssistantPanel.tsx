@@ -1149,11 +1149,17 @@ export function AssistantPanel({
   }, [currentModelSupportsImageInput]);
 
   useEffect(() => {
-    if (prompt) {
-      sessionStorage.setItem("ai-chat-draft", prompt);
-    } else {
-      sessionStorage.removeItem("ai-chat-draft");
-    }
+    // Debounce: typing in the composer was writing sessionStorage on every keystroke
+    // which is synchronous and noticeable on low-end machines. 250ms still safely
+    // captures the draft for refresh/restore.
+    const id = window.setTimeout(() => {
+      if (prompt) {
+        sessionStorage.setItem("ai-chat-draft", prompt);
+      } else {
+        sessionStorage.removeItem("ai-chat-draft");
+      }
+    }, 250);
+    return () => window.clearTimeout(id);
   }, [prompt]);
 
   useLayoutEffect(() => {

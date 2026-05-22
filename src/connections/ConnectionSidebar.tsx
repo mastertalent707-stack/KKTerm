@@ -800,23 +800,41 @@ export function ConnectionSidebar({
       .slice(0, RECENT_CONNECTION_LIMIT);
   }, [recentConnectionIds, treeWithLiveStatuses]);
 
+  // Tray menu only needs id+name, which don't change on session-count updates.
+  // Depending on `recentConnections` directly fires an extra Tauri IPC on every
+  // status change because `withLiveConnectionStatuses` shallow-clones every node.
+  const trayMenuSignature = useMemo(
+    () =>
+      recentConnections.map((connection) => `${connection.id} ${connection.name}`).join(""),
+    [recentConnections],
+  );
   useEffect(() => {
     void pushTrayMenu(recentConnections, {
       dontSleep: t("app.trayDontSleep"),
       exit: t("app.trayExit"),
     });
-  }, [recentConnections, t]);
+    // recentConnections is intentionally read fresh; we only resync when the
+    // stable id/name signature or translations change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trayMenuSignature, t]);
+
+  // Hold the latest tree in a ref so the Tauri listeners can be registered once
+  // instead of resubscribing on every activeSessionCounts change.
+  const treeRef = useRef(treeWithLiveStatuses);
+  treeRef.current = treeWithLiveStatuses;
+  const handleOpenConnectionRef = useRef(handleOpenConnection);
+  handleOpenConnectionRef.current = handleOpenConnection;
 
   useEffect(() => {
     if (!isTauriRuntime()) {
       return;
     }
     const openConnectionById = (connectionId: string) => {
-      const connection = flattenConnections(treeWithLiveStatuses).find(
+      const connection = flattenConnections(treeRef.current).find(
         (candidate) => candidate.id === connectionId,
       );
       if (connection) {
-        handleOpenConnection(connection);
+        handleOpenConnectionRef.current(connection);
       }
     };
     const unlistenTrayPromise = listen<string>("kkterm://tray-open-connection", (event) => {
@@ -829,7 +847,7 @@ export function ConnectionSidebar({
       void unlistenTrayPromise.then((unlisten) => unlisten());
       void unlistenAssistantPromise.then((unlisten) => unlisten());
     };
-  }, [treeWithLiveStatuses]);
+  }, []);
 
   const isTreeFiltered = query.trim().length > 0;
 
