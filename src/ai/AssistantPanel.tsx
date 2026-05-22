@@ -12,7 +12,6 @@ import {
   Camera,
   Check,
   ChevronDown,
-  ChevronRight,
   Copy,
   Eye,
   EyeOff,
@@ -28,7 +27,6 @@ import {
   Settings,
   ShieldAlert,
   Square,
-  Terminal,
   X,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -41,7 +39,7 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { ariaChecked, ariaExpanded, dialogButtonAria, menuButtonAria } from "../lib/aria";
+import { ariaChecked, dialogButtonAria, menuButtonAria } from "../lib/aria";
 import { showNativeContextMenu } from "../lib/nativeContextMenu";
 import { invokeCommand, isTauriRuntime, openExternalUrl } from "../lib/tauri";
 import type {
@@ -62,9 +60,7 @@ import {
 } from "./providerModelOptions";
 import {
   applyAssistantStreamEventToMessage,
-  assistantWorkPanelShouldShowThinkingStep,
   completeAssistantStreamMessageFromResponse,
-  latestRunningAssistantToolCall,
   type AssistantToolCallStatus,
 } from "./streamMessage";
 import { useWorkspaceStore } from "../store";
@@ -78,7 +74,6 @@ import {
 } from "../workspace/paneRegistry";
 import i18next from "../i18n/config";
 import { prepareAssistantTerminalInput } from "./terminalCommandSend";
-import { marked, type Tokens } from "marked";
 import { Channel } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { aiProviderSecretOwnerId } from "../lib/settings";
@@ -90,6 +85,37 @@ import {
 import { scrollAssistantChatToBottom } from "./assistantScroll";
 import type { AiToolPermissionMode } from "../types";
 import { resolveCreateWidgetFollowupPrompt } from "./widgetFollowupPrompt";
+import { MarkdownContent } from "./AssistantMarkdownContent";
+import { AssistantToolApprovalCards } from "./AssistantToolApprovalCards";
+import { AssistantWorkPanel } from "./AssistantWorkPanel";
+import {
+  isDashboardMutatingTool,
+  normalizeAssistantToolName,
+} from "./assistantToolLabels";
+import {
+  appViewportBounds,
+  clampPointToBounds,
+  pointInBounds,
+  rectFromPoints,
+  waitForScreenshotSurface,
+} from "./assistantScreenshotRegion";
+import type {
+  AssistantChatMessage,
+  AssistantChatThread,
+  AssistantFileAttachment,
+  AssistantImageAttachment,
+  AssistantLiveToolRequest,
+  AssistantPageContext,
+  AssistantPromptIntent,
+  AssistantRunManifest,
+  AssistantRunManifestStep,
+  AssistantToolApprovalRequest,
+  AssistantTextAttachment,
+  PendingToolApproval,
+  ScreenshotRegionState,
+} from "./assistantTypes";
+
+export type { AssistantPageContext } from "./assistantTypes";
 
 function resolveAssistantOutputLanguage(outputLanguage: string): string | undefined {
   if (!outputLanguage) {
@@ -100,119 +126,9 @@ function resolveAssistantOutputLanguage(outputLanguage: string): string | undefi
   return outputLanguage;
 }
 
-type AssistantChatMessage = {
-  id: string;
-  role: "assistant" | "user";
-  content: string;
-  reasoningContent?: string;
-  textAttachments?: AssistantTextAttachment[];
-  imageAttachments?: AssistantImageAttachment[];
-  fileAttachments?: AssistantFileAttachment[];
-  intent?: AssistantPromptIntent;
-  createdAt: string;
-  toolCalls?: AssistantToolCallStatus[];
-  skillNames?: string[];
-  runManifest?: AssistantRunManifest;
-  workStartedAt?: string;
-  workCompletedAt?: string;
-  isStreaming?: boolean;
-};
-
-type AssistantChatThread = {
-  id: string;
-  title: string;
-  contextLabel: string;
-  messages: AssistantChatMessage[];
-  createdAt: string;
-  updatedAt: string;
-};
-
-type AssistantPromptIntent = "chat" | "extensionCreation" | "createWidget" | "watchdog";
-
-type AssistantRunManifestStep = {
-  id: string;
-  label: string;
-  status: "pending" | "running" | "completed" | "blocked";
-  detail?: string;
-};
-
-type AssistantRunManifest = {
-  runId: string;
-  goal: string;
-  scope: string;
-  definitionOfDone: string;
-  verificationStatus: "pending" | "passed" | "failed";
-  steps: AssistantRunManifestStep[];
-  updatedAt: string;
-};
-
-type AssistantTextAttachment = {
-  id: string;
-  sourceLabel: string;
-  text: string;
-  capturedAt: string;
-};
-
-type AssistantImageAttachment = {
-  id: string;
-  sourceLabel: string;
-  imageDataUrl: string;
-  width: number;
-  height: number;
-};
-
-type AssistantFileAttachment = {
-  id: string;
-  sourceLabel: string;
-  dataUrl: string;
-  mimeType: string;
-  size: number;
-};
-
-type ScreenshotRegionState = {
-  bounds: DOMRect;
-  pointerId?: number;
-  start?: { x: number; y: number };
-  current?: { x: number; y: number };
-};
-
-type AssistantLiveToolRequest = {
-  requestId: string;
-  toolName: string;
-  args?: Record<string, unknown>;
-};
-
-type AssistantToolApprovalRequest = {
-  requestId: string;
-  toolName: string;
-  args?: Record<string, unknown>;
-};
-
-type PendingToolApproval = AssistantToolApprovalRequest & {
-  status: "pending" | "approved" | "allowedSession" | "denied";
-};
-
-type ToolApprovalAction = "" | "allow" | "allowSession" | "deny";
-
-export interface AssistantPageContext {
-  contextKind?: "dashboard" | "settings";
-  contextLabel: string;
-  connectionLabel: string;
-  sourceLabel: string;
-  text: string;
-}
-
 const ASSISTANT_IMAGE_MAX_EDGE = 1280;
 const ASSISTANT_IMAGE_JPEG_QUALITY = 0.72;
 const ASSISTANT_FILE_MAX_BYTES = 10 * 1024 * 1024;
-
-function randomAssistantWaitingPhrase() {
-  const phrases = i18next.t("ai.waitingPhrases", { returnObjects: true }) as readonly string[];
-  if (!Array.isArray(phrases) || phrases.length === 0) {
-    return i18next.t("ai.chargingBeacon");
-  }
-  return phrases[Math.floor(Math.random() * phrases.length)] ?? i18next.t("ai.chargingBeacon");
-}
 
 function maxMeasuredTextWidth(node: HTMLDivElement | null) {
   if (!node) {
@@ -3113,151 +3029,6 @@ export function AssistantPanel({
   );
 }
 
-function AssistantToolApprovalCards({
-  approvals,
-  onAllow,
-  onAllowSession,
-  onDeny,
-}: {
-  approvals: PendingToolApproval[];
-  onAllow: (request: PendingToolApproval) => void;
-  onAllowSession: (request: PendingToolApproval) => void;
-  onDeny: (request: PendingToolApproval) => void;
-}) {
-  return (
-    <>
-      {approvals.map((request) => (
-        <AssistantToolApprovalCard
-          key={request.requestId}
-          request={request}
-          onAllow={() => onAllow(request)}
-          onAllowSession={() => onAllowSession(request)}
-          onDeny={() => onDeny(request)}
-        />
-      ))}
-    </>
-  );
-}
-
-function AssistantToolApprovalCard({
-  onAllow,
-  onAllowSession,
-  onDeny,
-  request,
-}: {
-  onAllow: () => void;
-  onAllowSession: () => void;
-  onDeny: () => void;
-  request: PendingToolApproval;
-}) {
-  const { t } = useTranslation();
-  const [selectedAction, setSelectedAction] = useState<ToolApprovalAction>("");
-  const isPending = request.status === "pending";
-  const argsPreview = formatToolApprovalArgs(request.args);
-  const toolLabel = humanizeAssistantToolName(request.toolName);
-
-  function handleApprovalActionChange(event: ChangeEvent<HTMLSelectElement>) {
-    const action = event.currentTarget.value as ToolApprovalAction;
-    setSelectedAction(action);
-    if (action === "allow") {
-      onAllow();
-      return;
-    }
-    if (action === "allowSession") {
-      onAllowSession();
-      return;
-    }
-    if (action === "deny") {
-      onDeny();
-    }
-  }
-
-  if (!isPending) {
-    return (
-      <article className="assistant-message assistant">
-        <div className="assistant-message-content">
-          <section className="assistant-tool-approval-card assistant-tool-approval-summary" aria-live="polite">
-            <span aria-hidden="true">
-              {request.status === "denied" ? <X size={14} /> : <Check size={14} />}
-            </span>
-            <strong>{toolApprovalStatusLabel(request.status, t)}</strong>
-            <small>{t("ai.toolApprovalTool", { tool: toolLabel })}</small>
-          </section>
-        </div>
-      </article>
-    );
-  }
-
-  return (
-    <article className="assistant-message assistant">
-      <div className="assistant-message-content">
-        <section className="assistant-tool-approval-card" aria-live="polite">
-          <header>
-            <ShieldAlert size={15} />
-            <div>
-              <strong>{t("ai.toolApprovalTitle")}</strong>
-              <small>
-                {t("ai.toolApprovalTool", {
-                  tool: toolLabel,
-                })}
-              </small>
-            </div>
-          </header>
-          <p>{t("ai.toolApprovalBody")}</p>
-          {argsPreview ? (
-            <details>
-              <summary>{t("ai.toolApprovalDetails")}</summary>
-              <pre>
-                <code>{argsPreview}</code>
-              </pre>
-            </details>
-          ) : null}
-          <footer>
-            <span>{t("ai.toolApprovalWaiting")}</span>
-            <label className="assistant-tool-approval-action">
-              <select
-                aria-label={t("ai.toolApprovalSelectAction")}
-                disabled={!isPending}
-                onChange={handleApprovalActionChange}
-                value={selectedAction}
-              >
-                <option value="">{t("ai.toolApprovalSelectAction")}</option>
-                <option value="allow">{t("ai.toolApprovalAllow")}</option>
-                <option value="allowSession">{t("ai.toolApprovalAllowSession")}</option>
-                <option value="deny">{t("ai.toolApprovalDeny")}</option>
-              </select>
-            </label>
-          </footer>
-        </section>
-      </div>
-    </article>
-  );
-}
-
-function toolApprovalStatusLabel(
-  status: PendingToolApproval["status"],
-  t: ReturnType<typeof useTranslation>["t"],
-) {
-  if (status === "allowedSession") {
-    return t("ai.toolApprovalAllowedSession");
-  }
-  if (status === "approved") {
-    return t("ai.toolApprovalApproved");
-  }
-  return t("ai.toolApprovalDenied");
-}
-
-function formatToolApprovalArgs(args: Record<string, unknown> | undefined) {
-  if (!args || Object.keys(args).length === 0) {
-    return "";
-  }
-  try {
-    return JSON.stringify(args, null, 2);
-  } catch {
-    return "";
-  }
-}
-
 function AssistantMessageView({
   message,
   onCopyCode,
@@ -3616,431 +3387,3 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function appViewportBounds() {
-  return new DOMRect(0, 0, window.innerWidth, window.innerHeight);
-}
-
-function rectFromPoints(
-  start: { x: number; y: number },
-  current: { x: number; y: number },
-): CaptureScreenshotRequest {
-  const x = Math.min(start.x, current.x);
-  const y = Math.min(start.y, current.y);
-  return {
-    x: Math.max(0, Math.round(x)),
-    y: Math.max(0, Math.round(y)),
-    width: Math.max(1, Math.round(Math.abs(current.x - start.x))),
-    height: Math.max(1, Math.round(Math.abs(current.y - start.y))),
-  };
-}
-
-function pointInBounds(x: number, y: number, bounds: DOMRect) {
-  return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
-}
-
-function clampPointToBounds(x: number, y: number, bounds: DOMRect) {
-  return {
-    x: Math.min(Math.max(x, bounds.left), bounds.right),
-    y: Math.min(Math.max(y, bounds.top), bounds.bottom),
-  };
-}
-
-async function waitForScreenshotSurface() {
-  await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-  await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-  await new Promise<void>((resolve) => window.setTimeout(resolve, 90));
-}
-
-function toolCallLabel(
-  toolName: string | undefined,
-  status: AssistantToolCallStatus["status"],
-  t: ReturnType<typeof useTranslation>["t"],
-): string {
-  const normalizedToolName = normalizeAssistantToolName(toolName);
-  if (!normalizedToolName) {
-    return status === "running" ? t("ai.toolCallRunning") : t("ai.toolCallComplete");
-  }
-  const runningLabels: Record<string, string> = {
-    web_search: t("ai.toolWebSearch"),
-    web_fetch: t("ai.toolWebFetch"),
-    shell_command: t("ai.toolShellCommand"),
-    app_data_file_search: t("ai.toolFileSearch"),
-    app_data_file_read: t("ai.toolFileRead"),
-    performance_counters: t("ai.toolPerformanceCounters"),
-    send_email: t("ai.toolEmail"),
-    current_time: t("ai.toolCurrentTime"),
-    request_secret_entry: t("ai.toolSecretRequest"),
-    dashboard_load_state: t("ai.toolDashboard"),
-    dashboard_create_view: t("ai.toolDashboard"),
-    dashboard_update_view: t("ai.toolDashboard"),
-    dashboard_remove_view: t("ai.toolDashboard"),
-    dashboard_reorder_views: t("ai.toolDashboard"),
-    dashboard_add_instance: t("ai.toolDashboard"),
-    dashboard_update_instance: t("ai.toolDashboard"),
-    dashboard_read_widget_source: t("ai.toolDashboard"),
-    dashboard_read_widget_secret: t("ai.toolDashboard"),
-    dashboard_remove_instance: t("ai.toolDashboard"),
-    dashboard_apply_layout: t("ai.toolDashboard"),
-    dashboard_create_widget: t("ai.toolDashboard"),
-    dashboard_create_custom_widget: t("ai.toolDashboard"),
-    dashboard_update_custom_widget: t("ai.toolDashboard"),
-    dashboard_remove_custom_widget: t("ai.toolDashboard"),
-    dashboard_reset: t("ai.toolDashboard"),
-    connection_list: t("ai.toolConnections"),
-    connection_create: t("ai.toolConnections"),
-    connection_open: t("ai.toolConnections"),
-    connection_update: t("ai.toolConnections"),
-    connection_delete: t("ai.toolConnections"),
-    session_state: t("ai.toolSessions"),
-    session_terminal_read_buffer: t("ai.toolSessions"),
-    session_terminal_send_text: t("ai.toolSessions"),
-    session_remote_desktop_screenshot: t("ai.toolSessions"),
-    session_remote_desktop_send_text: t("ai.toolSessions"),
-    session_remote_desktop_keypress: t("ai.toolSessions"),
-    session_remote_desktop_mouse_click: t("ai.toolSessions"),
-    session_file_browser_list: t("ai.toolSessions"),
-    session_file_browser_create_folder: t("ai.toolSessions"),
-    session_file_browser_rename: t("ai.toolSessions"),
-    session_file_browser_delete: t("ai.toolSessions"),
-    tutorial_highlight: t("ai.toolTutorial"),
-  };
-  const completedLabels: Record<string, string> = {
-    web_search: t("ai.toolWebSearchDone"),
-    web_fetch: t("ai.toolWebFetchDone"),
-    shell_command: t("ai.toolShellCommandDone"),
-    app_data_file_search: t("ai.toolFileSearchDone"),
-    app_data_file_read: t("ai.toolFileReadDone"),
-    performance_counters: t("ai.toolPerformanceCountersDone"),
-    send_email: t("ai.toolEmailDone"),
-    current_time: t("ai.toolCurrentTimeDone"),
-    request_secret_entry: t("ai.toolSecretRequestDone"),
-    dashboard_load_state: t("ai.toolDashboardDone"),
-    dashboard_create_view: t("ai.toolDashboardDone"),
-    dashboard_update_view: t("ai.toolDashboardDone"),
-    dashboard_remove_view: t("ai.toolDashboardDone"),
-    dashboard_reorder_views: t("ai.toolDashboardDone"),
-    dashboard_add_instance: t("ai.toolDashboardDone"),
-    dashboard_update_instance: t("ai.toolDashboardDone"),
-    dashboard_read_widget_source: t("ai.toolDashboardDone"),
-    dashboard_read_widget_secret: t("ai.toolDashboardDone"),
-    dashboard_remove_instance: t("ai.toolDashboardDone"),
-    dashboard_apply_layout: t("ai.toolDashboardDone"),
-    dashboard_create_widget: t("ai.toolDashboardDone"),
-    dashboard_create_custom_widget: t("ai.toolDashboardDone"),
-    dashboard_update_custom_widget: t("ai.toolDashboardDone"),
-    dashboard_remove_custom_widget: t("ai.toolDashboardDone"),
-    dashboard_reset: t("ai.toolDashboardDone"),
-    connection_list: t("ai.toolConnectionsDone"),
-    connection_create: t("ai.toolConnectionsDone"),
-    connection_open: t("ai.toolConnectionsDone"),
-    connection_update: t("ai.toolConnectionsDone"),
-    connection_delete: t("ai.toolConnectionsDone"),
-    session_state: t("ai.toolSessionsDone"),
-    session_terminal_read_buffer: t("ai.toolSessionsDone"),
-    session_terminal_send_text: t("ai.toolSessionsDone"),
-    session_remote_desktop_screenshot: t("ai.toolSessionsDone"),
-    session_remote_desktop_send_text: t("ai.toolSessionsDone"),
-    session_remote_desktop_keypress: t("ai.toolSessionsDone"),
-    session_remote_desktop_mouse_click: t("ai.toolSessionsDone"),
-    session_file_browser_list: t("ai.toolSessionsDone"),
-    session_file_browser_create_folder: t("ai.toolSessionsDone"),
-    session_file_browser_rename: t("ai.toolSessionsDone"),
-    session_file_browser_delete: t("ai.toolSessionsDone"),
-    tutorial_highlight: t("ai.toolTutorialDone"),
-  };
-  const labels = status === "running" ? runningLabels : completedLabels;
-  return labels[normalizedToolName] ?? normalizedToolName;
-}
-
-function isDashboardMutatingTool(toolName: unknown) {
-  const normalizedToolName = normalizeAssistantToolName(toolName);
-  if (!normalizedToolName) {
-    return false;
-  }
-  return normalizedToolName.startsWith("dashboard_") && normalizedToolName !== "dashboard_load_state";
-}
-
-function AssistantWorkPanel({ message }: { message: AssistantChatMessage }) {
-  const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-  const [waitingPhrase, setWaitingPhrase] = useState(randomAssistantWaitingPhrase);
-  const [waitingDots, setWaitingDots] = useState(0);
-  const wasStreamingRef = useRef(Boolean(message.isStreaming));
-  const reasoningContent = message.reasoningContent?.trim() ?? "";
-  const toolCalls = message.toolCalls ?? [];
-  const skillNames = message.skillNames ?? [];
-  const hasWork =
-    Boolean(reasoningContent) ||
-    toolCalls.length > 0 ||
-    skillNames.length > 0 ||
-    Boolean(message.isStreaming);
-  const shouldShowThinkingStep = assistantWorkPanelShouldShowThinkingStep(message);
-
-  useEffect(() => {
-    setExpanded(false);
-    wasStreamingRef.current = Boolean(message.isStreaming);
-  }, [message.id]);
-
-  useEffect(() => {
-    if (wasStreamingRef.current && !message.isStreaming) {
-      setExpanded(false);
-    }
-    wasStreamingRef.current = Boolean(message.isStreaming);
-  }, [message.isStreaming]);
-
-  useEffect(() => {
-    if (!message.isStreaming) {
-      setWaitingDots(0);
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      setWaitingDots((current) => (current + 1) % 4);
-    }, 300);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [message.isStreaming]);
-
-  useEffect(() => {
-    if (!message.isStreaming) {
-      return;
-    }
-
-    setWaitingPhrase(randomAssistantWaitingPhrase());
-    const interval = window.setInterval(() => {
-      setWaitingPhrase(randomAssistantWaitingPhrase());
-    }, 3000);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [message.isStreaming]);
-
-  if (!hasWork) {
-    return null;
-  }
-
-  const duration =
-    message.workStartedAt && message.workCompletedAt
-      ? formatAssistantWorkDuration(message.workStartedAt, message.workCompletedAt, t)
-      : "";
-  const latestToolCall = latestRunningAssistantToolCall(message);
-  const label =
-    latestToolCall
-      ? t("ai.toolCallUsing", {
-          tool: humanizeAssistantToolName(latestToolCall.toolName),
-        })
-      : skillNames.length > 0
-        ? t("ai.skillInvoked", { skills: skillNames.map(humanizeAssistantToolName).join(", ") })
-      : message.isStreaming
-        ? waitingPhrase || t("ai.chargingBeacon")
-        : t("ai.workedFor", { duration: duration || t("ai.workDurationUnderSecond") });
-  const thinkingStatus = message.isStreaming ? "running" : "completed";
-
-  return (
-    <section className="assistant-work-panel">
-      <button
-        {...ariaExpanded(expanded)}
-        className="assistant-work-toggle"
-        onClick={() => setExpanded((e) => !e)}
-        type="button"
-      >
-        <span
-          className={
-            latestToolCall
-              ? "assistant-work-tool-label"
-              : skillNames.length > 0
-                ? "assistant-work-skill-label"
-                : undefined
-          }
-        >
-          {label}
-          {message.isStreaming ? (
-            <span className="assistant-waiting-dots" aria-hidden="true">
-              {".".repeat(waitingDots)}
-            </span>
-          ) : null}
-        </span>
-        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-      </button>
-      {expanded ? (
-        <div className="assistant-work-timeline">
-          {shouldShowThinkingStep ? (
-            <div className="assistant-work-step" data-state={thinkingStatus}>
-              <span className="assistant-work-step-icon" aria-hidden="true">
-                {message.isStreaming ? <LoaderCircle size={13} /> : null}
-              </span>
-              <div>
-                <strong>{t("ai.thinkingStep")}</strong>
-                {reasoningContent ? (
-                  <div className="assistant-work-reasoning">
-                    <MarkdownContent
-                      canSendCode={false}
-                      content={reasoningContent}
-                      onCopyCode={(code) => {
-                        void writeToClipboard(code);
-                      }}
-                      onOpenLink={(url) => {
-                        void openExternalUrl(url);
-                      }}
-                      onSendCode={() => undefined}
-                    />
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-          {skillNames.map((skillName) => (
-            <div className="assistant-work-step" data-state="skill" key={skillName}>
-              <span className="assistant-work-step-icon" aria-hidden="true" />
-              <div>
-                <strong>{t("ai.skillInvoked", { skills: humanizeAssistantToolName(skillName) })}</strong>
-              </div>
-            </div>
-          ))}
-          {toolCalls.map((toolCall) => (
-            <div className="assistant-work-step" data-state={toolCall.status} key={toolCall.toolId}>
-              <span className="assistant-work-step-icon" aria-hidden="true">
-                {toolCall.status === "running" ? <LoaderCircle size={13} /> : null}
-              </span>
-              <div>
-                <strong>{toolCallLabel(toolCall.toolName, toolCall.status, t)}</strong>
-                <small>
-                  {toolCall.status === "running" ? t("ai.toolCallRunning") : t("ai.toolCallComplete")}
-                </small>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function humanizeAssistantToolName(toolName: string | undefined) {
-  return normalizeAssistantToolName(toolName)?.replace(/[_-]+/g, " ") ?? "";
-}
-
-function normalizeAssistantToolName(toolName: unknown) {
-  return typeof toolName === "string" && toolName.trim() ? toolName.trim() : undefined;
-}
-
-function formatAssistantWorkDuration(
-  startedAt: string,
-  completedAt: string,
-  t: ReturnType<typeof useTranslation>["t"],
-) {
-  const started = new Date(startedAt).getTime();
-  const completed = new Date(completedAt).getTime();
-  if (Number.isNaN(started) || Number.isNaN(completed) || completed <= started) {
-    return t("ai.workDurationUnderSecond");
-  }
-  const totalSeconds = Math.max(1, Math.round((completed - started) / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  if (minutes === 0) {
-    return t("ai.workDurationSeconds", { count: seconds });
-  }
-  return t("ai.workDurationMinutesSeconds", { minutes, seconds });
-}
-
-function externalAssistantLinkUrl(href: string | null) {
-  if (!href) {
-    return undefined;
-  }
-  try {
-    const url = new URL(href);
-    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function MarkdownContent({
-  canSendCode,
-  content,
-  onCopyCode,
-  onOpenLink,
-  onSendCode,
-}: {
-  canSendCode: boolean;
-  content: string;
-  onCopyCode: (code: string) => void;
-  onOpenLink: (url: string) => void;
-  onSendCode: (code: string) => void;
-}) {
-  const { t } = useTranslation();
-  const tokens = useMemo(() => {
-    const lexed = marked.lexer(content);
-    return lexed.filter((tok) => tok.type !== "space");
-  }, [content]);
-
-  function handleMarkdownClick(event: MouseEvent<HTMLDivElement>) {
-    const link = (event.target as Element | null)?.closest("a");
-    if (!link) {
-      return;
-    }
-    const href = link.getAttribute("href");
-    const externalUrl = externalAssistantLinkUrl(href);
-    event.preventDefault();
-    event.stopPropagation();
-    if (externalUrl) {
-      onOpenLink(externalUrl);
-    }
-  }
-
-  return (
-    <div className="markdown-content" onClick={handleMarkdownClick}>
-      {tokens.map((token, index) => {
-        if (token.type === "code") {
-          const codeToken = token as Tokens.Code;
-          const lang = codeToken.lang || "";
-          const code = codeToken.text;
-          return (
-            <div className="markdown-code-block" key={`code-${index}`}>
-              <div className="markdown-code-toolbar">
-                <span>{lang || t("ai.code")}</span>
-                <div className="markdown-code-actions">
-                  <button
-                    className="assistant-code-send"
-                    onClick={() => onCopyCode(code)}
-                    type="button"
-                  >
-                    <Copy size={13} />
-                    {t("ai.copy")}
-                  </button>
-                  <button
-                    className="assistant-code-send"
-                    disabled={!canSendCode}
-                    onClick={() => onSendCode(code)}
-                    title={
-                      canSendCode
-                        ? t("ai.sendToTerminal")
-                        : t("ai.extensionReviewTooltip")
-                    }
-                    type="button"
-                  >
-                    <Terminal size={13} />
-                    {t("ai.send")}
-                  </button>
-                </div>
-              </div>
-              <pre>
-                <code>{code}</code>
-              </pre>
-            </div>
-          );
-        }
-        const html = marked.parse(token.raw, { async: false }) as string;
-        return (
-          <div
-            key={`md-${index}`}
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-        );
-      })}
-    </div>
-  );
-}

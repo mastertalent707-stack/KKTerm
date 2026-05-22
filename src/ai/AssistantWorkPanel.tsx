@@ -1,0 +1,203 @@
+import { ChevronDown, ChevronRight, LoaderCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18next from "../i18n/config";
+import { ariaExpanded } from "../lib/aria";
+import { openExternalUrl } from "../lib/tauri";
+import { writeToClipboard } from "../lib/clipboard";
+import type { AssistantChatMessage } from "./assistantTypes";
+import { MarkdownContent } from "./AssistantMarkdownContent";
+import {
+  humanizeAssistantToolName,
+  toolCallLabel,
+} from "./assistantToolLabels";
+import {
+  assistantWorkPanelShouldShowThinkingStep,
+  latestRunningAssistantToolCall,
+} from "./streamMessage";
+
+export function AssistantWorkPanel({ message }: { message: AssistantChatMessage }) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const [waitingPhrase, setWaitingPhrase] = useState(randomAssistantWaitingPhrase);
+  const [waitingDots, setWaitingDots] = useState(0);
+  const wasStreamingRef = useRef(Boolean(message.isStreaming));
+  const reasoningContent = message.reasoningContent?.trim() ?? "";
+  const toolCalls = message.toolCalls ?? [];
+  const skillNames = message.skillNames ?? [];
+  const hasWork =
+    Boolean(reasoningContent) ||
+    toolCalls.length > 0 ||
+    skillNames.length > 0 ||
+    Boolean(message.isStreaming);
+  const shouldShowThinkingStep = assistantWorkPanelShouldShowThinkingStep(message);
+
+  useEffect(() => {
+    setExpanded(false);
+    wasStreamingRef.current = Boolean(message.isStreaming);
+  }, [message.id]);
+
+  useEffect(() => {
+    if (wasStreamingRef.current && !message.isStreaming) {
+      setExpanded(false);
+    }
+    wasStreamingRef.current = Boolean(message.isStreaming);
+  }, [message.isStreaming]);
+
+  useEffect(() => {
+    if (!message.isStreaming) {
+      setWaitingDots(0);
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setWaitingDots((current) => (current + 1) % 4);
+    }, 300);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [message.isStreaming]);
+
+  useEffect(() => {
+    if (!message.isStreaming) {
+      return;
+    }
+
+    setWaitingPhrase(randomAssistantWaitingPhrase());
+    const interval = window.setInterval(() => {
+      setWaitingPhrase(randomAssistantWaitingPhrase());
+    }, 3000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [message.isStreaming]);
+
+  if (!hasWork) {
+    return null;
+  }
+
+  const duration =
+    message.workStartedAt && message.workCompletedAt
+      ? formatAssistantWorkDuration(message.workStartedAt, message.workCompletedAt, t)
+      : "";
+  const latestToolCall = latestRunningAssistantToolCall(message);
+  const label =
+    latestToolCall
+      ? t("ai.toolCallUsing", {
+          tool: humanizeAssistantToolName(latestToolCall.toolName),
+        })
+      : skillNames.length > 0
+        ? t("ai.skillInvoked", { skills: skillNames.map(humanizeAssistantToolName).join(", ") })
+        : message.isStreaming
+          ? waitingPhrase || t("ai.chargingBeacon")
+          : t("ai.workedFor", { duration: duration || t("ai.workDurationUnderSecond") });
+  const thinkingStatus = message.isStreaming ? "running" : "completed";
+
+  return (
+    <section className="assistant-work-panel">
+      <button
+        {...ariaExpanded(expanded)}
+        className="assistant-work-toggle"
+        onClick={() => setExpanded((e) => !e)}
+        type="button"
+      >
+        <span
+          className={
+            latestToolCall
+              ? "assistant-work-tool-label"
+              : skillNames.length > 0
+                ? "assistant-work-skill-label"
+                : undefined
+          }
+        >
+          {label}
+          {message.isStreaming ? (
+            <span className="assistant-waiting-dots" aria-hidden="true">
+              {".".repeat(waitingDots)}
+            </span>
+          ) : null}
+        </span>
+        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+      </button>
+      {expanded ? (
+        <div className="assistant-work-timeline">
+          {shouldShowThinkingStep ? (
+            <div className="assistant-work-step" data-state={thinkingStatus}>
+              <span className="assistant-work-step-icon" aria-hidden="true">
+                {message.isStreaming ? <LoaderCircle size={13} /> : null}
+              </span>
+              <div>
+                <strong>{t("ai.thinkingStep")}</strong>
+                {reasoningContent ? (
+                  <div className="assistant-work-reasoning">
+                    <MarkdownContent
+                      canSendCode={false}
+                      content={reasoningContent}
+                      onCopyCode={(code) => {
+                        void writeToClipboard(code);
+                      }}
+                      onOpenLink={(url) => {
+                        void openExternalUrl(url);
+                      }}
+                      onSendCode={() => undefined}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          {skillNames.map((skillName) => (
+            <div className="assistant-work-step" data-state="skill" key={skillName}>
+              <span className="assistant-work-step-icon" aria-hidden="true" />
+              <div>
+                <strong>{t("ai.skillInvoked", { skills: humanizeAssistantToolName(skillName) })}</strong>
+              </div>
+            </div>
+          ))}
+          {toolCalls.map((toolCall) => (
+            <div className="assistant-work-step" data-state={toolCall.status} key={toolCall.toolId}>
+              <span className="assistant-work-step-icon" aria-hidden="true">
+                {toolCall.status === "running" ? <LoaderCircle size={13} /> : null}
+              </span>
+              <div>
+                <strong>{toolCallLabel(toolCall.toolName, toolCall.status, t)}</strong>
+                <small>
+                  {toolCall.status === "running" ? t("ai.toolCallRunning") : t("ai.toolCallComplete")}
+                </small>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function randomAssistantWaitingPhrase() {
+  const phrases = i18next.t("ai.waitingPhrases", { returnObjects: true }) as readonly string[];
+  if (!Array.isArray(phrases) || phrases.length === 0) {
+    return i18next.t("ai.chargingBeacon");
+  }
+  return phrases[Math.floor(Math.random() * phrases.length)] ?? i18next.t("ai.chargingBeacon");
+}
+
+function formatAssistantWorkDuration(
+  startedAt: string,
+  completedAt: string,
+  t: ReturnType<typeof useTranslation>["t"],
+) {
+  const started = new Date(startedAt).getTime();
+  const completed = new Date(completedAt).getTime();
+  if (Number.isNaN(started) || Number.isNaN(completed) || completed <= started) {
+    return t("ai.workDurationUnderSecond");
+  }
+  const totalSeconds = Math.max(1, Math.round((completed - started) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes === 0) {
+    return t("ai.workDurationSeconds", { count: seconds });
+  }
+  return t("ai.workDurationMinutesSeconds", { minutes, seconds });
+}

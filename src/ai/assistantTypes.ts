@@ -1,0 +1,103 @@
+import type { AssistantToolCallStatus } from "./streamMessage";
+
+export type AssistantChatMessage = {
+  id: string;
+  role: "assistant" | "user";
+  content: string;
+  reasoningContent?: string;
+  textAttachments?: AssistantTextAttachment[];
+  imageAttachments?: AssistantImageAttachment[];
+  fileAttachments?: AssistantFileAttachment[];
+  intent?: AssistantPromptIntent;
+  createdAt: string;
+  toolCalls?: AssistantToolCallStatus[];
+  skillNames?: string[];
+  runManifest?: AssistantRunManifest;
+  workStartedAt?: string;
+  workCompletedAt?: string;
+  isStreaming?: boolean;
+};
+
+export type AssistantChatThread = {
+  id: string;
+  title: string;
+  contextLabel: string;
+  messages: AssistantChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AssistantPromptIntent = "chat" | "extensionCreation" | "createWidget" | "watchdog";
+
+export type AssistantRunManifestStep = {
+  id: string;
+  label: string;
+  status: "pending" | "running" | "completed" | "blocked";
+  detail?: string;
+};
+
+export type AssistantRunManifest = {
+  runId: string;
+  goal: string;
+  scope: string;
+  definitionOfDone: string;
+  verificationStatus: "pending" | "passed" | "failed";
+  steps: AssistantRunManifestStep[];
+  updatedAt: string;
+};
+
+export type AssistantTextAttachment = {
+  id: string;
+  sourceLabel: string;
+  text: string;
+  capturedAt: string;
+};
+
+export type AssistantImageAttachment = {
+  id: string;
+  sourceLabel: string;
+  imageDataUrl: string;
+  width: number;
+  height: number;
+};
+
+export type AssistantFileAttachment = {
+  id: string;
+  sourceLabel: string;
+  dataUrl: string;
+  mimeType: string;
+  size: number;
+};
+
+export type ScreenshotRegionState = {
+  bounds: DOMRect;
+  pointerId?: number;
+  start?: { x: number; y: number };
+  current?: { x: number; y: number };
+};
+
+export type AssistantLiveToolRequest = {
+  requestId: string;
+  toolName: string;
+  args?: Record<string, unknown>;
+};
+
+export type AssistantToolApprovalRequest = {
+  requestId: string;
+  toolName: string;
+  args?: Record<string, unknown>;
+};
+
+export type PendingToolApproval = AssistantToolApprovalRequest & {
+  status: "pending" | "approved" | "allowedSession" | "denied";
+};
+
+export type ToolApprovalAction = "" | "allow" | "allowSession" | "deny";
+
+export interface AssistantPageContext {
+  contextKind?: "dashboard" | "settings";
+  contextLabel: string;
+  connectionLabel: string;
+  sourceLabel: string;
+  text: string;
+}
