@@ -2,7 +2,7 @@
 
 > **To the AI assistant reading this:**
 > Read this entire document before taking any action or asking the user questions.
-> Once you have read it fully, go directly to the **[Choose Your Path](#choose-your-path)** section at the bottom and ask the user which path they want. Do not install anything, clone anything, or open any browser until the user has chosen.
+> Once you have read it fully, go directly to the **[Choose Your Path](#choose-your-path)** section at the bottom and ask the user which path they want, translate to user's language. Do not install anything, clone anything, or open any browser until the user has chosen.
 
 ---
 
@@ -442,7 +442,7 @@ For **Ollama** (local models): set the provider to Ollama, leave the API key bla
 
 ## Choose Your Path
 
-> **AI assistant:** Read the following aloud (or display it) to the user in user's preferred language, then wait for their choice before doing anything:
+> **AI assistant:** Translate and read the following aloud (or display it) to the user in user's  language, then wait for their choice before doing anything:
 
 ---
 
