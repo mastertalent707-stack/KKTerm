@@ -882,7 +882,7 @@ ${buildKkNetSnippet(allowNetworkTools && body.permissions.networkTools === true)
       });
       function injectScript(source, name) {
         return new Promise(function (resolve, reject) {
-          var blob = new Blob([source + '\\n//# sourceURL=' + name], { type: 'text/javascript' });
+          var blob = new Blob([source + '\\n//# sourceURL=' + name], { type: 'text/javascript;charset=utf-8' });
           var script = document.createElement('script');
           script.src = URL.createObjectURL(blob);
           script.onload = function () { URL.revokeObjectURL(script.src); resolve(); };

@@ -3,8 +3,8 @@
 ## AI grep hints
 
 - Keys: `dashboard.*` (full namespace)
-- Topics: Dashboard Views, Widget Instances, cached Views, instant View switching, embedded Connection pane, presets (panel / ambient / tile / hero / action), accents, icons, backgrounds, density, edit layout, catalog, custom script widgets, AI-authored widgets, widget design preflight, agent widget JSON, widget visual context, compact AI context, duplicate widget detection, AI coding usage, Codex usage, Claude Code usage, adding AI coding tools, missing CLI binaries, five-hour limit, weekly limit, quota, rate limits
-- Synonyms: "homepage", "tiles", "cards", "widgets", "report", "view reload", "connection widget reload", "switch views", "background image", "wallpaper", "translucent widget", "see-through widget", "canvas opacity", "low contrast widget", "hard to read widget", "Codex quota", "Claude quota", "5h usage", "7d usage", "AI coding meter", "add Codex", "add Claude Code", "install Codex", "install Claude Code", "program not found"
+- Topics: Dashboard Views, Widget Instances, cached Views, instant View switching, embedded Connection pane, presets (panel / ambient / tile / hero / action), accents, icons, backgrounds, density, edit layout, catalog, custom script widgets, AI-authored widgets, widget design preflight, agent widget JSON, UTF-8 widget source, non-English widget text, widget visual context, compact AI context, duplicate widget detection, AI coding usage, Codex usage, Claude Code usage, adding AI coding tools, missing CLI binaries, five-hour limit, weekly limit, quota, rate limits
+- Synonyms: "homepage", "tiles", "cards", "widgets", "report", "view reload", "connection widget reload", "switch views", "background image", "wallpaper", "translucent widget", "see-through widget", "canvas opacity", "low contrast widget", "hard to read widget", "garbled widget text", "mojibake", "encoding", "UTF8", "UTF-8", "Codex quota", "Claude quota", "5h usage", "7d usage", "AI coding meter", "add Codex", "add Claude Code", "install Codex", "install Claude Code", "program not found"
 
 > **Terms:** see `CONTEXT.md`. **Dashboard View** is a durable SQLite-backed tab; **Widget Instance** is a placed widget on a View with its own preset/accent/title/layout. **Dashboard Custom Widget** is an AI-authored script-widget definition. Architecture details live in `docs/DASHBOARD.md`.
 
@@ -101,6 +101,8 @@ Copy any output value with `dashboard.copyValue`.
 Custom Widgets are authored by the AI Assistant (`ai.createWidget`), not by users directly in v1. AI-authored widgets are script widgets:
 
 - **`script`** — JavaScript hosted inside an isolated `iframe srcdoc` host with declared `dashboard.scriptNetwork` permissions and `dashboard.scriptPollSeconds`. Source viewable via `dashboard.scriptViewSource`. iframe accessible title: `dashboard.scriptWidgetFrameTitle`.
+
+Widget source and settings schema payloads are UTF-8 JSON. When the assistant creates or updates a widget in a non-English output language, titles, summaries, labels, placeholders, setting options, `htmlShim`, and JavaScript string literals should stay as Unicode text; do not rewrite them as mojibake, percent-encoded strings, base64, HTML entities, or ASCII-only text.
 
 When creating a Custom Widget, the assistant uses an OpenDesign-style preflight before calling the Dashboard tool. It picks an internal visual direction (operator console, data observatory, desktop object, spatial canvas, or branded vignette), chooses the rendering library or DOM/canvas approach, sizes the Widget Instance, then critiques contrast, hierarchy, density, responsiveness, and motion cost before saving the widget.
 

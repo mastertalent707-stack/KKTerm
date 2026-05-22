@@ -45,6 +45,7 @@ const DASHBOARD_WIDGET_SURFACE_CONTRACT: &str = "Dashboard widget surface contra
 const DASHBOARD_WIDGET_ANIMATION_CONTRACT: &str = "Dashboard widget animation contract: declare body.lifecycle.kind explicitly. Use 'animation' for widgets that should always be visibly moving (spinners, clocks, orbits, meters, ambient 3D); the host runs a stall watchdog and reports the widget as 'stalled' to the assistant if no rAF callbacks fire for 8 seconds while the widget is visible. Use 'periodic' for widgets that refresh on an interval (counters, polled data). Use 'realtime' for widgets driven by external events (websockets, MCP streams). Use 'static' (the default when lifecycle is null) for non-moving content. For 'animation' widgets, design a durable base motion that does not decay to a static frame: drag/flick velocity may decay, but auto-spin or live animation needs an idle speed, fresh time-based angle, or restart path. If a requestAnimationFrame loop pauses while KK.isVisible() is false, use KK.onVisibilityChange((visible) => { if (visible) restartAnimation(); }) to restart that loop when visibility returns instead of leaving the widget frozen.";
 const DASHBOARD_WIDGET_PHYSICS_CONTRACT: &str = "Dashboard widget physics contract: for 2D physics, prefer the bundled Matter.js library instead of hand-rolling collision, gravity, constraints, or rigid-body integration. List body.libraries [\"matter\"] and call the Matter global from source. Size the Matter renderer/canvas from KK.getViewport(), rebuild or reposition static wall/floor bodies on KK.onViewportResize, keep the simulation bounded to the widget arena, and stop Runner or requestAnimationFrame work when the widget is paused, game-over, capped, or no longer needs animation.";
 const DASHBOARD_WIDGET_PERFORMANCE_COUNTER_CONTRACT: &str = "Dashboard performance counter contract: for local performance widgets, use a script widget that calls await KK.getPerformanceCounters(). It returns a low-overhead local snapshot with CPU, RAM, commit, process/thread/handle counts, aggregate network rates, KKTerm process memory/I/O rates, uptime, and system-drive free space. Poll at a modest interval such as 2-5 seconds; do not use requestAnimationFrame for counters.";
+const DASHBOARD_WIDGET_UTF8_CONTRACT: &str = "Dashboard widget UTF-8 contract: preserve every non-English title, summary, label, placeholder, setting option, HTML shim, and script string exactly as Unicode text. Treat widget body JSON, bodyJson, settingsSchemaJson, and generated JavaScript as UTF-8 text end to end. Do not convert UI text through Latin-1, Windows-1252, percent encoding, base64, escaped mojibake, HTML entities, or ASCII-only transliteration unless the user explicitly asks for that representation.";
 const TUTORIAL_TOOL_KNOWN_TARGETS: &str = concat!(
     "app.activityRailWorkspace, app.activityRailDashboard, app.connectionRail, app.activityRailDontSleep, app.activityRailSettings, app.connectionsResize, app.aiAssistantResize with navigation page=workspace; ",
     "connections.panel, connections.search, connections.quickConnect, connections.addConnection, connections.folderControls, connections.tree with navigation page=workspace; ",
@@ -3519,7 +3520,7 @@ fn ai_tool_definitions_with_skills(
         ));
         tools.push(tool_definition(
             "dashboard_read_widget_source",
-            "Read the full bodyJson/source and settingsSchemaJson for one specific Dashboard AI Created Widget. Use only when the user asks to check, repair, or update that widget, after selecting the widget id from dashboard_load_state metadata.",
+            "Read the full UTF-8 bodyJson/source and settingsSchemaJson for one specific Dashboard AI Created Widget. Use only when the user asks to check, repair, or update that widget, after selecting the widget id from dashboard_load_state metadata. Preserve non-English text exactly when reusing this source in an update.",
             json!({"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}),
         ));
         tools.push(tool_definition(
@@ -3606,16 +3607,21 @@ fn ai_tool_definitions_with_skills(
         create_widget_tool
             .function
             .description
+            .push_str(DASHBOARD_WIDGET_UTF8_CONTRACT);
+        create_widget_tool.function.description.push(' ');
+        create_widget_tool
+            .function
+            .description
             .push_str(DASHBOARD_WIDGET_DOM_CONTRACT);
         tools.push(create_widget_tool.strict());
         tools.push(tool_definition(
             "dashboard_create_custom_widget",
-            format!("Create a reusable script AI Created Widget definition only; this does not place it on a view. bodyJson must be a JSON string matching the script body schema. Optional settingsSchemaJson defines app-rendered per-instance settings fields; use type secret for passwords, API keys, and tokens so only secret references are stored in SQLite. Prefer dashboard_create_widget when the user expects a visible widget. Apply the same pre-create duplicate check described on dashboard_create_widget: if an existing AI Created Widget overlaps in function, ask the user to choose edit / create new / place an instance instead of silently creating a duplicate. {DASHBOARD_WIDGET_DOM_CONTRACT}"),
+            format!("Create a reusable script AI Created Widget definition only; this does not place it on a view. bodyJson must be a UTF-8 JSON string matching the script body schema. Optional settingsSchemaJson defines app-rendered per-instance settings fields and is also UTF-8 JSON. Use type secret for passwords, API keys, and tokens so only secret references are stored in SQLite. Prefer dashboard_create_widget when the user expects a visible widget. Apply the same pre-create duplicate check described on dashboard_create_widget: if an existing AI Created Widget overlaps in function, ask the user to choose edit / create new / place an instance instead of silently creating a duplicate. {DASHBOARD_WIDGET_UTF8_CONTRACT} {DASHBOARD_WIDGET_DOM_CONTRACT}"),
             json!({"type":"object","properties":{"title":{"type":"string"},"summary":{"type":"string"},"category":{"type":"string"},"bodyJson":{"type":"string"},"settingsSchemaJson":{"type":"string"},"createdBy":{"type":"string","enum":["user","agent"]}},"required":["title","summary","category","bodyJson","createdBy"]}),
         ));
         tools.push(tool_definition(
             "dashboard_update_custom_widget",
-            format!("Update an existing AI Created Widget's title, summary, category, or body. Prefer patch.body with the same structured body shape used by dashboard_create_widget so KKTerm serializes valid JSON for you. Use legacy patch.bodyJson only when you intentionally need to submit a pre-serialized JSON string. {DASHBOARD_WIDGET_DOM_CONTRACT}"),
+            format!("Update an existing AI Created Widget's title, summary, category, or body. Prefer patch.body with the same structured body shape used by dashboard_create_widget so KKTerm serializes valid UTF-8 JSON for you. Use legacy patch.bodyJson only when you intentionally need to submit a pre-serialized UTF-8 JSON string. {DASHBOARD_WIDGET_UTF8_CONTRACT} {DASHBOARD_WIDGET_DOM_CONTRACT}"),
             dashboard_update_custom_widget_schema(),
         ));
         tools.push(tool_definition(
@@ -8540,6 +8546,18 @@ mod tests {
                 .function
                 .description
                 .contains("choose a random non-default accent")
+        );
+        assert!(
+            create_tool
+                .function
+                .description
+                .contains("Dashboard widget UTF-8 contract")
+        );
+        assert!(
+            update_tool
+                .function
+                .description
+                .contains("pre-serialized UTF-8 JSON string")
         );
     }
 

@@ -34,6 +34,21 @@ test("script widget source is encoded as data before iframe execution", async ()
   assert.match(srcdoc, /\\u003cscript>alert\(1\)\\u003c\/script>\\u003c\/div>`;/);
 });
 
+test("script widget srcdoc declares UTF-8 for document and injected blobs", async () => {
+  const { buildSrcdoc } = await importTypeScriptModule(
+    new URL("../src/dashboard/script/permissions.ts", import.meta.url),
+  );
+  const source = "document.getElementById('root').textContent = '中文テスト한글 café';";
+  const srcdoc = buildSrcdoc({
+    source,
+    permissions: { network: false },
+  });
+
+  assert.match(srcdoc, /<meta charset="utf-8" \/>/);
+  assert.match(srcdoc, /text\/javascript;charset=utf-8/);
+  assert.match(srcdoc, /中文テスト한글 café/);
+});
+
 test("script widget CSP allows remote images only with network permission", async () => {
   const { buildCsp } = await importTypeScriptModule(
     new URL("../src/dashboard/script/permissions.ts", import.meta.url),

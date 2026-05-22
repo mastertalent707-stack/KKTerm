@@ -31,6 +31,8 @@ It does not own:
 
 **Dashboard AI Created Widget** — a durable script-widget definition authored by the AI Assistant. Stored once; multiple instances can reference the same definition. An AI Created Widget may define a small app-rendered settings schema; each placed instance stores its own values. Secret settings are the exception: the instance stores only a reference and the actual password/API key/token lives in the OS keychain. Deleting an AI Created Widget cascades to its instances (enforced in Rust because SQLite cannot express conditional foreign keys).
 
+AI Created Widget text is UTF-8 end to end. Titles, summaries, labels, placeholders, setting options, `htmlShim`, `bodyJson`, `settingsSchemaJson`, and JavaScript string literals must preserve non-English text as Unicode rather than Latin-1 / Windows-1252 mojibake, percent encoding, base64, HTML entities, or ASCII transliteration. The AI-facing tool descriptions repeat this because widget updates often round-trip existing source.
+
 **Widget Kind** — two values, layered by ownership:
 
 | Kind | Body source | Execution model |
@@ -129,6 +131,7 @@ Rust validation invariants:
 - `icon_name` is in the lucide icon whitelist.
 - Grid bounds: `w ≥ 1`, `h ≥ 1`, `x ≥ 0`, `y ≥ 0`, `x + w ≤ 12`.
 - Script source is required and ≤ 64 KB; `pollSeconds ≥ 1`; only declared `permissions` values are accepted.
+- Script bodies and settings schemas are UTF-8 JSON strings. Structured `dashboard_create_widget.body` and `dashboard_update_custom_widget.patch.body` are preferred because KKTerm serializes them directly; legacy `bodyJson` / `settingsSchemaJson` submissions must still be valid UTF-8 JSON.
 - Settings schemas are bounded JSON objects with up to 20 fields. Supported field types are `text`, `number`, `boolean`, `select`, and `secret`; keys must be stable ASCII identifiers and select fields must declare bounded label/value options.
 - Settings schemas use `secret` fields for passwords, API keys, tokens, and similar values. A secret field never has a default value.
 - Settings values are per-instance JSON objects capped at 32 KB. For `secret` fields, Rust rejects plaintext values; the only valid stored shape is a `secretRef` whose owner id matches `dashboard-widget-secret:<instanceId>:<fieldKey>`.
@@ -214,6 +217,7 @@ The catalog overlay is a separate modal with search + two source-group tabs: Bui
 - A `<style>` block carrying compact KKTerm-like text, form-control, button, stack, row, and result defaults so simple generated DOM starts from the app's desktop UI grammar.
 - An optional `htmlShim` body markup (default: a single `<div id="root">`). The shim is capped at 128 KB (`MAX_HTML_SHIM_BYTES`) and a token-boundary tag scan rejects `<script>`, `<iframe>`, `<object>`, `<embed>`, and document-shell tags (`<html>`, `<head>`, `<body>`, `<meta>`, `<title>`, `<link>`) at validation time. Runtime CSP remains the real defense; the storage check exists so the AI gets a clean structured error rather than a silent no-op at render time.
 - A small host `<script>` that loads the stored source as data. The generated source is never pasted directly into the host script text, because generated snippets commonly contain HTML/script literals such as `</script>` that would prematurely close the host script and render broken JavaScript as widget body text.
+- UTF-8 document and script loading metadata. The `srcdoc` document declares `<meta charset="utf-8">`, and injected script/library blobs use `text/javascript;charset=utf-8` so non-English widget text survives the render path unchanged.
 - Renderer guardrails inside the iframe: `requestAnimationFrame` callbacks are capped to about 30 fps, tiny `setInterval` delays are clamped, and timer/animation work pauses while the host marks the widget invisible. Scripts can read the current state with `KK.isVisible()` and subscribe with `KK.onVisibilityChange(callback)` to restart paused animation when visibility returns. This protects the shared WebView2 renderer from a single AI-authored widget with an overly aggressive loop.
 - A per-instance settings snapshot loaded through `KK.getSettings()`. Scripts can persist small non-secret user options with `KK.setSetting(key, value)` or replace the object with `KK.setSettings(nextSettings)`.
 - A viewport helper for canvas/WebGL widgets: `KK.getViewport()` returns `{ width, height, dpr }` measured from the script root, and `KK.onViewportResize(callback)` calls back with the same shape when the widget body changes size.
