@@ -290,13 +290,32 @@ mod platform {
         ) -> RdpDisplaySettings {
             let (desktop_width, desktop_height) =
                 self.desktop_size(logical_w, logical_h, physical_w, physical_h);
+            let (display_physical_width, display_physical_height) =
+                self.display_physical_size(desktop_width, desktop_height, physical_w, physical_h);
             RdpDisplaySettings {
                 desktop_width,
                 desktop_height,
-                physical_width: desktop_width_for(physical_w),
-                physical_height: desktop_height_for(physical_h),
+                physical_width: display_physical_width,
+                physical_height: display_physical_height,
                 desktop_scale_factor: self.desktop_scale_factor(scale_factor),
                 device_scale_factor: self.device_scale_factor(scale_factor),
+            }
+        }
+
+        fn display_physical_size(
+            &self,
+            desktop_width: i32,
+            desktop_height: i32,
+            physical_w: i32,
+            physical_h: i32,
+        ) -> (i32, i32) {
+            if self.smart_sizing() {
+                (desktop_width, desktop_height)
+            } else {
+                (
+                    desktop_width_for(physical_w),
+                    desktop_height_for(physical_h),
+                )
             }
         }
 
@@ -2200,14 +2219,29 @@ mod platform {
         }
 
         #[test]
-        fn automatic_display_settings_keep_physical_host_separate() {
+        fn automatic_display_settings_stretch_logical_desktop_with_smart_sizing() {
             let settings =
                 RemoteResolutionMode::Automatic.display_settings(1200.0, 800.0, 1800, 1200, 1.5);
 
             assert_eq!(settings.desktop_width, 1200);
             assert_eq!(settings.desktop_height, 800);
-            assert_eq!(settings.physical_width, 1800);
-            assert_eq!(settings.physical_height, 1200);
+            assert_eq!(settings.physical_width, 1200);
+            assert_eq!(settings.physical_height, 800);
+            assert_eq!(settings.desktop_scale_factor, 100);
+        }
+
+        #[test]
+        fn fixed_display_settings_stretch_selected_resolution_with_smart_sizing() {
+            let settings = RemoteResolutionMode::Fixed {
+                width: 1440,
+                height: 900,
+            }
+            .display_settings(1200.0, 800.0, 1800, 1200, 1.5);
+
+            assert_eq!(settings.desktop_width, 1440);
+            assert_eq!(settings.desktop_height, 900);
+            assert_eq!(settings.physical_width, 1440);
+            assert_eq!(settings.physical_height, 900);
             assert_eq!(settings.desktop_scale_factor, 100);
         }
 
