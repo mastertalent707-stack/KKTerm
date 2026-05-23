@@ -66,7 +66,7 @@ You're a sysadmin / DevOps / homelab / vibe-coder person. Right now you have:
 - Remote Desktop in a window you keep losing on the wrong monitor
 - A VNC viewer for that one Linux box
 - A browser tab for the router admin UI
-- An `aider` / `claude` / `codex` session running on a remote dev box that drops every time your Wi-Fi sneezes
+- A `claude` / `codex` session running on a remote dev box that drops every time your Wi-Fi sneezes
 - A sticky note with passwords *(don't worry, we won't tell)*
 
 **KKTerm is one window for all of that.** Native on Windows — *on purpose, while the rest of the dev tools world ships mac-first and treats your OS like a footnote* — written in Rust + Tauri v2, ships as a single installer, and refuses to phone home.
@@ -74,7 +74,9 @@ You're a sysadmin / DevOps / homelab / vibe-coder person. Right now you have:
 Plus a few things you didn't know you wanted:
 
 - A **Dashboard** where you tell an AI *"build me a widget that pings my router every 30 seconds"* and it appears, sandboxed, on your grid.
-- **SSH panes that auto-attach to named tmux sessions** so your remote `claude` / `codex` / `aider` session survives every Wi-Fi tantrum your laptop throws.
+- **SSH panes that auto-attach to named tmux sessions** so your remote `claude` / `codex` session survives every Wi-Fi tantrum your laptop throws.
+- An **AI Coding usage widget** that shows your Claude Code and Codex quotas — 5-hour window, weekly window, current plan, account email — on the **Dashboard** and in the status bar, so you stop being surprised by the rate-limit wall at 3 AM.
+- A **built-in MCP server** (`kkterm-cli`) that lets external coding agents (Claude Code, Codex, Copilot, Antigravity, OpenCode) drive your Workspace and Dashboard — list Connections, read terminal buffers, place widgets — over a curated, safety-gated tool surface. AI-to-AI, on your machine, no cloud relay.
 - Twenty-one **animated canvas backgrounds** (yes, including `matrix`) for the dashboard, because we are not above it.
 
 Oh, and the AI assistant can turn a sentence into a tiny dashboard tool you actually keep using.
@@ -132,7 +134,7 @@ We have not yet been able to ship an actual bag of Kuai Kuai with the installer.
 
 ### Windows-first, on purpose
 
-Look around the 2026 dev tooling landscape. Claude Code: ships mac/linux first, Windows is "use WSL." Codex CLI: same. `aider`, `gemini-cli`, half of Homebrew, every shiny new TUI: mac/linux first, Windows users get a `# Windows: contributions welcome` comment in the README and a fish-completion script that doesn't run.
+Look around the 2026 dev tooling landscape. Claude Code: ships mac/linux first, Windows is "use WSL." Codex CLI: same. `gemini-cli`, half of Homebrew, every shiny new TUI: mac/linux first, Windows users get a `# Windows: contributions welcome` comment in the README and a fish-completion script that doesn't run.
 
 Meanwhile, the people who actually keep companies online — corporate IT, MSPs, anyone running Hyper-V or AD or SCCM or IIS or a domain controller older than some interns — are sitting at Windows boxes wondering why every new tool acts like their OS is an inconvenience.
 
@@ -226,12 +228,45 @@ They run on a single shared `requestAnimationFrame` and respect window focus, so
 This is the second feature people fall in love with. KKTerm's SSH terminals can launch directly into a **named tmux session** on the remote host — by default, an auto-generated friendly id like `kkterm-cockpit001` that survives reconnect:
 
 - Open an SSH **Connection** with tmux enabled.
-- Inside the pane, start `claude`, `codex`, `aider`, `gemini-cli`, `cursor-agent`, or whatever long-running coding agent you prefer. They are full-screen TUI apps; tmux is exactly where they want to live.
+- Inside the pane, start `claude`, `codex`, `gemini-cli`, `cursor-agent`, or whatever long-running coding agent you prefer. They are full-screen TUI apps; tmux is exactly where they want to live.
 - Close the laptop. Open it again. The pane silently re-attaches to the same tmux session. The agent is still running, still has its scrollback, still in the middle of whatever it was doing.
 - Network blip on the SSH transport? KKTerm makes a bounded silent reattach attempt to the same tmux id without bothering you.
 - Want the AI assistant to see what the agent is doing? "Add terminal buffer to context" calls `capture_tmux_pane` over SSH and pulls the full tmux scrollback — not just what's on-screen, the whole session — into the conversation. Your local assistant can now reason about your remote agent's work.
 
-If you have ever lost a six-hour `aider` session to a flaky hotel Wi-Fi, this single feature pays for the app. The app is free. The feature is still worth it.
+If you have ever lost a six-hour `claude` or `codex` session to a flaky hotel Wi-Fi, this single feature pays for the app. The app is free. The feature is still worth it.
+
+### Knowing how much AI you have left
+
+Coding agents charge by plan window, not by month. Claude Code has a 5-hour window and a weekly window. Codex does its own version. Both will happily eat your quota in the background while you're in a meeting.
+
+The **AI Coding Usage** widget keeps that visible:
+
+- A Dashboard widget showing **Claude Code** and **Codex** side-by-side: connected account, plan tier, percent used in the current 5-hour window, percent used this week, and the next reset time.
+- A compact **status-bar indicator** that mirrors the same numbers, so even with the Dashboard closed you can tell at a glance whether you still have headroom before you kick off the next big refactor.
+- Auth state is surfaced directly (`connected` / `expired` / `error`) so you find out *before* a long task that you need to re-login, not in the middle of one.
+- Refresh policy respects rate limits; the widget polls on its own cadence instead of hammering the upstream APIs whenever you look at it.
+
+### A built-in MCP server — let other AIs drive KKTerm
+
+Your terminal is also where Claude Code, Codex, Copilot agent mode, Antigravity, and the rest of the MCP-speaking world want to do work. So KKTerm ships its own **stdio MCP server**, [`kkterm-cli`](docs/MCP.md), that exposes a curated slice of the app:
+
+- **Workspace Module** (`kkterm.workspace.*`): list saved **Connections**, open a Connection by id, list live **Sessions**, send input to a terminal pane, read a terminal buffer snapshot.
+- **Dashboard Module** (`kkterm.dashboard.*`): load Dashboard state, read AI-Created Widget source, create / update / remove views, place / move / remove widget instances, apply bulk layouts.
+- **Dangerous sub-namespaces** (`kkterm.<module>.dangerous.*`): mutating the executable surface — creating script widgets, clicking into remote desktops, wiping the Dashboard — is gated behind a single setting (`built_in_mcp_allow_all_dangerous`), defaulting **off**.
+
+`kkterm-cli` is a thin forwarder. It speaks stdio JSON-RPC to your MCP client and talks to the running KKTerm window over a per-launch authenticated Windows named pipe. When KKTerm is closed, `tools/list` still works (so clients can introspect the surface), but `tools/call` returns a structured `app_not_running` error instead of doing anything.
+
+Wire it into your favorite client and your AI can now use KKTerm the way you do:
+
+```json
+{
+  "mcpServers": {
+    "kkterm": { "command": "<path-to-kkterm-cli>", "args": [] }
+  }
+}
+```
+
+Settings → AI Assistant → **Built-in MCP Server** has a one-click "Show config" dialog with JSON and TOML snippets pre-filled with the resolved binary path, plus copyable `claude mcp add` / `codex mcp add` commands.
 
 ---
 
@@ -275,12 +310,14 @@ The shape that matters: durable saved data (**Connection**) is separate from liv
 | --- | --- |
 | **Connections** | SQLite-backed tree, folders/subfolders, search, drag/drop order, rename, duplicate, delete, **Quick Connect**, custom icons, pinned/active rail shortcuts |
 | **Terminal** | Local shells, SSH, Telnet, Serial, split panes, xterm.js + opportunistic WebGL, scrollback search, local startup directory/script |
-| **SSH** | Native `russh`, agent/key/password auth, host-key trust flow, optional system SSH fallback, ProxyJump, port forwarding, **auto-named tmux sessions (`kkterm-<scifi-name><n>`) with silent reattach on transport blip** — perfect for long-running remote coding agents (Claude Code, Codex, aider, etc.) |
+| **SSH** | Native `russh`, agent/key/password auth, host-key trust flow, optional system SSH fallback, ProxyJump, port forwarding, **auto-named tmux sessions (`kkterm-<scifi-name><n>`) with silent reattach on transport blip** — perfect for long-running remote coding agents (Claude Code, Codex, gemini-cli, etc.) |
 | **SFTP / FTP** | SSH-launched SFTP plus FTP/FTPS **Connections**, dual-pane browser, recursive transfers, queue/cancel/clear history, conflicts, properties, chmod/chown where supported |
 | **URL WebView** | Embedded WebView2 URL **Sessions**, navigation toolbar, favicon capture, stored website credential metadata/fill, data partition metadata |
 | **Remote Desktop** | RDP through Windows ActiveX with geometry-scoped overlay parking; VNC through `vnc-rs` framebuffer rendered in the workspace canvas |
 | **Dashboard** | Durable views, widget instances, edit mode, drag/resize, App Launcher, **AI-authored content/script widgets** (declarative JSON or sandboxed iframe JS with permissions), per-widget presets / accent / icon / title, **9 animated canvas backgrounds** (aurora, raindrops, starfield, nebula, embers, lava, matrix, synthwave, confetti) |
 | **AI Assistant** | Streaming chat, OpenAI-compatible runtime, provider registry, command proposal safety classification, screenshot/context attachments, **Dashboard widget authoring (content + sandboxed script)**, **tmux pane capture** as conversation context for remote sessions, **Connection** management tools, and live **Session** tools for terminal, RDP/VNC, and SFTP/FTP |
+| **AI Coding Usage** | **Dashboard widget + status-bar indicator** tracking **Claude Code** and **Codex** quota usage: connected account, plan tier, 5-hour and weekly window percentages, next reset time, auth state (`connected` / `expired` / `error`), rate-limit-aware refresh policy |
+| **Built-in MCP Server** | Stdio MCP server (`kkterm-cli`) exposing curated Workspace and Dashboard tools to external coding agents (Claude Code, Codex, Copilot, Antigravity, OpenCode); authenticated named-pipe bridge; per-Module `dangerous.*` namespaces gated behind a single safety toggle; Settings dialog with one-click JSON / TOML snippets and `claude mcp add` / `codex mcp add` commands |
 | **Settings** | General, Appearance, Credentials, AI, SSH, Terminal, URL, RDP, VNC, Dashboard, About; custom UI fonts; minimize-to-tray; Don't Sleep; backup/import |
 | **Localization** | i18next UI with English source and dynamic locale bundles: zh-TW, zh-CN, ja, ko, fr, de, es, es-MX, it, pt-BR, th, id, vi |
 
