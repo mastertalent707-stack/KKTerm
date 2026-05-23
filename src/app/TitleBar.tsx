@@ -128,6 +128,14 @@ export function TitleBar() {
   return (
     <div className="app-titlebar" data-tauri-drag-region>
       <div className="app-titlebar-label" data-tauri-drag-region>
+        <img
+          className="app-titlebar-icon"
+          src="/favicon.svg"
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          data-tauri-drag-region
+        />
         <span className="app-titlebar-title" data-tauri-drag-region>
           {titleText}
         </span>
