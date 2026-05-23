@@ -66,7 +66,7 @@ Eres administrador de sistemas / DevOps / homelab / vibe-coder. Ahora mismo tien
 - Remote Desktop en una ventana que no encuentras nunca en el monitor correcto
 - Un visor VNC para ese único servidor Linux
 - Una pestaña del navegador para la interfaz web del router
-- Una sesión de `aider` / `claude` / `codex` corriendo en un servidor remoto que se cae cada vez que tu Wi-Fi estornuda
+- Una sesión de `claude` / `codex` corriendo en un servidor remoto que se cae cada vez que tu Wi-Fi estornuda
 - Un post-it con contraseñas *(no te preocupes, no diremos nada)*
 
 **KKTerm es una sola ventana para todo eso.** Nativo en Windows — *a propósito, mientras el resto del mundo del desarrollo lanza primero en Mac y trata tu sistema operativo como nota a pie de página* — escrito en Rust + Tauri v2, se instala con un solo ejecutable y se niega a llamar a casa.
@@ -74,7 +74,9 @@ Eres administrador de sistemas / DevOps / homelab / vibe-coder. Ahora mismo tien
 Además, algunas cosas que no sabías que necesitabas:
 
 - Un **Dashboard** donde le dices a la IA *"construye un widget que haga ping a mi router cada 30 segundos"* y aparece, en su sandbox, en tu cuadrícula.
-- **Paneles SSH que se reconectan automáticamente a sesiones tmux con nombre**, para que tu sesión remota de `claude` / `codex` / `aider` sobreviva a cada berrinche Wi-Fi que le dé a tu portátil.
+- **Paneles SSH que se reconectan automáticamente a sesiones tmux con nombre**, para que tu sesión remota de `claude` / `codex` sobreviva a cada berrinche Wi-Fi que le dé a tu portátil.
+- Un **Widget de uso de IA para programar** que muestra tus cuotas de Claude Code y Codex — ventana de 5 horas, ventana semanal, plan actual, email de la cuenta — en el **Dashboard** y en la barra de estado, para que dejes de chocar con el muro del rate-limit a las 3 de la madrugada.
+- Un **servidor MCP integrado** (`kkterm-cli`) que permite a agentes de programación externos (Claude Code, Codex, Copilot, Antigravity, OpenCode) manejar tu Workspace y Dashboard — listar Connections, leer buffers del terminal, colocar Widgets — sobre una superficie de herramientas curada y con aprobación. IA-a-IA, en tu máquina, sin relay en la nube.
 - Nueve **fondos animados de canvas** (sí, incluido `matrix`) para el dashboard, porque no somos de los que se reprimen.
 
 Y el asistente de IA puede convertir una frase en una pequeña herramienta de dashboard que de verdad sigues usando.
@@ -132,7 +134,7 @@ Todavía no hemos podido incluir una bolsa real de Kuai Kuai en el instalador. E
 
 ### Windows-first, a propósito
 
-Echa un vistazo al panorama de herramientas de desarrollo en 2026. Claude Code: lanza primero en Mac/Linux, Windows es "usa WSL". Codex CLI: igual. `aider`, `gemini-cli`, la mitad de Homebrew, cada TUI reluciente y nuevo: Mac/Linux primero, los usuarios de Windows reciben un comentario `# Windows: se agradecen contribuciones` en el README y un script de autocompletado para fish que no funciona.
+Echa un vistazo al panorama de herramientas de desarrollo en 2026. Claude Code: lanza primero en Mac/Linux, Windows es "usa WSL". Codex CLI: igual. `gemini-cli`, la mitad de Homebrew, cada TUI reluciente y nuevo: Mac/Linux primero, los usuarios de Windows reciben un comentario `# Windows: se agradecen contribuciones` en el README y un script de autocompletado para fish que no funciona.
 
 Mientras tanto, las personas que realmente mantienen las empresas en línea — IT corporativo, MSPs, quien gestione Hyper-V, AD, SCCM, IIS o un controlador de dominio más antiguo que algunos becarios — están sentadas frente a máquinas Windows preguntándose por qué cada herramienta nueva trata su sistema operativo como un incordio.
 
@@ -226,12 +228,45 @@ Corren sobre un único `requestAnimationFrame` compartido y respetan el foco de 
 Esta es la segunda función de la que la gente se enamora. Los terminales SSH de KKTerm pueden lanzarse directamente en una **sesión tmux con nombre** en el host remoto — por defecto, un identificador amigable autogenerado como `kkterm-cockpit001` que sobrevive a las reconexiones:
 
 - Abre una **Connection** SSH con tmux activado.
-- Dentro del panel, inicia `claude`, `codex`, `aider`, `gemini-cli`, `cursor-agent` o cualquier agente de codificación de larga ejecución que prefieras. Son apps TUI a pantalla completa; tmux es exactamente donde quieren vivir.
+- Dentro del panel, inicia `claude`, `codex`, `gemini-cli`, `cursor-agent` o cualquier agente de codificación de larga ejecución que prefieras. Son apps TUI a pantalla completa; tmux es exactamente donde quieren vivir.
 - Cierra el portátil. Ábrelo de nuevo. El panel se vuelve a conectar silenciosamente a la misma sesión tmux. El agente sigue corriendo, sigue teniendo su historial, sigue en medio de lo que fuera que estaba haciendo.
 - ¿Un corte en el transporte SSH? KKTerm intenta reconectarse silenciosamente al mismo tmux id sin molestarte.
 - ¿Quieres que el asistente de IA vea lo que hace el agente? "Add terminal buffer to context" ejecuta `capture_tmux_pane` por SSH y trae el historial completo de tmux — no solo lo que hay en pantalla, toda la sesión — a la conversación. Tu asistente local ahora puede razonar sobre el trabajo de tu agente remoto.
 
-Si alguna vez has perdido seis horas de sesión de `aider` por culpa del Wi-Fi de un hotel, esta sola función amortiza la app. La app es gratuita. La función sigue valiendo la pena.
+Si alguna vez has perdido seis horas de sesión de `claude` o `codex` por culpa del Wi-Fi de un hotel, esta sola función amortiza la app. La app es gratuita. La función sigue valiendo la pena.
+
+### Saber cuánta IA te queda
+
+Los agentes de codificación cobran por ventana de plan, no por mes. Claude Code tiene una ventana de 5 horas y una ventana semanal. Codex hace su propia versión. Ambos pueden comerse tu cuota tranquilamente en segundo plano mientras estás en una reunión.
+
+El Widget **Uso de IA para programar** mantiene eso visible:
+
+- Un Widget de Dashboard que muestra **Claude Code** y **Codex** lado a lado: cuenta conectada, nivel de plan, porcentaje usado en la ventana de 5 horas actual, porcentaje usado esta semana, hora del próximo reset.
+- Un **indicador compacto en la barra de estado** que refleja los mismos números, para que incluso con el Dashboard cerrado puedas ver de un vistazo si todavía tienes margen antes de lanzar el próximo gran refactor.
+- El estado de autenticación se muestra directamente (`connected` / `expired` / `error`) para que descubras *antes* de una tarea larga que necesitas volver a iniciar sesión, no en medio.
+- La política de refresco respeta los rate limits; el Widget hace polling a su propio ritmo en lugar de aporrear las APIs cada vez que lo miras.
+
+### Un servidor MCP integrado — deja que otras IAs manejen KKTerm
+
+Tu terminal también es donde Claude Code, Codex, el modo agente de Copilot, Antigravity y el resto del mundo MCP quieren trabajar. Por eso KKTerm trae su propio **servidor MCP por stdio**, [`kkterm-cli`](docs/MCP.md), que expone una porción curada de la app:
+
+- **Módulo Workspace** (`kkterm.workspace.*`): listar **Connections** guardadas, abrir una Connection por id, listar **Sessions** activas, enviar entrada a un panel de terminal, leer un snapshot del buffer.
+- **Módulo Dashboard** (`kkterm.dashboard.*`): cargar el estado del Dashboard, leer la fuente de un Widget creado por IA, crear / actualizar / eliminar vistas, colocar / mover / eliminar instancias de Widget, aplicar layouts en bloque.
+- **Sub-namespaces peligrosos** (`kkterm.<module>.dangerous.*`): mutar la superficie ejecutable — crear Widgets de script, hacer clic en escritorios remotos, borrar el Dashboard — está protegido tras un único ajuste (`built_in_mcp_allow_all_dangerous`), desactivado por defecto.
+
+`kkterm-cli` es un forwarder ligero. Habla stdio JSON-RPC con tu cliente MCP y se comunica con la ventana de KKTerm en ejecución por un named pipe de Windows autenticado por lanzamiento. Con KKTerm cerrado, `tools/list` sigue funcionando (los clientes pueden introspeccionar la superficie), pero `tools/call` devuelve un error estructurado `app_not_running` en vez de hacer nada.
+
+Conéctalo a tu cliente favorito y tu IA usa KKTerm igual que tú:
+
+```json
+{
+  "mcpServers": {
+    "kkterm": { "command": "<ruta-a-kkterm-cli>", "args": [] }
+  }
+}
+```
+
+Settings → AI Assistant → **Servidor MCP integrado** tiene un diálogo "Mostrar config" de un clic con snippets JSON y TOML pre-rellenados con la ruta del binario resuelta, además de comandos `claude mcp add` / `codex mcp add` copiables.
 
 ---
 
@@ -275,12 +310,14 @@ La forma que importa: los datos duraderos guardados (**Connection**) son distint
 | --- | --- |
 | **Connections** | Árbol respaldado por SQLite, carpetas/subcarpetas, búsqueda, orden por arrastrar y soltar, renombrar, duplicar, eliminar, **Quick Connect**, iconos personalizados, accesos directos en el rail como fijados/activos |
 | **Terminal** | Shells locales, SSH, Telnet, Serial, paneles divididos, xterm.js + WebGL oportunista, búsqueda en historial, directorio/script de inicio local |
-| **SSH** | `russh` nativo, auth por agente/clave/contraseña, flujo de confianza de host-key, alternativa opcional al SSH del sistema, ProxyJump, reenvío de puertos, **sesiones tmux con nombre automático (`kkterm-<nombre-scifi><n>`) con reconexión silenciosa ante corte de transporte** — perfecto para agentes de codificación remotos de larga ejecución (Claude Code, Codex, aider, etc.) |
+| **SSH** | `russh` nativo, auth por agente/clave/contraseña, flujo de confianza de host-key, alternativa opcional al SSH del sistema, ProxyJump, reenvío de puertos, **sesiones tmux con nombre automático (`kkterm-<nombre-scifi><n>`) con reconexión silenciosa ante corte de transporte** — perfecto para agentes de codificación remotos de larga ejecución (Claude Code, Codex, gemini-cli, etc.) |
 | **SFTP / FTP** | SFTP lanzado desde SSH más **Connections** FTP/FTPS, explorador de doble panel, transferencias recursivas, cola/cancelar/limpiar historial, conflictos, propiedades, chmod/chown donde se admita |
 | **URL WebView** | **Sessions** de URL embebidas con WebView2, barra de navegación, captura de favicon, metadatos/relleno de credenciales de sitios web almacenados, metadatos de partición de datos |
 | **Remote Desktop** | RDP mediante ActiveX de Windows con aparcamiento de superposición por geometría; VNC mediante framebuffer `vnc-rs` renderizado en el canvas del espacio de trabajo |
 | **Dashboard** | Vistas duraderas, instancias de widgets, modo de edición, arrastrar/redimensionar, App Launcher, **widgets de contenido/script creados por IA** (JSON declarativo o JS en iframe con permisos), presets / acento / icono / título por widget, **9 fondos animados de canvas** (aurora, raindrops, starfield, nebula, embers, lava, matrix, synthwave, confetti) |
 | **AI Assistant** | Chat en streaming, runtime compatible con OpenAI, registro de proveedores, clasificación de seguridad de propuestas de comandos, capturas de pantalla/contexto adjuntos, **creación de widgets del Dashboard (contenido + script en sandbox)**, **captura de panel tmux** como contexto de conversación para sesiones remotas, herramientas de gestión de **Connection** y herramientas de **Session** en vivo para terminal, RDP/VNC y SFTP/FTP |
+| **Uso de IA para programar** | **Widget del Dashboard + indicador en la barra de estado** que rastrean el uso de cuotas de **Claude Code** y **Codex**: cuenta conectada, nivel de plan, porcentajes de las ventanas de 5 horas y semanal, hora del próximo reset, estado de autenticación (`connected` / `expired` / `error`), política de refresco consciente del rate-limit |
+| **Servidor MCP integrado** | Servidor MCP por stdio (`kkterm-cli`) que expone herramientas curadas de Workspace y Dashboard a agentes de programación externos (Claude Code, Codex, Copilot, Antigravity, OpenCode); bridge de named pipe autenticado; sub-namespaces `dangerous.*` por Módulo protegidos tras un único toggle de seguridad; diálogo de Settings con snippets JSON / TOML de un clic y comandos `claude mcp add` / `codex mcp add` |
 | **Settings** | General, Apariencia, Credenciales, IA, SSH, Terminal, URL, RDP, VNC, Dashboard, Acerca de; fuentes de interfaz personalizadas; minimizar a la bandeja; Don't Sleep; copia de seguridad/importar |
 | **Localización** | Interfaz i18next con inglés como fuente y paquetes de idioma dinámicos: zh-TW, zh-CN, ja, ko, fr, de, es, es-MX, it, pt-BR, th, id, vi |
 

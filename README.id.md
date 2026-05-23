@@ -66,7 +66,7 @@ Kamu seorang sysadmin / DevOps / homelab / vibe-coder. Sekarang kamu punya:
 - Remote Desktop di jendela yang selalu nyasar ke monitor yang salah
 - VNC viewer buat satu kotak Linux itu
 - Tab browser untuk admin UI router
-- Sesi `aider` / `claude` / `codex` yang jalan di dev box remote dan putus setiap kali Wi-Fi bersin
+- Sesi `claude` / `codex` yang jalan di dev box remote dan putus setiap kali Wi-Fi bersin
 - Sticky note berisi password *(tenang, kita tidak akan bilang siapa-siapa)*
 
 **KKTerm adalah satu jendela untuk semua itu.** Native di Windows — *memang sengaja, sementara semua tools developer lain rilis untuk Mac duluan dan memperlakukan OS kamu seperti catatan kaki* — ditulis dengan Rust + Tauri v2, tersedia sebagai satu installer, dan tidak pernah lapor ke mana-mana.
@@ -74,7 +74,9 @@ Kamu seorang sysadmin / DevOps / homelab / vibe-coder. Sekarang kamu punya:
 Plus beberapa hal yang belum kamu tahu kamu inginkan:
 
 - Sebuah **Dashboard** tempat kamu bilang ke AI *"buatkan widget yang ping router saya setiap 30 detik"* dan langsung muncul, tersandbox, di gridmu.
-- **SSH pane yang otomatis attach ke sesi tmux bernama** supaya sesi remote `claude` / `codex` / `aider` kamu bertahan dari setiap tantrum Wi-Fi yang dilempar laptopmu.
+- **SSH pane yang otomatis attach ke sesi tmux bernama** supaya sesi remote `claude` / `codex` kamu bertahan dari setiap tantrum Wi-Fi yang dilempar laptopmu.
+- Sebuah **widget penggunaan AI Coding** yang menampilkan kuota Claude Code dan Codex kamu — jendela 5 jam, jendela mingguan, plan saat ini, email akun — di **Dashboard** dan di status bar, supaya kamu berhenti kaget kena tembok rate-limit jam 3 pagi.
+- Sebuah **server MCP built-in** (`kkterm-cli`) yang memungkinkan coding agent eksternal (Claude Code, Codex, Copilot, Antigravity, OpenCode) mengendalikan Workspace dan Dashboard kamu — list Connections, baca buffer terminal, place widget — lewat surface tool yang dikurasi dan di-gate dengan safety. AI-ke-AI, di mesin kamu, tanpa relay cloud.
 - Sembilan **latar belakang canvas beranimasi** (iya, termasuk `matrix`) untuk dashboard, karena kami memang tidak malu-malu soal itu.
 
 Oh, dan asisten AI-nya bisa mengubah satu kalimat menjadi tool dashboard kecil yang benar-benar terus kamu pakai.
@@ -132,7 +134,7 @@ Kami belum berhasil menyertakan kantong Kuai Kuai sungguhan dengan installer. It
 
 ### Windows-first, memang sengaja
 
-Lihat lanskap tooling developer 2026. Claude Code: rilis untuk mac/linux duluan, Windows adalah "pakai WSL." Codex CLI: sama. `aider`, `gemini-cli`, separuh Homebrew, setiap TUI baru yang kinclong: mac/linux duluan, pengguna Windows mendapat komentar `# Windows: contributions welcome` di README dan skrip fish-completion yang tidak bisa dijalankan.
+Lihat lanskap tooling developer 2026. Claude Code: rilis untuk mac/linux duluan, Windows adalah "pakai WSL." Codex CLI: sama. `gemini-cli`, separuh Homebrew, setiap TUI baru yang kinclong: mac/linux duluan, pengguna Windows mendapat komentar `# Windows: contributions welcome` di README dan skrip fish-completion yang tidak bisa dijalankan.
 
 Sementara itu, orang-orang yang benar-benar menjaga perusahaan tetap online — corporate IT, MSP, siapa pun yang menjalankan Hyper-V atau AD atau SCCM atau IIS atau domain controller yang lebih tua dari beberapa intern — duduk di depan mesin Windows bertanya-tanya kenapa setiap tools baru bersikap seolah OS mereka adalah gangguan.
 
@@ -226,12 +228,45 @@ Semuanya berjalan di satu `requestAnimationFrame` bersama dan menghormati focus 
 Ini fitur kedua yang langsung disukai orang. Terminal SSH KKTerm bisa diluncurkan langsung ke **sesi tmux bernama** di host remote — secara default, friendly id yang auto-generated seperti `kkterm-cockpit001` yang bertahan saat reconnect:
 
 - Buka **Connection** SSH dengan tmux diaktifkan.
-- Di dalam pane, jalankan `claude`, `codex`, `aider`, `gemini-cli`, `cursor-agent`, atau agen coding long-running apapun yang kamu suka. Mereka adalah app TUI full-screen; tmux persis tempat yang mereka inginkan.
+- Di dalam pane, jalankan `claude`, `codex`, `gemini-cli`, `cursor-agent`, atau agen coding long-running apapun yang kamu suka. Mereka adalah app TUI full-screen; tmux persis tempat yang mereka inginkan.
 - Tutup laptop. Buka lagi. Pane diam-diam re-attach ke sesi tmux yang sama. Agen masih berjalan, masih punya scrollback-nya, masih di tengah-tengah apa yang sedang dilakukannya.
 - Gangguan jaringan di transport SSH? KKTerm melakukan bounded silent reattach attempt ke tmux id yang sama tanpa mengganggumu.
 - Mau asisten AI melihat apa yang dilakukan agen itu? "Tambahkan terminal buffer ke context" memanggil `capture_tmux_pane` via SSH dan menarik seluruh scrollback tmux — bukan hanya yang ada di layar, seluruh sesinya — ke dalam percakapan. Asisten lokal kamu kini bisa bernalar tentang pekerjaan agen remote-mu.
 
-Kalau kamu pernah kehilangan sesi `aider` enam jam karena Wi-Fi hotel yang tidak stabil, fitur tunggal ini sudah melunasi harga app-nya. App-nya gratis. Fiturnya tetap worth it.
+Kalau kamu pernah kehilangan sesi `claude` atau `codex` enam jam karena Wi-Fi hotel yang tidak stabil, fitur tunggal ini sudah melunasi harga app-nya. App-nya gratis. Fiturnya tetap worth it.
+
+### Tahu berapa AI kamu yang tersisa
+
+Coding agent menagih per jendela plan, bukan per bulan. Claude Code punya jendela 5 jam dan jendela mingguan. Codex punya versinya sendiri. Keduanya bisa dengan senang hati melahap kuota kamu di background saat kamu lagi meeting.
+
+Widget **Penggunaan AI Coding** menjaga itu tetap terlihat:
+
+- Widget Dashboard yang menampilkan **Claude Code** dan **Codex** berdampingan: akun yang terhubung, level plan, persen yang dipakai di jendela 5 jam saat ini, persen yang dipakai minggu ini, waktu reset berikutnya.
+- Indikator **status bar yang ringkas** yang memantulkan angka yang sama, jadi meski Dashboard ditutup kamu bisa lihat sekilas apakah masih ada ruang sebelum mulai refactor besar berikutnya.
+- Status auth ditampilkan langsung (`connected` / `expired` / `error`) supaya kamu tahu *sebelum* tugas panjang bahwa kamu perlu re-login, bukan di tengah-tengah.
+- Policy refresh menghormati rate limit; widget polling di tempo sendiri alih-alih menghantam API upstream tiap kali kamu lihat.
+
+### Sebuah server MCP built-in — biarkan AI lain mengendalikan KKTerm
+
+Terminal kamu juga tempat Claude Code, Codex, Copilot agent mode, Antigravity, dan sisa dunia yang ngobrol MCP ingin bekerja. Maka KKTerm membawa **server MCP stdio**-nya sendiri, [`kkterm-cli`](docs/MCP.md), yang membuka slice app yang dikurasi:
+
+- **Modul Workspace** (`kkterm.workspace.*`): list **Connections** tersimpan, buka Connection by id, list **Sessions** yang hidup, kirim input ke pane terminal, baca snapshot buffer.
+- **Modul Dashboard** (`kkterm.dashboard.*`): load state Dashboard, baca source AI-Created Widget, buat / update / hapus view, place / pindah / hapus widget instance, apply bulk layout.
+- **Sub-namespace berbahaya** (`kkterm.<module>.dangerous.*`): mengubah surface yang executable — bikin widget script, klik ke remote desktop, wipe Dashboard — di-gate di balik satu setting (`built_in_mcp_allow_all_dangerous`), default **mati**.
+
+`kkterm-cli` adalah forwarder tipis. Dia bicara stdio JSON-RPC ke MCP client kamu dan berkomunikasi dengan window KKTerm yang berjalan via Windows named pipe yang ter-authenticate per-launch. Saat KKTerm tertutup, `tools/list` tetap jalan (client bisa introspeksi surface), tapi `tools/call` mengembalikan error terstruktur `app_not_running` alih-alih melakukan apapun.
+
+Sambungkan ke client favorit kamu dan AI kamu sekarang pakai KKTerm seperti kamu:
+
+```json
+{
+  "mcpServers": {
+    "kkterm": { "command": "<path-ke-kkterm-cli>", "args": [] }
+  }
+}
+```
+
+Settings → AI Assistant → **Built-in MCP Server** punya dialog "Show config" satu klik dengan snippet JSON dan TOML pre-filled dengan path binary yang resolved, plus command `claude mcp add` / `codex mcp add` yang bisa di-copy.
 
 ---
 
@@ -275,12 +310,14 @@ Bentuk yang penting: data tersimpan yang tahan lama (**Connection**) terpisah da
 | --- | --- |
 | **Connections** | Pohon berbasis SQLite, folder/subfolder, pencarian, urutan drag/drop, rename, duplicate, hapus, **Quick Connect**, ikon kustom, pintasan rail yang disematkan/aktif |
 | **Terminal** | Shell lokal, SSH, Telnet, Serial, split pane, xterm.js + WebGL oportunistik, pencarian scrollback, direktori/skrip startup lokal |
-| **SSH** | `russh` native, auth agent/key/password, alur trust host-key, fallback SSH sistem opsional, ProxyJump, port forwarding, **sesi tmux auto-named (`kkterm-<scifi-name><n>`) dengan silent reattach saat transport blip** — sempurna untuk agen coding remote long-running (Claude Code, Codex, aider, dll.) |
+| **SSH** | `russh` native, auth agent/key/password, alur trust host-key, fallback SSH sistem opsional, ProxyJump, port forwarding, **sesi tmux auto-named (`kkterm-<scifi-name><n>`) dengan silent reattach saat transport blip** — sempurna untuk agen coding remote long-running (Claude Code, Codex, gemini-cli, dll.) |
 | **SFTP / FTP** | SFTP yang diluncurkan via SSH plus **Connections** FTP/FTPS, browser dual-pane, transfer rekursif, antrean/batalkan/bersihkan riwayat, konflik, properti, chmod/chown jika didukung |
 | **URL WebView** | **Sessions** URL WebView2 tertanam, toolbar navigasi, pengambilan favicon, metadata/isian kredensial website tersimpan, metadata partisi data |
 | **Remote Desktop** | RDP melalui Windows ActiveX dengan geometry-scoped overlay parking; VNC melalui `vnc-rs` framebuffer yang dirender di canvas workspace |
 | **Dashboard** | View yang tahan lama, instance widget, mode edit, drag/resize, App Launcher, **widget konten/skrip buatan AI** (JSON deklaratif atau iframe JS tersandbox dengan izin), preset / aksen / ikon / judul per-widget, **9 latar belakang canvas beranimasi** (aurora, raindrops, starfield, nebula, embers, lava, matrix, synthwave, confetti) |
 | **AI Assistant** | Chat streaming, runtime kompatibel OpenAI, registri provider, klasifikasi keamanan proposal perintah, lampiran screenshot/context, **pembuatan widget Dashboard (konten + skrip tersandbox)**, **penangkapan pane tmux** sebagai context percakapan untuk sesi remote, tools manajemen **Connection**, dan tools **Session** langsung untuk terminal, RDP/VNC, dan SFTP/FTP |
+| **Penggunaan AI Coding** | **Widget Dashboard + indikator status bar** yang melacak penggunaan kuota **Claude Code** dan **Codex**: akun terhubung, level plan, persen jendela 5 jam dan mingguan, waktu reset berikutnya, status auth (`connected` / `expired` / `error`), policy refresh yang sadar rate-limit |
+| **Server MCP Built-in** | Server MCP stdio (`kkterm-cli`) yang membuka tools Workspace dan Dashboard yang dikurasi ke agen coding eksternal (Claude Code, Codex, Copilot, Antigravity, OpenCode); bridge named pipe ter-authenticate; sub-namespace `dangerous.*` per-Modul di balik satu toggle safety; dialog Settings dengan snippet JSON / TOML satu klik dan command `claude mcp add` / `codex mcp add` |
 | **Settings** | Umum, Tampilan, Kredensial, AI, SSH, Terminal, URL, RDP, VNC, Dashboard, Tentang; font UI kustom; minimize-to-tray; Don't Sleep; backup/import |
 | **Lokalisasi** | UI i18next dengan sumber bahasa Inggris dan bundel lokal dinamis: zh-TW, zh-CN, ja, ko, fr, de, es, es-MX, it, pt-BR, th, id, vi |
 
