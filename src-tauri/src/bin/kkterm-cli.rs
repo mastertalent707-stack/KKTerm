@@ -130,7 +130,7 @@ fn static_tool_descriptors() -> Vec<Value> {
                 "properties": {
                     "paneId": {"type": "string"},
                     "text": {"type": "string"},
-                    "submit": {"type": "boolean", "description": "Append a newline so the shell executes the line."},
+                    "submit": {"type": "boolean", "description": "Append a terminal Enter key (carriage return) after the text."},
                 },
                 "required": ["paneId", "text"],
                 "additionalProperties": false,

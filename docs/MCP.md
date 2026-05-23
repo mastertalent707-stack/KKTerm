@@ -89,7 +89,7 @@ The Workspace Module owns saved Connections and live Sessions
 | `kkterm.workspace.connections.list` | List saved Connections (folders + connections) from KKTerm storage. |
 | `kkterm.workspace.connections.open` | Open a saved Connection by `connectionId`. Routes through the existing AI assistant `connection_open` path and emits `assistant-open-connection` for the frontend to start the appropriate session (terminal, SSH, URL, RDP, VNC). |
 | `kkterm.workspace.sessions.list` | List live Sessions (terminal Panes, remote desktop targets, file browsers). Backed by `session_state`. |
-| `kkterm.workspace.sessions.send_input` | Send text/keystrokes to a live terminal Pane. `submit: true` appends a newline. Backed by `session_terminal_send_text`. |
+| `kkterm.workspace.sessions.send_input` | Send text/keystrokes to a live terminal Pane. `submit: true` appends a terminal Enter key as carriage return (`\r`) after the text. Backed by `session_terminal_send_text`. |
 | `kkterm.workspace.sessions.read_buffer` | Read a snapshot of the visible terminal buffer for a live Pane. Backed by `session_terminal_read_buffer`. |
 
 ### Workspace Module — dangerous (`kkterm.workspace.dangerous.*`)

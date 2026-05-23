@@ -320,7 +320,7 @@ fn tool_descriptors() -> Vec<Value> {
                 "properties": {
                     "paneId": {"type": "string"},
                     "text": {"type": "string"},
-                    "submit": {"type": "boolean", "description": "Append a newline so the shell executes the line."},
+                    "submit": {"type": "boolean", "description": "Append a terminal Enter key (carriage return) after the text."},
                 },
                 "required": ["paneId", "text"],
                 "additionalProperties": false,
@@ -676,7 +676,7 @@ async fn dispatch_tool(app: &AppHandle, name: &str, args: Value) -> Result<Value
             let raw = crate::ai::live_session_tool(
                 app,
                 "session_terminal_send_text",
-                json!({"paneId": pane_id, "text": text, "submit": submit}),
+                terminal_send_input_live_tool_args(pane_id, text, submit),
             )
             .await;
             parse_tool_json(&raw)
@@ -890,6 +890,14 @@ fn parse_tool_json(raw: &str) -> Result<Value, String> {
     Ok(value)
 }
 
+fn terminal_send_input_live_tool_args(pane_id: &str, text: &str, submit: bool) -> Value {
+    let mut input = text.to_string();
+    if submit {
+        input.push('\r');
+    }
+    json!({"paneId": pane_id, "text": input, "pressEnter": false})
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -898,6 +906,15 @@ mod tests {
     fn bridge_info_path_uses_filename() {
         let path = bridge_info_path(Path::new("/tmp/x"));
         assert!(path.ends_with("mcp-bridge.json"));
+    }
+
+    #[test]
+    fn send_input_submit_maps_to_terminal_enter_carriage_return() {
+        let args = terminal_send_input_live_tool_args("pane-1", "hello", true);
+        assert_eq!(
+            args,
+            json!({"paneId": "pane-1", "text": "hello\r", "pressEnter": false})
+        );
     }
 
     #[test]
