@@ -567,7 +567,13 @@
     "trayExit": "ออก",
     "wiki": "วิกิ",
     "manual": "คู่มือ",
-    "dontSleepStatusEnabled": "เปิดใช้งานไม่ให้พักเครื่อง"
+    "dontSleepStatusEnabled": "เปิดใช้งานไม่ให้พักเครื่อง",
+    "titlebar": {
+      "minimize": "ย่อ",
+      "maximize": "ขยาย",
+      "restore": "คืนค่า",
+      "close": "ปิด"
+    }
   },
   "appLauncher": {
     "addApp": "เพิ่มแอป",

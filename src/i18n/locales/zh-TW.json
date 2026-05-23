@@ -567,7 +567,13 @@
     "trayExit": "結束",
     "wiki": "Wiki",
     "manual": "手冊",
-    "dontSleepStatusEnabled": "防止睡眠已啟用"
+    "dontSleepStatusEnabled": "防止睡眠已啟用",
+    "titlebar": {
+      "minimize": "最小化",
+      "maximize": "最大化",
+      "restore": "還原",
+      "close": "關閉"
+    }
   },
   "appLauncher": {
     "addApp": "新增應用程式",

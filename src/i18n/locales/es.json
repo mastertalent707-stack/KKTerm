@@ -567,7 +567,13 @@
     "trayExit": "Salir",
     "wiki": "Wiki",
     "manual": "Manual",
-    "dontSleepStatusEnabled": "No suspender activado"
+    "dontSleepStatusEnabled": "No suspender activado",
+    "titlebar": {
+      "minimize": "Minimizar",
+      "maximize": "Maximizar",
+      "restore": "Restaurar",
+      "close": "Cerrar"
+    }
   },
   "appLauncher": {
     "addApp": "Añadir app",

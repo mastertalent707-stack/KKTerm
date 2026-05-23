@@ -567,7 +567,13 @@
     "trayExit": "Beenden",
     "wiki": "Wiki",
     "manual": "Handbuch",
-    "dontSleepStatusEnabled": "Nicht schlafen aktiviert"
+    "dontSleepStatusEnabled": "Nicht schlafen aktiviert",
+    "titlebar": {
+      "minimize": "Minimieren",
+      "maximize": "Maximieren",
+      "restore": "Wiederherstellen",
+      "close": "Schließen"
+    }
   },
   "appLauncher": {
     "addApp": "App hinzufügen",

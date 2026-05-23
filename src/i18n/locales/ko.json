@@ -567,7 +567,13 @@
     "trayExit": "종료",
     "wiki": "위키",
     "manual": "매뉴얼",
-    "dontSleepStatusEnabled": "절전 방지 활성화됨"
+    "dontSleepStatusEnabled": "절전 방지 활성화됨",
+    "titlebar": {
+      "minimize": "최소화",
+      "maximize": "최대화",
+      "restore": "복원",
+      "close": "닫기"
+    }
   },
   "appLauncher": {
     "addApp": "앱 추가",

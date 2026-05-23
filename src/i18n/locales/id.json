@@ -567,7 +567,13 @@
     "trayExit": "Keluar",
     "wiki": "Wiki",
     "manual": "Panduan",
-    "dontSleepStatusEnabled": "Jangan Tidur Aktif"
+    "dontSleepStatusEnabled": "Jangan Tidur Aktif",
+    "titlebar": {
+      "minimize": "Minimalkan",
+      "maximize": "Maksimalkan",
+      "restore": "Pulihkan",
+      "close": "Tutup"
+    }
   },
   "appLauncher": {
     "addApp": "Tambah Aplikasi",

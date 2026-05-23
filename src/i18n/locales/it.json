@@ -567,7 +567,13 @@
     "trayExit": "Esci",
     "wiki": "Wiki",
     "manual": "Manuale",
-    "dontSleepStatusEnabled": "Non sospendere attivo"
+    "dontSleepStatusEnabled": "Non sospendere attivo",
+    "titlebar": {
+      "minimize": "Riduci a icona",
+      "maximize": "Ingrandisci",
+      "restore": "Ripristina",
+      "close": "Chiudi"
+    }
   },
   "appLauncher": {
     "addApp": "Aggiungi app",

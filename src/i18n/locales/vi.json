@@ -567,7 +567,13 @@
     "trayExit": "Thoát",
     "wiki": "Wiki",
     "manual": "Hướng dẫn",
-    "dontSleepStatusEnabled": "Đã bật Không ngủ"
+    "dontSleepStatusEnabled": "Đã bật Không ngủ",
+    "titlebar": {
+      "minimize": "Thu nhỏ",
+      "maximize": "Phóng to",
+      "restore": "Khôi phục",
+      "close": "Đóng"
+    }
   },
   "appLauncher": {
     "addApp": "Thêm Ứng dụng",

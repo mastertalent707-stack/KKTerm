@@ -20,7 +20,13 @@
     "openConnectedConnection": "Open {{name}}",
     "openPinnedConnection": "Open pinned Connection {{name}}",
     "trayDontSleep": "Don't Sleep",
-    "trayExit": "Exit"
+    "trayExit": "Exit",
+    "titlebar": {
+      "minimize": "Minimize",
+      "maximize": "Maximize",
+      "restore": "Restore",
+      "close": "Close"
+    }
   },
   "dashboard": {
     "title": "Dashboard",

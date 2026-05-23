@@ -34,6 +34,7 @@ mod telnet;
 mod vnc;
 mod webview;
 mod wiki;
+mod window_effects;
 mod window_state;
 #[cfg(target_os = "windows")]
 mod windows_local_pty;
@@ -2386,6 +2387,7 @@ pub fn run() {
                     webview_sessions.clipboard_read_allowed_state(),
                 )
                 .map_err(setup_error)?;
+                window_effects::apply_main_window_backdrop(&main_webview);
             }
             if let Some(main_window) = app.get_window(window_state::MAIN_WINDOW_LABEL) {
                 let title = format!("KKTerm v{}", env!("CARGO_PKG_VERSION"));

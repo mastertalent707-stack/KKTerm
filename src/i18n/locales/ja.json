@@ -567,7 +567,13 @@
     "trayExit": "終了",
     "wiki": "ウィキ",
     "manual": "マニュアル",
-    "dontSleepStatusEnabled": "スリープ防止が有効"
+    "dontSleepStatusEnabled": "スリープ防止が有効",
+    "titlebar": {
+      "minimize": "最小化",
+      "maximize": "最大化",
+      "restore": "元に戻す",
+      "close": "閉じる"
+    }
   },
   "appLauncher": {
     "addApp": "アプリを追加",
