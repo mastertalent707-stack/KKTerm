@@ -2415,12 +2415,16 @@ button.dashboard-pill-dot:focus-visible {
 
 .app-launcher-tile-grid {
   display: grid;
+  align-content: start;
+  align-items: start;
+  grid-auto-rows: max-content;
   grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
   gap: 10px;
 }
 
 .app-launcher-tile-grid[data-view-mode="list"],
 .app-launcher-tile-grid[data-view-mode="details"] {
+  align-items: stretch;
   grid-template-columns: minmax(0, 1fr);
   gap: 5px;
 }
@@ -2492,8 +2496,8 @@ button.dashboard-pill-dot:focus-visible {
   min-width: 0;
   padding: 0;
   color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 8px;
   cursor: default;
   transition:
@@ -2503,10 +2507,10 @@ button.dashboard-pill-dot:focus-visible {
     transform 120ms ease;
 }
 
-.app-launcher-tile:hover,
-.app-launcher-tile:focus-within {
-  border-color: var(--border-strong);
-  box-shadow: var(--dashboard-shadow-card);
+.app-launcher-widget-list .app-launcher-tile,
+.app-launcher-widget-details .app-launcher-tile {
+  background: var(--surface);
+  border-color: var(--border);
 }
 
 .app-launcher-widget.is-managing .app-launcher-tile {
@@ -2528,13 +2532,14 @@ button.dashboard-pill-dot:focus-visible {
   align-items: center;
   gap: 6px;
   width: 100%;
+  height: 92px;
   min-width: 0;
   padding: 10px 6px;
   color: inherit;
   font: inherit;
   text-align: center;
-  background: transparent;
-  border: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
 }
@@ -2545,8 +2550,11 @@ button.dashboard-pill-dot:focus-visible {
   grid-template-columns: 30px minmax(0, 1fr);
   gap: 8px;
   align-items: center;
+  height: auto;
   padding: 7px 9px;
   text-align: left;
+  background: transparent;
+  border: 0;
 }
 
 .app-launcher-widget-details .app-launcher-tile-launch {
@@ -2558,6 +2566,20 @@ button.dashboard-pill-dot:focus-visible {
     minmax(88px, 0.75fr)
     minmax(0, 1.25fr);
   gap: 10px;
+}
+
+.app-launcher-widget-icons .app-launcher-tile:hover .app-launcher-tile-launch,
+.app-launcher-widget-icons .app-launcher-tile:focus-within .app-launcher-tile-launch {
+  border-color: var(--border-strong);
+  box-shadow: var(--dashboard-shadow-card);
+}
+
+.app-launcher-widget-list .app-launcher-tile:hover,
+.app-launcher-widget-list .app-launcher-tile:focus-within,
+.app-launcher-widget-details .app-launcher-tile:hover,
+.app-launcher-widget-details .app-launcher-tile:focus-within {
+  border-color: var(--border-strong);
+  box-shadow: var(--dashboard-shadow-card);
 }
 
 .app-launcher-widget.is-managing .app-launcher-tile-launch {
