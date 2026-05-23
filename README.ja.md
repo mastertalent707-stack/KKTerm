@@ -106,21 +106,11 @@
 
 ## 動いている様子を見る
 
-<!--
-  TODO: Replace this placeholder with a real demo GIF.
-  Recommended:
-    - 5-10 seconds, looped
-    - Show: open a Connection -> split a pane -> SFTP upload -> AI proposes a command
-    - Target ~5 MB so GitHub renders it inline without lazy-loading
-  Suggested path: docs/assets/demo.gif
-  Then change the <img src=...> below to: src="docs/assets/demo.gif"
--->
-
 <p align="center">
   <a href="https://github.com/ryantsai/KKTerm">
     <img
-      src="https://placehold.co/1280x720/0d1117/8b949e?text=Drop+demo.gif+here%0A%E2%86%92+docs%2Fassets%2Fdemo.gif&font=source-code-pro"
-      alt="KKTerm demo placeholder — replace with docs/assets/demo.gif"
+      src="docs/assets/demo.gif"
+      alt="KKTerm demo"
       width="720"
     />
   </a>
