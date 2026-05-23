@@ -66,7 +66,7 @@
 - 一个老是在错误显示器上迷路的远程桌面窗口
 - 一个专门用来连那台 Linux 机器的 VNC 查看器
 - 一个路由器管理界面的浏览器标签页
-- 一个跑在远程开发机上的 `aider` / `claude` / `codex` Session，Wi-Fi 一打喷嚏就断线
+- 一个跑在远程开发机上的 `claude` / `codex` Session，Wi-Fi 一打喷嚏就断线
 - 一张写满密码的便利贴 *(别担心，我们不会说的)*
 
 **KKTerm 把这一切塞进同一个窗口。** 原生 Windows 应用——*有意为之，而其他开发工具都在优先支持 Mac，把你的操作系统当脚注*——用 Rust + Tauri v2 编写，单个安装包搞定，从不偷偷打电话回家。
@@ -74,7 +74,9 @@
 此外还有几个你以为自己不需要、却会爱上的功能：
 
 - 一个 **Dashboard**，你只需告诉 AI *"给我建一个每 30 秒 ping 一次路由器的 Widget"*，它就出现在你的网格上，完全沙盒隔离。
-- **SSH Pane 自动挂载到命名 tmux Session**，让你远程跑的 `claude` / `codex` / `aider` Session 扛得住笔记本每一次 Wi-Fi 发脾气。
+- **SSH Pane 自动挂载到命名 tmux Session**，让你远程跑的 `claude` / `codex` Session 扛得住笔记本每一次 Wi-Fi 发脾气。
+- 一个 **AI 编程用量 Widget**，在 **Dashboard** 和状态栏上展示你的 Claude Code 和 Codex 配额——5 小时窗口、每周窗口、当前套餐、账号邮箱——让你不会在凌晨 3 点撞上限速墙才一脸懵。
+- 一个**内置 MCP 服务器**（`kkterm-cli`），让外部编程 Agent（Claude Code、Codex、Copilot、Antigravity、OpenCode）能操控你的 Workspace 和 Dashboard——列出 Connection、读取终端缓冲区、放置 Widget——通过精选的、带安全门控的工具表面。AI 对 AI，全在你机器上，不走云端中转。
 - 九种 **动态 Canvas 背景**（是的，包括 `matrix`）可用于 Dashboard，因为我们就是有这个审美品位。
 
 哦对了，AI 助手可以把一句话变成一个你真的会继续用的小型 Dashboard 工具。
@@ -132,7 +134,7 @@
 
 ### Windows 优先，有意为之
 
-看看 2026 年的开发工具市场。Claude Code：先出 Mac/Linux，Windows 版是"用 WSL 凑合"。Codex CLI：一样。`aider`、`gemini-cli`、Homebrew 的一半、每一个光鲜的新 TUI：先出 Mac/Linux，Windows 用户在 README 里得到一行 `# Windows: contributions welcome` 注释，外加一个跑不起来的 fish 补全脚本。
+看看 2026 年的开发工具市场。Claude Code：先出 Mac/Linux，Windows 版是"用 WSL 凑合"。Codex CLI：一样。`gemini-cli`、Homebrew 的一半、每一个光鲜的新 TUI：先出 Mac/Linux，Windows 用户在 README 里得到一行 `# Windows: contributions welcome` 注释，外加一个跑不起来的 fish 补全脚本。
 
 与此同时，那些真正让公司保持在线的人——企业 IT、MSP、运行着 Hyper-V、AD、SCCM、IIS 或某台比部分实习生还老的域控制器的人——坐在 Windows 机器前，疑惑为什么每个新工具都把他们的操作系统当成一种麻烦。
 
@@ -226,12 +228,45 @@ Dashboard 提供九种可按 **Dashboard View** 独立选择的 Canvas 动态背
 这是第二个让人一用就爱上的功能。KKTerm 的 SSH 终端可以直接启动到远程主机上的**命名 tmux Session**——默认会自动生成一个像 `kkterm-cockpit001` 这样的友好 ID，重连后依然存在：
 
 - 开启一个启用了 tmux 的 SSH **Connection**。
-- 在 Pane 里启动 `claude`、`codex`、`aider`、`gemini-cli`、`cursor-agent`，或任何你喜欢的长时间运行的编程 Agent。它们都是全屏 TUI 应用；tmux 正是它们想要的归宿。
+- 在 Pane 里启动 `claude`、`codex`、`gemini-cli`、`cursor-agent`，或任何你喜欢的长时间运行的编程 Agent。它们都是全屏 TUI 应用；tmux 正是它们想要的归宿。
 - 合上笔记本，再打开。Pane 会静默地重新挂载到同一个 tmux Session。Agent 还在跑，滚动历史还在，还在做着它之前做的事。
 - SSH 传输层发生网络抖动？KKTerm 会在不打扰你的情况下有限次地静默尝试重连同一个 tmux ID。
 - 想让 AI 助手看到 Agent 在做什么？"将终端缓冲区加入上下文"会通过 SSH 调用 `capture_tmux_pane`，将完整的 tmux 滚动历史——不只是屏幕上显示的内容，而是整个 Session——拉入对话。你的本地助手现在可以对你远程 Agent 的工作进行推理了。
 
-如果你曾经因为酒店 Wi-Fi 不稳定而丢失过一个跑了六小时的 `aider` Session，这一个功能就值回应用的票价。这个应用是免费的。这个功能依然值。
+如果你曾经因为酒店 Wi-Fi 不稳定而丢失过一个跑了六小时的 `claude` 或 `codex` Session，这一个功能就值回应用的票价。这个应用是免费的。这个功能依然值。
+
+### 知道你还剩多少 AI 可用
+
+编程 Agent 是按套餐窗口计费的，不是按月。Claude Code 有一个 5 小时窗口和一个每周窗口。Codex 有自己的版本。两者都能在你开会的时候，在后台悠闲地把你的配额吃光。
+
+**AI 编程用量** Widget 把这事摆在明面上：
+
+- 一个 Dashboard Widget，把 **Claude Code** 和 **Codex** 并排显示：已连接账号、套餐等级、当前 5 小时窗口已用百分比、本周已用百分比、下次重置时间。
+- 一个**紧凑的状态栏指示器**，镜像同样的数字，即使关掉 Dashboard 你也能一眼看出在启动下一次大重构之前是否还有余量。
+- 认证状态直接可见（`connected` / `expired` / `error`），让你在长任务**之前**就发现需要重新登录，而不是任务跑到一半才发现。
+- 刷新策略遵守限速；Widget 按自己的节奏轮询，而不是每次你看它就去敲上游 API。
+
+### 内置 MCP 服务器 — 让其他 AI 来操作 KKTerm
+
+你的终端也是 Claude Code、Codex、Copilot 的 Agent 模式、Antigravity 以及其余说 MCP 的世界想干活的地方。所以 KKTerm 自带一个 **stdio MCP 服务器**，[`kkterm-cli`](docs/MCP.md)，对外暴露 App 的一个精选切面：
+
+- **Workspace 模块**（`kkterm.workspace.*`）：列出已保存的 **Connection**、按 id 打开 Connection、列出活动 **Session**、向终端 Pane 发送输入、读取一份终端缓冲区快照。
+- **Dashboard 模块**（`kkterm.dashboard.*`）：加载 Dashboard 状态、读取 AI 创建的 Widget 源码、创建 / 更新 / 删除 View、放置 / 移动 / 删除 Widget 实例、批量应用布局。
+- **危险子命名空间**（`kkterm.<module>.dangerous.*`）：修改可执行表面——创建脚本 Widget、点击进入远程桌面、清空 Dashboard——被一个单一设置（`built_in_mcp_allow_all_dangerous`）门控，默认**关闭**。
+
+`kkterm-cli` 是一个轻量转发器。它通过 stdio JSON-RPC 与你的 MCP 客户端对话，并通过一个按启动认证的 Windows 命名管道与运行中的 KKTerm 窗口通信。当 KKTerm 关闭时，`tools/list` 仍能工作（客户端可以做内省），但 `tools/call` 会返回一个结构化的 `app_not_running` 错误，而不是真的去执行。
+
+把它接到你喜欢的客户端上，你的 AI 现在就能像你一样使用 KKTerm：
+
+```json
+{
+  "mcpServers": {
+    "kkterm": { "command": "<kkterm-cli-路径>", "args": [] }
+  }
+}
+```
+
+设置 → AI Assistant → **内置 MCP 服务器** 有一个一键"显示配置"对话框，里面预填了已解析二进制路径的 JSON 和 TOML 片段，外加可复制的 `claude mcp add` / `codex mcp add` 命令。
 
 ---
 
@@ -275,12 +310,14 @@ flowchart LR
 | --- | --- |
 | **Connections** | SQLite 树结构、文件夹/子文件夹、搜索、拖拽排序、重命名、复制、删除、**Quick Connect**、自定义图标、固定/活跃的 Activity Rail 快捷方式 |
 | **终端** | 本地 Shell、SSH、Telnet、Serial、分割 Pane、xterm.js + 机会性 WebGL、滚动搜索、本地启动目录/脚本 |
-| **SSH** | 原生 `russh`、代理/密钥/密码认证、主机密钥信任流程、可选系统 SSH 回退、ProxyJump、端口转发、**自动命名 tmux Session（`kkterm-<科幻名><n>`），传输层抖动时静默重连**——完美适配长时间运行的远程编程 Agent（Claude Code、Codex、aider 等） |
+| **SSH** | 原生 `russh`、代理/密钥/密码认证、主机密钥信任流程、可选系统 SSH 回退、ProxyJump、端口转发、**自动命名 tmux Session（`kkterm-<科幻名><n>`），传输层抖动时静默重连**——完美适配长时间运行的远程编程 Agent（Claude Code、Codex、gemini-cli 等） |
 | **SFTP / FTP** | SSH 启动的 SFTP 加上 FTP/FTPS **Connection**、双栏浏览器、递归传输、队列/取消/清除历史、冲突处理、属性、chmod/chown（支持时） |
 | **URL WebView** | 嵌入式 WebView2 URL **Session**、导航工具栏、favicon 捕获、存储的网站凭据元数据/填充、数据分区元数据 |
 | **远程桌面** | 通过 Windows ActiveX 实现的 RDP，含几何范围遮罩停靠；通过 `vnc-rs` framebuffer 在工作台 Canvas 中渲染的 VNC |
 | **Dashboard** | 持久化视图、Widget 实例、编辑模式、拖拽/调整大小、App Launcher、**AI 创作的 Content/Script Widget**（声明式 JSON 或带权限的沙盒 iframe JS）、按 Widget 的预设/强调色/图标/标题、**9 种动态 Canvas 背景**（aurora、raindrops、starfield、nebula、embers、lava、matrix、synthwave、confetti） |
 | **AI 助手** | 流式聊天、OpenAI 兼容运行时、提供商注册表、命令提案安全分级、截图/上下文附件、**Dashboard Widget 创作（Content + 沙盒 Script）**、将 **tmux Pane 捕获**作为远程 Session 的对话上下文、**Connection** 管理工具，以及终端、RDP/VNC 和 SFTP/FTP 的实时 **Session** 工具 |
+| **AI 编程用量** | **Dashboard Widget + 状态栏指示器**，追踪 **Claude Code** 和 **Codex** 的配额使用情况：已连接账号、套餐等级、5 小时和每周窗口百分比、下次重置时间、认证状态（`connected` / `expired` / `error`）、限速友好的刷新策略 |
+| **内置 MCP 服务器** | stdio MCP 服务器（`kkterm-cli`），向外部编程 Agent（Claude Code、Codex、Copilot、Antigravity、OpenCode）暴露精选的 Workspace 和 Dashboard 工具；带认证的命名管道桥接；每个模块的 `dangerous.*` 命名空间由单一安全开关门控；设置中的对话框提供一键 JSON / TOML 片段以及 `claude mcp add` / `codex mcp add` 命令 |
 | **Settings** | 通用、外观、凭据、AI、SSH、终端、URL、RDP、VNC、Dashboard、关于；自定义 UI 字体；最小化到托盘；阻止休眠；备份/导入 |
 | **本地化** | 基于 i18next 的 UI，英文为源，动态语言包：zh-TW、zh-CN、ja、ko、fr、de、es、es-MX、it、pt-BR、th、id、vi |
 

@@ -66,7 +66,7 @@
 - どこか別のモニターに消えているリモートデスクトップのウィンドウ
 - 某Linuxマシン専用のVNCビューア
 - ルーター管理UIを開いたブラウザのタブ
-- リモートの開発サーバーで動いている `aider` / `claude` / `codex` のセッション（Wi-Fiがくしゃみをするたびに切れる）
+- リモートの開発サーバーで動いている `claude` / `codex` のセッション（Wi-Fiがくしゃみをするたびに切れる）
 - パスワードを書いた付箋 *（言わない、絶対言わない）*
 
 **KKTerm はそのすべてを1つのウィンドウにまとめる。** Windowsネイティブ——*他のdevツールがmacファーストで出荷しながらWindowsをおまけ扱いにしている中で、意図的に*——Rust + Tauri v2で書かれ、シングルインストーラーで配布、テレメトリーなし。
@@ -74,7 +74,9 @@
 さらに、あなたがまだ気づいていなかったものも：
 
 - **Dashboard** でAIに *「ルーターを30秒おきにpingするWidget を作って」* と言えば、サンドボックス化されたグリッドの上にそれが現れる。
-- **SSHのPane が名前付きtmux Sessionに自動アタッチ**されるので、ラップトップのWi-Fiがどれだけ癇癪を起こしても、リモートの `claude` / `codex` / `aider` のセッションは生き続ける。
+- **SSHのPane が名前付きtmux Sessionに自動アタッチ**されるので、ラップトップのWi-Fiがどれだけ癇癪を起こしても、リモートの `claude` / `codex` のセッションは生き続ける。
+- **AIコーディング使用量Widget** が、Claude Code と Codex のクォータ（5時間ウィンドウ・週次ウィンドウ・現在のプラン・アカウントメール）を **Dashboard** とステータスバーに表示。深夜3時にレートリミットの壁に突き当たって驚かなくなる。
+- **ビルトインMCPサーバー**（`kkterm-cli`）。外部コーディングエージェント（Claude Code、Codex、Copilot、Antigravity、OpenCode）が、キュレートされた安全ゲート付きツール経由で、あなたのWorkspaceとDashboardを操作できる——Connection一覧、ターミナルバッファ読み取り、Widget配置など。AIからAIへ、ローカルマシン上で、クラウドリレーなし。
 - Dashboard用のアニメーションキャンバス背景が9種類（そう、`matrix` もある）。やりすぎかもしれないが、後悔はしていない。
 
 それと、AIアシスタントは一文から、実際に使い続けられる小さなDashboardツールを作れる。
@@ -132,7 +134,7 @@
 
 ### Windowsファースト、意図的に
 
-2026年のdevツール界隈を見回してほしい。Claude Code：mac/linuxファーストで出荷、Windowsは「WSLを使え」。Codex CLI：同じ。`aider`、`gemini-cli`、Homebrewの半分、ピカピカの新しいTUIの数々：mac/linuxファースト、WindowsユーザーはREADMEに `# Windows: contributions welcome` のコメントと、動かないfish補完スクリプトをもらう。
+2026年のdevツール界隈を見回してほしい。Claude Code：mac/linuxファーストで出荷、Windowsは「WSLを使え」。Codex CLI：同じ。`gemini-cli`、Homebrewの半分、ピカピカの新しいTUIの数々：mac/linuxファースト、WindowsユーザーはREADMEに `# Windows: contributions welcome` のコメントと、動かないfish補完スクリプトをもらう。
 
 一方、実際に会社のネットワークを維持している人々——企業IT、MSP、Hyper-VやADやSCCMやIISや一部のインターンより年上のドメインコントローラーを運用している人々——はWindowsマシンの前に座って、なぜ新しいツールがことごとく自分たちのOSを邪魔者扱いするのか、首をかしげている。
 
@@ -226,12 +228,45 @@ OpenAI、Anthropic、OpenRouter、DeepSeek、Grok、Azure OpenAI、LiteLLM、Git
 これが2番目に人が惚れ込む機能だ。KKTermのSSHターミナルは、リモートホスト上の**名前付きtmux Session**に直接起動できる——デフォルトでは `kkterm-cockpit001` のような、再接続後も生き続ける自動生成のフレンドリーIDが使われる：
 
 - tmuxを有効にしてSSH Connection を開く。
-- Pane内で `claude`、`codex`、`aider`、`gemini-cli`、`cursor-agent`、またはお好みの長時間稼働型コーディングエージェントを起動する。これらはフルスクリーンのTUIアプリ——tmuxはまさに彼らが住みたい場所だ。
+- Pane内で `claude`、`codex`、`gemini-cli`、`cursor-agent`、またはお好みの長時間稼働型コーディングエージェントを起動する。これらはフルスクリーンのTUIアプリ——tmuxはまさに彼らが住みたい場所だ。
 - ラップトップを閉じる。また開く。Paneは静かに同じtmux Sessionに再アタッチされる。エージェントはまだ動いていて、スクロールバックも残っていて、やっていた作業の途中にいる。
 - SSH転送でネットワークが瞬断した？KKTermはあなたを煩わせることなく、同じtmux IDへの限定的な再アタッチを試みる。
 - AIアシスタントにエージェントの作業を見せたい？「ターミナルバッファをコンテキストに追加」するとSSH越しに `capture_tmux_pane` を呼び出して、画面に見えている部分だけでなく、セッション全体のtmuxスクロールバックを会話に取り込む。ローカルのアシスタントがリモートエージェントの作業を把握して推論できるようになる。
 
-不安定なホテルのWi-Fiで6時間の `aider` セッションを失ったことがあるなら、この1機能だけでこのアプリを使う価値がある。アプリは無料だ。機能はそれでも価値がある。
+不安定なホテルのWi-Fiで6時間の `claude` や `codex` セッションを失ったことがあるなら、この1機能だけでこのアプリを使う価値がある。アプリは無料だ。機能はそれでも価値がある。
+
+### 残りAIクォータを把握する
+
+コーディングエージェントは月額ではなく「プランウィンドウ」単位で課金する。Claude Codeには5時間ウィンドウと週次ウィンドウがある。Codexにも独自版がある。どちらも会議中に気付かないうちにクォータを食い尽くしてくれる。
+
+**AIコーディング使用量** Widgetがそれを見える化する：
+
+- Claude CodeとCodexを横並びで表示するDashboard Widget：接続済みアカウント、プラン階層、現在の5時間ウィンドウ使用率、今週使用率、次回リセット時刻。
+- 同じ数字を映すコンパクトな**ステータスバーインジケータ**。Dashboardを閉じていても、次の大きなリファクタを始める前に余裕があるか一目で分かる。
+- 認証状態（`connected` / `expired` / `error`）も直接表示。長時間タスクの途中ではなく、開始前に再ログインが必要だと分かる。
+- リフレッシュ方針はレートリミットを尊重し、Widgetを見るたびに上流APIを叩かない独自ペースでポーリング。
+
+### ビルトインMCPサーバー — 他のAIにKKTermを操作させる
+
+あなたのターミナルは、Claude Code、Codex、CopilotエージェントモードやAntigravityなど、MCPを話す世界が仕事をしたい場所でもある。だからKKTermは独自の**stdio MCPサーバー**、[`kkterm-cli`](docs/MCP.md) を同梱し、アプリの一部をキュレート公開する：
+
+- **Workspace Module**（`kkterm.workspace.*`）: 保存済み **Connection** 一覧、idでConnectionを開く、ライブ **Session** 一覧、ターミナルPaneへの入力送信、ターミナルバッファのスナップショット読み取り。
+- **Dashboard Module**（`kkterm.dashboard.*`）: Dashboard状態のロード、AI作成Widgetのソース読み取り、Viewの作成 / 更新 / 削除、Widgetインスタンスの配置 / 移動 / 削除、一括レイアウト適用。
+- **危険サブネームスペース**（`kkterm.<module>.dangerous.*`）: 実行可能サーフェスの変更——スクリプトWidget作成、リモートデスクトップへのクリック、Dashboardのワイプ——は単一の設定（`built_in_mcp_allow_all_dangerous`）の背後でゲート、デフォルト **オフ**。
+
+`kkterm-cli` は薄いフォワーダ。MCPクライアントとはstdio JSON-RPCで対話し、起動中のKKTermウィンドウとは起動ごとに認証されるWindows名前付きパイプで通信する。KKTermが閉じている時も `tools/list` は動作（クライアントが内省できる）、しかし `tools/call` は構造化された `app_not_running` エラーを返す。
+
+お気に入りのクライアントに接続すれば、AIはあなたと同じようにKKTermを使える：
+
+```json
+{
+  "mcpServers": {
+    "kkterm": { "command": "<path-to-kkterm-cli>", "args": [] }
+  }
+}
+```
+
+Settings → AI Assistant → **ビルトインMCPサーバー** にはワンクリック「設定を表示」ダイアログがあり、解決済みバイナリパス入りのJSON / TOMLスニペットと、コピー可能な `claude mcp add` / `codex mcp add` コマンドが揃っている。
 
 ---
 
@@ -275,12 +310,14 @@ flowchart LR
 | --- | --- |
 | **Connections** | SQLiteバックのツリー、フォルダ/サブフォルダ、検索、ドラッグ/ドロップ並び替え、リネーム、複製、削除、**Quick Connect**、カスタムアイコン、固定/アクティブなRailショートカット |
 | **Terminal** | ローカルシェル、SSH、Telnet、Serial、分割Pane、xterm.js＋機会的WebGL、スクロールバック検索、ローカル起動ディレクトリ/スクリプト |
-| **SSH** | ネイティブ `russh`、agent/key/password認証、ホストキー信頼フロー、オプションのシステムSSHフォールバック、ProxyJump、ポートフォワーディング、**自動命名tmux Session（`kkterm-<scifi-name><n>`）と転送瞬断時のサイレント再アタッチ**——長時間稼働リモートコーディングエージェント（Claude Code、Codex、aiderなど）に最適 |
+| **SSH** | ネイティブ `russh`、agent/key/password認証、ホストキー信頼フロー、オプションのシステムSSHフォールバック、ProxyJump、ポートフォワーディング、**自動命名tmux Session（`kkterm-<scifi-name><n>`）と転送瞬断時のサイレント再アタッチ**——長時間稼働リモートコーディングエージェント（Claude Code、Codex、gemini-cliなど）に最適 |
 | **SFTP / FTP** | SSH起動SFTP＋FTP/FTPS Connection、デュアルペインブラウザ、再帰転送、キュー/キャンセル/クリア履歴、競合処理、プロパティ、サポートされている場合のchmod/chown |
 | **URL WebView** | 埋め込みWebView2 URL Session、ナビゲーションツールバー、ファビキャプチャ、保存されたWebサイト認証情報メタデータ/自動入力、データパーティションメタデータ |
 | **Remote Desktop** | ジオメトリスコープのオーバーレイパーキングを持つWindows ActiveX経由のRDP；`vnc-rs` フレームバッファをWorkspaceキャンバスにレンダリングするVNC |
 | **Dashboard** | 永続View、Widgetインスタンス、編集モード、ドラッグ/リサイズ、App Launcher、**AI作成のcontent/script Widget**（宣言的JSONまたはパーミッション付きサンドボックスiframe JS）、Widget毎のプリセット/アクセント/アイコン/タイトル、**9種類のアニメーションキャンバス背景**（aurora, raindrops, starfield, nebula, embers, lava, matrix, synthwave, confetti）|
 | **AI Assistant** | ストリーミングチャット、OpenAI互換ランタイム、プロバイダーレジストリ、コマンド提案の安全分類、スクリーンショット/コンテキスト添付、**Dashboard Widgetオーサリング（contentおよびサンドボックスscript）**、リモートSession用会話コンテキストとしての **tmux Paneキャプチャ**、**Connection** 管理ツール、ターミナル・RDP/VNC・SFTP/FTP用ライブ **Session** ツール |
+| **AIコーディング使用量** | **Claude Code** と **Codex** のクォータ使用量を追跡する **Dashboard Widget + ステータスバーインジケータ**：接続済みアカウント、プラン階層、5時間および週次ウィンドウの使用率、次回リセット時刻、認証状態（`connected` / `expired` / `error`）、レートリミットを意識したリフレッシュ方針 |
+| **ビルトインMCPサーバー** | 外部コーディングエージェント（Claude Code、Codex、Copilot、Antigravity、OpenCode）にキュレート版のWorkspaceおよびDashboardツールを公開するstdio MCPサーバー（`kkterm-cli`）；認証付き名前付きパイプブリッジ；モジュール毎の `dangerous.*` ネームスペースは単一の安全トグルの背後でゲート；解決済みバイナリパス入りJSON / TOMLスニペットと `claude mcp add` / `codex mcp add` コマンドのSettingsダイアログ |
 | **Settings** | 一般、外観、認証情報、AI、SSH、ターミナル、URL、RDP、VNC、Dashboard、About；カスタムUIフォント；最小化してトレイへ；Don't Sleep；バックアップ/インポート |
 | **ローカライゼーション** | i18next UIと英語ソース、動的ロケールバンドル：zh-TW、zh-CN、ja、ko、fr、de、es、es-MX、it、pt-BR、th、id、vi |
 

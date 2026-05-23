@@ -66,7 +66,7 @@ Bạn là sysadmin / DevOps / dân homelab / vibe-coder. Hiện tại bạn đan
 - Remote Desktop nằm trong một cửa sổ bạn cứ lạc mất sang sai màn hình
 - Một VNC viewer chỉ để dùng cho đúng một con Linux nào đó
 - Một tab trình duyệt mở trang admin của router
-- Một phiên `aider` / `claude` / `codex` đang chạy trên dev box từ xa, rớt mạng mỗi khi Wi-Fi của bạn hắt hơi
+- Một phiên `claude` / `codex` đang chạy trên dev box từ xa, rớt mạng mỗi khi Wi-Fi của bạn hắt hơi
 - Một tờ giấy nhớ ghi mật khẩu *(yên tâm, chúng tôi không nói ra đâu)*
 
 **KKTerm gom tất cả vào một cửa sổ.** Native trên Windows — *cố tình, trong khi cả thế giới dev tools còn lại ra mac-first và coi OS của bạn như một footnote* — viết bằng Rust + Tauri v2, đóng gói thành một installer duy nhất, và từ chối "gọi điện về nhà".
@@ -74,7 +74,9 @@ Bạn là sysadmin / DevOps / dân homelab / vibe-coder. Hiện tại bạn đan
 Cộng thêm vài thứ bạn còn không biết là mình muốn:
 
 - Một **Dashboard** nơi bạn bảo AI *"build cho tôi một widget ping router mỗi 30 giây"* và nó hiện ra ngay trên grid của bạn, chạy trong sandbox.
-- **SSH pane tự động attach vào tmux session có tên** để phiên `claude` / `codex` / `aider` từ xa sống sót qua mọi cơn dỗi hờn của Wi-Fi laptop.
+- **SSH pane tự động attach vào tmux session có tên** để phiên `claude` / `codex` từ xa sống sót qua mọi cơn dỗi hờn của Wi-Fi laptop.
+- Một **widget theo dõi mức dùng AI Coding** hiển thị quota Claude Code và Codex của bạn — cửa sổ 5 giờ, cửa sổ tuần, gói hiện tại, email tài khoản — trên **Dashboard** và status bar, để bạn không còn bị đập vào tường rate-limit lúc 3 giờ sáng.
+- Một **MCP server tích hợp sẵn** (`kkterm-cli`) cho phép các coding agent bên ngoài (Claude Code, Codex, Copilot, Antigravity, OpenCode) điều khiển Workspace và Dashboard của bạn — list Connection, đọc buffer terminal, đặt widget — qua bề mặt tool được tuyển chọn và có safety gate. AI-tới-AI, trên máy bạn, không qua relay cloud.
 - Chín nền **canvas có animation** (vâng, gồm cả `matrix`) cho dashboard, vì chúng tôi không ngại làm chuyện đó.
 
 À, và AI assistant có thể biến một câu thành một công cụ dashboard nhỏ mà bạn thực sự tiếp tục dùng.
@@ -132,7 +134,7 @@ Chúng tôi chưa thể đính kèm một gói Kuai Kuai thật vào installer. 
 
 ### Windows-first, có chủ đích
 
-Nhìn quanh thế giới dev tooling năm 2026. Claude Code: ra mac/linux trước, Windows là "dùng WSL đi". Codex CLI: y chang. `aider`, `gemini-cli`, một nửa Homebrew, mọi TUI mới bóng bẩy: mac/linux trước, người dùng Windows nhận được một dòng `# Windows: contributions welcome` trong README và một script fish-completion không chạy được.
+Nhìn quanh thế giới dev tooling năm 2026. Claude Code: ra mac/linux trước, Windows là "dùng WSL đi". Codex CLI: y chang. `gemini-cli`, một nửa Homebrew, mọi TUI mới bóng bẩy: mac/linux trước, người dùng Windows nhận được một dòng `# Windows: contributions welcome` trong README và một script fish-completion không chạy được.
 
 Trong khi đó, những người thực sự giữ cho công ty còn online — IT doanh nghiệp, MSP, bất cứ ai chạy Hyper-V hay AD hay SCCM hay IIS hay một domain controller già hơn vài intern — đang ngồi trước máy Windows và tự hỏi tại sao mọi công cụ mới đều cư xử như OS của họ là sự bất tiện.
 
@@ -226,12 +228,45 @@ Chúng chạy trên một `requestAnimationFrame` chia sẻ duy nhất và tôn 
 Đây là tính năng thứ hai khiến người ta phải lòng. Terminal SSH của KKTerm có thể khởi động trực tiếp vào **tmux session có tên** trên host từ xa — mặc định là một id thân thiện được tự sinh như `kkterm-cockpit001` sống sót qua reconnect:
 
 - Mở **Connection** SSH với tmux bật.
-- Trong pane, khởi động `claude`, `codex`, `aider`, `gemini-cli`, `cursor-agent`, hoặc bất kỳ coding agent chạy dài nào bạn thích. Chúng là app TUI full-screen; tmux đúng là nơi chúng muốn sống.
+- Trong pane, khởi động `claude`, `codex`, `gemini-cli`, `cursor-agent`, hoặc bất kỳ coding agent chạy dài nào bạn thích. Chúng là app TUI full-screen; tmux đúng là nơi chúng muốn sống.
 - Đóng laptop. Mở lại. Pane âm thầm re-attach vào cùng tmux session. Agent vẫn đang chạy, vẫn giữ scrollback, vẫn đang dở việc.
 - Mạng SSH chớp tắt? KKTerm thực hiện một lần silent reattach có giới hạn vào cùng tmux id mà không làm phiền bạn.
 - Muốn AI assistant thấy agent đang làm gì? "Add terminal buffer to context" gọi `capture_tmux_pane` qua SSH và kéo toàn bộ scrollback tmux — không chỉ những gì trên màn hình, mà cả session — vào cuộc hội thoại. Assistant local của bạn giờ có thể suy luận về công việc của agent từ xa.
 
-Nếu bạn từng mất một phiên `aider` sáu tiếng vì Wi-Fi khách sạn chập chờn, riêng tính năng này đã đủ giá trị. App miễn phí. Tính năng vẫn đáng giá.
+Nếu bạn từng mất một phiên `claude` hay `codex` sáu tiếng vì Wi-Fi khách sạn chập chờn, riêng tính năng này đã đủ giá trị. App miễn phí. Tính năng vẫn đáng giá.
+
+### Biết bạn còn bao nhiêu AI
+
+Coding agent tính tiền theo cửa sổ gói, không phải theo tháng. Claude Code có cửa sổ 5 giờ và cửa sổ tuần. Codex có phiên bản riêng. Cả hai đều có thể ngấu nghiến quota của bạn trong background trong khi bạn đang họp.
+
+Widget **Mức dùng AI Coding** giữ điều đó hiển thị:
+
+- Một widget Dashboard hiển thị **Claude Code** và **Codex** cạnh nhau: tài khoản đã kết nối, mức gói, phần trăm đã dùng trong cửa sổ 5 giờ hiện tại, phần trăm đã dùng tuần này, thời gian reset kế tiếp.
+- Một **chỉ báo status bar gọn gàng** phản ánh cùng các con số, để ngay cả khi Dashboard đóng bạn vẫn nhìn một cái biết còn dư không trước khi khởi động đợt refactor lớn tiếp theo.
+- Trạng thái auth hiển thị trực tiếp (`connected` / `expired` / `error`) để bạn biết *trước* một task dài rằng cần đăng nhập lại, không phải đang giữa chừng.
+- Policy refresh tôn trọng rate limit; widget poll theo nhịp riêng thay vì đập API upstream mỗi lần bạn nhìn.
+
+### Một MCP server tích hợp sẵn — để AI khác điều khiển KKTerm
+
+Terminal của bạn cũng là nơi Claude Code, Codex, chế độ agent của Copilot, Antigravity và phần còn lại của thế giới biết nói MCP muốn làm việc. Nên KKTerm có **MCP server stdio** riêng, [`kkterm-cli`](docs/MCP.md), expose một lát cắt được tuyển chọn của app:
+
+- **Workspace Module** (`kkterm.workspace.*`): list **Connection** đã lưu, mở Connection theo id, list **Session** đang sống, gửi input đến terminal pane, đọc snapshot buffer.
+- **Dashboard Module** (`kkterm.dashboard.*`): load state Dashboard, đọc source AI-Created Widget, tạo / cập nhật / xóa view, đặt / di chuyển / xóa instance widget, apply layout hàng loạt.
+- **Sub-namespace nguy hiểm** (`kkterm.<module>.dangerous.*`): mutate bề mặt executable — tạo widget script, click vào remote desktop, wipe Dashboard — được gate sau một setting duy nhất (`built_in_mcp_allow_all_dangerous`), mặc định **tắt**.
+
+`kkterm-cli` là forwarder mỏng. Nó nói stdio JSON-RPC với MCP client của bạn và giao tiếp với window KKTerm đang chạy qua named pipe Windows được xác thực theo mỗi lần khởi động. Khi KKTerm đóng, `tools/list` vẫn chạy (client có thể introspect bề mặt), nhưng `tools/call` trả về lỗi có cấu trúc `app_not_running` thay vì làm gì.
+
+Nối nó vào client yêu thích và AI của bạn giờ dùng KKTerm như bạn:
+
+```json
+{
+  "mcpServers": {
+    "kkterm": { "command": "<đường-dẫn-tới-kkterm-cli>", "args": [] }
+  }
+}
+```
+
+Settings → AI Assistant → **Built-in MCP Server** có dialog "Show config" một-click với snippet JSON và TOML đã pre-fill đường dẫn binary đã resolve, cộng với command `claude mcp add` / `codex mcp add` có thể copy.
 
 ---
 
@@ -275,12 +310,14 @@ Hình dạng quan trọng: dữ liệu lưu trữ bền vững (**Connection**) 
 | --- | --- |
 | **Connections** | Tree dựa trên SQLite, folder/subfolder, search, kéo/thả sắp xếp, rename, duplicate, delete, **Quick Connect**, icon tùy chỉnh, shortcut pinned/active trên rail |
 | **Terminal** | Local shell, SSH, Telnet, Serial, split pane, xterm.js + WebGL cơ hội, search scrollback, thư mục/script khởi động local |
-| **SSH** | `russh` native, auth agent/key/password, flow trust host-key, fallback system SSH tùy chọn, ProxyJump, port forwarding, **tmux session tự đặt tên (`kkterm-<scifi-name><n>`) với silent reattach khi transport chớp tắt** — hoàn hảo cho coding agent từ xa chạy dài (Claude Code, Codex, aider, v.v.) |
+| **SSH** | `russh` native, auth agent/key/password, flow trust host-key, fallback system SSH tùy chọn, ProxyJump, port forwarding, **tmux session tự đặt tên (`kkterm-<scifi-name><n>`) với silent reattach khi transport chớp tắt** — hoàn hảo cho coding agent từ xa chạy dài (Claude Code, Codex, gemini-cli, v.v.) |
 | **SFTP / FTP** | SFTP khởi động bởi SSH cộng với **Connection** FTP/FTPS, trình duyệt dual-pane, transfer đệ quy, queue/cancel/clear history, conflict, properties, chmod/chown nơi hỗ trợ |
 | **URL WebView** | URL **Session** WebView2 nhúng, navigation toolbar, capture favicon, metadata/fill credential website đã lưu, metadata data partition |
 | **Remote Desktop** | RDP qua Windows ActiveX với overlay parking phạm vi geometry; VNC qua framebuffer `vnc-rs` render trong canvas workspace |
 | **Dashboard** | View bền vững, widget instance, edit mode, kéo/resize, App Launcher, **content/script widget do AI viết** (JSON khai báo hoặc JS iframe sandbox với permission), preset / accent / icon / title per-widget, **9 nền canvas có animation** (aurora, raindrops, starfield, nebula, embers, lava, matrix, synthwave, confetti) |
 | **AI Assistant** | Streaming chat, runtime OpenAI-compatible, provider registry, phân loại an toàn đề xuất lệnh, đính kèm screenshot/context, **viết widget cho Dashboard (content + script sandbox)**, **capture tmux pane** làm context hội thoại cho session từ xa, tool quản lý **Connection**, và tool live **Session** cho terminal, RDP/VNC, và SFTP/FTP |
+| **Mức dùng AI Coding** | **Widget Dashboard + chỉ báo status bar** theo dõi mức dùng quota của **Claude Code** và **Codex**: tài khoản đã kết nối, mức gói, phần trăm cửa sổ 5 giờ và tuần, thời gian reset kế tiếp, trạng thái auth (`connected` / `expired` / `error`), policy refresh nhận biết rate-limit |
+| **MCP Server tích hợp** | MCP server stdio (`kkterm-cli`) expose tool Workspace và Dashboard được tuyển chọn cho coding agent bên ngoài (Claude Code, Codex, Copilot, Antigravity, OpenCode); bridge named pipe có xác thực; sub-namespace `dangerous.*` theo Module được gate sau một safety toggle duy nhất; dialog Settings với snippet JSON / TOML một-click và command `claude mcp add` / `codex mcp add` |
 | **Settings** | General, Appearance, Credentials, AI, SSH, Terminal, URL, RDP, VNC, Dashboard, About; font UI tùy chỉnh; minimize-to-tray; Don't Sleep; backup/import |
 | **Localization** | UI i18next với nguồn tiếng Anh và bundle locale tải động: zh-TW, zh-CN, ja, ko, fr, de, es, es-MX, it, pt-BR, th, id, vi |
 
