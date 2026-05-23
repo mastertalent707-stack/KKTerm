@@ -52,6 +52,20 @@ function Assert-Version {
     }
 }
 
+function Test-GitHubReleaseExists {
+    param([string]$TagName)
+
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        gh release view $TagName *> $null
+        return $LASTEXITCODE -eq 0
+    }
+    finally {
+        $ErrorActionPreference = $PreviousErrorActionPreference
+    }
+}
+
 function Set-CargoPackageVersion {
     param(
         [string]$Path,
@@ -143,8 +157,7 @@ try {
         throw "Tag already exists locally: $TagName"
     }
 
-    gh release view $TagName *> $null
-    if ($LASTEXITCODE -eq 0) {
+    if (Test-GitHubReleaseExists -TagName $TagName) {
         throw "GitHub release already exists: $TagName"
     }
 
