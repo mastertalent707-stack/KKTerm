@@ -1279,7 +1279,8 @@
     "typeLabel": "Bureau à distance",
     "vncDesktopRequired": "VNC utilise l'environnement de bureau.",
     "vncFramebuffer": "Le tampon d'image VNC est en cours d'exécution dans cet espace de travail.",
-    "waitingFramebuffer": "Connecté, en attente du tampon d'image"
+    "waitingFramebuffer": "Connecté, en attente du tampon d'image",
+    "sendCtrlAltDelHint": "Appuyez sur CTRL+ALT+END pour envoyer CTRL+ALT+DEL"
   },
   "screenshots": {
     "captureError": "Impossible de prendre la capture : {{message}}",
@@ -1843,7 +1844,15 @@
     "useDirectxScreenCaptureHint": "Utilise DXGI Desktop Duplication lorsque disponible, avec repli GDI pour les captures non prises en charge.",
     "titleBar": "Barre de titre",
     "useCustomTitleBar": "Utiliser une barre de titre personnalisée",
-    "useCustomTitleBarHint": "Remplace la barre de titre native de Windows par celle aux couleurs de KKTerm. Effectif dès l'enregistrement."
+    "useCustomTitleBarHint": "Remplace la barre de titre native de Windows par celle aux couleurs de KKTerm. Effectif dès l'enregistrement.",
+    "builtInMcpServerEnabled": "Serveur MCP intégré activé",
+    "builtInMcpServerEnabledHint": "Expose kkterm-cli comme serveur MCP stdio pour les outils externes.",
+    "builtInMcpAllowAllDangerous": "Outils MCP dangereux intégrés : tout autoriser",
+    "builtInMcpAllowAllDangerousHint": "Lorsque cette option est activée, les outils MCP kkterm.dangerous.* dangereux s’exécutent sans demande de confirmation.",
+    "rdpRemoteResolution": "Résolution distante",
+    "rdpRemoteResolutionAutomatic": "Automatique",
+    "rdpRemoteResolutionDpiZoom": "Zoom DPI",
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
   },
   "sftp": {
     "accessed": "Accédé",
@@ -2050,7 +2059,12 @@
     "recordingsTitle": "Enregistrements du terminal",
     "openRecordingsFolder": "Ouvrir le dossier des enregistrements",
     "noRecordings": "Aucun enregistrement pour cette connexion.",
-    "recordingMetadata": "{{metadata}}"
+    "recordingMetadata": "{{metadata}}",
+    "detectedCodingAgent": "Agent de codage {{agent}} détecté",
+    "layoutReset": "Disposition de la Connection enregistrée réinitialisée.",
+    "layoutSaved": "Disposition de la Connection enregistrée.",
+    "resetLayout": "Réinitialiser la disposition",
+    "saveLayout": "Enregistrer la disposition"
   },
   "webview": {
     "address": "Adresse",

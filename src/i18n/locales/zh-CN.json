@@ -1279,7 +1279,8 @@
     "typeLabel": "远程桌面",
     "vncDesktopRequired": "VNC 使用桌面运行环境。",
     "vncFramebuffer": "VNC framebuffer 正在此工作区中运行。",
-    "waitingFramebuffer": "已连接，等待 framebuffer"
+    "waitingFramebuffer": "已连接，等待 framebuffer",
+    "sendCtrlAltDelHint": "按 CTRL+ALT+END 以发送 CTRL+ALT+DEL"
   },
   "screenshots": {
     "captureError": "无法截取屏幕截图：{{message}}",
@@ -1843,7 +1844,15 @@
     "useDirectxScreenCaptureHint": "可用时使用 DXGI Desktop Duplication；不支持的捕获则回退到 GDI。",
     "titleBar": "标题栏",
     "useCustomTitleBar": "使用自定义标题栏",
-    "useCustomTitleBarHint": "以 KKTerm 主题化标题栏替换 Windows 原生标题栏，保存后立即生效。"
+    "useCustomTitleBarHint": "以 KKTerm 主题化标题栏替换 Windows 原生标题栏，保存后立即生效。",
+    "builtInMcpServerEnabled": "已启用内置 MCP Server",
+    "builtInMcpServerEnabledHint": "将 kkterm-cli 作为 stdio MCP server 暴露给外部工具。",
+    "builtInMcpAllowAllDangerous": "内置危险 MCP 工具：全部允许",
+    "builtInMcpAllowAllDangerousHint": "启用后，危险的 kkterm.dangerous.* MCP 工具会在没有确认提示的情况下执行。",
+    "rdpRemoteResolution": "远程分辨率",
+    "rdpRemoteResolutionAutomatic": "自动",
+    "rdpRemoteResolutionDpiZoom": "DPI 缩放",
+    "rdpRemoteResolutionSmartSizing": "智能调整大小"
   },
   "sftp": {
     "accessed": "访问日期",
@@ -2050,7 +2059,12 @@
     "recordingsTitle": "Terminal 录制",
     "openRecordingsFolder": "打开录制文件夹",
     "noRecordings": "此 Connection 没有录制。",
-    "recordingMetadata": "{{metadata}}"
+    "recordingMetadata": "{{metadata}}",
+    "detectedCodingAgent": "检测到 {{agent}} coding agent",
+    "layoutReset": "已重置保存的 Connection 布局。",
+    "layoutSaved": "已保存 Connection 布局。",
+    "resetLayout": "重置布局",
+    "saveLayout": "保存布局"
   },
   "webview": {
     "address": "网址",

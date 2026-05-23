@@ -1279,7 +1279,8 @@
     "typeLabel": "Remote desktop",
     "vncDesktopRequired": "VNC uses the desktop runtime.",
     "vncFramebuffer": "VNC framebuffer is running in this workspace.",
-    "waitingFramebuffer": "Connected, waiting for framebuffer"
+    "waitingFramebuffer": "Connected, waiting for framebuffer",
+    "sendCtrlAltDelHint": "Nhấn CTRL+ALT+END để gửi CTRL+ALT+DEL"
   },
   "screenshots": {
     "captureError": "Không thể chụp màn hình: {{message}}",
@@ -1843,7 +1844,15 @@
     "useDirectxScreenCaptureHint": "Dùng DXGI Desktop Duplication khi có, với dự phòng GDI cho các kiểu chụp không được hỗ trợ.",
     "titleBar": "Thanh tiêu đề",
     "useCustomTitleBar": "Dùng thanh tiêu đề tuỳ chỉnh",
-    "useCustomTitleBarHint": "Thay thanh tiêu đề mặc định của Windows bằng thanh theo chủ đề KKTerm. Có hiệu lực ngay khi lưu."
+    "useCustomTitleBarHint": "Thay thanh tiêu đề mặc định của Windows bằng thanh theo chủ đề KKTerm. Có hiệu lực ngay khi lưu.",
+    "builtInMcpServerEnabled": "Đã bật MCP Server tích hợp",
+    "builtInMcpServerEnabledHint": "Cung cấp kkterm-cli như một stdio MCP server cho công cụ bên ngoài.",
+    "builtInMcpAllowAllDangerous": "Công cụ MCP nguy hiểm tích hợp: cho phép tất cả",
+    "builtInMcpAllowAllDangerousHint": "Khi bật, các công cụ MCP nguy hiểm kkterm.dangerous.* chạy mà không có lời nhắc xác nhận.",
+    "rdpRemoteResolution": "Độ phân giải từ xa",
+    "rdpRemoteResolutionAutomatic": "Tự động",
+    "rdpRemoteResolutionDpiZoom": "Thu phóng DPI",
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
   },
   "sftp": {
     "accessed": "Accessed",
@@ -2050,7 +2059,12 @@
     "recordingsTitle": "Bản ghi Terminal",
     "openRecordingsFolder": "Mở thư mục bản ghi",
     "noRecordings": "Không có bản ghi nào cho kết nối này.",
-    "recordingMetadata": "{{metadata}}"
+    "recordingMetadata": "{{metadata}}",
+    "detectedCodingAgent": "Đã phát hiện coding agent {{agent}}",
+    "layoutReset": "Đã đặt lại bố cục Connection đã lưu.",
+    "layoutSaved": "Đã lưu bố cục Connection.",
+    "resetLayout": "Đặt lại bố cục",
+    "saveLayout": "Lưu bố cục"
   },
   "webview": {
     "address": "Address",

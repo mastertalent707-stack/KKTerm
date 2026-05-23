@@ -1279,7 +1279,8 @@
     "typeLabel": "Desktop jarak jauh",
     "vncDesktopRequired": "VNC menggunakan runtime desktop.",
     "vncFramebuffer": "Framebuffer VNC berjalan di ruang kerja ini.",
-    "waitingFramebuffer": "Terhubung, menunggu framebuffer"
+    "waitingFramebuffer": "Terhubung, menunggu framebuffer",
+    "sendCtrlAltDelHint": "Tekan CTRL+ALT+END untuk mengirim CTRL+ALT+DEL"
   },
   "screenshots": {
     "captureError": "Tidak dapat mengambil tangkapan layar: {{message}}",
@@ -1843,7 +1844,15 @@
     "useDirectxScreenCaptureHint": "Menggunakan DXGI Desktop Duplication bila tersedia, dengan fallback GDI untuk tangkapan yang tidak didukung.",
     "titleBar": "Bilah Judul",
     "useCustomTitleBar": "Gunakan bilah judul kustom",
-    "useCustomTitleBarHint": "Gantikan bilah judul bawaan Windows dengan bilah bertema KKTerm. Berlaku langsung setelah disimpan."
+    "useCustomTitleBarHint": "Gantikan bilah judul bawaan Windows dengan bilah bertema KKTerm. Berlaku langsung setelah disimpan.",
+    "builtInMcpServerEnabled": "MCP Server bawaan diaktifkan",
+    "builtInMcpServerEnabledHint": "Ekspos kkterm-cli sebagai stdio MCP server untuk alat eksternal.",
+    "builtInMcpAllowAllDangerous": "Alat MCP berbahaya bawaan: izinkan semua",
+    "builtInMcpAllowAllDangerousHint": "Saat diaktifkan, alat MCP berbahaya kkterm.dangerous.* berjalan tanpa prompt konfirmasi.",
+    "rdpRemoteResolution": "Resolusi jarak jauh",
+    "rdpRemoteResolutionAutomatic": "Otomatis",
+    "rdpRemoteResolutionDpiZoom": "Zoom DPI",
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
   },
   "sftp": {
     "accessed": "Diakses",
@@ -2050,7 +2059,12 @@
     "recordingsTitle": "Rekaman Terminal",
     "openRecordingsFolder": "Buka folder rekaman",
     "noRecordings": "Tidak ada rekaman untuk Connection ini.",
-    "recordingMetadata": "{{metadata}}"
+    "recordingMetadata": "{{metadata}}",
+    "detectedCodingAgent": "Coding agent {{agent}} terdeteksi",
+    "layoutReset": "Tata letak Connection tersimpan direset.",
+    "layoutSaved": "Tata letak Connection disimpan.",
+    "resetLayout": "Reset tata letak",
+    "saveLayout": "Simpan tata letak"
   },
   "webview": {
     "address": "Alamat",

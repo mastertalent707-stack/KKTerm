@@ -1279,7 +1279,8 @@
     "typeLabel": "เดสก์ท็อประยะไกล",
     "vncDesktopRequired": "VNC ใช้รันไทม์เดสก์ท็อป",
     "vncFramebuffer": "VNC framebuffer กำลังทำงานในพื้นที่ทำงานนี้",
-    "waitingFramebuffer": "เชื่อมต่อแล้ว กำลังรอเฟรมบัฟเฟอร์"
+    "waitingFramebuffer": "เชื่อมต่อแล้ว กำลังรอเฟรมบัฟเฟอร์",
+    "sendCtrlAltDelHint": "กด CTRL+ALT+END เพื่อส่ง CTRL+ALT+DEL"
   },
   "screenshots": {
     "captureError": "ไม่สามารถจับภาพหน้าจอ: {{message}}",
@@ -1843,7 +1844,15 @@
     "useDirectxScreenCaptureHint": "ใช้ DXGI Desktop Duplication เมื่อพร้อมใช้งาน พร้อม fallback เป็น GDI สำหรับการจับภาพที่ไม่รองรับ",
     "titleBar": "แถบชื่อเรื่อง",
     "useCustomTitleBar": "ใช้แถบชื่อเรื่องแบบกำหนดเอง",
-    "useCustomTitleBarHint": "แทนที่แถบชื่อเรื่องดั้งเดิมของ Windows ด้วยแถบธีม KKTerm จะมีผลทันทีเมื่อบันทึก"
+    "useCustomTitleBarHint": "แทนที่แถบชื่อเรื่องดั้งเดิมของ Windows ด้วยแถบธีม KKTerm จะมีผลทันทีเมื่อบันทึก",
+    "builtInMcpServerEnabled": "เปิดใช้ MCP Server ในตัว",
+    "builtInMcpServerEnabledHint": "เปิดเผย kkterm-cli เป็น stdio MCP server สำหรับเครื่องมือภายนอก",
+    "builtInMcpAllowAllDangerous": "เครื่องมือ MCP อันตรายในตัว: อนุญาตทั้งหมด",
+    "builtInMcpAllowAllDangerousHint": "เมื่อเปิดใช้ เครื่องมือ MCP อันตราย kkterm.dangerous.* จะทำงานโดยไม่แสดงพร้อมท์ยืนยัน",
+    "rdpRemoteResolution": "ความละเอียดระยะไกล",
+    "rdpRemoteResolutionAutomatic": "อัตโนมัติ",
+    "rdpRemoteResolutionDpiZoom": "ซูม DPI",
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
   },
   "sftp": {
     "accessed": "เข้าถึงเมื่อ",
@@ -2050,7 +2059,12 @@
     "recordingsTitle": "รายการบันทึก Terminal",
     "openRecordingsFolder": "เปิดโฟลเดอร์รายการบันทึก",
     "noRecordings": "ไม่มีรายการบันทึกสำหรับ Connection นี้",
-    "recordingMetadata": "{{metadata}}"
+    "recordingMetadata": "{{metadata}}",
+    "detectedCodingAgent": "ตรวจพบ coding agent {{agent}}",
+    "layoutReset": "รีเซ็ตเลย์เอาต์ Connection ที่บันทึกไว้แล้ว",
+    "layoutSaved": "บันทึกเลย์เอาต์ Connection แล้ว",
+    "resetLayout": "รีเซ็ตเลย์เอาต์",
+    "saveLayout": "บันทึกเลย์เอาต์"
   },
   "webview": {
     "address": "ที่อยู่",

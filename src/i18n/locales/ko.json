@@ -1279,7 +1279,8 @@
     "typeLabel": "원격 데스크톱",
     "vncDesktopRequired": "VNC는 데스크톱 런타임을 사용합니다.",
     "vncFramebuffer": "VNC 프레임버퍼가 이 워크스페이스에서 실행 중입니다.",
-    "waitingFramebuffer": "연결됨, 프레임버퍼 대기 중"
+    "waitingFramebuffer": "연결됨, 프레임버퍼 대기 중",
+    "sendCtrlAltDelHint": "CTRL+ALT+DEL을 보내려면 CTRL+ALT+END를 누르세요"
   },
   "screenshots": {
     "captureError": "스크린샷을 촬영할 수 없습니다: {{message}}",
@@ -1843,7 +1844,15 @@
     "useDirectxScreenCaptureHint": "사용 가능한 경우 DXGI Desktop Duplication을 사용하고, 지원되지 않는 캡처에는 GDI로 대체합니다.",
     "titleBar": "제목 표시줄",
     "useCustomTitleBar": "사용자 지정 제목 표시줄 사용",
-    "useCustomTitleBarHint": "Windows 기본 제목 표시줄을 KKTerm 테마 표시줄로 바꿉니다. 저장 시 즉시 적용됩니다."
+    "useCustomTitleBarHint": "Windows 기본 제목 표시줄을 KKTerm 테마 표시줄로 바꿉니다. 저장 시 즉시 적용됩니다.",
+    "builtInMcpServerEnabled": "내장 MCP Server 사용",
+    "builtInMcpServerEnabledHint": "외부 도구를 위해 kkterm-cli를 stdio MCP server로 노출합니다.",
+    "builtInMcpAllowAllDangerous": "내장 위험 MCP 도구: 모두 허용",
+    "builtInMcpAllowAllDangerousHint": "활성화하면 위험한 kkterm.dangerous.* MCP 도구가 확인 프롬프트 없이 실행됩니다.",
+    "rdpRemoteResolution": "원격 해상도",
+    "rdpRemoteResolutionAutomatic": "자동",
+    "rdpRemoteResolutionDpiZoom": "DPI 확대/축소",
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
   },
   "sftp": {
     "accessed": "접근일",
@@ -2050,7 +2059,12 @@
     "recordingsTitle": "Terminal 녹화",
     "openRecordingsFolder": "녹화 폴더 열기",
     "noRecordings": "이 Connection에 대한 녹화가 없습니다.",
-    "recordingMetadata": "{{metadata}}"
+    "recordingMetadata": "{{metadata}}",
+    "detectedCodingAgent": "{{agent}} coding agent 감지됨",
+    "layoutReset": "저장된 Connection 레이아웃이 재설정되었습니다.",
+    "layoutSaved": "Connection 레이아웃이 저장되었습니다.",
+    "resetLayout": "레이아웃 재설정",
+    "saveLayout": "레이아웃 저장"
   },
   "webview": {
     "address": "주소",

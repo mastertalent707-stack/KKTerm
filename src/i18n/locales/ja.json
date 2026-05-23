@@ -1279,7 +1279,8 @@
     "typeLabel": "リモートデスクトップ",
     "vncDesktopRequired": "VNCはデスクトップランタイムを使用します。",
     "vncFramebuffer": "VNCフレームバッファがこのワークスペースで実行中です。",
-    "waitingFramebuffer": "接続済み、フレームバッファを待機中"
+    "waitingFramebuffer": "接続済み、フレームバッファを待機中",
+    "sendCtrlAltDelHint": "CTRL+ALT+DEL を送信するには CTRL+ALT+END を押します"
   },
   "screenshots": {
     "captureError": "スクリーンショットを撮影できませんでした：{{message}}",
@@ -1843,7 +1844,15 @@
     "useDirectxScreenCaptureHint": "利用可能な場合は DXGI Desktop Duplication を使用し、未対応のキャプチャでは GDI にフォールバックします。",
     "titleBar": "タイトルバー",
     "useCustomTitleBar": "カスタムタイトルバーを使う",
-    "useCustomTitleBarHint": "Windows ネイティブのタイトルバーを KKTerm テーマのバーに置き換えます。保存すると即時反映されます。"
+    "useCustomTitleBarHint": "Windows ネイティブのタイトルバーを KKTerm テーマのバーに置き換えます。保存すると即時反映されます。",
+    "builtInMcpServerEnabled": "組み込み MCP Server を有効化",
+    "builtInMcpServerEnabledHint": "外部ツール向けに kkterm-cli を stdio MCP server として公開します。",
+    "builtInMcpAllowAllDangerous": "組み込みの危険な MCP ツール: すべて許可",
+    "builtInMcpAllowAllDangerousHint": "有効にすると、危険な kkterm.dangerous.* MCP ツールが確認プロンプトなしで実行されます。",
+    "rdpRemoteResolution": "リモート解像度",
+    "rdpRemoteResolutionAutomatic": "自動",
+    "rdpRemoteResolutionDpiZoom": "DPI ズーム",
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
   },
   "sftp": {
     "accessed": "アクセス日時",
@@ -2050,7 +2059,12 @@
     "recordingsTitle": "Terminalの録画",
     "openRecordingsFolder": "録画フォルダーを開く",
     "noRecordings": "このConnectionには録画がありません。",
-    "recordingMetadata": "{{metadata}}"
+    "recordingMetadata": "{{metadata}}",
+    "detectedCodingAgent": "{{agent}} coding agent を検出しました",
+    "layoutReset": "保存済みの Connection レイアウトをリセットしました。",
+    "layoutSaved": "Connection レイアウトを保存しました。",
+    "resetLayout": "レイアウトをリセット",
+    "saveLayout": "レイアウトを保存"
   },
   "webview": {
     "address": "アドレス",

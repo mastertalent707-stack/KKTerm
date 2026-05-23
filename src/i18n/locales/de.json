@@ -1279,7 +1279,8 @@
     "typeLabel": "Remotedesktop",
     "vncDesktopRequired": "VNC verwendet die Desktop-Laufzeitumgebung.",
     "vncFramebuffer": "VNC-Framebuffer läuft in diesem Arbeitsbereich.",
-    "waitingFramebuffer": "Verbunden, warte auf Framebuffer"
+    "waitingFramebuffer": "Verbunden, warte auf Framebuffer",
+    "sendCtrlAltDelHint": "Drücken Sie CTRL+ALT+END, um CTRL+ALT+DEL zu senden"
   },
   "screenshots": {
     "captureError": "Screenshot konnte nicht aufgenommen werden: {{message}}",
@@ -1843,7 +1844,15 @@
     "useDirectxScreenCaptureHint": "Verwendet DXGI Desktop Duplication, wenn verfügbar, mit GDI-Fallback für nicht unterstützte Aufnahmen.",
     "titleBar": "Titelleiste",
     "useCustomTitleBar": "Eigene Titelleiste verwenden",
-    "useCustomTitleBarHint": "Ersetzt die native Windows-Titelleiste durch die KKTerm-Themenleiste. Wirkt sofort nach dem Speichern."
+    "useCustomTitleBarHint": "Ersetzt die native Windows-Titelleiste durch die KKTerm-Themenleiste. Wirkt sofort nach dem Speichern.",
+    "builtInMcpServerEnabled": "Integrierter MCP Server aktiviert",
+    "builtInMcpServerEnabledHint": "Stellt kkterm-cli als stdio-MCP-Server für externe Tools bereit.",
+    "builtInMcpAllowAllDangerous": "Integrierte gefährliche MCP-Tools: Alle erlauben",
+    "builtInMcpAllowAllDangerousHint": "Wenn aktiviert, werden gefährliche kkterm.dangerous.* MCP-Tools ohne Bestätigungsabfragen ausgeführt.",
+    "rdpRemoteResolution": "Remote-Auflösung",
+    "rdpRemoteResolutionAutomatic": "Automatisch",
+    "rdpRemoteResolutionDpiZoom": "DPI-Zoom",
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
   },
   "sftp": {
     "accessed": "Zugegriffen",
@@ -2050,7 +2059,12 @@
     "recordingsTitle": "Terminal-Aufzeichnungen",
     "openRecordingsFolder": "Aufzeichnungsordner öffnen",
     "noRecordings": "Keine Aufzeichnungen für diese Verbindung.",
-    "recordingMetadata": "{{metadata}}"
+    "recordingMetadata": "{{metadata}}",
+    "detectedCodingAgent": "Coding-Agent {{agent}} erkannt",
+    "layoutReset": "Gespeichertes Connection-Layout zurückgesetzt.",
+    "layoutSaved": "Connection-Layout gespeichert.",
+    "resetLayout": "Layout zurücksetzen",
+    "saveLayout": "Layout speichern"
   },
   "webview": {
     "address": "Adresse",

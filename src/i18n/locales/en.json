@@ -997,7 +997,11 @@
     "connectedConnectionsRailSaved": "Show Connection in Left Rail setting saved.",
     "titleBar": "Title Bar",
     "useCustomTitleBar": "Use custom title bar",
-    "useCustomTitleBarHint": "Replace the Windows native title bar with KKTerm's themed bar. The change takes effect immediately on save."
+    "useCustomTitleBarHint": "Replace the Windows native title bar with KKTerm's themed bar. The change takes effect immediately on save.",
+    "builtInMcpServerEnabled": "Built-in MCP Server enabled",
+    "builtInMcpServerEnabledHint": "Expose kkterm-cli as a stdio MCP server for external tools.",
+    "builtInMcpAllowAllDangerous": "Built-in MCP dangerous tools: Allow all",
+    "builtInMcpAllowAllDangerousHint": "When enabled, dangerous kkterm.dangerous.* MCP tools execute without confirmation prompts."
   },
   "connections": {
     "title": "Connections",
@@ -1656,10 +1660,6 @@
     "toolPermissionMode": "Tool permissions",
     "toolPermissionPrompt": "Default permissions",
     "toolPermissionAllowAll": "Allow all",
-    "builtInMcpServerEnabled": "Built-in MCP Server enabled",
-    "builtInMcpServerEnabledHint": "Expose kkterm-cli as a stdio MCP server for external tools.",
-    "builtInMcpAllowAllDangerous": "Built-in MCP dangerous tools: Allow all",
-    "builtInMcpAllowAllDangerousHint": "When enabled, dangerous kkterm.dangerous.* MCP tools execute without confirmation prompts.",
     "toolApprovalTitle": "Approve tool call?",
     "toolApprovalTool": "{{tool}} tool",
     "toolApprovalBody": "This action can change KKTerm or the local machine.",

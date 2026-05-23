@@ -1279,7 +1279,8 @@
     "typeLabel": "Desktop remoto",
     "vncDesktopRequired": "VNC utilizza il runtime desktop.",
     "vncFramebuffer": "Il framebuffer VNC è in esecuzione in questo spazio di lavoro.",
-    "waitingFramebuffer": "Connesso, in attesa del framebuffer"
+    "waitingFramebuffer": "Connesso, in attesa del framebuffer",
+    "sendCtrlAltDelHint": "Premi CTRL+ALT+END per inviare CTRL+ALT+DEL"
   },
   "screenshots": {
     "captureError": "Impossibile catturare lo screenshot: {{message}}",
@@ -1843,7 +1844,15 @@
     "useDirectxScreenCaptureHint": "Usa DXGI Desktop Duplication quando disponibile, con fallback GDI per le catture non supportate.",
     "titleBar": "Barra del titolo",
     "useCustomTitleBar": "Usa barra del titolo personalizzata",
-    "useCustomTitleBarHint": "Sostituisce la barra del titolo nativa di Windows con quella a tema KKTerm. Si applica al salvataggio."
+    "useCustomTitleBarHint": "Sostituisce la barra del titolo nativa di Windows con quella a tema KKTerm. Si applica al salvataggio.",
+    "builtInMcpServerEnabled": "Server MCP integrato abilitato",
+    "builtInMcpServerEnabledHint": "Espone kkterm-cli come server MCP stdio per strumenti esterni.",
+    "builtInMcpAllowAllDangerous": "Strumenti MCP pericolosi integrati: consenti tutto",
+    "builtInMcpAllowAllDangerousHint": "Quando abilitato, gli strumenti MCP pericolosi kkterm.dangerous.* vengono eseguiti senza richieste di conferma.",
+    "rdpRemoteResolution": "Risoluzione remota",
+    "rdpRemoteResolutionAutomatic": "Automatica",
+    "rdpRemoteResolutionDpiZoom": "Zoom DPI",
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
   },
   "sftp": {
     "accessed": "Accesso",
@@ -2050,7 +2059,12 @@
     "recordingsTitle": "Registrazioni del terminale",
     "openRecordingsFolder": "Apri cartella registrazioni",
     "noRecordings": "Nessuna registrazione per questa connessione.",
-    "recordingMetadata": "{{metadata}}"
+    "recordingMetadata": "{{metadata}}",
+    "detectedCodingAgent": "Agente di codifica {{agent}} rilevato",
+    "layoutReset": "Layout salvato della Connection reimpostato.",
+    "layoutSaved": "Layout della Connection salvato.",
+    "resetLayout": "Reimposta layout",
+    "saveLayout": "Salva layout"
   },
   "webview": {
     "address": "Indirizzo",
