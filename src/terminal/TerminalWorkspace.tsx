@@ -3,6 +3,7 @@ import { ConfirmDialog } from "../app/ConfirmDialog";
 import { readFromClipboard, writeToClipboard } from "../lib/clipboard";
 import { ScreenshotMenu } from "../workspace/ScreenshotMenu";
 
+import { ClaudeCodeColorIcon, CodexColorIcon } from "../ai-coding-usage/providerIcons";
 import { RemoteDesktopWorkspace } from "../remote-desktop/RemoteDesktopWorkspace";
 import { WebViewWorkspace } from "../webview/WebViewWorkspace";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Check, FileText, FolderOpen, Mouse, ChevronRight, Circle, ClipboardPaste, Columns2, Copy, Globe2, Menu, Network, Pencil, RefreshCw, Save, Search, SplitSquareHorizontal, Square, Type, X } from "lucide-react";
@@ -15,6 +16,7 @@ import { ariaInvalid, dialogButtonAria, menuButtonAria } from "../lib/aria";
 import { invokeCommand, isTauriRuntime, saveTextFile, type RemoteLoopbackPort, type TerminalOutput, type TerminalRecordingEntry, type TerminalRecordingInfo, type TmuxSession } from "../lib/tauri";
 import { defaultTerminalSettings } from "../app-defaults";
 import { forgetTmuxSessionId, useWorkspaceStore } from "../store";
+import { createTerminalAgentDetector, type DetectedTerminalAgent } from "./agentDetection";
 import { createTerminalRenderer, type TerminalDimensions, type TerminalRenderer } from "./renderer";
 import { ensureLayout } from "../workspace/layout";
 import { getPaneRenderer, registerPaneInputWriter, registerPaneRenderer, unregisterPaneInputWriter, unregisterPaneRenderer } from "../workspace/paneRegistry";
@@ -261,6 +263,17 @@ function TerminalLayoutView({
 
 function isTerminalPane(pane: WorkspacePane): pane is TerminalPane {
   return pane.kind === undefined || pane.kind === "terminal";
+}
+
+function TerminalAgentBadge({ agent, label }: { agent: DetectedTerminalAgent; label: string }) {
+  const icon = agent.id === "codex" ? <CodexColorIcon size={14} /> : agent.id === "claude" ? <ClaudeCodeColorIcon size={14} /> : null;
+
+  return (
+    <span aria-label={label} className="terminal-agent-badge" role="img">
+      {icon}
+      <span>{agent.shortLabel}</span>
+    </span>
+  );
 }
 
 function EmbeddedConnectionPane({
@@ -1009,6 +1022,7 @@ function TerminalPaneView({
   const [contextMenu, setContextMenu] = useState<TerminalContextMenuState | null>(null);
   const [multilinePasteConfirmationOpen, setMultilinePasteConfirmationOpen] = useState(false);
   const [recordingInfo, setRecordingInfo] = useState<TerminalRecordingInfo | null>(null);
+  const [detectedAgent, setDetectedAgent] = useState<DetectedTerminalAgent | null>(null);
   const [recordingBusy, setRecordingBusy] = useState(false);
   const [recordingsOpen, setRecordingsOpen] = useState(false);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
@@ -1114,6 +1128,7 @@ function TerminalPaneView({
           }
         : terminalSettings;
     const terminal = createTerminalRenderer(rendererSettings);
+    const agentDetector = createTerminalAgentDetector();
     terminalRendererRef.current = terminal;
     terminal.open(element);
     terminal.fit();
@@ -1186,6 +1201,15 @@ function TerminalPaneView({
     let disposed = false;
     let sessionStarted = false;
     let removeOutputListener: (() => void) | undefined;
+    const syncDetectedAgent = () => {
+      if (disposed) {
+        return;
+      }
+      const nextAgent = agentDetector.getDetectedAgent();
+      setDetectedAgent((current) =>
+        current?.id === nextAgent?.id && current?.confidence === nextAgent?.confidence ? current : nextAgent,
+      );
+    };
     const writeInputToSession = (data: string) => {
       const sessionId = sessionIdRef.current;
       if (!sessionId) {
@@ -1197,6 +1221,8 @@ function TerminalPaneView({
     };
     registerPaneInputWriter(pane.id, writeInputToSession);
     const dataDisposable = terminal.onData((data) => {
+      agentDetector.observeInput(data);
+      syncDetectedAgent();
       void writeWithPasteConfirmation(data, writeInputToSession);
     });
     const selectionDisposable = terminal.onSelectionChange(() => {
@@ -1281,6 +1307,8 @@ function TerminalPaneView({
     void (async () => {
       const unlisten = await listen<TerminalOutput>("terminal-output", (event) => {
         if (event.payload.sessionId === sessionIdRef.current) {
+          agentDetector.observeOutput(event.payload.data);
+          syncDetectedAgent();
           terminal.write(event.payload.data);
         }
       });
@@ -1367,6 +1395,7 @@ function TerminalPaneView({
     return () => {
       disposed = true;
       startedRef.current = false;
+      setDetectedAgent(null);
       dataDisposable.dispose();
       selectionDisposable.dispose();
       searchResultsDisposable.dispose();
@@ -1688,6 +1717,12 @@ function TerminalPaneView({
           <Circle size={9} fill="currentColor" />
           {paneToolbarTitle}
         </span>
+        {detectedAgent ? (
+          <TerminalAgentBadge
+            agent={detectedAgent}
+            label={t("terminal.detectedCodingAgent", { agent: detectedAgent.label })}
+          />
+        ) : null}
         <div className="terminal-pane-actions">
           {pane.connection ? (
             <TmuxSessionTag connection={pane.connection} sessionId={pane.tmuxSessionId} tabId={tabId} />
