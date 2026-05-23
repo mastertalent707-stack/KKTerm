@@ -187,20 +187,31 @@ the release build lives next to `kkterm.exe`.
 ```
 
 - **Codex-style local MCP command**
-  - add a stdio MCP server named `kkterm`
-  - command: `<path-to-kkterm-cli>`
-  - args: none
+  - config location: `~/.codex/config.toml`
+  - add a stdio MCP server named `kkterm` under `[mcp_servers]`
 
 - **GitHub Copilot agent/tooling that supports MCP stdio**
-  - register `kkterm-cli` as an MCP stdio server command
+  - config location: `.vscode/mcp.json` in the workspace or the user MCP config
+  - register `kkterm-cli` as an MCP stdio server command in the `servers` map
 
 - **Antigravity / other MCP-capable clients**
-  - add stdio server command pointing to `kkterm-cli`
+  - config location: `~/.gemini/antigravity/mcp_config.json`
+  - MCP settings use the common `mcpServers` JSON object
+  - add a stdio server command pointing to `kkterm-cli`
+
+- **OpenCode**
+  - config location: `opencode.json`, commonly `~/.config/opencode/opencode.json`
+  - add `kkterm` under the `mcp` object with local transport
 
 After configuration, start KKTerm.exe (so the bridge is available),
 reconnect the client, and run `tools/list` to verify connectivity. The
 client should see six tools; `tools/call` requires KKTerm.exe to be
 running.
+
+Settings → AI Assistant → Built-in MCP Server includes a "Show config"
+dialog with the generic JSON snippet and links to the locations above.
+Debug builds write raw built-in and remote MCP request/response records to
+`mcp.debug.log` beside `kkterm.log`.
 
 ## Platform support
 

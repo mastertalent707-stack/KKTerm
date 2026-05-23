@@ -3,8 +3,8 @@
 ## AI grep hints
 
 - Keys: `ai.*` (full namespace), `app.aiAssistant`, `settings.mcp*`, `settings.assistantSkills*`, `settings.aiToolsTitle`, `settings.sectionAiAssistant`, `settings.credentialKindAiApiKey`, `settings.aiTools.tutorial.*`, `common.expand`, `common.collapse`
-- Topics: AI panel, chats, new chat, history, SQLite, tool permission modes, tool defaults, collapsible assistant tools, collapsible Assistant Skills, bundled skills, SKILL.md, Tutorial overlay, tutorial navigation, `connections.addConnection`, intents (Watchdog / Create Widget / Extension Draft), MCP servers, attachments (files, screenshots, terminal buffer), provider keys, send-to-terminal, compact page context, UTF-8 widget updates, non-English assistant output, Advanced Debugging, AI Assistant debug logs
-- Synonyms: "chat", "copilot", "AI bot", "tools", "approval", "MCP", "agent", "skill", "skills", "SKILL.md", "workflow", "ssh-troubleshooter", "dashboard-widget-builder", "terminal-command-planner", "sftp-transfer-helper", "remote-desktop-helper", "network-connectivity-troubleshooter", "dns-dhcp-troubleshooter", "firewall-port-troubleshooter", "tls-certificate-troubleshooter", "network troubleshooting", "DNS", "DHCP", "firewall", "port check", "TLS", "certificate", "watchdog", "highlight this", "show me where", "where are chats stored", "clear chat storage", "expand tools", "collapse skills", "garbled text", "mojibake", "encoding", "UTF8", "UTF-8", "debug log", "aiassistant.debug.log", "context too large"
+- Topics: AI panel, chats, new chat, history, SQLite, tool permission modes, tool defaults, collapsible assistant tools, collapsible Assistant Skills, bundled skills, SKILL.md, Tutorial overlay, tutorial navigation, `connections.addConnection`, intents (Watchdog / Create Widget / Extension Draft), MCP servers, attachments (files, screenshots, terminal buffer), provider keys, send-to-terminal, compact page context, UTF-8 widget updates, non-English assistant output, Advanced Debugging, AI Assistant debug logs, MCP debug logs
+- Synonyms: "chat", "copilot", "AI bot", "tools", "approval", "MCP", "agent", "skill", "skills", "SKILL.md", "workflow", "ssh-troubleshooter", "dashboard-widget-builder", "terminal-command-planner", "sftp-transfer-helper", "remote-desktop-helper", "network-connectivity-troubleshooter", "dns-dhcp-troubleshooter", "firewall-port-troubleshooter", "tls-certificate-troubleshooter", "network troubleshooting", "DNS", "DHCP", "firewall", "port check", "TLS", "certificate", "watchdog", "highlight this", "show me where", "where are chats stored", "clear chat storage", "expand tools", "collapse skills", "garbled text", "mojibake", "encoding", "UTF8", "UTF-8", "debug log", "AI debug log", "MCP debug log", "aiassistant.debug.log", "mcp.debug.log", "context too large"
 
 ## Panel
 
@@ -120,7 +120,7 @@ Error prefix `ai.errorPrefix`. Provider-level errors include `ai.providerError`,
 
 ## Debug logging
 
-`aiassistant.debug.log` is a local troubleshooting log for AI Assistant interactions. Debug builds write it automatically; release builds write full AI Assistant debug logs only when Settings → General → Debug → `settings.advancedDebugging` is enabled. The log may include raw prompts, attached context, screenshots/data URLs, tool calls/results, and generated Dashboard widget source. Users should review it before sharing.
+`aiassistant.debug.log` is a local troubleshooting log for AI Assistant interactions. Debug builds write it automatically; release builds write full AI Assistant debug logs only when Settings → General → Debug → `settings.advancedDebugging` is enabled. The log may include raw prompts, attached context, screenshots/data URLs, tool calls/results, and generated Dashboard widget source. Debug builds also write raw built-in and remote MCP request/response records to `mcp.debug.log`. Users should review these files before sharing.
 
 ## Secret-request card
 

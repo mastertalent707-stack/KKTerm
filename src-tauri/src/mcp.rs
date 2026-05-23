@@ -359,17 +359,52 @@ async fn rpc_call(
         "method": method,
         "params": params,
     });
+    crate::logging::mcp_debug(
+        "remote.request",
+        &json!({
+            "serverId": server.id.clone(),
+            "serverName": server.name.clone(),
+            "url": server.url.clone(),
+            "method": method,
+            "rpcId": rpc_id,
+            "body": body.clone(),
+        }),
+    );
     let response = http
         .post(&server.url)
         .headers(build_headers(server, secret_value))
         .json(&body)
         .send()
         .await
-        .map_err(|e| McpCommandError::Network {
-            message: e.to_string(),
+        .map_err(|e| {
+            crate::logging::mcp_debug(
+                "remote.network_error",
+                &json!({
+                    "serverId": server.id.clone(),
+                    "serverName": server.name.clone(),
+                    "url": server.url.clone(),
+                    "method": method,
+                    "rpcId": rpc_id,
+                    "message": e.to_string(),
+                }),
+            );
+            McpCommandError::Network {
+                message: e.to_string(),
+            }
         })?;
     let status = response.status();
     if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
+        crate::logging::mcp_debug(
+            "remote.auth_error",
+            &json!({
+                "serverId": server.id.clone(),
+                "serverName": server.name.clone(),
+                "url": server.url.clone(),
+                "method": method,
+                "rpcId": rpc_id,
+                "status": status.as_u16(),
+            }),
+        );
         return Err(McpCommandError::AuthError {
             message: format!("HTTP {status}"),
         });
@@ -382,12 +417,24 @@ async fn rpc_call(
         .unwrap_or_default();
     if !status.is_success() {
         let body_text = response.text().await.unwrap_or_default();
+        crate::logging::mcp_debug(
+            "remote.http_error",
+            &json!({
+                "serverId": server.id.clone(),
+                "serverName": server.name.clone(),
+                "url": server.url.clone(),
+                "method": method,
+                "rpcId": rpc_id,
+                "status": status.as_u16(),
+                "body": body_text.clone(),
+            }),
+        );
         return Err(McpCommandError::Protocol {
             message: format!("HTTP {status}: {body_text}"),
         });
     }
     if content_type.contains("text/event-stream") {
-        return read_sse_rpc_result(response, rpc_id).await;
+        return read_sse_rpc_result(response, rpc_id, server, method).await;
     }
     let response_body = response
         .text()
@@ -395,6 +442,18 @@ async fn rpc_call(
         .map_err(|e| McpCommandError::Network {
             message: e.to_string(),
         })?;
+    crate::logging::mcp_debug(
+        "remote.response",
+        &json!({
+            "serverId": server.id.clone(),
+            "serverName": server.name.clone(),
+            "url": server.url.clone(),
+            "method": method,
+            "rpcId": rpc_id,
+            "status": status.as_u16(),
+            "body": response_body.clone(),
+        }),
+    );
     let parsed: Value =
         serde_json::from_str(&response_body).map_err(|e| McpCommandError::Protocol {
             message: format!("invalid JSON response: {e}"),
@@ -431,6 +490,8 @@ fn rpc_id_matches(value: &Value, rpc_id: u64) -> bool {
 async fn read_sse_rpc_result(
     response: reqwest::Response,
     rpc_id: u64,
+    server: &McpServer,
+    method: &str,
 ) -> Result<Value, McpCommandError> {
     let mut buffer = String::new();
     let mut stream = response.bytes_stream();
@@ -438,7 +499,19 @@ async fn read_sse_rpc_result(
         let chunk = chunk.map_err(|e| McpCommandError::Network {
             message: e.to_string(),
         })?;
-        buffer.push_str(&String::from_utf8_lossy(&chunk));
+        let chunk_text = String::from_utf8_lossy(&chunk);
+        crate::logging::mcp_debug(
+            "remote.sse_chunk",
+            &json!({
+                "serverId": server.id.clone(),
+                "serverName": server.name.clone(),
+                "url": server.url.clone(),
+                "method": method,
+                "rpcId": rpc_id,
+                "chunk": chunk_text.as_ref(),
+            }),
+        );
+        buffer.push_str(&chunk_text);
         while let Some((event, rest)) = split_next_sse_event(&buffer) {
             buffer = rest;
             if let Some(result) = parse_sse_rpc_event(&event, rpc_id)? {

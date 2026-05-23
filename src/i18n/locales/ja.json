@@ -1852,7 +1852,18 @@
     "rdpRemoteResolution": "リモート解像度",
     "rdpRemoteResolutionAutomatic": "自動",
     "rdpRemoteResolutionDpiZoom": "DPI ズーム",
-    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing",
+    "builtInMcpShowConfig": "設定を表示",
+    "builtInMcpConfigTitle": "組み込み MCP 設定",
+    "builtInMcpConfigIntro": "この汎用 stdio MCP server スニペットを MCP 対応ツールに貼り付け、command のパスを kkterm-cli.exe のパスに置き換えてください。",
+    "builtInMcpConfigCopy": "設定をコピー",
+    "builtInMcpConfigCopied": "設定をコピーしました",
+    "builtInMcpConfigLocationsTitle": "一般的な設定場所",
+    "builtInMcpConfigLocationCodex": "Codex: ~/.codex/config.toml under [mcp_servers]",
+    "builtInMcpConfigLocationClaudeCode": "Claude Code: add with claude mcp add-json or project/user MCP settings",
+    "builtInMcpConfigLocationAntigravity": "Antigravity: ~/.gemini/antigravity/mcp_config.json with an mcpServers object",
+    "builtInMcpConfigLocationGithubCopilot": "GitHub Copilot in VS Code: .vscode/mcp.json or user mcp.json",
+    "builtInMcpConfigLocationOpenCode": "OpenCode: opencode.json, usually ~/.config/opencode/opencode.json"
   },
   "sftp": {
     "accessed": "アクセス日時",

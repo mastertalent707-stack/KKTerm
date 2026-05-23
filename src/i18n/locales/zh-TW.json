@@ -1852,7 +1852,18 @@
     "rdpRemoteResolution": "遠端解析度",
     "rdpRemoteResolutionAutomatic": "自動",
     "rdpRemoteResolutionDpiZoom": "DPI 縮放",
-    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing",
+    "builtInMcpShowConfig": "顯示設定",
+    "builtInMcpConfigTitle": "內建 MCP 設定",
+    "builtInMcpConfigIntro": "將這段通用 stdio MCP server 片段貼到支援 MCP 的工具中，然後把 command 路徑改成你的 kkterm-cli.exe 路徑。",
+    "builtInMcpConfigCopy": "複製設定",
+    "builtInMcpConfigCopied": "已複製設定",
+    "builtInMcpConfigLocationsTitle": "常見設定位置",
+    "builtInMcpConfigLocationCodex": "Codex: ~/.codex/config.toml under [mcp_servers]",
+    "builtInMcpConfigLocationClaudeCode": "Claude Code: add with claude mcp add-json or project/user MCP settings",
+    "builtInMcpConfigLocationAntigravity": "Antigravity: ~/.gemini/antigravity/mcp_config.json with an mcpServers object",
+    "builtInMcpConfigLocationGithubCopilot": "GitHub Copilot in VS Code: .vscode/mcp.json or user mcp.json",
+    "builtInMcpConfigLocationOpenCode": "OpenCode: opencode.json, usually ~/.config/opencode/opencode.json"
   },
   "sftp": {
     "accessed": "存取日期",

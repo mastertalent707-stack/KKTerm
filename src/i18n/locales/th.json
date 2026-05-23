@@ -1852,7 +1852,18 @@
     "rdpRemoteResolution": "ความละเอียดระยะไกล",
     "rdpRemoteResolutionAutomatic": "อัตโนมัติ",
     "rdpRemoteResolutionDpiZoom": "ซูม DPI",
-    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing",
+    "builtInMcpShowConfig": "แสดง config",
+    "builtInMcpConfigTitle": "config MCP ในตัว",
+    "builtInMcpConfigIntro": "วาง snippet เซิร์ฟเวอร์ stdio MCP ทั่วไปนี้ลงในเครื่องมือที่รองรับ MCP แล้วแทนที่เส้นทาง command ด้วยเส้นทาง kkterm-cli.exe ของคุณ",
+    "builtInMcpConfigCopy": "คัดลอก config",
+    "builtInMcpConfigCopied": "คัดลอก config แล้ว",
+    "builtInMcpConfigLocationsTitle": "ตำแหน่ง config ที่พบบ่อย",
+    "builtInMcpConfigLocationCodex": "Codex: ~/.codex/config.toml under [mcp_servers]",
+    "builtInMcpConfigLocationClaudeCode": "Claude Code: add with claude mcp add-json or project/user MCP settings",
+    "builtInMcpConfigLocationAntigravity": "Antigravity: ~/.gemini/antigravity/mcp_config.json with an mcpServers object",
+    "builtInMcpConfigLocationGithubCopilot": "GitHub Copilot in VS Code: .vscode/mcp.json or user mcp.json",
+    "builtInMcpConfigLocationOpenCode": "OpenCode: opencode.json, usually ~/.config/opencode/opencode.json"
   },
   "sftp": {
     "accessed": "เข้าถึงเมื่อ",

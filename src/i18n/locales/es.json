@@ -1852,7 +1852,18 @@
     "rdpRemoteResolution": "Resolución remota",
     "rdpRemoteResolutionAutomatic": "Automática",
     "rdpRemoteResolutionDpiZoom": "Zoom DPI",
-    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing",
+    "builtInMcpShowConfig": "Mostrar config",
+    "builtInMcpConfigTitle": "Config MCP integrada",
+    "builtInMcpConfigIntro": "Pega este fragmento genérico de servidor MCP stdio en una herramienta compatible con MCP y reemplaza la ruta del comando por la ruta de kkterm-cli.exe.",
+    "builtInMcpConfigCopy": "Copiar config",
+    "builtInMcpConfigCopied": "Config copiada",
+    "builtInMcpConfigLocationsTitle": "Ubicaciones de config comunes",
+    "builtInMcpConfigLocationCodex": "Codex: ~/.codex/config.toml under [mcp_servers]",
+    "builtInMcpConfigLocationClaudeCode": "Claude Code: add with claude mcp add-json or project/user MCP settings",
+    "builtInMcpConfigLocationAntigravity": "Antigravity: ~/.gemini/antigravity/mcp_config.json with an mcpServers object",
+    "builtInMcpConfigLocationGithubCopilot": "GitHub Copilot in VS Code: .vscode/mcp.json or user mcp.json",
+    "builtInMcpConfigLocationOpenCode": "OpenCode: opencode.json, usually ~/.config/opencode/opencode.json"
   },
   "sftp": {
     "accessed": "Accedido",

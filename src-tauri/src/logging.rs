@@ -52,6 +52,19 @@ pub fn ai_assistant_debug(event: &str, payload: &Value) {
     }
 }
 
+pub fn mcp_debug(event: &str, payload: &Value) {
+    if !cfg!(debug_assertions) {
+        return;
+    }
+    let Some(log_path) = LOG_PATH.get().map(|path| mcp_debug_log_path_for(path)) else {
+        return;
+    };
+    let line = format_debug_log_entry(event, payload);
+    if let Err(error) = append_debug_line(&log_path, &line) {
+        eprintln!("failed to write MCP debug log: {error}");
+    }
+}
+
 pub fn set_advanced_debugging_enabled(enabled: bool) {
     ADVANCED_DEBUGGING_ENABLED.store(enabled, Ordering::Relaxed);
 }
@@ -81,7 +94,18 @@ fn ai_assistant_debug_log_path_for(runtime_log_path: &Path) -> PathBuf {
         .join("aiassistant.debug.log")
 }
 
+fn mcp_debug_log_path_for(runtime_log_path: &Path) -> PathBuf {
+    runtime_log_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("mcp.debug.log")
+}
+
 fn format_ai_assistant_debug_log_entry(event: &str, payload: &Value) -> String {
+    format_debug_log_entry(event, payload)
+}
+
+fn format_debug_log_entry(event: &str, payload: &Value) -> String {
     let timestamp = time::OffsetDateTime::now_utc()
         .format(&time::format_description::well_known::Rfc3339)
         .unwrap_or_else(|_| time::OffsetDateTime::now_utc().unix_timestamp().to_string());
@@ -94,6 +118,10 @@ fn format_ai_assistant_debug_log_entry(event: &str, payload: &Value) -> String {
 }
 
 fn append_ai_assistant_debug_line(path: &Path, line: &str) -> std::io::Result<()> {
+    append_debug_line(path, line)
+}
+
+fn append_debug_line(path: &Path, line: &str) -> std::io::Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -112,6 +140,13 @@ mod tests {
         let path = ai_assistant_debug_log_path_for(Path::new("logs/kkterm.log"));
 
         assert_eq!(path, PathBuf::from("logs").join("aiassistant.debug.log"));
+    }
+
+    #[test]
+    fn mcp_debug_log_path_uses_runtime_log_directory() {
+        let path = mcp_debug_log_path_for(Path::new("logs/kkterm.log"));
+
+        assert_eq!(path, PathBuf::from("logs").join("mcp.debug.log"));
     }
 
     #[test]

@@ -1852,7 +1852,18 @@
     "rdpRemoteResolution": "Resolusi jarak jauh",
     "rdpRemoteResolutionAutomatic": "Otomatis",
     "rdpRemoteResolutionDpiZoom": "Zoom DPI",
-    "rdpRemoteResolutionSmartSizing": "Smart Sizing"
+    "rdpRemoteResolutionSmartSizing": "Smart Sizing",
+    "builtInMcpShowConfig": "Tampilkan config",
+    "builtInMcpConfigTitle": "Config MCP bawaan",
+    "builtInMcpConfigIntro": "Tempel cuplikan server MCP stdio generik ini ke alat yang mendukung MCP, lalu ganti path command dengan path kkterm-cli.exe Anda.",
+    "builtInMcpConfigCopy": "Salin config",
+    "builtInMcpConfigCopied": "Config disalin",
+    "builtInMcpConfigLocationsTitle": "Lokasi config umum",
+    "builtInMcpConfigLocationCodex": "Codex: ~/.codex/config.toml under [mcp_servers]",
+    "builtInMcpConfigLocationClaudeCode": "Claude Code: add with claude mcp add-json or project/user MCP settings",
+    "builtInMcpConfigLocationAntigravity": "Antigravity: ~/.gemini/antigravity/mcp_config.json with an mcpServers object",
+    "builtInMcpConfigLocationGithubCopilot": "GitHub Copilot in VS Code: .vscode/mcp.json or user mcp.json",
+    "builtInMcpConfigLocationOpenCode": "OpenCode: opencode.json, usually ~/.config/opencode/opencode.json"
   },
   "sftp": {
     "accessed": "Diakses",

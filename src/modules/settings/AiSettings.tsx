@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, RefreshCw, Save } from "lucide-react";
+import { Bot, Copy, RefreshCw, Save, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   AI_PROVIDER_DEFINITIONS,
@@ -47,10 +47,107 @@ import i18next from "../../i18n/config";
 
 const GITHUB_COPILOT_CLI_INSTALL_URL =
   "https://docs.github.com/en/copilot/how-tos/copilot-cli/install-copilot-cli";
+const BUILT_IN_MCP_CONFIG_SNIPPET = `{
+  "mcpServers": {
+    "kkterm": {
+      "command": "C:\\\\Path\\\\To\\\\kkterm-cli.exe",
+      "args": []
+    }
+  }
+}`;
+const BUILT_IN_MCP_CONFIG_LINKS = [
+  {
+    key: "codex",
+    labelKey: "settings.builtInMcpConfigLocationCodex",
+    url: "https://www.mintlify.com/openai/codex/configuration/mcp-servers",
+  },
+  {
+    key: "claudeCode",
+    labelKey: "settings.builtInMcpConfigLocationClaudeCode",
+    url: "https://code.claude.com/docs/en/mcp",
+  },
+  {
+    key: "antigravity",
+    labelKey: "settings.builtInMcpConfigLocationAntigravity",
+    url: "https://docs.maestrohub.com/next/how-to-guides/mcp-integration/antigravity",
+  },
+  {
+    key: "githubCopilot",
+    labelKey: "settings.builtInMcpConfigLocationGithubCopilot",
+    url: "https://code.visualstudio.com/docs/copilot/reference/mcp-configuration",
+  },
+  {
+    key: "openCode",
+    labelKey: "settings.builtInMcpConfigLocationOpenCode",
+    url: "https://dev.opencode.ai/docs/config/",
+  },
+] as const;
 
 function createStoredApiKeyMask() {
   const maskLength = 12 + Math.floor(Math.random() * 5);
   return "*".repeat(maskLength);
+}
+
+function BuiltInMcpConfigDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(BUILT_IN_MCP_CONFIG_SNIPPET);
+    setCopied(true);
+  }
+
+  return (
+    <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
+      <div
+        aria-label={t("settings.builtInMcpConfigTitle")}
+        aria-modal="true"
+        className="connection-dialog settings-mcp-dialog built-in-mcp-config-dialog"
+        role="dialog"
+      >
+        <header className="connection-dialog-header compact">
+          <div>
+            <p className="panel-label">{t("settings.builtInMcpServerEnabled")}</p>
+            <h2>{t("settings.builtInMcpConfigTitle")}</h2>
+          </div>
+          <button
+            aria-label={t("common.close")}
+            className="icon-button"
+            onClick={onClose}
+            type="button"
+          >
+            <X size={14} />
+          </button>
+        </header>
+        <div className="mcp-dialog-body">
+          <p className="field-hint">{t("settings.builtInMcpConfigIntro")}</p>
+          <pre className="built-in-mcp-config-snippet">
+            <code>{BUILT_IN_MCP_CONFIG_SNIPPET}</code>
+          </pre>
+          <button className="secondary-button" onClick={() => void handleCopy()} type="button">
+            <Copy size={14} />
+            {copied ? t("settings.builtInMcpConfigCopied") : t("settings.builtInMcpConfigCopy")}
+          </button>
+          <div className="built-in-mcp-config-locations">
+            <strong>{t("settings.builtInMcpConfigLocationsTitle")}</strong>
+            <ul>
+              {BUILT_IN_MCP_CONFIG_LINKS.map((link) => (
+                <li key={link.key}>
+                  <button
+                    className="settings-api-key-link"
+                    onClick={() => void openExternalUrl(link.url)}
+                    type="button"
+                  >
+                    {t(link.labelKey)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 
@@ -720,6 +817,7 @@ export function AiSettings() {
   const [isCopilotPolling, setIsCopilotPolling] = useState(false);
   const [refreshedModelOptions, setRefreshedModelOptions] = useState<AiProviderModelOption[]>([]);
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
+  const [showBuiltInMcpConfig, setShowBuiltInMcpConfig] = useState(false);
   const hasChanges =
     JSON.stringify(draft) !== JSON.stringify(aiProviderSettings) ||
     apiKeyDraft.trim().length > 0 ||
@@ -1096,6 +1194,9 @@ export function AiSettings() {
 
   return (
     <section className="settings-card settings-section">
+      {showBuiltInMcpConfig && (
+        <BuiltInMcpConfigDialog onClose={() => setShowBuiltInMcpConfig(false)} />
+      )}
       <SettingsSectionHeader
         actions={
           <button
@@ -1202,7 +1303,20 @@ export function AiSettings() {
               }
             />
             <span>
-              <strong>{t("settings.builtInMcpServerEnabled")}</strong>
+              <strong>
+                {t("settings.builtInMcpServerEnabled")}
+                <button
+                  className="settings-api-key-link"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setShowBuiltInMcpConfig(true);
+                  }}
+                  type="button"
+                >
+                  {t("settings.builtInMcpShowConfig")}
+                </button>
+              </strong>
               <small>{t("settings.builtInMcpServerEnabledHint")}</small>
             </span>
           </label>

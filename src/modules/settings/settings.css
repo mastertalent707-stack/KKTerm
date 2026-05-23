@@ -1646,3 +1646,39 @@
   padding: 1px 4px;
   border-radius: 3px;
 }
+
+.built-in-mcp-config-dialog {
+  max-width: 640px;
+}
+
+.built-in-mcp-config-snippet {
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font: 12px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+  white-space: pre-wrap;
+}
+
+.built-in-mcp-config-locations {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.built-in-mcp-config-locations ul {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.built-in-mcp-config-locations .settings-api-key-link {
+  margin-left: 0;
+  text-align: left;
+}

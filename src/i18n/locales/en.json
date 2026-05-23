@@ -1001,7 +1001,18 @@
     "builtInMcpServerEnabled": "Built-in MCP Server enabled",
     "builtInMcpServerEnabledHint": "Expose kkterm-cli as a stdio MCP server for external tools.",
     "builtInMcpAllowAllDangerous": "Built-in MCP dangerous tools: Allow all",
-    "builtInMcpAllowAllDangerousHint": "When enabled, dangerous kkterm.dangerous.* MCP tools execute without confirmation prompts."
+    "builtInMcpAllowAllDangerousHint": "When enabled, dangerous kkterm.dangerous.* MCP tools execute without confirmation prompts.",
+    "builtInMcpShowConfig": "Show config",
+    "builtInMcpConfigTitle": "Built-in MCP config",
+    "builtInMcpConfigIntro": "Paste this generic stdio MCP server snippet into an MCP-capable tool, then replace the command path with your kkterm-cli.exe path.",
+    "builtInMcpConfigCopy": "Copy config",
+    "builtInMcpConfigCopied": "Config copied",
+    "builtInMcpConfigLocationsTitle": "Common config locations",
+    "builtInMcpConfigLocationCodex": "Codex: ~/.codex/config.toml under [mcp_servers]",
+    "builtInMcpConfigLocationClaudeCode": "Claude Code: add with claude mcp add-json or project/user MCP settings",
+    "builtInMcpConfigLocationAntigravity": "Antigravity: ~/.gemini/antigravity/mcp_config.json with an mcpServers object",
+    "builtInMcpConfigLocationGithubCopilot": "GitHub Copilot in VS Code: .vscode/mcp.json or user mcp.json",
+    "builtInMcpConfigLocationOpenCode": "OpenCode: opencode.json, usually ~/.config/opencode/opencode.json"
   },
   "connections": {
     "title": "Connections",

@@ -86,12 +86,14 @@ pub fn start_if_enabled(
     remove_bridge_info(&info_path);
 
     if !enabled {
+        crate::logging::mcp_debug("bridge.disabled", &json!({}));
         return;
     }
 
     #[cfg(not(target_os = "windows"))]
     {
         let _ = (app, allow_all_dangerous);
+        crate::logging::mcp_debug("bridge.unsupported_platform", &json!({}));
         eprintln!(
             "kkterm built-in MCP server: named-pipe transport is Windows-only; bridge disabled."
         );
@@ -109,9 +111,22 @@ pub fn start_if_enabled(
             pid,
         };
         if let Err(error) = write_bridge_info(&info_path, &info) {
+            crate::logging::mcp_debug(
+                "bridge.info_write_failed",
+                &json!({"error": error.to_string()}),
+            );
             eprintln!("kkterm built-in MCP server: failed to write bridge info: {error}");
             return;
         }
+        crate::logging::mcp_debug(
+            "bridge.started",
+            &json!({
+                "pipeName": pipe_name.clone(),
+                "pid": pid,
+                "allowAllDangerous": allow_all_dangerous,
+                "bridgeInfoPath": info_path,
+            }),
+        );
 
         let ctx = Arc::new(BridgeContext {
             app,
@@ -120,6 +135,10 @@ pub fn start_if_enabled(
         });
         tauri::async_runtime::spawn(async move {
             if let Err(error) = run_named_pipe_server(ctx, pipe_name).await {
+                crate::logging::mcp_debug(
+                    "bridge.server_stopped",
+                    &json!({"error": error.to_string()}),
+                );
                 eprintln!("kkterm built-in MCP server stopped: {error}");
             }
         });
@@ -150,6 +169,10 @@ async fn run_named_pipe_server(
         let ctx = Arc::clone(&ctx);
         tauri::async_runtime::spawn(async move {
             if let Err(error) = serve_client(ctx, connection).await {
+                crate::logging::mcp_debug(
+                    "bridge.client_ended",
+                    &json!({"error": error.to_string()}),
+                );
                 eprintln!("kkterm MCP bridge client ended: {error}");
             }
         });
@@ -169,11 +192,13 @@ async fn serve_client(ctx: Arc<BridgeContext>, stream: NamedPipeServer) -> std::
         return Ok(());
     }
     if line.trim() != ctx.token {
+        crate::logging::mcp_debug("bridge.client_auth_failed", &json!({}));
         let _ = writer
             .write_all(b"{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32001,\"message\":\"unauthorized\"}}\n")
             .await;
         return Ok(());
     }
+    crate::logging::mcp_debug("bridge.client_auth_ok", &json!({}));
     let _ = writer.write_all(b"{\"ok\":true}\n").await;
     let _ = writer.flush().await;
 
@@ -194,6 +219,10 @@ async fn serve_client(ctx: Arc<BridgeContext>, stream: NamedPipeServer) -> std::
         let request: Value = match serde_json::from_str(trimmed) {
             Ok(value) => value,
             Err(error) => {
+                crate::logging::mcp_debug(
+                    "bridge.request_parse_error",
+                    &json!({"error": error.to_string(), "raw": trimmed}),
+                );
                 let response = json!({
                     "jsonrpc": "2.0",
                     "id": Value::Null,
@@ -203,8 +232,10 @@ async fn serve_client(ctx: Arc<BridgeContext>, stream: NamedPipeServer) -> std::
                 continue;
             }
         };
+        crate::logging::mcp_debug("bridge.request", &request);
         let response = handle_request(&ctx, request).await;
         if let Some(response) = response {
+            crate::logging::mcp_debug("bridge.response", &response);
             write_response(&mut writer, &response).await?;
         }
     }
@@ -547,8 +578,16 @@ async fn handle_tool_call(ctx: &BridgeContext, id: Value, params: Value) -> Valu
         .unwrap_or_default()
         .to_string();
     let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
+    crate::logging::mcp_debug(
+        "bridge.tool_call",
+        &json!({"name": name.clone(), "arguments": arguments.clone()}),
+    );
 
     if dangerous_tool(&name) && !ctx.allow_all_dangerous {
+        crate::logging::mcp_debug(
+            "bridge.tool_blocked",
+            &json!({"name": name.clone(), "reason": "dangerous_tools_disabled"}),
+        );
         return tool_error_response(
             id,
             "permissionRequired",
@@ -558,16 +597,28 @@ async fn handle_tool_call(ctx: &BridgeContext, id: Value, params: Value) -> Valu
 
     let outcome = dispatch_tool(&ctx.app, &name, arguments).await;
     match outcome {
-        Ok(value) => json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "result": {
-                "content": [{"type": "text", "text": value_to_text(&value)}],
-                "structuredContent": value,
-                "isError": false,
-            },
-        }),
-        Err(message) => tool_error_response(id, "toolError", &message),
+        Ok(value) => {
+            crate::logging::mcp_debug(
+                "bridge.tool_result",
+                &json!({"name": name.clone(), "result": value.clone()}),
+            );
+            json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "result": {
+                    "content": [{"type": "text", "text": value_to_text(&value)}],
+                    "structuredContent": value,
+                    "isError": false,
+                },
+            })
+        }
+        Err(message) => {
+            crate::logging::mcp_debug(
+                "bridge.tool_error",
+                &json!({"name": name.clone(), "message": message.clone()}),
+            );
+            tool_error_response(id, "toolError", &message)
+        }
     }
 }
 
