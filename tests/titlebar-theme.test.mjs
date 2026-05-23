@@ -25,16 +25,60 @@ test("custom titlebar inherits the same color scheme as the activity rail", asyn
   );
 });
 
-test("custom titlebar matches the default Windows title height", async () => {
+test("custom titlebar matches the native Windows title height", async () => {
   const appCssSource = await readFile(
     new URL("../src/app/app.css", import.meta.url),
     "utf8",
   );
 
-  assert.match(appCssSource, /--app-titlebar-height:\s*31px;/);
+  assert.match(appCssSource, /--app-titlebar-height:\s*23px;/);
   assert.match(
     appCssSource,
     /\.app-titlebar\s*\{[^}]*box-sizing:\s*border-box;[^}]*height:\s*var\(--app-titlebar-height\)/s,
     "the titlebar border should be included in the fixed Windows-height row",
+  );
+});
+
+test("custom titlebar controls stay anchored to the visible viewport", async () => {
+  const appCssSource = await readFile(
+    new URL("../src/app/app.css", import.meta.url),
+    "utf8",
+  );
+
+  const appRootRule = appCssSource.match(/\.app-root\s*\{(?<body>[^}]*)\}/s);
+  const appShellRule = appCssSource.match(/\.app-shell\s*\{(?<body>[^}]*)\}/s);
+  const controlsRule = appCssSource.match(
+    /\.app-titlebar-controls\s*\{(?<body>[^}]*)\}/s,
+  );
+  const buttonRule = appCssSource.match(
+    /\.app-titlebar-button\s*\{(?<body>[^}]*)\}/s,
+  );
+
+  assert.ok(appRootRule?.groups?.body, "app-root CSS rule should exist");
+  assert.ok(appShellRule?.groups?.body, "app-shell CSS rule should exist");
+  assert.ok(
+    controlsRule?.groups?.body,
+    "titlebar controls CSS rule should exist",
+  );
+  assert.ok(buttonRule?.groups?.body, "titlebar button CSS rule should exist");
+  assert.doesNotMatch(
+    appRootRule.groups.body,
+    /\bmin-width\s*:/,
+    "the root titlebar row should not be widened past the visible viewport",
+  );
+  assert.match(
+    appShellRule.groups.body,
+    /\bmin-width:\s*1120px;/,
+    "the workspace shell keeps the desktop minimum width below the titlebar",
+  );
+  assert.match(
+    controlsRule.groups.body,
+    /\bflex:\s*0\s+0\s+auto;/,
+    "the window controls cluster should not shrink away from the right edge",
+  );
+  assert.match(
+    buttonRule.groups.body,
+    /\bflex:\s*0\s+0\s+46px;/,
+    "each window control should preserve its fixed hit target width",
   );
 });

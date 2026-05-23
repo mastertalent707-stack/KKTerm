@@ -1,10 +1,9 @@
 .app-root {
-  --app-titlebar-height: 31px;
+  --app-titlebar-height: 23px;
   display: grid;
   grid-template-rows: var(--app-titlebar-height) minmax(0, 1fr);
   width: 100%;
   height: 100vh;
-  min-width: 1120px;
   overflow: hidden;
   background: var(--app-bg);
 }
@@ -62,11 +61,13 @@
 
 .app-titlebar-controls {
   display: flex;
+  flex: 0 0 auto;
   app-region: no-drag;
   -webkit-app-region: no-drag;
 }
 
 .app-titlebar-button {
+  flex: 0 0 46px;
   width: 46px;
   display: inline-flex;
   align-items: center;
