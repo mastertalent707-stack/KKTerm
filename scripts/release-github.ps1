@@ -36,6 +36,26 @@ function Invoke-Checked {
     }
 }
 
+function Invoke-NativeCapture {
+    param(
+        [string]$FilePath,
+        [string[]]$ArgumentList
+    )
+
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $Output = & $FilePath @ArgumentList 2>&1
+        return [pscustomobject]@{
+            Output = $Output
+            ExitCode = $LASTEXITCODE
+        }
+    }
+    finally {
+        $ErrorActionPreference = $PreviousErrorActionPreference
+    }
+}
+
 function Assert-Command {
     param([string]$Name)
 
@@ -242,9 +262,9 @@ try {
     Invoke-Checked -FilePath "cargo" -ArgumentList @("check", "--manifest-path", "src-tauri/Cargo.toml") -Action "Rust check"
     Invoke-Checked -FilePath "cargo" -ArgumentList @("test", "--manifest-path", "src-tauri/Cargo.toml") -Action "Rust tests"
 
-    $AddOutput = git add package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml CHANGELOG.md $VersionReleaseNotesPath 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Unable to stage version files:`n$($AddOutput -join "`n")"
+    $AddResult = Invoke-NativeCapture -FilePath "git" -ArgumentList @("add", "package.json", "package-lock.json", "src-tauri/tauri.conf.json", "src-tauri/Cargo.toml", "CHANGELOG.md", $VersionReleaseNotesPath)
+    if ($AddResult.ExitCode -ne 0) {
+        throw "Unable to stage version files:`n$($AddResult.Output -join "`n")"
     }
 
     $StagedDiff = git diff --cached --name-only
@@ -252,14 +272,14 @@ try {
         throw "No staged release changes to commit. Files may already be at $NextVersion from a prior run; reset the version files and generated release notes, then rerun."
     }
 
-    $CommitOutput = git commit -m "chore: release $TagName" 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Unable to commit release version bump (exit $LASTEXITCODE):`n$($CommitOutput -join "`n")"
+    $CommitResult = Invoke-NativeCapture -FilePath "git" -ArgumentList @("commit", "-m", "chore: release $TagName")
+    if ($CommitResult.ExitCode -ne 0) {
+        throw "Unable to commit release version bump (exit $($CommitResult.ExitCode)):`n$($CommitResult.Output -join "`n")"
     }
 
-    $TagOutput = git tag -a $TagName -m "KKTerm $TagName" 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Unable to create git tag $TagName (exit $LASTEXITCODE):`n$($TagOutput -join "`n")"
+    $TagResult = Invoke-NativeCapture -FilePath "git" -ArgumentList @("tag", "-a", $TagName, "-m", "KKTerm $TagName")
+    if ($TagResult.ExitCode -ne 0) {
+        throw "Unable to create git tag $TagName (exit $($TagResult.ExitCode)):`n$($TagResult.Output -join "`n")"
     }
 
     Invoke-Checked -FilePath "git" -ArgumentList @("push", $Remote, "HEAD:$Branch") -Action "Push release commit"
