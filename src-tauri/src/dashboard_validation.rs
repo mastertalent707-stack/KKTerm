@@ -164,7 +164,6 @@ pub const MAX_WIDGET_LIBRARIES: usize = 8;
 pub const MAX_HTML_SHIM_BYTES: usize = 128 * 1024;
 
 pub const KNOWN_LIBRARY_GLOBALS: &[(&str, &str)] = &[
-    ("mermaid", "mermaid"),
     ("echarts", "echarts"),
     ("chartjs", "Chart"),
     ("qrcode", "QRCode"),
@@ -193,6 +192,9 @@ pub const KNOWN_LIBRARY_GLOBALS: &[(&str, &str)] = &[
     ("fflate", "fflate"),
     ("marked", "marked"),
     ("animejs", "anime"),
+    ("uplot", "uPlot"),
+    ("fusejs", "Fuse"),
+    ("simplestatistics", "ss"),
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -1590,8 +1592,20 @@ mod tests {
     }
 
     #[test]
-    fn unused_library_accepts_mermaid_called() {
-        let json = r#"{"source":"mermaid.initialize({startOnLoad:true}); mermaid.run();","libraries":["mermaid"],"permissions":{"network":false}}"#;
+    fn unused_library_accepts_uplot_called() {
+        let json = r#"{"source":"const chart = new uPlot({width:300,height:120,series:[{},{}]}, [[1,2],[3,4]], root); chart.setSize({width:320,height:140});","libraries":["uplot"],"permissions":{"network":false}}"#;
+        assert!(validate_script_body_json(json).is_ok());
+    }
+
+    #[test]
+    fn unused_library_accepts_fusejs_called() {
+        let json = r#"{"source":"const fuse = new Fuse([{name:'alpha'}], {keys:['name']}); root.textContent = fuse.search('alp').length;","libraries":["fusejs"],"permissions":{"network":false}}"#;
+        assert!(validate_script_body_json(json).is_ok());
+    }
+
+    #[test]
+    fn unused_library_accepts_simplestatistics_called() {
+        let json = r#"{"source":"root.textContent = String(ss.quantile([1,2,3,4], 0.5));","libraries":["simplestatistics"],"permissions":{"network":false}}"#;
         assert!(validate_script_body_json(json).is_ok());
     }
 

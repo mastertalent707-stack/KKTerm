@@ -156,9 +156,9 @@ mod tests {
             &json!({
                 "toolName": "dashboard_create_widget",
                 "arguments": {
-                    "title": "Git Workflow Diagram",
+                    "title": "Latency Trend",
                     "body": {
-                        "source": "mermaid.initialize({ startOnLoad: true });"
+                        "source": "const chart = new uPlot(opts, data, root);"
                     }
                 }
             }),
@@ -171,7 +171,7 @@ mod tests {
         assert_eq!(parsed["payload"]["toolName"], "dashboard_create_widget");
         assert_eq!(
             parsed["payload"]["arguments"]["body"]["source"],
-            "mermaid.initialize({ startOnLoad: true });"
+            "const chart = new uPlot(opts, data, root);"
         );
         assert!(parsed["timestamp"].as_str().is_some_and(|value| !value.is_empty()));
     }

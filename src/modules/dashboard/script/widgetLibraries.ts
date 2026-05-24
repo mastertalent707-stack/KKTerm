@@ -49,13 +49,20 @@ async function loadMarked(): Promise<string> {
   return rawDefault(() => import("widget-lib:marked?global=marked"));
 }
 
+async function loadUplot(): Promise<string> {
+  const [source, css] = await Promise.all([
+    rawDefault(() => import("uplot/dist/uPlot.iife.min.js?raw")),
+    rawDefault(() => import("uplot/dist/uPlot.min.css?raw")),
+  ]);
+  return `${source}
+;(() => {
+  const style = document.createElement("style");
+  style.textContent = ${JSON.stringify(css)};
+  document.head.appendChild(style);
+})();`;
+}
+
 export const WIDGET_LIBRARIES: Record<string, WidgetLibrary> = {
-  mermaid: {
-    key: "mermaid",
-    global: "mermaid",
-    description: "Text-to-diagram (flowchart, sequence, gantt, class, state, er, pie). Render into a measured kk-panel and re-run or scale SVG on resize.",
-    load: () => rawDefault(() => import("widget-lib:mermaid?global=mermaid")),
-  },
   echarts: {
     key: "echarts",
     global: "echarts",
@@ -226,10 +233,30 @@ export const WIDGET_LIBRARIES: Record<string, WidgetLibrary> = {
       "DOM/SVG/CSS property animation (number countup, SVG path draw, attribute tweens, timelines). Use for data-driven transitions, not decorative entrance effects.",
     load: () => rawDefault(() => import("widget-lib:animejs?global=anime")),
   },
+  uplot: {
+    key: "uplot",
+    global: "uPlot",
+    description:
+      "Small, fast time-series charting for dense metrics. Mount in a measured kk-stage/kk-panel and recreate or setSize on KK.onViewportResize.",
+    load: loadUplot,
+  },
+  fusejs: {
+    key: "fusejs",
+    global: "Fuse",
+    description:
+      "Lightweight fuzzy search over local arrays of strings or objects. Good for searchable lists, command palettes, and filtered operator data.",
+    load: () => rawDefault(() => import("widget-lib:fuse.js?global=Fuse")),
+  },
+  simplestatistics: {
+    key: "simplestatistics",
+    global: "ss",
+    description:
+      "Descriptive statistics, quantiles, regression, clustering, and inference helpers for numeric widget data.",
+    load: () => rawDefault(() => import("widget-lib:simple-statistics?global=ss")),
+  },
 };
 
 const LEGACY_GLOBAL_LIBRARY_PATTERNS: { key: string; pattern: RegExp }[] = [
-  { key: "mermaid", pattern: /\bmermaid\b/ },
   { key: "animejs", pattern: /\banime\b/ },
 ];
 

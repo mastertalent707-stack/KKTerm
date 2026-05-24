@@ -340,7 +340,7 @@ test("script widget infers common local libraries from legacy generated source",
 
   assert.deepEqual(
     resolveWidgetLibraryKeys(undefined, "mermaid.initialize({ startOnLoad: false }); anime.timeline();"),
-    ["mermaid", "animejs"],
+    ["animejs"],
   );
 });
 
@@ -351,7 +351,23 @@ test("script widget resolver accepts every advertised local library", async () =
 
   const keys = Object.keys(WIDGET_LIBRARIES);
   assert.ok(keys.length > 20);
+  assert.ok(!keys.includes("mermaid"));
+  assert.ok(keys.includes("uplot"));
+  assert.ok(keys.includes("fusejs"));
+  assert.ok(keys.includes("simplestatistics"));
   assert.deepEqual(resolveWidgetLibraryKeys(keys, ""), keys);
+});
+
+test("script widget library catalog documents search, statistics, and time-series helpers", async () => {
+  const { libraryCatalogForAi } = await importTypeScriptModule(
+    new URL("../src/modules/dashboard/script/widgetLibraries.ts", import.meta.url),
+  );
+
+  const catalog = libraryCatalogForAi();
+  assert.doesNotMatch(catalog, /mermaid \(global: mermaid\)/);
+  assert.match(catalog, /uplot \(global: uPlot\)/);
+  assert.match(catalog, /fusejs \(global: Fuse\)/);
+  assert.match(catalog, /simplestatistics \(global: ss\)/);
 });
 
 test("script widget library catalog documents qrcode canvas target contract", async () => {
