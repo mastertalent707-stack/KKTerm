@@ -9,6 +9,8 @@ Landing page: https://ryantsai.github.io/KKTerm/
 
 Feedback thread: https://github.com/ryantsai/KKTerm/discussions/141
 
+Launch announcement: https://github.com/ryantsai/KKTerm/discussions/146
+
 Latest release: https://github.com/ryantsai/KKTerm/releases/tag/v0.1.34
 
 Current proof points:
@@ -198,3 +200,4 @@ Ryan
 | 2026-05-24 | 7 | Added demo GIF and Open Graph image to landing page | https://ryantsai.github.io/KKTerm/assets/demo.gif |
 | 2026-05-24 | 7 | Opened Rust-community CFP issue for contributors | https://github.com/ryantsai/KKTerm/issues/145 |
 | 2026-05-24 | 7 | Submitted KKTerm CFP to This Week in Rust | https://github.com/rust-lang/this-week-in-rust/pull/8118 |
+| 2026-05-24 | 7 | Published GitHub launch announcement Discussion | https://github.com/ryantsai/KKTerm/discussions/146 |
