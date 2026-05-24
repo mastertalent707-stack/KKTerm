@@ -5,6 +5,8 @@ and outreach email consistent, accurate, and easy to send.
 
 Primary link: https://github.com/ryantsai/KKTerm
 
+Landing page: https://ryantsai.github.io/KKTerm/
+
 Feedback thread: https://github.com/ryantsai/KKTerm/discussions/141
 
 Latest release: https://github.com/ryantsai/KKTerm/releases/tag/v0.1.34
@@ -191,3 +193,4 @@ Ryan
 | 2026-05-24 | 7 | Enabled GitHub Discussions and opened feedback thread | https://github.com/ryantsai/KKTerm/discussions/141 |
 | 2026-05-24 | 7 | Rewrote latest release notes for public conversion | https://github.com/ryantsai/KKTerm/releases/tag/v0.1.34 |
 | 2026-05-24 | 7 | Opened contributor-friendly issues | #142 first-run checklist; #143 README screenshots; #144 installer verification |
+| 2026-05-24 | 7 | Added GitHub Pages landing page and set repo homepage | https://ryantsai.github.io/KKTerm/ |
