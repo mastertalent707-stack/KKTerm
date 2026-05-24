@@ -5,7 +5,7 @@ import { ConnectionIcon } from "../../../../workspace/connections/ConnectionIcon
 import { connectionSubtitle, connectionTypeLabel } from "../../../../workspace/connections/utils";
 import { flattenConnections, withLiveConnectionStatuses } from "../../../../workspace/connections/treeUtils";
 import { invokeCommand, isTauriRuntime } from "../../../../../lib/tauri";
-import { appendTmuxSessionId, useWorkspaceStore } from "../../../../../store";
+import { tmuxSessionIdsForConnection, useWorkspaceStore } from "../../../../../store";
 import { defaultLayoutFor } from "../../../../workspace/layout";
 import { RemoteDesktopWorkspace } from "../../../../workspace/connections/remote-desktop/RemoteDesktopWorkspace";
 import { TerminalWorkspace } from "../../../../workspace/connections/terminal/TerminalWorkspace";
@@ -42,8 +42,12 @@ function normalizeConnectionWidgetConfig(value: unknown): ConnectionWidgetConfig
   return { connectionIds, activeConnectionId };
 }
 
-export function createConnectionWidgetTab(instanceId: string, connection: Connection): WorkspaceTab {
-  const pane = createConnectionWidgetPane(instanceId, connection);
+export function createConnectionWidgetTab(
+  instanceId: string,
+  connection: Connection,
+  tmuxSessionId?: string,
+): WorkspaceTab {
+  const pane = createConnectionWidgetPane(instanceId, connection, tmuxSessionId);
   const baseTab = {
     id: `dashboard-${instanceId}-${connection.id}`,
     title: connection.name,
@@ -79,7 +83,11 @@ export function createConnectionWidgetTab(instanceId: string, connection: Connec
   };
 }
 
-function createConnectionWidgetPane(instanceId: string, connection: Connection): WorkspacePane {
+function createConnectionWidgetPane(
+  instanceId: string,
+  connection: Connection,
+  tmuxSessionId?: string,
+): WorkspacePane {
   const paneId = `dashboard-pane-${instanceId}-${connection.id}`;
   if (connection.type === "url") {
     return {
@@ -111,7 +119,7 @@ function createConnectionWidgetPane(instanceId: string, connection: Connection):
     cwd: connection.type === "local" ? "C:\\Users\\example" : "~",
     buffer: "",
     connection,
-    tmuxSessionId: appendTmuxSessionId(connection),
+    tmuxSessionId,
   };
 }
 
@@ -343,9 +351,23 @@ function ConnectionWidgetSession({
   instanceId: string;
   isViewActive: boolean;
 }) {
+  const [tmuxSession, setTmuxSession] = useState<{ connectionId: string; sessionId: string } | null>(null);
+  const usesTmux = connection.type === "ssh" && connection.useTmuxSessions !== false;
+  const tmuxSessionId =
+    usesTmux && tmuxSession?.connectionId === connection.id ? tmuxSession.sessionId : undefined;
+
+  useEffect(() => {
+    if (!usesTmux) {
+      setTmuxSession(null);
+      return;
+    }
+    const sessionId = tmuxSessionIdsForConnection(connection, 1)[0];
+    setTmuxSession(sessionId ? { connectionId: connection.id, sessionId } : null);
+  }, [connection, usesTmux]);
+
   const tab = useMemo(
-    () => createConnectionWidgetTab(instanceId, connection),
-    [connection, instanceId],
+    () => createConnectionWidgetTab(instanceId, connection, tmuxSessionId),
+    [connection, instanceId, tmuxSessionId],
   );
 
   if (connection.type === "url") {
@@ -354,6 +376,10 @@ function ConnectionWidgetSession({
 
   if (connection.type === "rdp" || connection.type === "vnc") {
     return <RemoteDesktopWorkspace isActive={isViewActive} tab={tab} />;
+  }
+
+  if (usesTmux && !tmuxSessionId) {
+    return null;
   }
 
   return (

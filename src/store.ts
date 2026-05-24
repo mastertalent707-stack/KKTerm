@@ -257,7 +257,7 @@ function isRemoteDesktopConnection(connection: Connection) {
   return connection.type === "rdp" || connection.type === "vnc";
 }
 
-function tmuxSessionIdsForConnection(connection: Connection, count: number) {
+export function tmuxSessionIdsForConnection(connection: Connection, count: number) {
   if (!connectionUsesTmux(connection)) {
     return [];
   }
