@@ -196,3 +196,5 @@ Ryan
 | 2026-05-24 | 7 | Added GitHub Pages landing page and set repo homepage | https://ryantsai.github.io/KKTerm/ |
 | 2026-05-24 | 7 | Opened Awesome Tauri listing PR | https://github.com/tauri-apps/awesome-tauri/pull/715 |
 | 2026-05-24 | 7 | Added demo GIF and Open Graph image to landing page | https://ryantsai.github.io/KKTerm/assets/demo.gif |
+| 2026-05-24 | 7 | Opened Rust-community CFP issue for contributors | https://github.com/ryantsai/KKTerm/issues/145 |
+| 2026-05-24 | 7 | Submitted KKTerm CFP to This Week in Rust | https://github.com/rust-lang/this-week-in-rust/pull/8118 |
