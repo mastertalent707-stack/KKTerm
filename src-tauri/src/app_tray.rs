@@ -224,10 +224,19 @@ pub fn restore_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
             "skipped"
         };
         let show_result = main_window.show().map(|_| "ok").unwrap_or("error");
+        let recovery = crate::window_state::recover_if_offscreen(&main_window);
         set_owned_popups_visible(&main_window, true);
         let focus_result = main_window.set_focus().map(|_| "ok").unwrap_or("error");
+        let recovery_result = recovery
+            .map(|bounds| {
+                format!(
+                    "{}x{}@{},{}",
+                    bounds.width, bounds.height, bounds.x, bounds.y
+                )
+            })
+            .unwrap_or_else(|| "skipped".to_string());
         crate::debug_heartbeat::record_tray_event(format!(
-            "restore:wasMinimized={was_minimized}:unminimize={unminimize_result}:show={show_result}:focus={focus_result}"
+            "restore:wasMinimized={was_minimized}:unminimize={unminimize_result}:show={show_result}:recover={recovery_result}:focus={focus_result}"
         ));
     } else {
         crate::debug_heartbeat::record_tray_event("restore:no-main-window");

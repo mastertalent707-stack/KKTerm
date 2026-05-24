@@ -2449,6 +2449,7 @@ fn focus_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         }
 
         let _ = main_window.show();
+        let _ = window_state::recover_if_offscreen(&main_window);
         let _ = main_window.set_focus();
     }
 }
