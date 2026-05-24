@@ -3,6 +3,21 @@
 All notable changes to KKTerm are documented here.
 
 ## Highlights
+- Workspace Tabs: double-click a Tab title for inline rename (Enter/blur saves, Escape cancels) and middle-click a Tab to close it. (If your fingers are fast, your Tabs will be, too.)
+
+## New
+- Implemented the Workspace Tab feature, including per-Tab `displayTitle` state so renaming a Tab doesn’t rename the underlying **Connection**.
+
+## Improved
+- Double-clicking a Tab title now opens inline rename; Enter/blur commits changes and Escape cancels.
+
+## Fixed
+- Renaming a Tab no longer affects the underlying **Connection** title.
+
+## Internal
+- Updated workspace manual and styling/i18n for Workspace Tabs (`workspace.css`, `04-workspace-tabs-panes.md`, and all locale files).
+
+## Highlights
 - Smarter Codex usage fallback for AI coding guidance: when the preferred refresh path doesn’t work, KKTerm can pull `/wham/usage` data from your local Codex auth (where available).
 - Prevents “missing window” surprises on Windows: if the main window is restored off-screen, KKTerm relocates it so you can get back to your Tabs and Panes without the hunt.
 
