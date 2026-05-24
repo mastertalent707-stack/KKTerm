@@ -13,6 +13,7 @@ export type SshAuthMethod = "keyFile" | "password" | "agent";
 export interface Connection {
   id: string;
   name: string;
+  tabTitle?: string | null;
   host: string;
   user: string;
   port?: number;
@@ -506,7 +507,7 @@ export interface AiProviderSettings {
 export interface WorkspaceTab {
   id: string;
   title: string;
-  displayTitle?: string;
+  displayTitle?: string | null;
   toolbarTitle?: string;
   subtitle: string;
   kind: "terminal" | "sftp" | "webview" | "remoteDesktop" | "ftp";

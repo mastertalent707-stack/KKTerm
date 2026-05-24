@@ -45,6 +45,7 @@ import type {
   WorkspaceTab,
 } from "./types";
 import i18next from "./i18n/config";
+import { invokeCommand } from "./lib/tauri";
 
 const LAYOUT_STORAGE_PREFIX = "kkterm.layout.";
 const TMUX_SESSION_STORAGE_PREFIX = "kkterm.tmuxSessions.";
@@ -651,7 +652,7 @@ interface WorkspaceState {
   ) => void;
   clearStatusBarNotice: (id: number) => void;
   activateTab: (tabId: string) => void;
-  renameTab: (tabId: string, title: string) => void;
+  renameTab: (tabId: string, title: string) => Promise<void>;
   closeTab: (tabId: string) => void;
   openConnection: (connection: Connection) => void;
   openUrlConnection: (connection: Connection) => void;
@@ -816,16 +817,32 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         : {},
     ),
   activateTab: (tabId) => set({ activeTabId: tabId }),
-  renameTab: (tabId, title) => {
+  renameTab: async (tabId, title) => {
     const displayTitle = title.trim();
     if (!displayTitle) {
       return;
     }
+    const tab = get().tabs.find((entry) => entry.id === tabId);
     set((state) => ({
       tabs: state.tabs.map((tab) =>
         tab.id === tabId ? { ...tab, displayTitle } : tab,
       ),
     }));
+    if (!tab?.connection) {
+      return;
+    }
+    try {
+      const updatedConnection = await invokeCommand("update_connection_tab_title", {
+        connectionId: tab.connection.id,
+        tabTitle: displayTitle,
+      });
+      if (updatedConnection) {
+        get().refreshOpenConnectionMetadata(updatedConnection);
+        window.dispatchEvent(new CustomEvent("kkterm:connection-tree-invalidated"));
+      }
+    } catch {
+      // The visible Tab title remains local UI state if persistence fails.
+    }
   },
   closeAllTabs: () => {
     const urlConnectionIds = get().tabs.flatMap(urlConnectionIdsForTab);
@@ -885,6 +902,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const tab: WorkspaceTab = {
       id: `tab-${connection.id}`,
       title: connection.name,
+      displayTitle: connection.tabTitle,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: terminalConnectionSubtitle(connection),
       kind: "terminal",
@@ -919,6 +937,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const tab: WorkspaceTab = {
       id: `tab-${connection.id}`,
       title: connection.name,
+      displayTitle: connection.tabTitle,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: remoteDesktopSubtitle(connection),
       kind: "terminal",
@@ -966,6 +985,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const tab: WorkspaceTab = {
       id: `tab-${connection.id}`,
       title: connection.name,
+      displayTitle: connection.tabTitle,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle,
       kind: "terminal",
@@ -1533,6 +1553,7 @@ function refreshTabConnectionMetadata(tab: WorkspaceTab, connection: Connection)
     ...tab,
     connection,
     title: refreshedTabTitle(tab, connection),
+    displayTitle: connection.tabTitle ?? tab.displayTitle,
     toolbarTitle,
     subtitle: refreshedTabSubtitle(tab, connection),
     panes,

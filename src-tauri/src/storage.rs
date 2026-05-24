@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS connections (
     id TEXT PRIMARY KEY,
     folder_id TEXT REFERENCES connection_folders(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
+    tab_title TEXT,
     host TEXT NOT NULL,
     username TEXT NOT NULL,
     port INTEGER,
@@ -823,6 +824,7 @@ pub struct ConnectionFolder {
 pub struct SavedConnection {
     id: String,
     name: String,
+    tab_title: Option<String>,
     host: String,
     user: String,
     port: Option<u16>,
@@ -1860,6 +1862,7 @@ impl Storage {
         ensure_column(&connection, "connections", "ftp_options", "TEXT")?;
         ensure_column(&connection, "connections", "icon_data_url", "TEXT")?;
         ensure_column(&connection, "connections", "icon_background_color", "TEXT")?;
+        ensure_column(&connection, "connections", "tab_title", "TEXT")?;
         ensure_column(
             &connection,
             "connections",
@@ -2032,6 +2035,7 @@ impl Storage {
         Ok(SavedConnection {
             id,
             name,
+            tab_title: None,
             host,
             user,
             port,
@@ -2291,6 +2295,35 @@ impl Storage {
             .execute(
                 "UPDATE connections SET icon_background_color = ?1 WHERE id = ?2",
                 params![icon_background_color, &connection_id],
+            )
+            .map_err(to_storage_error)?;
+        get_connection_by_id(&connection, &connection_id).map(Some)
+    }
+
+    pub fn update_connection_tab_title(
+        &self,
+        connection_id: String,
+        tab_title: Option<String>,
+    ) -> Result<Option<SavedConnection>, String> {
+        let connection_id = required_field("connection id", connection_id)?;
+        let tab_title = normalize_optional_text(tab_title);
+        let connection = self.lock()?;
+        let current_tab_title = connection
+            .query_row(
+                "SELECT tab_title FROM connections WHERE id = ?1",
+                params![&connection_id],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .optional()
+            .map_err(to_storage_error)?
+            .ok_or_else(|| "connection was not found".to_string())?;
+        if current_tab_title == tab_title {
+            return Ok(None);
+        }
+        connection
+            .execute(
+                "UPDATE connections SET tab_title = ?1 WHERE id = ?2",
+                params![tab_title, &connection_id],
             )
             .map_err(to_storage_error)?;
         get_connection_by_id(&connection, &connection_id).map(Some)
@@ -2653,7 +2686,7 @@ impl Storage {
 
         let source = transaction
             .query_row(
-                "SELECT folder_id, name, host, username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color
+                "SELECT folder_id, name, tab_title, host, username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color
                  FROM connections
                  WHERE id = ?1",
                 params![source_id],
@@ -2661,23 +2694,24 @@ impl Storage {
                     Ok((
                         row.get::<_, Option<String>>(0)?,
                         row.get::<_, String>(1)?,
-                        row.get::<_, String>(2)?,
+                        row.get::<_, Option<String>>(2)?,
                         row.get::<_, String>(3)?,
-                        optional_port(row.get::<_, Option<i64>>(4)?)?,
-                        row.get::<_, Option<String>>(5)?,
+                        row.get::<_, String>(4)?,
+                        optional_port(row.get::<_, Option<i64>>(5)?)?,
                         row.get::<_, Option<String>>(6)?,
-                        row.get::<_, String>(7)?,
-                        row.get::<_, Option<String>>(8)?,
+                        row.get::<_, Option<String>>(7)?,
+                        row.get::<_, String>(8)?,
                         row.get::<_, Option<String>>(9)?,
                         row.get::<_, Option<String>>(10)?,
                         row.get::<_, Option<String>>(11)?,
                         row.get::<_, Option<String>>(12)?,
-                        row.get::<_, bool>(13)?,
-                        row.get::<_, Option<String>>(14)?,
-                        optional_serial_speed(row.get::<_, Option<i64>>(15)?)?,
-                        row.get::<_, String>(16)?,
-                        row.get::<_, Option<String>>(17)?,
+                        row.get::<_, Option<String>>(13)?,
+                        row.get::<_, bool>(14)?,
+                        row.get::<_, Option<String>>(15)?,
+                        optional_serial_speed(row.get::<_, Option<i64>>(16)?)?,
+                        row.get::<_, String>(17)?,
                         row.get::<_, Option<String>>(18)?,
+                        row.get::<_, Option<String>>(19)?,
                     ))
                 },
             )
@@ -2687,6 +2721,7 @@ impl Storage {
         let (
             folder_id,
             source_name,
+            tab_title,
             host,
             user,
             port,
@@ -2721,12 +2756,13 @@ impl Storage {
         transaction
             .execute(
                 "INSERT INTO connections (
-                    id, folder_id, name, host, username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, status, sort_order
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, 'idle', ?22)",
+                    id, folder_id, name, tab_title, host, username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, status, sort_order
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, 'idle', ?23)",
                 params![
                     duplicate_id,
                     folder_id,
                     duplicate_name,
+                    tab_title,
                     host,
                     user,
                     port,
@@ -3313,7 +3349,7 @@ fn list_connections_for_folder(
     };
     let mut statement = connection
         .prepare(&format!(
-            "SELECT connections.id, name, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color,
+            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color,
                     url_credentials.username
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
@@ -3575,38 +3611,39 @@ fn get_connection_by_id(
 ) -> Result<SavedConnection, String> {
     let saved_connection = connection
         .query_row(
-            "SELECT connections.id, name, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color,
+            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color,
                     url_credentials.username
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE connections.id = ?1",
             params![connection_id],
             |row| {
-                let url_credential_username: Option<String> = row.get(23)?;
+                let url_credential_username: Option<String> = row.get(24)?;
                 Ok(SavedConnection {
                     id: row.get(0)?,
                     name: row.get(1)?,
-                    host: row.get(2)?,
-                    user: row.get(3)?,
-                    port: optional_port(row.get::<_, Option<i64>>(4)?)?,
-                    key_path: row.get(5)?,
-                    proxy_jump: row.get(6)?,
-                    auth_method: row.get(7)?,
-                    local_shell: row.get(8)?,
-                    local_startup_directory: row.get(9)?,
-                    local_startup_script: row.get(10)?,
-                    url: row.get(11)?,
-                    data_partition: row.get(12)?,
-                    use_tmux_sessions: row.get(13)?,
-                    tmux_connection_id: row.get(14)?,
-                    connection_type: row.get(15)?,
-                    serial_line: row.get(16)?,
-                    serial_speed: optional_serial_speed(row.get::<_, Option<i64>>(17)?)?,
-                    rdp_options: parse_rdp_connection_options(row.get(18)?)?,
-                    vnc_options: parse_vnc_connection_options(row.get(19)?)?,
-                    ftp_options: parse_ftp_connection_options(row.get(20)?)?,
-                    icon_data_url: row.get(21)?,
-                    icon_background_color: row.get(22)?,
+                    tab_title: row.get(2)?,
+                    host: row.get(3)?,
+                    user: row.get(4)?,
+                    port: optional_port(row.get::<_, Option<i64>>(5)?)?,
+                    key_path: row.get(6)?,
+                    proxy_jump: row.get(7)?,
+                    auth_method: row.get(8)?,
+                    local_shell: row.get(9)?,
+                    local_startup_directory: row.get(10)?,
+                    local_startup_script: row.get(11)?,
+                    url: row.get(12)?,
+                    data_partition: row.get(13)?,
+                    use_tmux_sessions: row.get(14)?,
+                    tmux_connection_id: row.get(15)?,
+                    connection_type: row.get(16)?,
+                    serial_line: row.get(17)?,
+                    serial_speed: optional_serial_speed(row.get::<_, Option<i64>>(18)?)?,
+                    rdp_options: parse_rdp_connection_options(row.get(19)?)?,
+                    vnc_options: parse_vnc_connection_options(row.get(20)?)?,
+                    ftp_options: parse_ftp_connection_options(row.get(21)?)?,
+                    icon_data_url: row.get(22)?,
+                    icon_background_color: row.get(23)?,
                     url_credential_username: url_credential_username.clone(),
                     has_url_credential: url_credential_username.is_some(),
                     status: "idle".to_string(),
@@ -3625,31 +3662,32 @@ fn get_connection_by_id(
 }
 
 fn saved_connection_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SavedConnection> {
-    let url_credential_username: Option<String> = row.get(23)?;
+    let url_credential_username: Option<String> = row.get(24)?;
     Ok(SavedConnection {
         id: row.get(0)?,
         name: row.get(1)?,
-        host: row.get(2)?,
-        user: row.get(3)?,
-        port: optional_port(row.get::<_, Option<i64>>(4)?)?,
-        key_path: row.get(5)?,
-        proxy_jump: row.get(6)?,
-        auth_method: row.get(7)?,
-        local_shell: row.get(8)?,
-        local_startup_directory: row.get(9)?,
-        local_startup_script: row.get(10)?,
-        url: row.get(11)?,
-        data_partition: row.get(12)?,
-        use_tmux_sessions: row.get(13)?,
-        tmux_connection_id: row.get(14)?,
-        connection_type: row.get(15)?,
-        serial_line: row.get(16)?,
-        serial_speed: optional_serial_speed(row.get::<_, Option<i64>>(17)?)?,
-        rdp_options: parse_rdp_connection_options(row.get(18)?)?,
-        vnc_options: parse_vnc_connection_options(row.get(19)?)?,
-        ftp_options: parse_ftp_connection_options(row.get(20)?)?,
-        icon_data_url: row.get(21)?,
-        icon_background_color: row.get(22)?,
+        tab_title: row.get(2)?,
+        host: row.get(3)?,
+        user: row.get(4)?,
+        port: optional_port(row.get::<_, Option<i64>>(5)?)?,
+        key_path: row.get(6)?,
+        proxy_jump: row.get(7)?,
+        auth_method: row.get(8)?,
+        local_shell: row.get(9)?,
+        local_startup_directory: row.get(10)?,
+        local_startup_script: row.get(11)?,
+        url: row.get(12)?,
+        data_partition: row.get(13)?,
+        use_tmux_sessions: row.get(14)?,
+        tmux_connection_id: row.get(15)?,
+        connection_type: row.get(16)?,
+        serial_line: row.get(17)?,
+        serial_speed: optional_serial_speed(row.get::<_, Option<i64>>(18)?)?,
+        rdp_options: parse_rdp_connection_options(row.get(19)?)?,
+        vnc_options: parse_vnc_connection_options(row.get(20)?)?,
+        ftp_options: parse_ftp_connection_options(row.get(21)?)?,
+        icon_data_url: row.get(22)?,
+        icon_background_color: row.get(23)?,
         url_credential_username: url_credential_username.clone(),
         has_url_credential: url_credential_username.is_some(),
         status: "idle".to_string(),
@@ -5558,6 +5596,31 @@ mod tests {
             .expect("connection icon background is cleared")
             .expect("cleared background returns the updated connection");
         assert!(cleared.icon_background_color.is_none());
+    }
+
+    #[test]
+    fn connection_tab_title_updates_without_renaming_connection() {
+        let storage = Storage::open(temp_db_path("connection-tab-title")).expect("storage opens");
+        let created = create_test_ssh_connection(&storage, "pb60", "pb60.internal", None);
+
+        let updated = storage
+            .update_connection_tab_title(created.id.clone(), Some(" My Terminal ".to_string()))
+            .expect("tab title updates")
+            .expect("changed connection is returned");
+
+        assert_eq!(updated.name, "pb60");
+        assert_eq!(updated.tab_title.as_deref(), Some("My Terminal"));
+
+        let reloaded = storage
+            .list_connection_tree()
+            .expect("connection tree reloads")
+            .connections
+            .into_iter()
+            .find(|connection| connection.id == created.id)
+            .expect("connection remains listed");
+
+        assert_eq!(reloaded.name, "pb60");
+        assert_eq!(reloaded.tab_title.as_deref(), Some("My Terminal"));
     }
 
     #[test]

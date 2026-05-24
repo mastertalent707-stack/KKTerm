@@ -120,7 +120,7 @@ export function TabStrip() {
     }
     const nextTitle = renameDraft.trim();
     if (nextTitle) {
-      renameTab(tabId, nextTitle);
+      void renameTab(tabId, nextTitle);
     }
     setEditingTabId(null);
     setRenameDraft("");

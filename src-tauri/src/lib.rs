@@ -551,6 +551,15 @@ fn update_connection_icon_background_color(
 }
 
 #[tauri::command]
+fn update_connection_tab_title(
+    storage: tauri::State<'_, storage::Storage>,
+    connection_id: String,
+    tab_title: Option<String>,
+) -> Result<Option<storage::SavedConnection>, String> {
+    storage.update_connection_tab_title(connection_id, tab_title)
+}
+
+#[tauri::command]
 fn delete_connection(
     storage: tauri::State<'_, storage::Storage>,
     connection_id: String,
@@ -2602,6 +2611,7 @@ pub fn run() {
             update_connection,
             update_connection_icon_data_url,
             update_connection_icon_background_color,
+            update_connection_tab_title,
             delete_connection,
             duplicate_connection,
             move_connection_folder,

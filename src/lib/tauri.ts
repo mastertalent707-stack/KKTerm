@@ -811,6 +811,10 @@ type CommandMap = {
     args: { connectionId: string; iconBackgroundColor?: string | null };
     result: Connection | null;
   };
+  update_connection_tab_title: {
+    args: { connectionId: string; tabTitle?: string | null };
+    result: Connection | null;
+  };
   delete_connection: {
     args: { connectionId: string };
     result: null;
