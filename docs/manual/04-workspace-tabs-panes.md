@@ -8,7 +8,7 @@
 
 ## Tab Strip
 
-Horizontal row above the Workspace Canvas. Accessible label `workspace.tabs`. Scroll affordances: `workspace.scrollTabsLeft`, `workspace.scrollTabsRight`. Double-clicking a Tab title starts inline rename with accessible label `workspace.renameTab`; for saved Connections, the Tab display name is saved as separate Connection metadata and does not rename the underlying Connection. Middle-clicking a Tab closes it through the same close path as the close button. Per-tab close label uses `workspace.closeTab` with the tab title interpolated as `{{title}}`.
+Horizontal row above the Workspace Canvas. Accessible label `workspace.tabs`. Scroll affordances: `workspace.scrollTabsLeft`, `workspace.scrollTabsRight`. Double-clicking a Tab title starts inline rename with accessible label `workspace.renameTab`. Tab rename is runtime-only per Tab: it changes the open Tab's `displayTitle`, does not update Connection metadata, and is not restored after app restart. Middle-clicking a Tab closes it through the same close path as the close button. Per-tab close label uses `workspace.closeTab` with the tab title interpolated as `{{title}}`.
 
 A new tab opens via:
 
@@ -48,6 +48,8 @@ When opening a Connection from the tree with a target Pane focused, the `connect
 ### Saved layouts
 
 `terminal.saveLayout` saves the current split Pane layout for the Connection. `terminal.resetLayout` removes the saved layout. Status Bar confirmations use `terminal.layoutSaved` and `terminal.layoutReset`.
+
+Durable per-Tab titles, icons, colors, and restoring multiple Tab Instances for one Connection are deferred roadmap decisions. Until that model exists, saved layouts remain Connection-level Pane layouts rather than saved Tab Instances.
 
 > A Session ends only when its presenting Tab/Pane is explicitly closed or the remote/process ends itself. Switching Tabs does **not** end Sessions. Quiet SSH Sessions stay connected indefinitely — there is no app-side idle timeout.
 

@@ -659,6 +659,7 @@
   "connections": {
     "addConnection": "เพิ่มการเชื่อมต่อ",
     "addTo": "เพิ่มไปที่...",
+    "newTabShortcut": "Ctrl+Left Click",
     "addToPane": "เพิ่มไปยังบานหน้าต่าง",
     "admin": "ผู้ดูแล",
     "auth": "การรับรอง",

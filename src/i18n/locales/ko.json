@@ -659,6 +659,7 @@
   "connections": {
     "addConnection": "연결 추가",
     "addTo": "추가 대상...",
+    "newTabShortcut": "Ctrl+Left Click",
     "addToPane": "페인에 추가",
     "admin": "관리자",
     "auth": "인증",

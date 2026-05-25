@@ -659,6 +659,7 @@
   "connections": {
     "addConnection": "Aggiungi connessione",
     "addTo": "Aggiungi a...",
+    "newTabShortcut": "Ctrl+Left Click",
     "addToPane": "Aggiungi al pannello",
     "admin": "Admin",
     "auth": "Auth",

@@ -659,6 +659,7 @@
   "connections": {
     "addConnection": "接続を追加",
     "addTo": "追加先...",
+    "newTabShortcut": "Ctrl+Left Click",
     "addToPane": "ペインに追加",
     "admin": "管理者",
     "auth": "認証",

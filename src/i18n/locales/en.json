@@ -1034,6 +1034,7 @@
     "unpinnedFromRailStatus": "Unpinned {{name}}.",
     "pinRailError": "Could not update pinned Connections: {{message}}",
     "addTo": "Add to...",
+    "newTabShortcut": "Ctrl+Left Click",
     "layout": "Layout",
     "left": "Left",
     "right": "Right",

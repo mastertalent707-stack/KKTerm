@@ -17,6 +17,7 @@ export const nativeMenuIcons = {
   pin: lucide(`<path d="M12 17v5"/><path d="M5 17h14"/><path d="M15 3.5 17.5 6 14 12l2 2v3H8v-3l2-2L6.5 6 9 3.5Z"/>`),
   pinOff: lucide(`<path d="M2 2l20 20"/><path d="M12 17v5"/><path d="M8 17h8"/><path d="M10 12 6.5 6 9 3.5 15 9.5"/><path d="M14 12l2 2v3H8v-3l1.7-1.7"/><path d="M14 4h3.5L15 8"/>`),
   plus: lucide(`<path d="M5 12h14"/><path d="M12 5v14"/>`),
+  squarePlus: lucide(`<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/>`),
   rotateCcw: lucide(`<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>`),
   save: lucide(`<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8A2 2 0 0 1 21 8.8V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7H7v7"/><path d="M7 3v5h8"/>`),
   scanLine: lucide(`<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>`),

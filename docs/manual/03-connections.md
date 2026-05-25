@@ -48,7 +48,7 @@ Driven by `src/lib/nativeContextMenu.ts`. On a Connection or folder node:
 - `connections.rename`, dialogs `connections.renameFolder` / `connections.renameConnection`
 - `connections.delete`, confirmation copy `connections.deleteFolderConfirm` or `connections.deleteConnectionConfirm`, with caveat `connections.cannotBeUndone`
 - Pin to rail: `connections.pinToRail` / `connections.unpinFromRail`. Status: `connections.pinnedToRailStatus`, `connections.unpinnedFromRailStatus`. Error: `connections.pinRailError`.
-- Add to folder: `connections.addTo`
+- Add to folder: `connections.addTo`, including `workspace.newTab` with shortcut hint `connections.newTabShortcut`, then pane placement directions `connections.left`, `connections.right`, `connections.lower`, `connections.upper`.
 - Layout (Pane placement when opening): `connections.layout` with directions `connections.left`, `connections.right`, `connections.lower`, `connections.upper`
 - `connections.properties`
 
@@ -75,7 +75,7 @@ path.
 
 **Add Connection** uses the same form shape but persists to SQLite. The Type selector label is `connections.type`.
 
-For saved Connections, the properties/Add Connection header includes Connection icon presentation controls. `connections.editIcon` changes the icon image. `connections.editIconBackground` opens the circular icon background picker; `connections.iconBackground` labels the picker, `connections.transparentIconBackground` clears the color back to the default transparent state, and `connections.selectIconBackground` applies a palette color. The chosen background is shown behind Connection icons in the Connection Tree and on pinned/connected Activity Rail Connection shortcuts. Workspace Tab rename stores a separate `tabTitle` on the Connection, leaving `name` as the Connection Tree label.
+For saved Connections, the properties/Add Connection header includes Connection icon presentation controls. `connections.editIcon` changes the icon image. `connections.editIconBackground` opens the circular icon background picker; `connections.iconBackground` labels the picker, `connections.transparentIconBackground` clears the color back to the default transparent state, and `connections.selectIconBackground` applies a palette color. The chosen background is shown behind Connection icons in the Connection Tree and on pinned/connected Activity Rail Connection shortcuts. Workspace Tab rename is runtime-only Tab UI state and does not update the saved Connection `name`, icon, background, or `tabTitle`.
 
 ## Drag and drop
 

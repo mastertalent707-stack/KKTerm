@@ -539,6 +539,14 @@ function buildPaneForConnection(
   };
 }
 
+function createConnectionTabId(connectionId: string) {
+  const suffix =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `tab-${connectionId}-${suffix}`;
+}
+
 function defaultTerminalCwdForConnection(connection: Connection) {
   if (connection.type === "local") {
     return connection.localStartupDirectory?.trim() || ".";
@@ -657,6 +665,10 @@ interface WorkspaceState {
   renameTab: (tabId: string, title: string) => Promise<void>;
   closeTab: (tabId: string) => void;
   openConnection: (connection: Connection) => void;
+  openConnectionInNewTab: (
+    connection: Connection,
+    options?: { tmuxSessionId?: string },
+  ) => void;
   openUrlConnection: (connection: Connection) => void;
   openSshPortForwardBrowser: (
     sourceConnection: Connection,
@@ -664,6 +676,7 @@ interface WorkspaceState {
   ) => void;
   openRemoteDesktopConnection: (connection: Connection) => void;
   openSftpBrowser: (connection: Connection) => void;
+  openSftpBrowserInNewTab: (connection: Connection) => void;
   openFtpBrowser: (connection: Connection) => void;
   openTerminalHere: (connection: Connection, remotePath: string) => void;
   openLocalTerminal: (options?: { name?: string; shell?: string }) => void;
@@ -825,27 +838,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!displayTitle) {
       return;
     }
-    const tab = get().tabs.find((entry) => entry.id === tabId);
     set((state) => ({
       tabs: state.tabs.map((tab) =>
         tab.id === tabId ? { ...tab, displayTitle } : tab,
       ),
     }));
-    if (!tab?.connection) {
-      return;
-    }
-    try {
-      const updatedConnection = await invokeCommand("update_connection_tab_title", {
-        connectionId: tab.connection.id,
-        tabTitle: displayTitle,
-      });
-      if (updatedConnection) {
-        get().refreshOpenConnectionMetadata(updatedConnection);
-        window.dispatchEvent(new CustomEvent("kkterm:connection-tree-invalidated"));
-      }
-    } catch {
-      // The visible Tab title remains local UI state if persistence fails.
-    }
   },
   closeAllTabs: () => {
     const urlConnectionIds = get().tabs.flatMap(urlConnectionIdsForTab);
@@ -905,7 +902,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const tab: WorkspaceTab = {
       id: `tab-${connection.id}`,
       title: connection.name,
-      displayTitle: connection.tabTitle,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: terminalConnectionSubtitle(connection),
       kind: "terminal",
@@ -918,6 +914,81 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set((state) => ({
       tabs: [...state.tabs, tab],
       activeTabId: tab.id,
+    }));
+  },
+  openConnectionInNewTab: (connection, options) => {
+    if (connection.type === "ftp") {
+      if (connection.ftpOptions?.protocol === "sftp") {
+        const sshConnection: Connection = {
+          ...connection,
+          type: "ssh",
+          authMethod: "password",
+          port: connection.port ?? 22,
+          keyPath: undefined,
+          proxyJump: undefined,
+          ftpOptions: undefined,
+        };
+        get().openSftpBrowserInNewTab(sshConnection);
+        return;
+      }
+
+      const tabId = createConnectionTabId(`${connection.id}-ftp`);
+      const protocolLabel =
+        connection.ftpOptions?.protocol?.toUpperCase() ?? "FTP";
+      const tab: WorkspaceTab = {
+        id: tabId,
+        title: `${connection.name} ${protocolLabel}`,
+        toolbarTitle: toolbarTitleForConnection(connection),
+        subtitle: `${connection.user || "anonymous"}@${connection.host}`,
+        kind: "ftp",
+        panes: [],
+        connection,
+      };
+
+      set((state) => ({
+        tabs: [...state.tabs, tab],
+        activeTabId: tab.id,
+      }));
+      return;
+    }
+
+    const pane = buildPaneForConnection(connection);
+    if (!pane) {
+      return;
+    }
+    if (isTerminalPane(pane) && options?.tmuxSessionId) {
+      pane.tmuxSessionId = options.tmuxSessionId;
+      pane.title = options.tmuxSessionId;
+    }
+
+    const tabId = createConnectionTabId(connection.id);
+    const subtitle =
+      connection.type === "url"
+        ? urlConnectionSubtitle(connection)
+        : isRemoteDesktopConnection(connection)
+          ? remoteDesktopSubtitle(connection)
+          : terminalConnectionSubtitle(connection);
+    const tab: WorkspaceTab = {
+      id: tabId,
+      title: connection.name,
+      toolbarTitle: toolbarTitleForConnection(connection),
+      subtitle,
+      kind: "terminal",
+      panes: [pane],
+      layout: defaultLayoutFor([pane]),
+      focusedPaneId: pane.id,
+      connection,
+      url: connection.url,
+      dataPartition: connection.dataPartition,
+    };
+
+    set((state) => ({
+      tabs: [...state.tabs, tab],
+      activeTabId: tab.id,
+      activeSessionCounts: incrementActiveSessionCounts(
+        state.activeSessionCounts,
+        urlConnectionIdsForTab(tab),
+      ),
     }));
   },
   openRemoteDesktopConnection: (connection) => {
@@ -940,7 +1011,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const tab: WorkspaceTab = {
       id: `tab-${connection.id}`,
       title: connection.name,
-      displayTitle: connection.tabTitle,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: remoteDesktopSubtitle(connection),
       kind: "terminal",
@@ -978,17 +1048,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       (stored ? hydrateLayout(stored.layout, paneIds) : undefined) ??
       defaultLayoutFor(panes);
 
-    let subtitle = connection.url;
-    try {
-      subtitle = new URL(connection.url).host;
-    } catch {
-      subtitle = connection.url;
-    }
+    const subtitle = urlConnectionSubtitle(connection);
 
     const tab: WorkspaceTab = {
       id: `tab-${connection.id}`,
       title: connection.name,
-      displayTitle: connection.tabTitle,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle,
       kind: "terminal",
@@ -1067,6 +1131,27 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       return;
     }
 
+    const tab: WorkspaceTab = {
+      id: tabId,
+      title: `${connection.name} SFTP`,
+      toolbarTitle: toolbarTitleForConnection(connection),
+      subtitle: `${connection.user}@${connection.host}`,
+      kind: "sftp",
+      panes: [],
+      connection,
+    };
+
+    set((state) => ({
+      tabs: [...state.tabs, tab],
+      activeTabId: tab.id,
+    }));
+  },
+  openSftpBrowserInNewTab: (connection) => {
+    if (connection.type !== "ssh") {
+      return;
+    }
+
+    const tabId = createConnectionTabId(`${connection.id}-sftp`);
     const tab: WorkspaceTab = {
       id: tabId,
       title: `${connection.name} SFTP`,
@@ -1573,7 +1658,6 @@ function refreshTabConnectionMetadata(tab: WorkspaceTab, connection: Connection)
     ...tab,
     connection,
     title: refreshedTabTitle(tab, connection),
-    displayTitle: connection.tabTitle ?? tab.displayTitle,
     toolbarTitle,
     subtitle: refreshedTabSubtitle(tab, connection),
     panes,
@@ -1623,6 +1707,17 @@ function formatConnectionAddress(connection: Connection) {
 
 function remoteDesktopSubtitle(connection: Connection) {
   return connection.user?.trim() || formatConnectionAddress(connection);
+}
+
+function urlConnectionSubtitle(connection: Connection) {
+  if (!connection.url) {
+    return "";
+  }
+  try {
+    return new URL(connection.url).host;
+  } catch {
+    return connection.url;
+  }
 }
 
 function terminalConnectionSubtitle(connection: Connection) {

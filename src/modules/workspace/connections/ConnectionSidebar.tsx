@@ -22,7 +22,7 @@ import i18next from "../../../i18n/config";
 import { ariaExpanded, dialogButtonAria } from "../../../lib/aria";
 import { nativeMenuIcons } from "../../../lib/nativeMenuIcons";
 import { showNativeContextMenu, type NativeContextMenuItem } from "../../../lib/nativeContextMenu";
-import { confirmNativeDialog, invokeCommand, isTauriRuntime, selectAppLauncherFolder, selectKeyFile } from "../../../lib/tauri";
+import { confirmNativeDialog, invokeCommand, isTauriRuntime, selectAppLauncherFolder, selectKeyFile, type TmuxSession } from "../../../lib/tauri";
 import { connectionTree } from "../../../app-defaults";
 import { DeleteConfirmationDialog } from "../../../app/DeleteConfirmationDialog";
 import { pushTrayMenu } from "../../../app/trayMenu";
@@ -120,6 +120,7 @@ export function ConnectionSidebar({
   const query = useWorkspaceStore((state) => state.query);
   const setQuery = useWorkspaceStore((state) => state.setQuery);
   const openConnection = useWorkspaceStore((state) => state.openConnection);
+  const openConnectionInNewTab = useWorkspaceStore((state) => state.openConnectionInNewTab);
   const refreshOpenConnectionMetadata = useWorkspaceStore((state) => state.refreshOpenConnectionMetadata);
   const tabs = useWorkspaceStore((state) => state.tabs);
   const activeTabId = useWorkspaceStore((state) => state.activeTabId);
@@ -310,9 +311,55 @@ export function ConnectionSidebar({
     });
   }
 
-  function handleOpenConnection(connection: Connection) {
+  function handleOpenConnection(connection: Connection, options?: { forceNewTab?: boolean }) {
     rememberConnection(connection);
+    if (options?.forceNewTab) {
+      void handleOpenConnectionInNewTab(connection);
+      return;
+    }
     openConnection(connection);
+  }
+
+  async function handleOpenConnectionInNewTab(connection: Connection) {
+    rememberConnection(connection);
+    const tmuxSessionId = await preferredTmuxSessionIdForNewTab(connection);
+    openConnectionInNewTab(connection, { tmuxSessionId });
+  }
+
+  async function preferredTmuxSessionIdForNewTab(connection: Connection) {
+    if (connection.type !== "ssh" || connection.useTmuxSessions === false) {
+      return undefined;
+    }
+
+    try {
+      const openSessionIds = openTmuxSessionIdsForConnection(connection.id);
+      const sessions = await invokeCommand("list_tmux_sessions", {
+        request: {
+          host: connection.host,
+          user: connection.user,
+          port: connection.port,
+          keyPath: connection.keyPath,
+          proxyJump: connection.proxyJump,
+          authMethod: connection.authMethod,
+          secretOwnerId: connection.id,
+        },
+      });
+      return newestUnattachedTmuxSession(sessions, openSessionIds)?.id;
+    } catch {
+      return undefined;
+    }
+  }
+
+  function openTmuxSessionIdsForConnection(connectionId: string) {
+    const sessionIds = new Set<string>();
+    for (const tab of tabs) {
+      for (const pane of tab.panes) {
+        if (pane.connection?.id === connectionId && "tmuxSessionId" in pane && pane.tmuxSessionId) {
+          sessionIds.add(pane.tmuxSessionId);
+        }
+      }
+    }
+    return sessionIds;
   }
 
   async function updatePinnedRailConnections(
@@ -1100,39 +1147,48 @@ export function ConnectionSidebar({
       },
     );
 
-    if (canAddToPane) {
-      items.push({
-        kind: "submenu",
-        label: t("connections.addTo"),
-        iconSvg: nativeMenuIcons.panelRight,
-        items: [
-          {
-            kind: "item",
-            label: t("connections.left"),
-            iconSvg: nativeMenuIcons.arrowLeft,
-            action: () => handleTreeMenuAddToPane(menu, "left"),
-          },
-          {
-            kind: "item",
-            label: t("connections.right"),
-            iconSvg: nativeMenuIcons.arrowRight,
-            action: () => handleTreeMenuAddToPane(menu, "right"),
-          },
-          {
-            kind: "item",
-            label: t("connections.lower"),
-            iconSvg: nativeMenuIcons.arrowDown,
-            action: () => handleTreeMenuAddToPane(menu, "down"),
-          },
-          {
-            kind: "item",
-            label: t("connections.upper"),
-            iconSvg: nativeMenuIcons.arrowUp,
-            action: () => handleTreeMenuAddToPane(menu, "up"),
-          },
-        ],
-      });
-    }
+    items.push({
+      kind: "submenu",
+      label: t("connections.addTo"),
+      iconSvg: nativeMenuIcons.panelRight,
+      items: [
+        {
+          kind: "item",
+          label: `${t("workspace.newTab")}\t${t("connections.newTabShortcut")}`,
+          iconSvg: nativeMenuIcons.squarePlus,
+          action: () => handleTreeMenuOpenNewTab(menu),
+        },
+        ...(canAddToPane
+          ? [
+              { kind: "separator" as const },
+              {
+                kind: "item" as const,
+                label: t("connections.left"),
+                iconSvg: nativeMenuIcons.arrowLeft,
+                action: () => handleTreeMenuAddToPane(menu, "left"),
+              },
+              {
+                kind: "item" as const,
+                label: t("connections.right"),
+                iconSvg: nativeMenuIcons.arrowRight,
+                action: () => handleTreeMenuAddToPane(menu, "right"),
+              },
+              {
+                kind: "item" as const,
+                label: t("connections.lower"),
+                iconSvg: nativeMenuIcons.arrowDown,
+                action: () => handleTreeMenuAddToPane(menu, "down"),
+              },
+              {
+                kind: "item" as const,
+                label: t("connections.upper"),
+                iconSvg: nativeMenuIcons.arrowUp,
+                action: () => handleTreeMenuAddToPane(menu, "up"),
+              },
+            ]
+          : []),
+      ],
+    });
 
     if (isTerminalConnectionType(menu.connection.type)) {
       items.push({
@@ -1243,6 +1299,13 @@ export function ConnectionSidebar({
     setTreeContextMenu(null);
     if (menu.kind === "connection") {
       handleAddConnectionToFocusedPane(menu.connection, direction);
+    }
+  }
+
+  function handleTreeMenuOpenNewTab(menu: TreeContextMenuState) {
+    setTreeContextMenu(null);
+    if (menu.kind === "connection") {
+      void handleOpenConnectionInNewTab(menu.connection);
     }
   }
 
@@ -1629,7 +1692,13 @@ export function ConnectionSidebar({
             onClickCapture={handleTreeClickCapture}
             onCancelRename={() => setInlineRenameTarget(null)}
             onCommitRename={(name) => commitConnectionRename(connection, name)}
-            onOpen={() => handleOpenConnection(connection)}
+            onOpen={(event) => {
+              if (event.ctrlKey) {
+                handleOpenConnection(connection, { forceNewTab: true });
+                return;
+              }
+              handleOpenConnection(connection);
+            }}
             onContextMenu={(event) => handleConnectionContextMenu(connection, undefined, event)}
             onPointerDragStart={(event) =>
               handlePointerDragStart(
@@ -1673,7 +1742,13 @@ export function ConnectionSidebar({
             onContextMenu={handleFolderContextMenu}
             onConnectionContextMenu={handleConnectionContextMenu}
             onCreateFolder={handleCreateFolder}
-            onOpenConnection={handleOpenConnection}
+            onOpenConnection={(connection, event) => {
+              if (event.ctrlKey) {
+                handleOpenConnection(connection, { forceNewTab: true });
+                return;
+              }
+              handleOpenConnection(connection);
+            }}
             onPointerDragStart={handlePointerDragStart}
             onToggleFolder={handleToggleFolder}
           />
@@ -1695,6 +1770,7 @@ export function ConnectionSidebar({
           onProperties={() => handleTreeMenuProperties(treeContextMenu)}
           onRename={() => void handleTreeMenuRename(treeContextMenu)}
           onAddToPane={(direction) => handleTreeMenuAddToPane(treeContextMenu, direction)}
+          onOpenNewTab={() => handleTreeMenuOpenNewTab(treeContextMenu)}
           onSaveLayout={() => handleTreeMenuSaveLayout(treeContextMenu)}
           onResetLayout={() => handleTreeMenuResetLayout(treeContextMenu)}
           onToggleRailPin={() => void handleTreeMenuToggleRailPin(treeContextMenu)}
@@ -1832,7 +1908,7 @@ function ConnectionFolderNode({
   level: number;
   onClickCapture: (event: ReactMouseEvent) => void;
   onCreateFolder: (parentFolderId?: string) => void | Promise<void>;
-  onOpenConnection: (connection: Connection) => void;
+  onOpenConnection: (connection: Connection, event: ReactMouseEvent<HTMLButtonElement>) => void;
   onPointerDragStart: (
     event: ReactPointerEvent<HTMLElement>,
     item: DraggedTreeItem,
@@ -1944,7 +2020,7 @@ function ConnectionFolderNode({
                   onClickCapture={onClickCapture}
                   onCancelRename={onCancelRename}
                   onCommitRename={(name) => onCommitConnectionRename(connection, name)}
-                  onOpen={() => onOpenConnection(connection)}
+                  onOpen={(event) => onOpenConnection(connection, event)}
                   onContextMenu={(event) => onConnectionContextMenu(connection, folder.id, event)}
                   onPointerDragStart={(event) =>
                     onPointerDragStart(
@@ -2147,6 +2223,7 @@ function TreeContextMenu({
   onProperties,
   onRename,
   onAddToPane,
+  onOpenNewTab,
   onSaveLayout,
   onResetLayout,
   onToggleRailPin,
@@ -2162,6 +2239,7 @@ function TreeContextMenu({
   onProperties: () => void;
   onRename: () => void;
   onAddToPane: (direction: SplitDirection) => void;
+  onOpenNewTab: () => void;
   onSaveLayout: () => void;
   onResetLayout: () => void;
   onToggleRailPin: () => void;
@@ -2246,33 +2324,40 @@ function TreeContextMenu({
             )}
             <span>{t(isPinned ? "connections.unpinFromRail" : "connections.pinToRail")}</span>
           </button>
-          {canAddToPane ? (
-            <div className="tree-context-submenu" role="none">
-              <button aria-haspopup="menu" className="tree-submenu-trigger" role="menuitem" type="button">
-                <PanelRight className="menu-item-icon" size={15} />
-                <span>{t("connections.addTo")}</span>
-                <ChevronRight className="menu-item-chevron" size={13} />
+          <div className="tree-context-submenu" role="none">
+            <button aria-haspopup="menu" className="tree-submenu-trigger" role="menuitem" type="button">
+              <PanelRight className="menu-item-icon" size={15} />
+              <span>{t("connections.addTo")}</span>
+              <ChevronRight className="menu-item-chevron" size={13} />
+            </button>
+            <div className="tree-context-submenu-menu" role="menu" aria-label={t("connections.addToPane")}>
+              <button onClick={onOpenNewTab} role="menuitem" type="button">
+                <SquarePlus className="menu-item-icon" size={15} />
+                <span>{t("workspace.newTab")}</span>
+                <small className="menu-shortcut">{t("connections.newTabShortcut")}</small>
               </button>
-              <div className="tree-context-submenu-menu" role="menu" aria-label={t("connections.addToPane")}>
-                <button onClick={() => onAddToPane("left")} role="menuitem" type="button">
-                  <ArrowLeft className="menu-item-icon" size={15} />
-                  <span>{t("connections.left")}</span>
-                </button>
-                <button onClick={() => onAddToPane("right")} role="menuitem" type="button">
-                  <ArrowRight className="menu-item-icon" size={15} />
-                  <span>{t("connections.right")}</span>
-                </button>
-                <button onClick={() => onAddToPane("down")} role="menuitem" type="button">
-                  <ArrowDown className="menu-item-icon" size={15} />
-                  <span>{t("connections.lower")}</span>
-                </button>
-                <button onClick={() => onAddToPane("up")} role="menuitem" type="button">
-                  <ArrowUp className="menu-item-icon" size={15} />
-                  <span>{t("connections.upper")}</span>
-                </button>
-              </div>
+              {canAddToPane ? (
+                <>
+                  <button onClick={() => onAddToPane("left")} role="menuitem" type="button">
+                    <ArrowLeft className="menu-item-icon" size={15} />
+                    <span>{t("connections.left")}</span>
+                  </button>
+                  <button onClick={() => onAddToPane("right")} role="menuitem" type="button">
+                    <ArrowRight className="menu-item-icon" size={15} />
+                    <span>{t("connections.right")}</span>
+                  </button>
+                  <button onClick={() => onAddToPane("down")} role="menuitem" type="button">
+                    <ArrowDown className="menu-item-icon" size={15} />
+                    <span>{t("connections.lower")}</span>
+                  </button>
+                  <button onClick={() => onAddToPane("up")} role="menuitem" type="button">
+                    <ArrowUp className="menu-item-icon" size={15} />
+                    <span>{t("connections.upper")}</span>
+                  </button>
+                </>
+              ) : null}
             </div>
-          ) : null}
+          </div>
           {isTerminalConnectionType(menu.connection.type) ? (
             <div className="tree-context-submenu" role="none">
               <button aria-haspopup="menu" className="tree-submenu-trigger" role="menuitem" type="button">
@@ -3431,6 +3516,12 @@ function deleteConfirmationMessage(t: TFunction, target: DeleteTarget) {
   return `${deleteConfirmationTitle(t, target)}: ${name}\n\n${t("connections.cannotBeUndone")}`;
 }
 
+function newestUnattachedTmuxSession(sessions: TmuxSession[], skippedSessionIds: ReadonlySet<string>) {
+  return sessions
+    .filter((session) => !session.attached && !skippedSessionIds.has(session.id))
+    .sort((left, right) => (right.created ?? 0) - (left.created ?? 0))[0];
+}
+
 function ConfirmDeleteDialog({
   onCancel,
   onConfirm,
@@ -3588,7 +3679,7 @@ function ConnectionRow({
   onClickCapture: (event: ReactMouseEvent) => void;
   onContextMenu: (event: ReactMouseEvent<HTMLElement>) => void;
   onCommitRename: (name: string) => Promise<boolean>;
-  onOpen: () => void;
+  onOpen: (event: ReactMouseEvent<HTMLButtonElement>) => void;
   onPointerDragStart: (event: ReactPointerEvent<HTMLElement>) => void;
 }) {
   return (

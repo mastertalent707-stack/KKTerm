@@ -28,6 +28,7 @@ For operational measurement records see `docs/PERFORMANCE.md`. For packaging and
 
 - [x] Connection tree with root Connections, optional nested folders, search/filter, drag/drop reorder, rename/delete/duplicate, quick connect, and live status badges.
 - [x] Tab workspace with split panes inside terminal tabs.
+- [x] Runtime-only per-Tab rename for multiple Tabs opened from the same Connection.
 - [x] Left activity rail with Dashboard and Settings entries.
 - [x] MobaXterm/RDCMan import.
 
@@ -146,6 +147,8 @@ For operational measurement records see `docs/PERFORMANCE.md`. For packaging and
 
 ### Workflow Simplification
 
+- [ ] Decide durable Workspace Tab Instance model for saving multiple Tabs opened from one Connection across app launches, including per-Tab title, icon, color, order, close semantics, and Pane/tmux metadata.
+- [ ] Decide whether Connection-owned saved tab presets are worth supporting, or reject them in favor of Workspace Tab Instances to keep Connection data separate from workspace containers.
 - [ ] Simplify common workflows and reduce unnecessary visual or interaction complexity.
 - [ ] Editable keybindings.
 

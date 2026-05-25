@@ -659,6 +659,7 @@
   "connections": {
     "addConnection": "Tambah koneksi",
     "addTo": "Tambahkan ke...",
+    "newTabShortcut": "Ctrl+Left Click",
     "addToPane": "Tambah ke panel",
     "admin": "Admin",
     "auth": "Auth",

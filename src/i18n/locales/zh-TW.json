@@ -659,6 +659,7 @@
   "connections": {
     "addConnection": "新增連線",
     "addTo": "新增至…",
+    "newTabShortcut": "Ctrl+Left Click",
     "addToPane": "新增至窗格",
     "admin": "管理員",
     "auth": "驗證",
