@@ -67,10 +67,11 @@ Both are app-owned DOM dialogs (not browser-native `prompt`).
 - Recently used Connections list, empty state `connections.noRecent`
 
 For local Command Prompt and PowerShell Quick Connect entries, `connections.admin`
-checks whether the KKTerm process is already elevated. When it is elevated,
-KKTerm opens an embedded local terminal Session and labels the draft shell with
-the admin tier. When it is not elevated, KKTerm keeps the Windows UAC path and
-opens the shell through an external elevated window.
+depends on how KKTerm itself is running. If KKTerm is already elevated, the
+admin shell opens as an embedded local terminal Session and the draft shell is
+labelled with the admin tier. If KKTerm is not elevated, KKTerm launches an
+external elevated Command Prompt or PowerShell process through the Windows UAC
+path.
 
 **Add Connection** uses the same form shape but persists to SQLite. The Type selector label is `connections.type`.
 
