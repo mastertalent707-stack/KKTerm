@@ -4,13 +4,17 @@ mod platform {
         collections::HashMap,
         ffi::c_void,
         mem::ManuallyDrop,
-        sync::{Arc, Mutex, MutexGuard, OnceLock, mpsc},
+        sync::{
+            atomic::{AtomicU32, Ordering},
+            mpsc, Arc, Mutex, MutexGuard, OnceLock,
+        },
         time::{Duration, Instant},
     };
 
     use serde::{Deserialize, Serialize};
-    use tauri::{AppHandle, Manager};
+    use tauri::{AppHandle, Emitter, Manager};
     use windows::{
+        core::{IUnknown, IUnknown_Vtbl, Interface, BSTR, GUID, HRESULT, PCSTR, PCWSTR},
         Win32::{
             Foundation::{
                 HANDLE, HGLOBAL, HWND, LPARAM, POINT, RECT, VARIANT_BOOL, VARIANT_FALSE,
@@ -19,32 +23,32 @@ mod platform {
             Graphics::Gdi::ClientToScreen,
             System::{
                 Com::{
-                    DISPATCH_METHOD, DISPATCH_PROPERTYGET, DISPATCH_PROPERTYPUT, DISPPARAMS,
-                    IDispatch,
+                    IConnectionPoint, IConnectionPointContainer, IDispatch, IDispatch_Vtbl,
+                    DISPATCH_FLAGS, DISPATCH_METHOD, DISPATCH_PROPERTYGET, DISPATCH_PROPERTYPUT,
+                    DISPPARAMS, EXCEPINFO,
                 },
                 DataExchange::{CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData},
                 LibraryLoader::{GetProcAddress, LoadLibraryW},
-                Memory::{GMEM_MOVEABLE, GlobalAlloc, GlobalLock, GlobalUnlock},
-                Ole::{CF_UNICODETEXT, DISPID_PROPERTYPUT, OleInitialize},
+                Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE},
+                Ole::{OleInitialize, CF_UNICODETEXT, DISPID_PROPERTYPUT},
                 Variant::{
-                    VARIANT, VT_BOOL, VT_BSTR, VT_DISPATCH, VT_I2, VT_I4, VT_UI4, VariantClear,
+                    VariantClear, VARIANT, VT_BOOL, VT_BSTR, VT_DISPATCH, VT_I2, VT_I4, VT_UI4,
                 },
             },
             UI::{
                 Input::KeyboardAndMouse::{
-                    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP,
-                    MAPVK_VK_TO_VSC, MAPVK_VK_TO_VSC_EX, MapVirtualKeyW, SendInput, SetFocus,
-                    VIRTUAL_KEY, VkKeyScanW,
+                    MapVirtualKeyW, SendInput, SetFocus, VkKeyScanW, INPUT, INPUT_0,
+                    INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP,
+                    MAPVK_VK_TO_VSC, MAPVK_VK_TO_VSC_EX, VIRTUAL_KEY,
                 },
                 WindowsAndMessaging::{
-                    CreateWindowExW, DestroyWindow, GetWindowRect, HMENU, SW_SHOWNOACTIVATE,
-                    SWP_NOACTIVATE, SWP_NOZORDER, SendMessageW, SetForegroundWindow, SetWindowPos,
-                    ShowWindow, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_EX_NOACTIVATE,
-                    WS_EX_TOOLWINDOW, WS_POPUP, WS_VISIBLE,
+                    CreateWindowExW, DestroyWindow, GetWindowRect, SendMessageW,
+                    SetForegroundWindow, SetWindowPos, ShowWindow, HMENU, SWP_NOACTIVATE,
+                    SWP_NOZORDER, SW_SHOWNOACTIVATE, WS_CLIPCHILDREN, WS_CLIPSIBLINGS,
+                    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_POPUP, WS_VISIBLE,
                 },
             },
         },
-        core::{BSTR, GUID, IUnknown_Vtbl, Interface, PCSTR, PCWSTR},
     };
 
     const HOST_WINDOW_LABEL: &str = "main";
@@ -56,6 +60,10 @@ mod platform {
     const RDP_DISPLAY_SCALE_FACTOR_PERCENT: i32 = 100;
     const RDP_CONNECTED_STATE: i32 = 1;
     const RDP_ESTABLISHING_STATE: i32 = 2;
+    const DISPID_DISCONNECTED: i32 = 4;
+    const IID_IMS_TSC_AX_EVENTS: GUID = GUID::from_u128(0x336d5562_efa8_482e_8cb3_c5c0fc7a7db6);
+    const E_NOINTERFACE: HRESULT = HRESULT(0x80004002u32 as i32);
+    const E_NOTIMPL: HRESULT = HRESULT(0x80004001u32 as i32);
     const RDP_STANDARD_SAS_SEQUENCE: i32 = 0xaa03;
     const VK_CONTROL_KEY: usize = 0x11;
     const VK_ALT_KEY: usize = 0x12;
@@ -446,10 +454,21 @@ mod platform {
         char_count: u32,
     }
 
+    #[derive(Clone, Serialize)]
+    #[serde(
+        rename_all = "camelCase",
+        rename_all_fields = "camelCase",
+        tag = "kind"
+    )]
+    enum RdpSessionEvent {
+        Disconnected { session_id: String, reason: i32 },
+    }
+
     struct RdpSession {
         hwnd: HWND,
         owner: HWND,
         dispatch: IDispatch,
+        event_connection: Option<RdpEventConnection>,
         desktop_width: i32,
         desktop_height: i32,
         resolution_mode: RemoteResolutionMode,
@@ -459,6 +478,138 @@ mod platform {
     // dispatched onto Tauri's main thread. The marker lets the session map live
     // behind app state while preserving that thread-affinity by convention.
     unsafe impl Send for RdpSession {}
+
+    struct RdpEventConnection {
+        connection_point: IConnectionPoint,
+        cookie: u32,
+        _sink: IUnknown,
+    }
+
+    impl Drop for RdpEventConnection {
+        fn drop(&mut self) {
+            unsafe {
+                let _ = self.connection_point.Unadvise(self.cookie);
+            }
+        }
+    }
+
+    unsafe impl Send for RdpEventConnection {}
+
+    #[repr(C)]
+    struct RdpEventSink {
+        vtbl: *const IDispatch_Vtbl,
+        ref_count: AtomicU32,
+        app: AppHandle,
+        session_id: String,
+    }
+
+    static RDP_EVENT_SINK_VTBL: IDispatch_Vtbl = IDispatch_Vtbl {
+        base__: IUnknown_Vtbl {
+            QueryInterface: rdp_event_sink_query_interface,
+            AddRef: rdp_event_sink_add_ref,
+            Release: rdp_event_sink_release,
+        },
+        GetTypeInfoCount: rdp_event_sink_get_type_info_count,
+        GetTypeInfo: rdp_event_sink_get_type_info,
+        GetIDsOfNames: rdp_event_sink_get_ids_of_names,
+        Invoke: rdp_event_sink_invoke,
+    };
+
+    unsafe extern "system" fn rdp_event_sink_query_interface(
+        this: *mut c_void,
+        iid: *const GUID,
+        interface: *mut *mut c_void,
+    ) -> HRESULT {
+        if interface.is_null() {
+            return E_NOINTERFACE;
+        }
+        unsafe {
+            *interface = std::ptr::null_mut();
+            if iid.is_null() {
+                return E_NOINTERFACE;
+            }
+            if *iid == IUnknown::IID || *iid == IDispatch::IID || *iid == IID_IMS_TSC_AX_EVENTS {
+                rdp_event_sink_add_ref(this);
+                *interface = this;
+                HRESULT(0)
+            } else {
+                E_NOINTERFACE
+            }
+        }
+    }
+
+    unsafe extern "system" fn rdp_event_sink_add_ref(this: *mut c_void) -> u32 {
+        let sink = unsafe { &*(this as *const RdpEventSink) };
+        sink.ref_count.fetch_add(1, Ordering::Relaxed) + 1
+    }
+
+    unsafe extern "system" fn rdp_event_sink_release(this: *mut c_void) -> u32 {
+        let sink = unsafe { &*(this as *const RdpEventSink) };
+        let count = sink.ref_count.fetch_sub(1, Ordering::Release) - 1;
+        if count == 0 {
+            std::sync::atomic::fence(Ordering::Acquire);
+            unsafe {
+                drop(Box::from_raw(this as *mut RdpEventSink));
+            }
+        }
+        count
+    }
+
+    unsafe extern "system" fn rdp_event_sink_get_type_info_count(
+        _this: *mut c_void,
+        count: *mut u32,
+    ) -> HRESULT {
+        if !count.is_null() {
+            unsafe {
+                *count = 0;
+            }
+        }
+        HRESULT(0)
+    }
+
+    unsafe extern "system" fn rdp_event_sink_get_type_info(
+        _this: *mut c_void,
+        _itinfo: u32,
+        _lcid: u32,
+        _pptinfo: *mut *mut c_void,
+    ) -> HRESULT {
+        E_NOTIMPL
+    }
+
+    unsafe extern "system" fn rdp_event_sink_get_ids_of_names(
+        _this: *mut c_void,
+        _riid: *const GUID,
+        _rgsznames: *const PCWSTR,
+        _cnames: u32,
+        _lcid: u32,
+        _rgdispid: *mut i32,
+    ) -> HRESULT {
+        E_NOTIMPL
+    }
+
+    unsafe extern "system" fn rdp_event_sink_invoke(
+        this: *mut c_void,
+        dispidmember: i32,
+        _riid: *const GUID,
+        _lcid: u32,
+        _wflags: DISPATCH_FLAGS,
+        pdispparams: *const DISPPARAMS,
+        _pvarresult: *mut VARIANT,
+        _pexcepinfo: *mut EXCEPINFO,
+        _puargerr: *mut u32,
+    ) -> HRESULT {
+        if dispidmember == DISPID_DISCONNECTED {
+            let sink = unsafe { &*(this as *const RdpEventSink) };
+            emit_rdp_session_event(
+                &sink.app,
+                RdpSessionEvent::Disconnected {
+                    session_id: sink.session_id.clone(),
+                    reason: disconnect_reason_from_params(pdispparams),
+                },
+            );
+        }
+        HRESULT(0)
+    }
 
     struct VariantArg(VARIANT);
 
@@ -613,7 +764,8 @@ mod platform {
             let sessions = Arc::clone(&self.sessions);
             run_on_main_thread("close_rdp_session", app, move |_app| {
                 let mut sessions = lock_sessions(&sessions)?;
-                if let Some(session) = sessions.remove(&request.session_id) {
+                if let Some(mut session) = sessions.remove(&request.session_id) {
+                    session.event_connection = None;
                     let _ = invoke_method(&session.dispatch, "Disconnect");
                     unsafe {
                         DestroyWindow(session.hwnd).map_err(|error| {
@@ -901,6 +1053,7 @@ mod platform {
             resolution_mode,
             &options,
         )?;
+        let event_connection = advise_rdp_events(&dispatch, app.clone(), session_id.clone())?;
         invoke_method(&dispatch, "Connect")?;
 
         let mut sessions = lock_sessions(&sessions)?;
@@ -910,6 +1063,7 @@ mod platform {
                 hwnd,
                 owner: parent_hwnd,
                 dispatch,
+                event_connection: Some(event_connection),
                 // DesktopWidth/DesktopHeight seed the initial connection, but the
                 // ActiveX control may not apply dynamic sizing until after Connect
                 // has progressed. Keep the synced size unknown so the frontend's
@@ -992,6 +1146,65 @@ mod platform {
                 .cast::<IDispatch>()
                 .map_err(|error| format!("RDP ActiveX control does not expose IDispatch: {error}"))
         }
+    }
+
+    fn advise_rdp_events(
+        dispatch: &IDispatch,
+        app: AppHandle,
+        session_id: String,
+    ) -> Result<RdpEventConnection, String> {
+        let container = dispatch
+            .cast::<IConnectionPointContainer>()
+            .map_err(|error| {
+                format!("RDP ActiveX control does not expose connection points: {error}")
+            })?;
+        let connection_point = unsafe {
+            container
+                .FindConnectionPoint(&IID_IMS_TSC_AX_EVENTS)
+                .map_err(|error| format!("RDP ActiveX events are unavailable: {error}"))?
+        };
+        let sink = Box::new(RdpEventSink {
+            vtbl: &RDP_EVENT_SINK_VTBL,
+            ref_count: AtomicU32::new(1),
+            app,
+            session_id,
+        });
+        let sink = unsafe { IUnknown::from_raw(Box::into_raw(sink).cast()) };
+        let cookie = unsafe {
+            connection_point
+                .Advise(&sink)
+                .map_err(|error| format!("failed to subscribe to RDP ActiveX events: {error}"))?
+        };
+        Ok(RdpEventConnection {
+            connection_point,
+            cookie,
+            _sink: sink,
+        })
+    }
+
+    fn disconnect_reason_from_params(params: *const DISPPARAMS) -> i32 {
+        if params.is_null() {
+            return 0;
+        }
+        unsafe {
+            let params = &*params;
+            if params.cArgs == 0 || params.rgvarg.is_null() {
+                return 0;
+            }
+            let variant = &*params.rgvarg;
+            let variant_data = &*variant.Anonymous.Anonymous;
+            if variant_data.vt == VT_I4 {
+                variant_data.Anonymous.lVal
+            } else if variant_data.vt == VT_I2 {
+                i32::from(variant_data.Anonymous.iVal)
+            } else {
+                0
+            }
+        }
+    }
+
+    fn emit_rdp_session_event(app: &AppHandle, event: RdpSessionEvent) {
+        let _ = app.emit("rdp-session-event", event);
     }
 
     fn configure_rdp_control(
