@@ -18,6 +18,9 @@ export interface WidgetFrameProps {
   isViewActive: boolean;
   onCustomize: (instance: DashboardWidgetInstance, anchor: HTMLElement) => void;
   onRequestDelete: (request: DashboardWidgetDeleteRequest) => void;
+  onOpenCatalog: () => void;
+  onOpenBackground: () => void;
+  onToggleEditMode: () => void;
 }
 
 export interface DashboardWidgetDeleteRequest {
@@ -25,7 +28,15 @@ export interface DashboardWidgetDeleteRequest {
   title: string;
 }
 
-export function WidgetFrame({ instance, isViewActive, onCustomize, onRequestDelete }: WidgetFrameProps) {
+export function WidgetFrame({
+  instance,
+  isViewActive,
+  onCustomize,
+  onRequestDelete,
+  onOpenCatalog,
+  onOpenBackground,
+  onToggleEditMode,
+}: WidgetFrameProps) {
   const { t } = useTranslation();
   const editMode = useDashboardStore((s) => s.editMode);
   const customWidgets = useDashboardStore((s) => s.customWidgets);
@@ -76,6 +87,24 @@ export function WidgetFrame({ instance, isViewActive, onCustomize, onRequestDele
           label: t("common.delete"),
           iconSvg: nativeMenuIcons.trash,
           action: () => onRequestDelete({ instanceId: instance.id, title: fallbackTitle }),
+        },
+        { kind: "separator" },
+        {
+          kind: "item",
+          label: t("dashboard.addWidgetLabel"),
+          iconSvg: nativeMenuIcons.squarePlus,
+          action: onOpenCatalog,
+        },
+        {
+          kind: "item",
+          label: t("dashboard.editLayout"),
+          iconSvg: nativeMenuIcons.layoutDashboard,
+          action: onToggleEditMode,
+        },
+        {
+          kind: "item",
+          label: t("dashboard.changeBackground"),
+          action: onOpenBackground,
         },
       ],
       position,

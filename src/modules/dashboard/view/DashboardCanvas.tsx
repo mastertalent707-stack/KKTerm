@@ -128,7 +128,9 @@ export function DashboardCanvas({
       backgroundLayer = <div className="dw-canvas-bg" style={style} />;
     }
   } else if (background?.kind === "dynamic") {
-    backgroundLayer = <DashboardDynamicBackground id={background.dynamic} />;
+    backgroundLayer = (
+      <DashboardDynamicBackground active={isViewActive} id={background.dynamic} />
+    );
   }
 
   return (
@@ -157,6 +159,9 @@ export function DashboardCanvas({
               isViewActive={isViewActive}
               onCustomize={onCustomize}
               onRequestDelete={onRequestWidgetDelete}
+              onOpenCatalog={onOpenCatalog}
+              onOpenBackground={onOpenBackground}
+              onToggleEditMode={onToggleEditMode}
             />
           </div>
         ))}

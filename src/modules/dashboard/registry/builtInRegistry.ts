@@ -5,10 +5,12 @@ import { AppLauncherBody } from "../widgets/AppLauncherBody";
 import { ConnectionWidgetBody } from "../widgets/ConnectionWidgetBody";
 import { NotesBody } from "../widgets/NotesBody";
 import type { DashboardWidgetInstance } from "../types";
+import type { NativeContextMenuPosition } from "../../../lib/nativeContextMenu";
 
 export interface BuiltInWidgetBodyProps {
   instance: DashboardWidgetInstance;
   isViewActive: boolean;
+  onWidgetContextMenu: (position: NativeContextMenuPosition) => void | Promise<void>;
 }
 
 export interface BuiltInWidgetEntry {
