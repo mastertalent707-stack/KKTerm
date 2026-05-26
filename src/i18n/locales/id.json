@@ -1818,8 +1818,6 @@
     "builtInMcpAllowAllDangerousHint": "Saat diaktifkan, alat MCP berbahaya kkterm.dangerous.* berjalan tanpa prompt konfirmasi.",
     "rdpRemoteResolution": "Resolusi jarak jauh",
     "rdpRemoteResolutionAutomatic": "Otomatis",
-    "rdpRemoteResolutionDpiZoom": "Zoom DPI",
-    "rdpRemoteResolutionSmartSizing": "Smart Sizing",
     "builtInMcpShowConfig": "Tampilkan config",
     "builtInMcpConfigTitle": "Config MCP bawaan",
     "builtInMcpConfigIntro": "Tempel salah satu cuplikan ini ke alat yang mendukung MCP, atau gunakan perintah penyiapan di bawah. Path perintah memakai kkterm-cli.exe di samping KKTerm.exe yang sedang berjalan.",

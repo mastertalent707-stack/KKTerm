@@ -354,7 +354,7 @@ export interface UrlSettings {
 export type RdpPerformanceProfile = "balanced" | "quality" | "speed";
 export type RdpColorDepth = 15 | 16 | 24 | 32;
 
-export type RdpRemoteResolutionMode = "automatic" | "smartSizing" | "dpiZoom";
+export type RdpRemoteResolutionMode = "automatic";
 export type RdpRemoteResolutionFixed =
   | "1440x900"
   | "1400x1050"

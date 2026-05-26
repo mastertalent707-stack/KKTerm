@@ -8,6 +8,7 @@ import {
   type RdpColorDepth,
   type RdpPerformanceProfile,
   type RdpRemoteResolution,
+  type RdpSettings as RdpSettingsModel,
 } from "../../types";
 import { SettingsSectionHeader } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
@@ -17,11 +18,11 @@ export function RdpSettings() {
   const rdpSettings = useWorkspaceStore((state) => state.rdpSettings);
   const setRdpSettings = useWorkspaceStore((state) => state.setRdpSettings);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
-  const [draft, setDraft] = useState(rdpSettings);
+  const [draft, setDraft] = useState<RdpSettingsModel>(() => normalizeRdpResolutionSettings(rdpSettings));
   const hasChanges = JSON.stringify(draft) !== JSON.stringify(rdpSettings);
 
   useEffect(() => {
-    setDraft(rdpSettings);
+    setDraft(normalizeRdpResolutionSettings(rdpSettings));
   }, [rdpSettings]);
 
   async function handleSave() {
@@ -101,8 +102,6 @@ export function RdpSettings() {
               }}
             >
               <option value="automatic">{t("settings.rdpRemoteResolutionAutomatic")}</option>
-              <option value="smartSizing">{t("settings.rdpRemoteResolutionSmartSizing")}</option>
-              <option value="dpiZoom">{t("settings.rdpRemoteResolutionDpiZoom")}</option>
               {RDP_REMOTE_RESOLUTION_FIXED.map((value) => (
                 <option key={value} value={value}>
                   {value.replace("x", "×")}
@@ -149,4 +148,18 @@ export function RdpSettings() {
       </fieldset>
     </section>
   );
+}
+
+function normalizeRdpResolutionSettings(settings: RdpSettingsModel): RdpSettingsModel {
+  if (isVisibleRdpRemoteResolution(settings.remoteResolution)) {
+    return settings;
+  }
+  return {
+    ...settings,
+    remoteResolution: "automatic",
+  };
+}
+
+function isVisibleRdpRemoteResolution(value: string): value is RdpRemoteResolution {
+  return value === "automatic" || RDP_REMOTE_RESOLUTION_FIXED.includes(value as never);
 }

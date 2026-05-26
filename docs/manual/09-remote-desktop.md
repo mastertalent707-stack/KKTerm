@@ -3,8 +3,8 @@
 ## AI grep hints
 
 - Keys: `remoteDesktop.*` (full namespace), `connections.windowsRdp`, `connections.screenControl`, `settings.rdpRemoteResolution*`
-- Topics: RDP via mstscax ActiveX, VNC via vnc-rs, Ctrl+Alt+Del, Ctrl+Alt+End hotkey hint, remote resolution (Automatic / Smart Sizing / DPI Zoom / fixed `WxH`), reconnect, framebuffer waiting, tutorial targets `remoteDesktop.toolbar`, `remoteDesktop.sendCtrlAltDel`, `remoteDesktop.reconnect`, `remoteDesktop.sendToAi`, `remoteDesktop.surface`, `settings.rdpRemoteResolution`
-- Synonyms: "remote desktop", "screen sharing", "mstsc", "VNC viewer", "send three-finger salute", "high DPI scaling", "smart sizing", "remote screen size"
+- Topics: RDP via mstscax ActiveX, VNC via vnc-rs, Ctrl+Alt+Del, Ctrl+Alt+End hotkey hint, remote resolution (Automatic / fixed `WxH`), reconnect, framebuffer waiting, tutorial targets `remoteDesktop.toolbar`, `remoteDesktop.sendCtrlAltDel`, `remoteDesktop.reconnect`, `remoteDesktop.sendToAi`, `remoteDesktop.surface`, `settings.rdpRemoteResolution`
+- Synonyms: "remote desktop", "screen sharing", "mstsc", "VNC viewer", "send three-finger salute", "high DPI scaling", "remote screen size"
 
 ## Connection kinds
 
@@ -60,6 +60,4 @@ Per-kind defaults (resolution, colour depth, etc.) live in Settings → RDP (`se
 Controls the desktop size and scaling KKTerm asks the RDP ActiveX control to apply. Available both as a global default (Settings → RDP) and as a per-connection override.
 
 - `settings.rdpRemoteResolutionAutomatic` (default) — push the pane's physical pixel size as `DesktopWidth`/`DesktopHeight`, forward the host display scale factor as the RDP `DesktopScaleFactor` (so the remote OS re-renders UI at the host DPI, not just bitmap-stretched), and keep `SmartSizing` enabled as a fallback during resize transitions. On a 4K monitor at 150% scaling the remote desktop looks the same size as native host apps.
-- `settings.rdpRemoteResolutionSmartSizing` — push the pane's physical pixel size once and enable the ActiveX `SmartSizing` property. The framebuffer is then stretched to fit subsequent pane resizes.
-- `settings.rdpRemoteResolutionDpiZoom` — push the pane's physical pixel size and send the local display scale as the RDP desktop scale factor. The remote OS renders with DPI-aware scaling.
 - Fixed resolutions (`1440x900` through `3840x2400`) — push the chosen size as `DesktopWidth`/`DesktopHeight` and enable `SmartSizing` so the framebuffer scales to fill the Pane. Subsequent pane resizes do not change the remote desktop size.

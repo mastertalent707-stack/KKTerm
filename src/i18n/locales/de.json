@@ -1818,8 +1818,6 @@
     "builtInMcpAllowAllDangerousHint": "Wenn aktiviert, werden gefährliche kkterm.dangerous.* MCP-Tools ohne Bestätigungsabfragen ausgeführt.",
     "rdpRemoteResolution": "Remote-Auflösung",
     "rdpRemoteResolutionAutomatic": "Automatisch",
-    "rdpRemoteResolutionDpiZoom": "DPI-Zoom",
-    "rdpRemoteResolutionSmartSizing": "Smart Sizing",
     "builtInMcpShowConfig": "Konfig anzeigen",
     "builtInMcpConfigTitle": "Integrierte MCP-Konfig",
     "builtInMcpConfigIntro": "Füge eines dieser Snippets in ein MCP-fähiges Tool ein oder nutze unten einen Einrichtungsbefehl. Der Befehlspfad verwendet die kkterm-cli.exe neben deiner laufenden KKTerm.exe.",

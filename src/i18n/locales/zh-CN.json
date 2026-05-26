@@ -1818,8 +1818,6 @@
     "builtInMcpAllowAllDangerousHint": "启用后，危险的 kkterm.dangerous.* MCP 工具会在没有确认提示的情况下执行。",
     "rdpRemoteResolution": "远程分辨率",
     "rdpRemoteResolutionAutomatic": "自动",
-    "rdpRemoteResolutionDpiZoom": "DPI 缩放",
-    "rdpRemoteResolutionSmartSizing": "智能调整大小",
     "builtInMcpShowConfig": "显示配置",
     "builtInMcpConfigTitle": "内置 MCP 配置",
     "builtInMcpConfigIntro": "将其中一个片段粘贴到支持 MCP 的工具中，或使用下方的设置命令。command 路径使用正在运行的 KKTerm.exe 旁边的 kkterm-cli.exe。",

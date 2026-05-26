@@ -1818,8 +1818,6 @@
     "builtInMcpAllowAllDangerousHint": "Khi bật, các công cụ MCP nguy hiểm kkterm.dangerous.* chạy mà không có lời nhắc xác nhận.",
     "rdpRemoteResolution": "Độ phân giải từ xa",
     "rdpRemoteResolutionAutomatic": "Tự động",
-    "rdpRemoteResolutionDpiZoom": "Thu phóng DPI",
-    "rdpRemoteResolutionSmartSizing": "Smart Sizing",
     "builtInMcpShowConfig": "Hiện config",
     "builtInMcpConfigTitle": "Config MCP tích hợp",
     "builtInMcpConfigIntro": "Dán một trong các đoạn này vào công cụ hỗ trợ MCP hoặc dùng lệnh thiết lập bên dưới. Đường dẫn command dùng kkterm-cli.exe nằm cạnh KKTerm.exe đang chạy.",

@@ -1818,8 +1818,6 @@
     "builtInMcpAllowAllDangerousHint": "활성화하면 위험한 kkterm.dangerous.* MCP 도구가 확인 프롬프트 없이 실행됩니다.",
     "rdpRemoteResolution": "원격 해상도",
     "rdpRemoteResolutionAutomatic": "자동",
-    "rdpRemoteResolutionDpiZoom": "DPI 확대/축소",
-    "rdpRemoteResolutionSmartSizing": "Smart Sizing",
     "builtInMcpShowConfig": "구성 보기",
     "builtInMcpConfigTitle": "내장 MCP 구성",
     "builtInMcpConfigIntro": "이 스니펫 중 하나를 MCP 지원 도구에 붙여 넣거나 아래 설정 명령을 사용하세요. command 경로는 실행 중인 KKTerm.exe 옆의 kkterm-cli.exe를 사용합니다.",
