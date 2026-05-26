@@ -591,7 +591,7 @@ mod platform {
                     scale_factor,
                 );
                 let connection_state = get_property_i32(&session.dispatch, "Connected")?;
-                let connected = is_rdp_connected_state(connection_state);
+                let connected = is_rdp_active_state(connection_state);
                 let display_synced = is_rdp_displayable_state(connection_state)
                     && sync_remote_desktop_size(session, display_settings, true);
                 Ok(RdpDisplaySizeSync {
@@ -1825,16 +1825,6 @@ mod platform {
                 display_settings.device_scale_factor,
             ],
         )
-        .or_else(|_| {
-            invoke_method_with_i32_args(
-                dispatch,
-                "Reconnect",
-                &[
-                    display_settings.desktop_width,
-                    display_settings.desktop_height,
-                ],
-            )
-        })
     }
 
     fn show_rdp(
@@ -1965,6 +1955,10 @@ mod platform {
     }
 
     fn is_rdp_displayable_state(connection_state: i32) -> bool {
+        connection_state == RDP_CONNECTED_STATE
+    }
+
+    fn is_rdp_active_state(connection_state: i32) -> bool {
         connection_state == RDP_CONNECTED_STATE || connection_state == RDP_ESTABLISHING_STATE
     }
 
@@ -2301,10 +2295,17 @@ mod platform {
         }
 
         #[test]
-        fn treats_establishing_rdp_state_as_displayable() {
+        fn waits_for_connected_rdp_state_before_display_sync() {
             assert!(!is_rdp_displayable_state(0));
             assert!(is_rdp_displayable_state(1));
-            assert!(is_rdp_displayable_state(2));
+            assert!(!is_rdp_displayable_state(2));
+        }
+
+        #[test]
+        fn treats_establishing_rdp_state_as_active_not_disconnected() {
+            assert!(!is_rdp_active_state(0));
+            assert!(is_rdp_active_state(1));
+            assert!(is_rdp_active_state(2));
         }
     }
 }
@@ -2558,7 +2559,7 @@ mod platform {
     }
 
     fn is_rdp_displayable_state(connection_state: i32) -> bool {
-        connection_state == 1 || connection_state == 2
+        connection_state == 1
     }
 
     impl StartRdpSessionRequest {
