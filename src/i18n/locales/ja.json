@@ -516,15 +516,15 @@
     "tutorialTargetNotFound": "そのチュートリアルターゲットは現在表示されていません。",
     "skillInvoked": "使用中のスキル: {{skills}}",
     "watchdogApproval": {
-      "lede": "Create watchdog \"{{name}}\" with AI intervention?",
-      "target": "Target",
-      "trigger": "Trigger",
-      "poll": "Poll interval",
-      "stop": "Stop when",
-      "goal": "Intervention goal",
-      "allowedTools": "Allowed tools ({{count}})",
-      "allowedToolsCaveat": "The AI may call any of these without further prompts during this watchdog's lifetime. Other tools are refused at runtime.",
-      "caps": "Hard cap: {{max}} interventions max · {{suppression}}s cooldown between actions"
+      "lede": "AI 介入付きのウォッチドッグ「{{name}}」を作成しますか？",
+      "target": "ターゲット",
+      "trigger": "トリガー",
+      "poll": "ポーリング間隔",
+      "stop": "停止条件",
+      "goal": "介入目標",
+      "allowedTools": "許可されたツール ({{count}})",
+      "allowedToolsCaveat": "AI はこのウォッチドッグの有効期間中、追加のプロンプトなしにこれらのツールを呼び出すことができます。他のツールは実行時に拒否されます。",
+      "caps": "上限: 最大 {{max}} 回の介入 · アクション間の冷却時間 {{suppression}} 秒"
     }
   },
   "app": {
@@ -894,10 +894,10 @@
   "dashboard": {
     "accent": "アクセント",
     "accentDefault": "デフォルト",
-    "actionDirection": "Layout direction",
+    "actionDirection": "レイアウト方向",
     "actionDirectionOptions": {
-      "horizontal": "Horizontal",
-      "vertical": "Vertical"
+      "horizontal": "横",
+      "vertical": "縦"
     },
     "addAgentWidget": "エージェントウィジェットを追加",
     "addView": "ビューを追加",
@@ -1056,7 +1056,7 @@
     "emptyHint": "カタログからウィジェットを選択して、集中したダッシュボードワークスペースを構築します。",
     "emptyTitle": "ウィジェットが選択されていません",
     "firstUsable": "最初の使用可能",
-    "glassBackground": "Frosted glass background",
+    "glassBackground": "すりガラス背景",
     "hashInput": "ハッシュするテキスト",
     "hashSample": "KKTerm",
     "hashSummary": "貼り付けたテキストの SHA-1 と SHA-256 を、どこにも送信せずに計算します。",
@@ -1363,8 +1363,8 @@
         "label": "チュートリアル"
       },
       "network": {
-        "label": "Network admin tools",
-        "description": "Ping hosts, check TCP ports, resolve DNS, run WHOIS, list interfaces, and send Wake-on-LAN. Disabled by default."
+        "label": "ネットワーク管理ツール",
+        "description": "ホストへの ping、TCP ポートの確認、DNS 解決、WHOIS の実行、インターフェースの一覧、Wake-on-LAN の送信。デフォルトでは無効。"
       }
     },
     "aiToolsDescription": "AI アシスタントが応答中に呼び出せる組み込みツールを選択します。必要な場合を除き、リスクのあるツールはオフにしてください。",
@@ -1744,8 +1744,8 @@
     "dashboardPerformance": "パフォーマンス",
     "dashboardMaxActiveScriptWidgets": "アクティブスクリプトウィジェットの上限",
     "dashboardMaxActiveScriptWidgetsHint": "ダッシュボードで同時に iframe をレンダリングするスクリプトウィジェットの最大数。超過したウィジェットにはクリックして有効化するプレースホルダーが表示されます。許容範囲 {{min}}–{{max}}。",
-    "dashboardAllowWidgetNetworkTools": "Allow network tools in widgets",
-    "dashboardAllowWidgetNetworkToolsDesc": "When enabled, script widgets that request permissions.networkTools can run ping, port scan, DNS, WHOIS, and Wake-on-LAN. Disable to globally block these from all widgets.",
+    "dashboardAllowWidgetNetworkTools": "ウィジェットでネットワークツールを許可",
+    "dashboardAllowWidgetNetworkToolsDesc": "有効にすると、permissions.networkTools を要求するスクリプトウィジェットが ping、ポートスキャン、DNS、WHOIS、Wake-on-LAN を実行できます。無効にするとすべてのウィジェットでグローバルにブロックされます。",
     "mcpServersTitle": "リモート MCP サーバー",
     "mcpServersHint": "リモート Model Context Protocol サーバーに接続して、AI アシスタントとダッシュボードウィジェットがそのツールを呼び出せるようにします。KKTerm は HTTP ストリーミング可能な MCP サーバーのみをサポートし、ローカルプロセスを起動する stdio 構成はサポートされません。",
     "mcpServersEmpty": "MCP サーバーが設定されていません。",
@@ -2055,369 +2055,369 @@
     "layoutSaved": "Connection レイアウトを保存しました。",
     "resetLayout": "レイアウトをリセット",
     "saveLayout": "レイアウトを保存",
-    "quickCommandsBar": "Quick commands",
-    "quickCommandsShow": "Show quick commands",
-    "quickCommandsHide": "Hide quick commands",
-    "quickCommandsAddFirst": "Add quick command",
-    "quickCommandsManage": "Manage Quick Commands",
-    "quickCommandsNoPane": "No active terminal Pane for quick commands.",
-    "quickCommandsRun": "Run command",
-    "quickCommandsDangerous": "Dangerous",
-    "quickCommandsConfirmTitle": "Run quick command?",
-    "quickCommandsConfirm": "Run \"{{label}}\" in the focused terminal Pane?",
-    "quickCommandsDialogHint": "Add saved commands from the library or create your own.",
-    "quickCommandsSaved": "Saved commands",
-    "quickCommandsEmpty": "No quick commands yet.",
-    "quickCommandsDelete": "Delete quick command {{label}}",
-    "quickCommandsMoveUp": "Move {{label}} up",
-    "quickCommandsMoveDown": "Move {{label}} down",
-    "quickCommandsAddCommand": "Add Command",
-    "quickCommandsPickFromLibrary": "Pick From Library",
-    "quickCommandsCustomCommand": "Custom Command",
-    "quickCommandsAddMenu": "Add quick command options",
-    "quickCommandsGenerateWithAi": "Generate command with AI",
-    "quickCommandsAiPromptLabel": "Describe command",
-    "quickCommandsAiPromptPlaceholder": "update apt packages",
-    "quickCommandsAiGenerate": "Generate",
-    "quickCommandsAiGenerating": "Generating...",
-    "quickCommandsAiFailed": "AI could not generate a command: {{message}}",
-    "quickCommandsLibrary": "From Library",
-    "quickCommandsCustom": "Custom",
-    "quickCommandsSearch": "Search command library",
-    "quickCommandsAdd": "Add",
-    "quickCommandsNoLibraryMatches": "No library commands match.",
-    "quickCommandsLabel": "Label",
-    "quickCommandsCommand": "Command",
-    "quickCommandsSendEnter": "Send Enter after command",
-    "quickCommandsRequireConfirm": "Require confirmation before running",
-    "quickCommandsColor": "Color",
-    "quickCommandsIcon": "Icon",
-    "quickCommandsCreate": "Create command",
+    "quickCommandsBar": "クイックコマンド",
+    "quickCommandsShow": "クイックコマンドを表示",
+    "quickCommandsHide": "クイックコマンドを非表示",
+    "quickCommandsAddFirst": "クイックコマンドを追加",
+    "quickCommandsManage": "クイックコマンドを管理",
+    "quickCommandsNoPane": "クイックコマンド用のアクティブなターミナルペインがありません。",
+    "quickCommandsRun": "コマンドを実行",
+    "quickCommandsDangerous": "危険",
+    "quickCommandsConfirmTitle": "クイックコマンドを実行しますか？",
+    "quickCommandsConfirm": "フォーカスされたターミナルペインで \"{{label}}\" を実行しますか？",
+    "quickCommandsDialogHint": "ライブラリから保存済みコマンドを追加するか、独自のコマンドを作成してください。",
+    "quickCommandsSaved": "保存済みコマンド",
+    "quickCommandsEmpty": "まだクイックコマンドはありません。",
+    "quickCommandsDelete": "クイックコマンド {{label}} を削除",
+    "quickCommandsMoveUp": "{{label}} を上に移動",
+    "quickCommandsMoveDown": "{{label}} を下に移動",
+    "quickCommandsAddCommand": "コマンドを追加",
+    "quickCommandsPickFromLibrary": "ライブラリから選択",
+    "quickCommandsCustomCommand": "カスタムコマンド",
+    "quickCommandsAddMenu": "クイックコマンド追加オプション",
+    "quickCommandsGenerateWithAi": "AI でコマンドを生成",
+    "quickCommandsAiPromptLabel": "コマンドを説明",
+    "quickCommandsAiPromptPlaceholder": "apt パッケージを更新",
+    "quickCommandsAiGenerate": "生成",
+    "quickCommandsAiGenerating": "生成中...",
+    "quickCommandsAiFailed": "AI がコマンドを生成できませんでした: {{message}}",
+    "quickCommandsLibrary": "ライブラリから",
+    "quickCommandsCustom": "カスタム",
+    "quickCommandsSearch": "コマンドライブラリを検索",
+    "quickCommandsAdd": "追加",
+    "quickCommandsNoLibraryMatches": "一致するライブラリコマンドはありません。",
+    "quickCommandsLabel": "ラベル",
+    "quickCommandsCommand": "コマンド",
+    "quickCommandsSendEnter": "コマンド後に Enter を送信",
+    "quickCommandsRequireConfirm": "実行前に確認を要求",
+    "quickCommandsColor": "色",
+    "quickCommandsIcon": "アイコン",
+    "quickCommandsCreate": "コマンドを作成",
     "quickCommandLibrary": {
-      "categoryTabs": "Quick Command Library categories",
-      "subcategoryTabs": "Quick Command Library subcategories",
+      "categoryTabs": "クイックコマンドライブラリのカテゴリ",
+      "subcategoryTabs": "クイックコマンドライブラリのサブカテゴリ",
       "categories": {
-        "aiAgents": "AI Agents",
-        "developerWorkflow": "Developer Workflow",
-        "containersKubernetes": "Containers & Kubernetes",
-        "linuxAdministration": "Linux Administration",
-        "macosAdministration": "macOS Administration"
+        "aiAgents": "AI エージェント",
+        "developerWorkflow": "開発者ワークフロー",
+        "containersKubernetes": "コンテナ & Kubernetes",
+        "linuxAdministration": "Linux 管理",
+        "macosAdministration": "macOS 管理"
       },
       "subcategories": {
-        "codingAgents": "Coding Agents",
-        "autonomousAgents": "Autonomous Agents",
+        "codingAgents": "コーディングエージェント",
+        "autonomousAgents": "自律エージェント",
         "git": "Git",
-        "packageManagersRuntimes": "Package Managers & Runtimes",
+        "packageManagersRuntimes": "パッケージマネージャー & ランタイム",
         "docker": "Docker",
         "dockerCompose": "Docker Compose",
         "kubectl": "kubectl",
-        "servicesLogs": "Services & Logs",
-        "packages": "Packages",
-        "softwareUpdate": "Software Update",
-        "networking": "Networking",
-        "launchdPower": "launchd & Power",
-        "preferences": "Preferences"
+        "servicesLogs": "サービス & ログ",
+        "packages": "パッケージ",
+        "softwareUpdate": "ソフトウェアアップデート",
+        "networking": "ネットワーク",
+        "launchdPower": "launchd & 電源",
+        "preferences": "環境設定"
       },
       "entries": {
         "aiClaudeNativeInstall": {
-          "label": "Install Claude Code",
-          "description": "Install Claude Code with Anthropic's native installer."
+          "label": "Claude Code をインストール",
+          "description": "Anthropic のネイティブインストーラーで Claude Code をインストールします。"
         },
         "aiClaudeStart": {
           "label": "Claude",
-          "description": "Start an interactive Claude Code session."
+          "description": "Claude Code のインタラクティブセッションを開始します。"
         },
         "aiClaudeBypass": {
-          "label": "Claude bypass permissions",
-          "description": "Run Claude Code without permission prompts. Use only in a trusted sandbox."
+          "label": "Claude 権限バイパス",
+          "description": "権限プロンプトなしで Claude Code を実行します。信頼できるサンドボックス環境でのみ使用してください。"
         },
         "aiClaudeBrewInstall": {
-          "label": "Install Claude Code with Homebrew",
-          "description": "Install Claude Code through Homebrew Cask on macOS."
+          "label": "Homebrew で Claude Code をインストール",
+          "description": "macOS で Homebrew Cask を使用して Claude Code をインストールします。"
         },
         "aiClaudeBrewUpgrade": {
-          "label": "Upgrade Claude Code",
-          "description": "Upgrade the Homebrew Cask install of Claude Code."
+          "label": "Claude Code をアップグレード",
+          "description": "Claude Code の Homebrew Cask インストールをアップグレードします。"
         },
         "aiCodexNpmInstall": {
-          "label": "Install Codex with npm",
-          "description": "Install the OpenAI Codex CLI globally with npm."
+          "label": "npm で Codex をインストール",
+          "description": "OpenAI Codex CLI を npm でグローバルにインストールします。"
         },
         "aiCodexBrewInstall": {
-          "label": "Install Codex with Homebrew",
-          "description": "Install the OpenAI Codex CLI through Homebrew."
+          "label": "Homebrew で Codex をインストール",
+          "description": "Homebrew を使って OpenAI Codex CLI をインストールします。"
         },
         "aiCodexStart": {
           "label": "Codex",
-          "description": "Start an interactive OpenAI Codex CLI session."
+          "description": "OpenAI Codex CLI のインタラクティブセッションを開始します。"
         },
         "aiCodexPrompt": {
-          "label": "Codex explain codebase",
-          "description": "Start Codex with a prompt to explain the current repository."
+          "label": "Codex でコードベースを説明",
+          "description": "現在のリポジトリを説明するプロンプトで Codex を起動します。"
         },
         "aiCodexMcpContext7": {
-          "label": "Add Context7 MCP to Codex",
-          "description": "Register the documented Context7 MCP server example with Codex CLI."
+          "label": "Context7 MCP を Codex に追加",
+          "description": "ドキュメント化された Context7 MCP サーバーの例を Codex CLI に登録します。"
         },
         "aiCodexNpmUpgrade": {
-          "label": "Upgrade Codex with npm",
-          "description": "Install the latest OpenAI Codex CLI package globally."
+          "label": "npm で Codex をアップグレード",
+          "description": "最新の OpenAI Codex CLI パッケージをグローバルにインストールします。"
         },
         "aiGeminiInstall": {
-          "label": "Install Gemini CLI",
-          "description": "Install Google's Gemini CLI globally with npm."
+          "label": "Gemini CLI をインストール",
+          "description": "Google の Gemini CLI を npm でグローバルにインストールします。"
         },
         "aiGeminiStart": {
           "label": "Gemini",
-          "description": "Start an interactive Gemini CLI session."
+          "description": "Gemini CLI のインタラクティブセッションを開始します。"
         },
         "aiQwenNpmInstall": {
-          "label": "Install Qwen Code with npm",
-          "description": "Install the latest Qwen Code terminal agent with npm."
+          "label": "npm で Qwen Code をインストール",
+          "description": "最新の Qwen Code ターミナルエージェントを npm でインストールします。"
         },
         "aiQwenBrewInstall": {
-          "label": "Install Qwen Code with Homebrew",
-          "description": "Install Qwen Code through Homebrew."
+          "label": "Homebrew で Qwen Code をインストール",
+          "description": "Homebrew を使って Qwen Code をインストールします。"
         },
         "aiQwenStart": {
           "label": "Qwen Code",
-          "description": "Start an interactive Qwen Code session. Configure a provider or API key first."
+          "description": "Qwen Code のインタラクティブセッションを開始します。先にプロバイダーまたは API キーを設定してください。"
         },
         "aiAiderInstall": {
-          "label": "Install Aider",
-          "description": "Install Aider with the official Mac/Linux installer."
+          "label": "Aider をインストール",
+          "description": "公式の Mac/Linux インストーラーで Aider をインストールします。"
         },
         "aiAiderMessage": {
-          "label": "Aider one-shot edit",
-          "description": "Run Aider with a single edit request against a target file."
+          "label": "Aider ワンショット編集",
+          "description": "ターゲットファイルに対して単一の編集リクエストで Aider を実行します。"
         },
         "aiAiderGemini": {
-          "label": "Aider with Gemini",
-          "description": "Launch Aider using the Gemini model setting."
+          "label": "Gemini を使った Aider",
+          "description": "Gemini モデル設定を使用して Aider を起動します。"
         },
         "aiOpenclawInstall": {
-          "label": "Install OpenClaw",
-          "description": "Run the OpenClaw hosted installer."
+          "label": "OpenClaw をインストール",
+          "description": "OpenClaw のホスト型インストーラーを実行します。"
         },
         "aiOpenclawNpmInstall": {
-          "label": "Install OpenClaw with npm",
-          "description": "Install the latest OpenClaw package globally with npm."
+          "label": "npm で OpenClaw をインストール",
+          "description": "最新の OpenClaw パッケージを npm でグローバルにインストールします。"
         },
         "aiOpenclawOnboard": {
-          "label": "OpenClaw onboard",
-          "description": "Start the recommended OpenClaw onboarding flow."
+          "label": "OpenClaw オンボーディング",
+          "description": "推奨の OpenClaw オンボーディングフローを開始します。"
         },
         "aiOpenclawDaemon": {
-          "label": "OpenClaw daemon onboarding",
-          "description": "Run OpenClaw onboarding and install its background daemon."
+          "label": "OpenClaw デーモンオンボーディング",
+          "description": "OpenClaw オンボーディングを実行し、バックグラウンドデーモンをインストールします。"
         },
         "aiOpenclawUpdate": {
-          "label": "Update OpenClaw",
-          "description": "Update the OpenClaw installation."
+          "label": "OpenClaw を更新",
+          "description": "OpenClaw のインストールを更新します。"
         },
         "aiHermesInstall": {
-          "label": "Install Hermes Agent",
-          "description": "Run the Hermes Agent installer from the Nous Research repository."
+          "label": "Hermes Agent をインストール",
+          "description": "Nous Research リポジトリから Hermes Agent インストーラーを実行します。"
         },
         "aiHermesSourceBashrc": {
-          "label": "Reload bash shell",
-          "description": "Reload bash startup configuration after installing Hermes."
+          "label": "Bash シェルをリロード",
+          "description": "Hermes をインストールした後、bash のスタートアップ設定をリロードします。"
         },
         "aiHermesStart": {
           "label": "Hermes",
-          "description": "Start an interactive Hermes Agent chat."
+          "description": "Hermes Agent のインタラクティブチャットを開始します。"
         },
         "aiHermesSetup": {
-          "label": "Hermes setup",
-          "description": "Open the Hermes provider and account setup flow."
+          "label": "Hermes セットアップ",
+          "description": "Hermes のプロバイダーとアカウントのセットアップフローを開きます。"
         },
         "aiHermesModel": {
-          "label": "Hermes model",
-          "description": "Configure or inspect the active Hermes model."
+          "label": "Hermes モデル",
+          "description": "アクティブな Hermes モデルを設定または確認します。"
         },
         "aiHermesDoctor": {
-          "label": "Hermes doctor",
-          "description": "Run Hermes health checks."
+          "label": "Hermes 診断",
+          "description": "Hermes のヘルスチェックを実行します。"
         },
         "aiHermesDashboard": {
-          "label": "Hermes dashboard",
-          "description": "Open the local Hermes dashboard."
+          "label": "Hermes ダッシュボード",
+          "description": "ローカルの Hermes ダッシュボードを開きます。"
         },
         "aiGooseInstall": {
-          "label": "Install Goose",
-          "description": "Run the stable Goose CLI installer."
+          "label": "Goose をインストール",
+          "description": "安定版の Goose CLI インストーラーを実行します。"
         },
         "devGitSwitch": {
-          "label": "Create feature branch",
-          "description": "Create and switch to a new Git feature branch."
+          "label": "機能ブランチを作成",
+          "description": "新しい Git 機能ブランチを作成して切り替えます。"
         },
         "devGitPullRebase": {
-          "label": "Pull with rebase",
-          "description": "Fetch and replay local commits on top of the upstream branch."
+          "label": "リベースでプル",
+          "description": "ローカルコミットを上流ブランチの上にフェッチして再適用します。"
         },
         "devGitRestoreHead": {
-          "label": "Restore working tree",
-          "description": "Restore tracked files from HEAD. This can discard local edits."
+          "label": "作業ツリーを復元",
+          "description": "HEAD から追跡ファイルを復元します。ローカルの編集が失われる可能性があります。"
         },
         "devGitClean": {
-          "label": "Clean untracked files",
-          "description": "Remove untracked files and folders from the working tree."
+          "label": "未追跡ファイルを削除",
+          "description": "作業ツリーから未追跡のファイルとフォルダを削除します。"
         },
         "devGitRevert": {
-          "label": "Revert commit",
-          "description": "Create a history-preserving commit that undoes a selected commit."
+          "label": "コミットを元に戻す",
+          "description": "選択したコミットを取り消す履歴保存型のコミットを作成します。"
         },
         "devHomebrewInstall": {
-          "label": "Install Homebrew",
-          "description": "Run the standard Homebrew install script."
+          "label": "Homebrew をインストール",
+          "description": "標準の Homebrew インストールスクリプトを実行します。"
         },
         "devBrewBundleGlobal": {
-          "label": "Install global Brewfile",
-          "description": "Install packages from the global Homebrew Brewfile."
+          "label": "グローバル Brewfile をインストール",
+          "description": "グローバル Homebrew Brewfile からパッケージをインストールします。"
         },
         "devNvmInstall": {
-          "label": "Install nvm",
-          "description": "Install nvm using the official install script."
+          "label": "nvm をインストール",
+          "description": "公式インストールスクリプトを使用して nvm をインストールします。"
         },
         "devNvmInstallNode24": {
-          "label": "Install Node 24",
-          "description": "Install Node.js 24 with nvm."
+          "label": "Node 24 をインストール",
+          "description": "nvm を使って Node.js 24 をインストールします。"
         },
         "devNvmUseNode24": {
-          "label": "Use Node 24",
-          "description": "Switch the current shell to Node.js 24 with nvm."
+          "label": "Node 24 を使用",
+          "description": "nvm を使って現在のシェルを Node.js 24 に切り替えます。"
         },
         "devBrewClaude": {
-          "label": "Brew install Claude Code",
-          "description": "Install Claude Code through Homebrew Cask."
+          "label": "Brew で Claude Code をインストール",
+          "description": "Homebrew Cask を使って Claude Code をインストールします。"
         },
         "devBrewCodex": {
-          "label": "Brew install Codex",
-          "description": "Install the OpenAI Codex CLI through Homebrew."
+          "label": "Brew で Codex をインストール",
+          "description": "Homebrew を使って OpenAI Codex CLI をインストールします。"
         },
         "devBrewDocker": {
-          "label": "Brew install Docker Desktop",
-          "description": "Install Docker Desktop through Homebrew Cask."
+          "label": "Brew で Docker Desktop をインストール",
+          "description": "Homebrew Cask を使って Docker Desktop をインストールします。"
         },
         "devBrewKubectl": {
-          "label": "Brew install kubectl",
-          "description": "Install kubectl through Homebrew."
+          "label": "Brew で kubectl をインストール",
+          "description": "Homebrew を使って kubectl をインストールします。"
         },
         "containerDockerPs": {
-          "label": "Docker containers",
-          "description": "List running Docker containers."
+          "label": "Docker コンテナ一覧",
+          "description": "実行中の Docker コンテナを一覧表示します。"
         },
         "containerDockerLogs": {
-          "label": "Docker follow logs",
-          "description": "Follow logs for a container. Replace the placeholder before running."
+          "label": "Docker ログを追跡",
+          "description": "コンテナのログを追跡します。実行前にプレースホルダーを置き換えてください。"
         },
         "containerDockerStop": {
-          "label": "Docker stop container",
-          "description": "Stop a container. Replace the placeholder before running."
+          "label": "Docker コンテナを停止",
+          "description": "コンテナを停止します。実行前にプレースホルダーを置き換えてください。"
         },
         "containerComposeUp": {
-          "label": "Compose up detached",
-          "description": "Start the Docker Compose project in the background."
+          "label": "Compose をバックグラウンドで起動",
+          "description": "Docker Compose プロジェクトをバックグラウンドで起動します。"
         },
         "containerComposeExec": {
-          "label": "Compose shell",
-          "description": "Open a shell in the web service container."
+          "label": "Compose シェル",
+          "description": "Web サービスコンテナ内でシェルを開きます。"
         },
         "containerKubectlVersion": {
-          "label": "kubectl client version",
-          "description": "Show the installed kubectl client version."
+          "label": "kubectl クライアントバージョン",
+          "description": "インストールされている kubectl クライアントのバージョンを表示します。"
         },
         "containerKubectlPods": {
-          "label": "kubectl pods",
-          "description": "List pods across all namespaces."
+          "label": "kubectl Pod 一覧",
+          "description": "すべての名前空間にわたって Pod を一覧表示します。"
         },
         "containerKubectlLogs": {
-          "label": "kubectl follow logs",
-          "description": "Follow logs for a pod. Replace the placeholder before running."
+          "label": "kubectl ログを追跡",
+          "description": "Pod のログを追跡します。実行前にプレースホルダーを置き換えてください。"
         },
         "containerKubectlExec": {
-          "label": "kubectl pod shell",
-          "description": "Open a shell in a pod. Replace the placeholder before running."
+          "label": "kubectl Pod シェル",
+          "description": "Pod 内でシェルを開きます。実行前にプレースホルダーを置き換えてください。"
         },
         "containerKubectlApply": {
           "label": "kubectl apply",
-          "description": "Apply Kubernetes resources from k8s.yaml."
+          "description": "k8s.yaml から Kubernetes リソースを適用します。"
         },
         "linuxSystemctlStatusSshd": {
-          "label": "SSH service status",
-          "description": "Check the status of the sshd systemd service."
+          "label": "SSH サービスの状態",
+          "description": "sshd systemd サービスの状態を確認します。"
         },
         "linuxSystemctlRestartSshd": {
-          "label": "Restart SSH service",
-          "description": "Restart the sshd systemd service with sudo."
+          "label": "SSH サービスを再起動",
+          "description": "sudo を使って sshd systemd サービスを再起動します。"
         },
         "linuxSystemctlEnableDocker": {
-          "label": "Enable Docker service",
-          "description": "Enable and start the Docker systemd service."
+          "label": "Docker サービスを有効化",
+          "description": "Docker systemd サービスを有効化して起動します。"
         },
         "linuxJournalctlSshd": {
-          "label": "SSH service logs",
-          "description": "Read journal logs for the sshd service."
+          "label": "SSH サービスログ",
+          "description": "sshd サービスのジャーナルログを読み取ります。"
         },
         "linuxAptUpgrade": {
-          "label": "APT update and upgrade",
-          "description": "Update package metadata and upgrade Debian packages."
+          "label": "APT 更新とアップグレード",
+          "description": "パッケージのメタデータを更新し、Debian パッケージをアップグレードします。"
         },
         "linuxAptInstallDocker": {
-          "label": "APT install Docker packages",
-          "description": "Install Docker Engine and the Compose plugin with apt."
+          "label": "APT で Docker パッケージをインストール",
+          "description": "apt を使って Docker Engine と Compose プラグインをインストールします。"
         },
         "linuxDnfUpgrade": {
-          "label": "DNF upgrade",
-          "description": "Upgrade Fedora packages with dnf."
+          "label": "DNF アップグレード",
+          "description": "dnf を使って Fedora パッケージをアップグレードします。"
         },
         "linuxDnfInstallCompose": {
-          "label": "DNF install Compose plugin",
-          "description": "Install the Docker Compose plugin with dnf."
+          "label": "DNF で Compose プラグインをインストール",
+          "description": "dnf を使って Docker Compose プラグインをインストールします。"
         },
         "macosSoftwareupdateInstallers": {
-          "label": "List macOS installers",
-          "description": "List available full macOS installers."
+          "label": "macOS インストーラーを一覧表示",
+          "description": "利用可能な完全な macOS インストーラーを一覧表示します。"
         },
         "macosNetworksetupServices": {
-          "label": "List network services",
-          "description": "List macOS network services with networksetup."
+          "label": "ネットワークサービスを一覧表示",
+          "description": "networksetup を使って macOS のネットワークサービスを一覧表示します。"
         },
         "macosNetworksetupManual": {
-          "label": "Set manual Ethernet IP",
-          "description": "Set a manual IP configuration for Ethernet. Edit values before running."
+          "label": "Ethernet の手動 IP を設定",
+          "description": "Ethernet の手動 IP 設定を行います。実行前に値を編集してください。"
         },
         "macosScutilSmbProtocol": {
-          "label": "Edit SMB protocol map",
-          "description": "Open an advanced scutil preferences command for SMB protocol settings."
+          "label": "SMB プロトコルマップを編集",
+          "description": "SMB プロトコル設定のための高度な scutil 設定コマンドを開きます。"
         },
         "macosLaunchctlUnloadNetbiosd": {
-          "label": "Unload netbiosd",
-          "description": "Unload the macOS netbiosd launch daemon."
+          "label": "netbiosd をアンロード",
+          "description": "macOS の netbiosd 起動デーモンをアンロードします。"
         },
         "macosLaunchctlLoadNetbiosd": {
-          "label": "Load netbiosd",
-          "description": "Load the macOS netbiosd launch daemon."
+          "label": "netbiosd をロード",
+          "description": "macOS の netbiosd 起動デーモンをロードします。"
         },
         "macosPmsetSchedule": {
-          "label": "Show power schedule",
-          "description": "Show scheduled macOS power events."
+          "label": "電源スケジュールを表示",
+          "description": "macOS のスケジュール済み電源イベントを表示します。"
         },
         "macosPmsetRepeatWake": {
-          "label": "Schedule Monday wake",
-          "description": "Schedule a repeating Monday wake event."
+          "label": "月曜日の起動をスケジュール",
+          "description": "毎週月曜日に繰り返す起動イベントをスケジュールします。"
         },
         "macosPmsetRepeatCancel": {
-          "label": "Cancel repeat power schedule",
-          "description": "Cancel repeating macOS power events."
+          "label": "繰り返し電源スケジュールをキャンセル",
+          "description": "macOS の繰り返し電源イベントをキャンセルします。"
         },
         "macosDefaultsRead": {
-          "label": "Read defaults domain",
-          "description": "Read a macOS preferences domain. Replace the placeholder before running."
+          "label": "defaults ドメインを読み取る",
+          "description": "macOS の設定ドメインを読み取ります。実行前にプレースホルダーを置き換えてください。"
         },
         "macosDefaultsWrite": {
-          "label": "Write defaults value",
-          "description": "Write a macOS preferences value. Replace placeholders before running."
+          "label": "defaults 値を書き込む",
+          "description": "macOS の設定値を書き込みます。実行前にプレースホルダーを置き換えてください。"
         }
       }
     }
@@ -2468,38 +2468,38 @@
     "tauriRequired": "マニュアルはデスクトップランタイムでのみ利用できます。"
   },
   "watchdog": {
-    "statusBarLabel": "{{count}} watchdog(s)",
-    "empty": "No watchdogs running.",
-    "openDetail": "Open {{name}}",
-    "triggersCount": "{{count}} trigger(s)",
-    "cancel": "Cancel",
-    "dismiss": "Dismiss",
-    "close": "Close",
-    "saveReport": "Save report",
+    "statusBarLabel": "ウォッチドッグ {{count}} 件",
+    "empty": "実行中のウォッチドッグはありません。",
+    "openDetail": "{{name}} を開く",
+    "triggersCount": "{{count}} 件のトリガー",
+    "cancel": "キャンセル",
+    "dismiss": "無視する",
+    "close": "閉じる",
+    "saveReport": "レポートを保存",
     "state": {
-      "armed": "Armed",
-      "running": "Running",
-      "triggered": "Triggered",
-      "intervening": "Intervening",
-      "suppressed": "Suppressed",
-      "completed": "Completed",
-      "canceled": "Canceled",
-      "error": "Error"
+      "armed": "待機中",
+      "running": "実行中",
+      "triggered": "トリガー済み",
+      "intervening": "介入中",
+      "suppressed": "抑制済み",
+      "completed": "完了",
+      "canceled": "キャンセル済み",
+      "error": "エラー"
     },
     "detail": {
-      "lastValue": "Last value",
-      "polls": "Polls",
-      "triggers": "Triggers",
-      "interval": "Interval",
-      "notEnoughData": "Collecting data…",
-      "sparkline": "Recent values",
-      "triggerEvents": "Trigger events",
-      "interventions": "AI interventions",
-      "aiSummary": "AI summary",
-      "summarize": "Summarize",
-      "regenerate": "Regenerate",
-      "summarizing": "Summarizing…",
-      "summaryEmpty": "Click Summarize to generate a natural-language post-mortem of this watchdog."
+      "lastValue": "最終値",
+      "polls": "ポーリング",
+      "triggers": "トリガー",
+      "interval": "間隔",
+      "notEnoughData": "データを収集中…",
+      "sparkline": "最近の値",
+      "triggerEvents": "トリガーイベント",
+      "interventions": "AI の介入",
+      "aiSummary": "AI サマリー",
+      "summarize": "要約する",
+      "regenerate": "再生成",
+      "summarizing": "要約中…",
+      "summaryEmpty": "「要約する」をクリックして、このウォッチドッグの自然言語によるポストモーテムを生成します。"
     }
   },
   "workspace": {
