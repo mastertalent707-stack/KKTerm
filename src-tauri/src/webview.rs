@@ -357,9 +357,14 @@ const EXTERNAL_LINK_SHORTCUT_AGENT: &str = r#"
 })();
 "#;
 pub struct WebviewSessionManager {
-    sessions: Mutex<HashMap<String, Webview>>,
+    sessions: Mutex<HashMap<String, WebviewSession>>,
     starting_sessions: Mutex<HashSet<String>>,
     clipboard_read_allowed: Arc<AtomicBool>,
+}
+
+struct WebviewSession {
+    webview: Webview,
+    visible: bool,
 }
 
 #[derive(Deserialize)]
@@ -640,7 +645,13 @@ impl WebviewSessionManager {
         }
 
         let mut sessions = self.lock()?;
-        sessions.insert(session_id.clone(), webview);
+        sessions.insert(
+            session_id.clone(),
+            WebviewSession {
+                webview,
+                visible: true,
+            },
+        );
         self.clear_starting(&session_id);
 
         Ok(WebviewSessionStarted {
@@ -660,10 +671,12 @@ impl WebviewSessionManager {
             height,
         } = request;
         let sessions = self.lock()?;
-        let webview = sessions
+        let session = sessions
             .get(&session_id)
             .ok_or_else(|| format!("webview session '{session_id}' was not found"))?;
-        show_webview(webview, x, y, width, height)?;
+        if session.visible {
+            show_webview(&session.webview, x, y, width, height)?;
+        }
         Ok(())
     }
 
@@ -680,19 +693,28 @@ impl WebviewSessionManager {
             width,
             height,
         } = request;
-        let sessions = self.lock()?;
-        let webview = sessions
-            .get(&session_id)
-            .ok_or_else(|| format!("webview session '{session_id}' was not found"))?;
+        let mut sessions = self.lock()?;
+        if !sessions.contains_key(&session_id) {
+            return Err(format!("webview session '{session_id}' was not found"));
+        }
         if visible {
-            for (other_session_id, other_webview) in sessions.iter() {
+            for (other_session_id, other_session) in sessions.iter_mut() {
                 if other_session_id != &session_id {
-                    hide_webview(other_webview)?;
+                    hide_webview(&other_session.webview)?;
+                    other_session.visible = false;
                 }
             }
-            show_webview(webview, x, y, width, height)?;
+            let session = sessions
+                .get_mut(&session_id)
+                .ok_or_else(|| format!("webview session '{session_id}' was not found"))?;
+            show_webview(&session.webview, x, y, width, height)?;
+            session.visible = true;
         } else {
-            hide_webview(webview)?;
+            let session = sessions
+                .get_mut(&session_id)
+                .ok_or_else(|| format!("webview session '{session_id}' was not found"))?;
+            hide_webview(&session.webview)?;
+            session.visible = false;
         }
         Ok(())
     }
@@ -700,40 +722,44 @@ impl WebviewSessionManager {
     pub fn navigate(&self, request: WebviewNavigateRequest) -> Result<(), String> {
         let url = parse_external_url(&request.url)?;
         let sessions = self.lock()?;
-        let webview = sessions
+        let session = sessions
             .get(&request.session_id)
             .ok_or_else(|| format!("webview session '{}' was not found", request.session_id))?;
-        webview
+        session
+            .webview
             .navigate(url)
             .map_err(|error| format!("failed to navigate webview: {error}"))
     }
 
     pub fn reload(&self, request: WebviewSimpleRequest) -> Result<(), String> {
         let sessions = self.lock()?;
-        let webview = sessions
+        let session = sessions
             .get(&request.session_id)
             .ok_or_else(|| format!("webview session '{}' was not found", request.session_id))?;
-        webview
+        session
+            .webview
             .eval("window.location.reload();")
             .map_err(|error| format!("failed to reload webview: {error}"))
     }
 
     pub fn go_back(&self, request: WebviewSimpleRequest) -> Result<(), String> {
         let sessions = self.lock()?;
-        let webview = sessions
+        let session = sessions
             .get(&request.session_id)
             .ok_or_else(|| format!("webview session '{}' was not found", request.session_id))?;
-        webview
+        session
+            .webview
             .eval("window.history.back();")
             .map_err(|error| format!("failed to navigate webview back: {error}"))
     }
 
     pub fn go_forward(&self, request: WebviewSimpleRequest) -> Result<(), String> {
         let sessions = self.lock()?;
-        let webview = sessions
+        let session = sessions
             .get(&request.session_id)
             .ok_or_else(|| format!("webview session '{}' was not found", request.session_id))?;
-        webview
+        session
+            .webview
             .eval("window.history.forward();")
             .map_err(|error| format!("failed to navigate webview forward: {error}"))
     }
@@ -753,10 +779,11 @@ impl WebviewSessionManager {
         let payload = serde_json::to_string(&payload)
             .map_err(|error| format!("failed to prepare URL credential payload: {error}"))?;
         let sessions = self.lock()?;
-        let webview = sessions
+        let session = sessions
             .get(&request.session_id)
             .ok_or_else(|| format!("webview session '{}' was not found", request.session_id))?;
-        webview
+        session
+            .webview
             .eval(format!("window.__KKTERM_URL_AUTOFILL__?.fill({payload});"))
             .map_err(|error| format!("failed to fill webview credential: {error}"))
     }
@@ -768,25 +795,27 @@ impl WebviewSessionManager {
         let nonce = serde_json::to_string(&request.nonce)
             .map_err(|error| format!("failed to prepare URL credential capture nonce: {error}"))?;
         let sessions = self.lock()?;
-        let webview = sessions
+        let session = sessions
             .get(&request.session_id)
             .ok_or_else(|| format!("webview session '{}' was not found", request.session_id))?;
-        webview
+        session
+            .webview
             .eval(format!("window.__KKTERM_URL_AUTOFILL__?.capture({nonce});"))
             .map_err(|error| format!("failed to capture webview credential: {error}"))
     }
 
     pub fn close_session(&self, request: WebviewSimpleRequest) -> Result<(), String> {
         let mut sessions = self.lock()?;
-        if let Some(webview) = sessions.remove(&request.session_id) {
-            webview
+        if let Some(session) = sessions.remove(&request.session_id) {
+            session
+                .webview
                 .close()
                 .map_err(|error| format!("failed to close webview: {error}"))?;
         }
         Ok(())
     }
 
-    fn lock(&self) -> Result<MutexGuard<'_, HashMap<String, Webview>>, String> {
+    fn lock(&self) -> Result<MutexGuard<'_, HashMap<String, WebviewSession>>, String> {
         self.sessions
             .lock()
             .map_err(|_| "webview session lock is poisoned".to_string())

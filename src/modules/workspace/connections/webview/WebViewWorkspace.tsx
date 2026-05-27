@@ -177,6 +177,7 @@ export function WebViewWorkspace({
   const sessionIdRef = useRef<string>(`webview-${tab.id}`);
   const lastBoundsRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const rafRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
   const visibilityRef = useRef({ isActive, suppressed: false });
   const pendingCaptureNonceRef = useRef<string | null>(null);
   const externalLinkTokenRef = useRef<string | null>(null);
@@ -277,14 +278,36 @@ export function WebViewWorkspace({
   };
 
   useEffect(() => {
-    if (!isTauriRuntime() || sessionStartedRef.current || sessionStartingRef.current || !initialUrl) {
+    return () => {
+      mountedRef.current = false;
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      const ownsSession = sessionStartingRef.current || sessionStartedRef.current;
+      sessionStartingRef.current = false;
+      sessionStartedRef.current = false;
+      setWebviewReady(false);
+      if (ownsSession) {
+        releaseWebviewSession(sessionIdRef.current);
+      }
+      if (tab.sshPortForwardSessionId) {
+        void invokeCommand("close_ssh_port_forward", {
+          request: { forwardId: tab.sshPortForwardSessionId },
+        });
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!isTauriRuntime() || sessionStartedRef.current || sessionStartingRef.current || !initialUrl || !isActive) {
       return;
     }
     const bounds = computeBounds();
     if (!bounds) {
       return;
     }
-    let disposed = false;
     const sessionId = sessionIdRef.current;
     sessionStartingRef.current = true;
     lastBoundsRef.current = bounds;
@@ -302,7 +325,7 @@ export function WebViewWorkspace({
     lease.promise
       .then((started) => {
         sessionStartingRef.current = false;
-        if (disposed) {
+        if (!mountedRef.current) {
           return;
         }
         externalLinkTokenRef.current = started.externalLinkToken;
@@ -313,32 +336,12 @@ export function WebViewWorkspace({
       .catch((error) => {
         sessionStartingRef.current = false;
         sessionStartedRef.current = false;
-        if (!disposed) {
+        if (mountedRef.current) {
           setNavError(error instanceof Error ? error.message : String(error));
         }
       });
-
-    return () => {
-      disposed = true;
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      const ownsSession = sessionStartingRef.current || sessionStartedRef.current;
-      sessionStartingRef.current = false;
-      sessionStartedRef.current = false;
-      setWebviewReady(false);
-      if (ownsSession) {
-        releaseWebviewSession(sessionId);
-      }
-      if (tab.sshPortForwardSessionId) {
-        void invokeCommand("close_ssh_port_forward", {
-          request: { forwardId: tab.sshPortForwardSessionId },
-        });
-      }
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isActive]);
 
   useEffect(() => {
     if (!isTauriRuntime() || !webviewReady || autoRefreshSeconds === 0) {

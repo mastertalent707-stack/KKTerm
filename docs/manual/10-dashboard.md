@@ -23,7 +23,7 @@ A View is a Dashboard tab. The first View is named `dashboard.defaultView` and s
 - Tab color styling: `dashboard.viewTabGradient`, theme/default swatch `dashboard.clearViewTabGradient`.
 
 Each View has its own `grid_density` (`dashboard.density.compact`, `dashboard.density.default`, `dashboard.density.roomy`) and its own background.
-Previously opened Views remain mounted while hidden so switching between View tabs preserves Widget Instance state and keeps embedded Connection panes responsive; hidden Connection panes are marked inactive instead of being closed.
+Previously opened Views remain mounted while hidden so switching between View tabs preserves Widget Instance state and keeps embedded Connection panes responsive; hidden Connection panes are marked inactive instead of being closed. Embedded URL Connection panes use a native WebView2 child surface in the desktop runtime, so KKTerm explicitly hides that native surface whenever its Dashboard View or the Dashboard Module is inactive.
 
 ## Edit layout mode
 
