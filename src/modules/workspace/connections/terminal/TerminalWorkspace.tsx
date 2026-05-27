@@ -18,7 +18,16 @@ import { defaultTerminalSettings } from "../../../../app-defaults";
 import { forgetTmuxSessionId, useWorkspaceStore } from "../../../../store";
 import { createTerminalRenderer, type TerminalDimensions, type TerminalRenderer } from "./renderer";
 import { ensureLayout } from "../../layout";
-import { getPaneRenderer, registerPaneInputWriter, registerPaneRenderer, unregisterPaneInputWriter, unregisterPaneRenderer } from "../../paneRegistry";
+import {
+  getPaneRenderer,
+  preserveTerminalPaneRuntime,
+  registerPaneInputWriter,
+  registerPaneRenderer,
+  shouldPreservePaneRuntimeOnUnmount,
+  takePreservedTerminalPaneRuntime,
+  unregisterPaneInputWriter,
+  unregisterPaneRenderer,
+} from "../../paneRegistry";
 import type { Connection, LayoutNode, SplitDirection, TerminalPane, WorkspacePane, WorkspaceTab } from "../../../../types";
 import { QuickCommandBar } from "./QuickCommandBar";
 
@@ -55,6 +64,11 @@ function formatBufferLogFilename(panelTitle: string, date = new Date()) {
   return `${normalizeFilenamePart(panelTitle)}_${year}${month}${day}_${hour}${minute}${second}.log`;
 }
 
+function terminalBufferSnapshotForWrite(bufferText: string) {
+  const snapshot = bufferText.trimEnd();
+  return snapshot ? `${snapshot.replace(/\r?\n/g, "\r\n")}\r\n` : "";
+}
+
 export function TerminalWorkspace({
   allowPaneLayoutControls = true,
   isActive,
@@ -74,14 +88,19 @@ export function TerminalWorkspace({
   );
   const openSftpBrowser = useWorkspaceStore((state) => state.openSftpBrowser);
   const sshSettings = useWorkspaceStore((state) => state.sshSettings);
+  const generalSettings = useWorkspaceStore((state) => state.generalSettings);
   const setFocusedPane = useWorkspaceStore((state) => state.setFocusedPane);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const { t } = useTranslation();
   const defaultFontSize = defaultTerminalSettings.fontSize;
   const canSplit = allowPaneLayoutControls && tab.panes.some((pane) => pane.connection);
   const focusedPaneId = tab.focusedPaneId ?? tab.panes[0]?.id;
+  const maximizedPaneId = tab.maximizedPaneId && tab.panes.some((pane) => pane.id === tab.maximizedPaneId)
+    ? tab.maximizedPaneId
+    : undefined;
   const layout = useMemo(() => ensureLayout(tab.layout, tab.panes), [tab.layout, tab.panes]);
   const isSingleEmbeddedPane = tab.panes.length === 1 && tab.panes[0] !== undefined && !isTerminalPane(tab.panes[0]);
+  const canCloseSinglePane = tab.kind === "terminal" && generalSettings.hideTopTabButtons;
   const quickCommandBarVisible = Boolean(tab.quickCommandBarVisible) && !isSingleEmbeddedPane;
 
   function handleSplit(paneId: string, direction: "right" | "left" | "down" | "up") {
@@ -150,6 +169,7 @@ export function TerminalWorkspace({
         "terminal-workspace",
         isActive ? "active" : "",
         isSingleEmbeddedPane ? "terminal-workspace-embedded-only" : "",
+        maximizedPaneId ? "terminal-workspace-pane-maximized" : "",
         quickCommandBarVisible ? "quick-command-bar-visible" : "",
       ]
         .filter(Boolean)
@@ -163,6 +183,8 @@ export function TerminalWorkspace({
             layout={layout}
             panes={tab.panes}
             focusedPaneId={focusedPaneId}
+            maximizedPaneId={maximizedPaneId}
+            canCloseSinglePane={canCloseSinglePane}
             onFocusPane={(paneId) => setFocusedPane(tab.id, paneId)}
             canSplit={canSplit}
             onFontChange={handleFontChange}
@@ -186,6 +208,8 @@ function TerminalLayoutView({
   layout,
   panes,
   focusedPaneId,
+  maximizedPaneId,
+  canCloseSinglePane,
   onFocusPane,
   canSplit,
   onFontChange,
@@ -201,6 +225,8 @@ function TerminalLayoutView({
   layout: LayoutNode;
   panes: WorkspacePane[];
   focusedPaneId: string | undefined;
+  maximizedPaneId?: string;
+  canCloseSinglePane: boolean;
   onFocusPane: (paneId: string) => void;
   canSplit: boolean;
   onFontChange: (delta: number | "reset") => void;
@@ -216,17 +242,27 @@ function TerminalLayoutView({
     if (!pane) {
       return null;
     }
+    const isPaneMaximized = maximizedPaneId === pane.id;
+    const isPaneHidden = Boolean(maximizedPaneId && !isPaneMaximized);
     return (
-      <div className="terminal-layout-leaf">
+      <div
+        className={[
+          "terminal-layout-leaf",
+          isPaneMaximized ? "terminal-layout-maximized" : "",
+          isPaneHidden ? "terminal-layout-hidden" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
         {isTerminalPane(pane) ? (
           <TerminalPaneView
-            isActive={isActive}
+            isActive={isActive && !isPaneHidden}
             tabId={tabId}
             pane={pane}
             isFocused={pane.id === focusedPaneId}
             onFocus={() => onFocusPane(pane.id)}
             canSplit={canSplit}
-            canClosePane={panes.length > 1}
+            canClosePane={panes.length > 1 || canCloseSinglePane}
             onFontChange={onFontChange}
             onOpenSftp={onOpenSftp}
             onSaveBuffer={onSaveBuffer}
@@ -237,10 +273,10 @@ function TerminalLayoutView({
           />
         ) : (
           <EmbeddedConnectionPane
-            isActive={isActive}
+            isActive={isActive && !isPaneHidden}
             pane={pane}
             tabId={tabId}
-            canClosePane={panes.length > 1}
+            canClosePane={panes.length > 1 || canCloseSinglePane}
             onFocus={() => onFocusPane(pane.id)}
           />
         )}
@@ -252,9 +288,12 @@ function TerminalLayoutView({
     layout.orientation === "horizontal"
       ? "terminal-layout-split terminal-layout-split-horizontal"
       : "terminal-layout-split terminal-layout-split-vertical";
+  const hiddenByMaximizedPane = Boolean(
+    maximizedPaneId && !layoutContainsPane(layout, maximizedPaneId),
+  );
 
   return (
-    <div className={className}>
+    <div className={`${className}${hiddenByMaximizedPane ? " terminal-layout-hidden" : ""}`}>
       {layout.children.map((child, index) => (
         <TerminalLayoutView
           key={child.type === "leaf" ? child.paneId : `split-${index}`}
@@ -263,6 +302,8 @@ function TerminalLayoutView({
           layout={child}
           panes={panes}
           focusedPaneId={focusedPaneId}
+          maximizedPaneId={maximizedPaneId}
+          canCloseSinglePane={canCloseSinglePane}
           onFocusPane={onFocusPane}
           canSplit={canSplit}
           onFontChange={onFontChange}
@@ -276,6 +317,13 @@ function TerminalLayoutView({
       ))}
     </div>
   );
+}
+
+function layoutContainsPane(layout: LayoutNode, paneId: string): boolean {
+  if (layout.type === "leaf") {
+    return layout.paneId === paneId;
+  }
+  return layout.children.some((child) => layoutContainsPane(child, paneId));
 }
 
 function isTerminalPane(pane: WorkspacePane): pane is TerminalPane {
@@ -1066,6 +1114,7 @@ function TerminalPaneView({
     (state) => state.clearTerminalStartMetric,
   );
   const closePane = useWorkspaceStore((state) => state.closePane);
+  const updatePaneCwd = useWorkspaceStore((state) => state.updatePaneCwd);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const { t } = useTranslation();
 
@@ -1203,6 +1252,7 @@ function TerminalPaneView({
         : terminalSettings;
     const terminal = createTerminalRenderer(rendererSettings);
     terminalRendererRef.current = terminal;
+    const cwdDisposable = terminal.onCwdChange((cwd) => updatePaneCwd(tabId, pane.id, cwd));
     terminal.setWheelScrollbackOverride(Boolean(pane.tmuxSessionId && !tmuxMouseEnabled), handleTmuxWheelScroll);
     terminal.open(element);
     terminal.fit();
@@ -1260,20 +1310,29 @@ function TerminalPaneView({
       onFocusRef.current();
     });
     const terminalSessionType = terminalSessionTypeFor(connection);
-    terminal.writeln(t("terminal.startingSessionFor", { type: terminalSessionType, name: connection.name }));
+    const preservedRuntime = takePreservedTerminalPaneRuntime(pane.id);
+    if (preservedRuntime) {
+      terminal.write(terminalBufferSnapshotForWrite(preservedRuntime.bufferText));
+    } else {
+      terminal.writeln(t("terminal.startingSessionFor", { type: terminalSessionType, name: connection.name }));
+    }
 
     if (!isTauriRuntime()) {
       terminal.writeln(t("terminal.desktopRuntimeRequired"));
       return () => {
+        cwdDisposable.dispose();
+        focusDisposable.dispose();
+        unregisterPaneRenderer(pane.id, terminal);
         terminal.dispose();
       };
     }
 
-    const requestedSessionId = uniqueRuntimeId(`${connection.id}-terminal`);
+    const requestedSessionId = preservedRuntime?.sessionId ?? uniqueRuntimeId(`${connection.id}-terminal`);
     sessionIdRef.current = requestedSessionId;
 
     let disposed = false;
-    let sessionStarted = false;
+    let preservingRuntime = false;
+    let sessionStarted = preservedRuntime?.sessionStarted ?? false;
     let removeOutputListener: (() => void) | undefined;
     const writeInputToSession = (data: string) => {
       const sessionId = sessionIdRef.current;
@@ -1379,6 +1438,11 @@ function TerminalPaneView({
       }
       removeOutputListener = unlisten;
 
+      if (preservedRuntime) {
+        scheduleFitAndResizeTerminal();
+        return;
+      }
+
       try {
         if (usesNativeSshHostKeyVerification(connection)) {
           terminal.writeln(t("terminal.verifyingHostKey"));
@@ -1423,7 +1487,9 @@ function TerminalPaneView({
           },
         });
         if (disposed) {
-          void invokeCommand("close_terminal_session", { sessionId: result.sessionId });
+          if (!preservingRuntime) {
+            void invokeCommand("close_terminal_session", { sessionId: result.sessionId });
+          }
           return;
         }
         const frontendDurationMs = Math.round(performance.now() - terminalStartAt);
@@ -1474,12 +1540,20 @@ function TerminalPaneView({
         tmuxWheelFlushTimerRef.current = null;
       }
       tmuxWheelPendingLinesRef.current = 0;
+      cwdDisposable.dispose();
       removeOutputListener?.();
       const sessionId = sessionIdRef.current;
-      if (sessionId) {
+      preservingRuntime = Boolean(sessionId && shouldPreservePaneRuntimeOnUnmount(pane.id));
+      if (sessionId && preservingRuntime) {
+        preserveTerminalPaneRuntime(pane.id, {
+          bufferText: terminal.getBufferText(),
+          sessionId,
+          sessionStarted,
+        });
+      } else if (sessionId) {
         void invokeCommand("close_terminal_session", { sessionId });
       }
-      if (sessionStarted) {
+      if (sessionStarted && !preservingRuntime) {
         markConnectionSessionEnded(connection.id);
       }
       sessionIdRef.current = null;
@@ -1494,15 +1568,10 @@ function TerminalPaneView({
       setSearchResult({ resultIndex: -1, resultCount: 0, found: true });
       terminal.dispose();
     };
-  }, [
-    clearTerminalStartMetric,
-    markConnectionSessionEnded,
-    markConnectionSessionStarted,
-    pane.connection,
-    pane.tmuxSessionId,
-    recordTerminalStartMetric,
-    terminalSettings,
-  ]);
+  // A terminal Session belongs to the Pane id. Display metadata updates such
+  // as Child Connection Tab rename/icon edits must not tear down and recreate
+  // the live SSH/local process.
+  }, [pane.id, tabId]);
 
   useEffect(() => {
     terminalRendererRef.current?.setWheelScrollbackOverride(
@@ -2396,7 +2465,9 @@ function isRemoteInitialDirectory(cwd: string) {
 
 function initialDirectoryForTerminalSession(connection: Connection, paneCwd: string) {
   if (connection.type === "local") {
-    return connection.localStartupDirectory?.trim() || undefined;
+    return paneCwd.trim() && paneCwd.trim() !== "."
+      ? paneCwd.trim()
+      : connection.localStartupDirectory?.trim() || undefined;
   }
   if (connection.type === "ssh" && isRemoteInitialDirectory(paneCwd)) {
     return paneCwd.trim();

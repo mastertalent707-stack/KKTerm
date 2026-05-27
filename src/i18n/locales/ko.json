@@ -891,7 +891,11 @@
     "vnc": "VNC",
     "vncOptions": "VNC 옵션",
     "windowsRdp": "Windows 원격 데스크톱",
-    "wsl": "WSL"
+    "wsl": "WSL",
+    "closeConnection": "연결 닫기",
+    "childConnectionProperties": "하위 연결 탭 속성 편집",
+    "lucideIcons": "Lucide 아이콘",
+    "selectLucideIcon": "Lucide {{icon}} 아이콘 사용"
   },
   "dashboard": {
     "accent": "강조",
@@ -1836,7 +1840,12 @@
     "builtInMcpConfigMethodRunCommandOrManualEdit": "명령 실행 / 수동 편집",
     "builtInMcpConfigMethodManualEdit": "수동 편집",
     "exportSettings": "내보내기",
-    "exportSettingsComplete": "설정을 내보냈습니다: {{filename}}."
+    "exportSettingsComplete": "설정을 내보냈습니다: {{filename}}.",
+    "sectionWorkspace": "작업 영역",
+    "workspaceTabs": "탭",
+    "hideTopTabButtons": "연결 트리에서 하위 연결 탭 사용",
+    "hideTopTabButtonsDesc": "사용하면 상단 탭 스트립이 숨겨지고 저장된 하위 연결 탭이 부모 연결 아래에 기울임꼴 행으로 표시됩니다.",
+    "workspaceSaved": "작업 영역 설정이 저장되었습니다."
   },
   "sftp": {
     "accessed": "접근일",

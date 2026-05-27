@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("workspace pane close buttons render only when a tab has multiple panes", async () => {
+test("workspace pane close buttons render for split panes and hidden Tab Strip single panes", async () => {
   const source = await readFile(
     new URL("../src/modules/workspace/connections/terminal/TerminalWorkspace.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(source, /canClosePane=\{panes\.length > 1\}/);
+  assert.match(source, /const canCloseSinglePane = tab\.kind === "terminal" && generalSettings\.hideTopTabButtons;/);
+  assert.match(source, /canClosePane=\{panes\.length > 1 \|\| canCloseSinglePane\}/);
   assert.match(source, /canClosePane \? \(\s*<button[\s\S]*?terminal-pane-close[\s\S]*?\)\s*: null/);
   assert.match(source, /canClosePane \? \(\s*<button[\s\S]*?embedded-pane-close[\s\S]*?\)\s*: null/);
   assert.match(source, /<WebViewWorkspace isActive=\{isActive\} layoutTabId=\{tabId\} tab=\{embeddedTab\} \/>/);

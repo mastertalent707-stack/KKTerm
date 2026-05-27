@@ -117,6 +117,7 @@ export interface MoveConnectionRequest {
 export interface TerminalPane {
   kind?: "terminal";
   id: string;
+  childConnectionId?: string;
   title: string;
   toolbarTitle?: string;
   cwd: string;
@@ -128,6 +129,7 @@ export interface TerminalPane {
 export interface UrlPane {
   kind: "webview";
   id: string;
+  childConnectionId?: string;
   title: string;
   toolbarTitle?: string;
   connection: Connection;
@@ -140,6 +142,7 @@ export interface UrlPane {
 export interface RemoteDesktopPane {
   kind: "remoteDesktop";
   id: string;
+  childConnectionId?: string;
   title: string;
   toolbarTitle?: string;
   connection: Connection;
@@ -195,6 +198,7 @@ export interface GeneralSettings {
   autoUpdateChecksEnabled: boolean;
   showConnectedConnectionsInRail: boolean;
   showAllConnectionsInTree: boolean;
+  hideTopTabButtons: boolean;
   pinnedConnectionIds: string[];
   allowClipboardRead: boolean;
   autoStartWithWindows: boolean;
@@ -520,6 +524,8 @@ export interface AiProviderSettings {
 
 export interface WorkspaceTab {
   id: string;
+  childConnectionId?: string;
+  childConnectionGroupParentId?: string;
   title: string;
   displayTitle?: string | null;
   toolbarTitle?: string;
@@ -528,12 +534,23 @@ export interface WorkspaceTab {
   panes: WorkspacePane[];
   layout?: LayoutNode;
   focusedPaneId?: string;
+  maximizedPaneId?: string;
   quickCommandBarVisible?: boolean;
   connection?: Connection;
   url?: string;
   dataPartition?: string;
   sshPortForwardSessionId?: string;
   sshPortForwardRemotePort?: number;
+}
+
+export interface WorkspaceChildConnection {
+  id: string;
+  parentConnectionId: string;
+  name: string;
+  tmuxSessionId?: string;
+  cwd?: string;
+  iconDataUrl?: string | null;
+  iconBackgroundColor?: string | null;
 }
 
 export interface FileEntry {

@@ -891,7 +891,11 @@
     "vnc": "VNC",
     "vncOptions": "VNC 選項",
     "windowsRdp": "Windows 遠端桌面",
-    "wsl": "WSL"
+    "wsl": "WSL",
+    "closeConnection": "關閉連線",
+    "childConnectionProperties": "編輯子連線分頁內容",
+    "lucideIcons": "Lucide 圖示",
+    "selectLucideIcon": "使用 Lucide {{icon}} 圖示"
   },
   "dashboard": {
     "accent": "強調色",
@@ -1836,7 +1840,12 @@
     "builtInMcpConfigMethodRunCommandOrManualEdit": "執行指令 / 手動編輯",
     "builtInMcpConfigMethodManualEdit": "手動編輯",
     "exportSettings": "匯出",
-    "exportSettingsComplete": "設定已匯出：{{filename}}。"
+    "exportSettingsComplete": "設定已匯出：{{filename}}。",
+    "sectionWorkspace": "工作區",
+    "workspaceTabs": "分頁",
+    "hideTopTabButtons": "在連線樹使用子連線分頁",
+    "hideTopTabButtonsDesc": "啟用後會隱藏上方分頁列，已儲存的子連線分頁會以斜體列顯示在父連線底下。",
+    "workspaceSaved": "工作區設定已儲存。"
   },
   "sftp": {
     "accessed": "存取日期",

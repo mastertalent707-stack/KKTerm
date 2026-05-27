@@ -29,6 +29,7 @@ For operational measurement records see `docs/PERFORMANCE.md`. For packaging and
 - [x] Connection tree with root Connections, optional nested folders, search/filter, drag/drop reorder, rename/delete/duplicate, quick connect, and live status badges.
 - [x] Tab workspace with split panes inside terminal tabs.
 - [x] Runtime-only per-Tab rename for multiple Tabs opened from the same Connection.
+- [x] Child Connection Tabs in the Connection Tree for saved per-Connection Tab instances, lazy reopen, tmux/session-directory resume hints, and multi-child split layouts.
 - [x] Left activity rail with Dashboard and Settings entries.
 - [x] MobaXterm/RDCMan import.
 

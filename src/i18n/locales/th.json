@@ -891,7 +891,11 @@
     "vnc": "VNC",
     "vncOptions": "ตัวเลือก VNC",
     "windowsRdp": "เดสก์ท็อประยะไกลของ Windows",
-    "wsl": "WSL"
+    "wsl": "WSL",
+    "closeConnection": "ปิดการเชื่อมต่อ",
+    "childConnectionProperties": "แก้ไขคุณสมบัติแท็บการเชื่อมต่อลูก",
+    "lucideIcons": "ไอคอน Lucide",
+    "selectLucideIcon": "ใช้ไอคอน Lucide {{icon}}"
   },
   "dashboard": {
     "accent": "สีเน้น",
@@ -1836,7 +1840,12 @@
     "builtInMcpConfigMethodRunCommandOrManualEdit": "เรียกใช้คำสั่ง / แก้ไขด้วยตนเอง",
     "builtInMcpConfigMethodManualEdit": "แก้ไขด้วยตนเอง",
     "exportSettings": "ส่งออก",
-    "exportSettingsComplete": "ส่งออกการตั้งค่าแล้ว: {{filename}}"
+    "exportSettingsComplete": "ส่งออกการตั้งค่าแล้ว: {{filename}}",
+    "sectionWorkspace": "พื้นที่ทำงาน",
+    "workspaceTabs": "แท็บ",
+    "hideTopTabButtons": "ใช้แท็บการเชื่อมต่อลูกในต้นไม้การเชื่อมต่อ",
+    "hideTopTabButtonsDesc": "เมื่อเปิดใช้ แถบแท็บด้านบนจะถูกซ่อน และแท็บการเชื่อมต่อลูกที่บันทึกไว้จะแสดงเป็นแถวตัวเอียงใต้การเชื่อมต่อแม่",
+    "workspaceSaved": "บันทึกการตั้งค่าพื้นที่ทำงานแล้ว"
   },
   "sftp": {
     "accessed": "เข้าถึงเมื่อ",

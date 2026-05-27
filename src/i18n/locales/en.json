@@ -465,6 +465,7 @@
     "sectionGeneral": "General",
     "sectionAppearance": "Appearance",
     "sectionDashboard": "Dashboard",
+    "sectionWorkspace": "Workspace",
     "dashboardTitle": "Dashboard Settings",
     "dashboardDescription": "Configure default layout, widget behavior, and view management for the Dashboard.",
     "sectionCredentials": "Credentials",
@@ -848,6 +849,10 @@
     "dashboardUseRandomDynamicBackgroundDesc": "New Dashboard Views automatically start with a random dynamic background.",
     "dashboardAllowWidgetNetworkTools": "Allow network tools in widgets",
     "dashboardAllowWidgetNetworkToolsDesc": "When enabled, script widgets that request permissions.networkTools can run ping, port scan, DNS, WHOIS, and Wake-on-LAN. Disable to globally block these from all widgets.",
+    "workspaceTabs": "Tabs",
+    "hideTopTabButtons": "Use Child Connection Tabs in the Connection Tree",
+    "hideTopTabButtonsDesc": "When enabled, the top Tab Strip is hidden and saved Child Connection Tabs appear as italic rows under their parent Connection.",
+    "workspaceSaved": "Workspace settings saved.",
     "sectionUrl": "URL",
     "urlDefaults": "URL settings",
     "urlSecurity": "URL security",
@@ -1060,6 +1065,7 @@
     "screenControl": "Screen control",
     "type": "Type",
     "connectionProperties": "Connection properties",
+    "childConnectionProperties": "Edit Child Connection Tab Properties",
     "newConnectionTitle": "New Connection",
     "openOneOffSession": "Open one-off session",
     "editIcon": "Edit Connection icon",
@@ -1069,6 +1075,7 @@
     "transparentIconBackground": "Use transparent icon background",
     "selectIconBackground": "Use {{color}} icon background",
     "predefinedIcons": "Predefined",
+    "lucideIcons": "Lucide icons",
     "customImage": "Selected image",
     "currentCustomIcon": "Current custom icon",
     "savedImages": "Saved images",
@@ -1076,6 +1083,7 @@
     "useDefaultIcon": "Use default icon",
     "removeCustomIcon": "Remove custom icon",
     "selectPredefinedIcon": "Use {{icon}} icon",
+    "selectLucideIcon": "Use Lucide {{icon}} icon",
     "selectSavedIcon": "Use saved image {{index}}",
     "iconReadError": "Could not read that image.",
     "iconFileTooLarge": "Choose an image under 20 MB.",
@@ -1238,7 +1246,8 @@
       "importedFromMobaxterm": "MobaXterm",
       "importedFromPutty": "PuTTY",
       "importedDefault": "Imported"
-    }
+    },
+    "closeConnection": "Close Connection"
   },
   "terminal": {
     "openSftp": "Open SFTP browser",

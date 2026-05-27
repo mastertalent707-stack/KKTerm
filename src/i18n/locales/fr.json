@@ -891,7 +891,11 @@
     "vnc": "VNC",
     "vncOptions": "Options VNC",
     "windowsRdp": "Bureau à distance Windows",
-    "wsl": "WSL"
+    "wsl": "WSL",
+    "closeConnection": "Fermer la connexion",
+    "childConnectionProperties": "Modifier les propriétés de l’onglet de connexion enfant",
+    "lucideIcons": "Icônes Lucide",
+    "selectLucideIcon": "Utiliser l’icône Lucide {{icon}}"
   },
   "dashboard": {
     "accent": "Accent",
@@ -1836,7 +1840,12 @@
     "builtInMcpConfigMethodRunCommandOrManualEdit": "Exécuter la commande / modification manuelle",
     "builtInMcpConfigMethodManualEdit": "Modification manuelle",
     "exportSettings": "Exporter",
-    "exportSettingsComplete": "Paramètres exportés : {{filename}}."
+    "exportSettingsComplete": "Paramètres exportés : {{filename}}.",
+    "sectionWorkspace": "Espace de travail",
+    "workspaceTabs": "Onglets",
+    "hideTopTabButtons": "Utiliser les onglets de connexion enfant dans l’arborescence des connexions",
+    "hideTopTabButtonsDesc": "Lorsque cette option est activée, la bande d’onglets supérieure est masquée et les onglets de connexion enfant enregistrés apparaissent en lignes italiques sous leur connexion parente.",
+    "workspaceSaved": "Paramètres de l’espace de travail enregistrés."
   },
   "sftp": {
     "accessed": "Accédé",

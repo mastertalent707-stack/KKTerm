@@ -15,10 +15,12 @@
 
 .app-titlebar {
   box-sizing: border-box;
+  position: relative;
   display: flex;
   align-items: stretch;
   justify-content: space-between;
   height: var(--app-titlebar-height);
+  padding-right: 138px;
   background: var(--nav-toolbar-bg);
   color: var(--nav-toolbar-text);
   border-bottom: 1px solid var(--nav-toolbar-tooltip-border);
@@ -60,8 +62,12 @@
 }
 
 .app-titlebar-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
   flex: 0 0 auto;
+  height: var(--app-titlebar-height);
   app-region: no-drag;
   -webkit-app-region: no-drag;
 }

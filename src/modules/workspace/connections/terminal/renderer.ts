@@ -48,6 +48,7 @@ export interface TerminalRenderer {
   focus: () => void;
   attachCustomKeyEventHandler: (handler: (event: KeyboardEvent) => boolean) => void;
   getSelection: () => string;
+  onCwdChange: (handler: (cwd: string) => void) => IDisposable;
   onData: (handler: (data: string) => void) => IDisposable;
   onSearchResultsChange: (handler: (result: ISearchResultChangeEvent) => void) => IDisposable;
   onSelectionChange: (handler: () => void) => IDisposable;
@@ -98,6 +99,8 @@ class XtermTerminalRenderer implements TerminalRenderer {
   private hostElement: HTMLElement | null = null;
   private readonly searchAddon = new SearchAddon({ highlightLimit: 500 });
   private readonly osc52Disposable: IDisposable | null = null;
+  private readonly cwdListeners = new Set<(cwd: string) => void>();
+  private readonly osc7Disposable: IDisposable | null = null;
   private readonly terminal: XtermTerminal;
   private webglAddon: WebglAddon | null = null;
   private webglContextLossDisposable: IDisposable | null = null;
@@ -110,6 +113,9 @@ class XtermTerminalRenderer implements TerminalRenderer {
     this.terminal.loadAddon(this.fitAddon);
     this.terminal.loadAddon(this.searchAddon);
     this.terminal.loadAddon(new WebLinksAddon(handleTerminalLink));
+    this.osc7Disposable = this.terminal.parser.registerOscHandler(7, (data) =>
+      this.handleOsc7CwdSequence(data),
+    );
     if (settings.allowOsc52Clipboard) {
       this.osc52Disposable = this.terminal.parser.registerOscHandler(52, (data) =>
         handleOsc52ClipboardSequence(data),
@@ -132,6 +138,7 @@ class XtermTerminalRenderer implements TerminalRenderer {
   dispose() {
     this.hostElement = null;
     this.osc52Disposable?.dispose();
+    this.osc7Disposable?.dispose();
     this.disposeWebglAddon();
     this.terminal.dispose();
   }
@@ -188,6 +195,15 @@ class XtermTerminalRenderer implements TerminalRenderer {
 
   onData(handler: (data: string) => void) {
     return this.terminal.onData(handler);
+  }
+
+  onCwdChange(handler: (cwd: string) => void) {
+    this.cwdListeners.add(handler);
+    return {
+      dispose: () => {
+        this.cwdListeners.delete(handler);
+      },
+    };
   }
 
   onSearchResultsChange(handler: (result: ISearchResultChangeEvent) => void) {
@@ -334,6 +350,16 @@ class XtermTerminalRenderer implements TerminalRenderer {
     event.stopPropagation();
     return false;
   }
+
+  private handleOsc7CwdSequence(data: string) {
+    const cwd = decodeOsc7Cwd(data);
+    if (cwd) {
+      for (const listener of this.cwdListeners) {
+        listener(cwd);
+      }
+    }
+    return true;
+  }
 }
 
 function listenToFocus(textarea: HTMLTextAreaElement, handler: () => void): IDisposable {
@@ -445,6 +471,26 @@ async function handleOsc52ClipboardSequence(data: string) {
     console.warn("OSC 52 clipboard write failed.", error);
   }
   return true;
+}
+
+export function decodeOsc7Cwd(data: string) {
+  const trimmed = data.trim();
+  if (!trimmed.startsWith("file://")) {
+    return null;
+  }
+  try {
+    const url = new URL(trimmed);
+    const pathname = decodeURIComponent(url.pathname);
+    if (!pathname) {
+      return null;
+    }
+    if (/^\/[A-Za-z]:\//.test(pathname)) {
+      return pathname.slice(1);
+    }
+    return pathname;
+  } catch {
+    return null;
+  }
 }
 
 function handleTerminalLink(event: MouseEvent, uri: string) {

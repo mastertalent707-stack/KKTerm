@@ -891,7 +891,11 @@
     "vnc": "VNC",
     "vncOptions": "Opsi VNC",
     "windowsRdp": "Desktop Jauh Windows",
-    "wsl": "WSL"
+    "wsl": "WSL",
+    "closeConnection": "Tutup koneksi",
+    "childConnectionProperties": "Edit properti Tab Koneksi Anak",
+    "lucideIcons": "Ikon Lucide",
+    "selectLucideIcon": "Gunakan ikon Lucide {{icon}}"
   },
   "dashboard": {
     "accent": "Aksen",
@@ -1836,7 +1840,12 @@
     "builtInMcpConfigMethodRunCommandOrManualEdit": "Jalankan perintah / edit manual",
     "builtInMcpConfigMethodManualEdit": "Edit manual",
     "exportSettings": "Ekspor",
-    "exportSettingsComplete": "Pengaturan diekspor: {{filename}}."
+    "exportSettingsComplete": "Pengaturan diekspor: {{filename}}.",
+    "sectionWorkspace": "Ruang kerja",
+    "workspaceTabs": "Tab",
+    "hideTopTabButtons": "Gunakan Tab Koneksi Anak di Pohon Koneksi",
+    "hideTopTabButtonsDesc": "Saat diaktifkan, Strip Tab atas disembunyikan dan Tab Koneksi Anak yang disimpan muncul sebagai baris miring di bawah Koneksi induknya.",
+    "workspaceSaved": "Pengaturan ruang kerja disimpan."
   },
   "sftp": {
     "accessed": "Diakses",

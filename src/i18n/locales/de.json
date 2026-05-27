@@ -891,7 +891,11 @@
     "vnc": "VNC",
     "vncOptions": "VNC-Optionen",
     "windowsRdp": "Windows-Remotedesktop",
-    "wsl": "WSL"
+    "wsl": "WSL",
+    "closeConnection": "Verbindung schließen",
+    "childConnectionProperties": "Eigenschaften des untergeordneten Verbindungs-Tabs bearbeiten",
+    "lucideIcons": "Lucide-Symbole",
+    "selectLucideIcon": "Lucide-Symbol {{icon}} verwenden"
   },
   "dashboard": {
     "accent": "Akzent",
@@ -1836,7 +1840,12 @@
     "builtInMcpConfigMethodRunCommandOrManualEdit": "Befehl ausführen / manuell bearbeiten",
     "builtInMcpConfigMethodManualEdit": "Manuell bearbeiten",
     "exportSettings": "Exportieren",
-    "exportSettingsComplete": "Einstellungen exportiert: {{filename}}."
+    "exportSettingsComplete": "Einstellungen exportiert: {{filename}}.",
+    "sectionWorkspace": "Arbeitsbereich",
+    "workspaceTabs": "Tabs",
+    "hideTopTabButtons": "Untergeordnete Verbindungs-Tabs im Verbindungsbaum verwenden",
+    "hideTopTabButtonsDesc": "Wenn aktiviert, wird die obere Tab-Leiste ausgeblendet und gespeicherte untergeordnete Verbindungs-Tabs erscheinen kursiv unter ihrer übergeordneten Verbindung.",
+    "workspaceSaved": "Arbeitsbereichseinstellungen gespeichert."
   },
   "sftp": {
     "accessed": "Zugegriffen",

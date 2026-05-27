@@ -51,6 +51,10 @@ _Avoid_: Connection, profile, tab
 A frontend workspace container that presents one session or a set of related panes.
 _Avoid_: Session, connection, backend tab
 
+**Child Connection Tab**:
+A saved frontend Tab instance shown as an italic child row under its parent Connection in the Connection Tree when Workspace Settings enables the hidden top Tab Strip mode. A Child Connection Tab may remember a display name, icon/background, tmux session id, and last terminal directory so it can be reopened lazily after app launch. It is not the durable backend Connection itself and it is not a live Session until the user opens it.
+_Avoid_: child connection, saved session, sub-connection, backend tab
+
 **Dashboard Module**:
 A built-in Activity Rail Module that provides a dynamic widget playground. Users select from built-in widgets (currently App Launcher) or AI Created Widgets. The built-in AI Assistant and coding agents create new widgets through atomic Tauri commands; users customize each widget's visual preset, accent, icon, and title and arrange them on a 12-column drag-and-drop grid. See `docs/DASHBOARD.md` for the durable architecture.
 _Avoid_: landing page, overview
@@ -96,7 +100,7 @@ The vertical icon bar on the far left of the app. Shows top-level built-in Modul
 _Avoid_: sidebar, left sidebar, nav bar
 
 **Connection Tree (Connections Panel)**:
-The left-side tree view of saved Connections, folders, and subfolders. Visible inside the Workspace Module. Supports search, filtering, drag/drop ordering, rename, delete, duplicate, Quick Connect, and open-Session status badges. Collapsed/expanded state is persisted.
+The left-side tree view of saved Connections, folders, subfolders, and optional Child Connection Tabs. Visible inside the Workspace Module. Supports search, filtering, drag/drop ordering, rename, delete, duplicate, Quick Connect, and open-Session status badges. Collapsed/expanded state is persisted.
 _Avoid_: connection sidebar, host list
 
 **AI Assistant Panel**:
@@ -141,6 +145,8 @@ _Avoid_: settings nav, settings menu
 - A **Quick Command** writes input from the **Quick Command Bar** to a terminal **Pane** in an existing **Session**.
 - A **Session** may be presented by one **Tab**.
 - A terminal **Tab** may contain one or more **Panes**.
+- A **Child Connection Tab** is a named, saved frontend Tab instance under a parent **Connection**; opening it creates or activates the corresponding **Tab** and then the live **Session**.
+- A **Child Connection Tab** may remember a tmux session id or last terminal directory, but those values remain workspace presentation/reopen hints rather than durable backend **Connection** fields.
 - A tmux-enabled SSH terminal **Pane** may start or attach to a named remote tmux session. If `tmux` is unavailable on the remote host, the Pane falls back to the normal remote shell.
 - A **Tab** is UI state only and is not the durable backend model.
 - Switching the active **Tab** does not end, disconnect, or recreate its **Session**.
@@ -157,3 +163,4 @@ _Avoid_: settings nav, settings menu
 
 - "Profile" and "saved connection" were both used for durable openable resources. Resolved: use **Connection** as the canonical term.
 - "Session" was previously easy to confuse with a saved connection or visible tab. Resolved: a **Session** is live runtime state, while a **Tab** is only the frontend container.
+- "Child connection" can sound like a nested durable Connection. Resolved: use **Child Connection Tab** for the saved child row that reopens a Tab under a parent Connection.
