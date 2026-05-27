@@ -26,8 +26,8 @@ import { confirmNativeDialog, invokeCommand, isTauriRuntime, selectAppLauncherFo
 import { connectionTree } from "../../../app-defaults";
 import { DeleteConfirmationDialog } from "../../../app/DeleteConfirmationDialog";
 import { pushTrayMenu } from "../../../app/trayMenu";
-import { useWorkspaceStore } from "../../../store";
-import type { Connection, ConnectionFolder, ConnectionStatus, ConnectionTree, ConnectionType, CreateConnectionRequest, RdpSettings, SplitDirection, SshSettings, UpdateConnectionRequest, VncSettings } from "../../../types";
+import { CHILD_CONNECTION_CLOSED_EVENT, appendTmuxSessionId, useWorkspaceStore } from "../../../store";
+import type { Connection, ConnectionFolder, ConnectionStatus, ConnectionTree, ConnectionType, CreateConnectionRequest, RdpSettings, SplitDirection, SshSettings, UpdateConnectionRequest, VncSettings, WorkspaceChildConnection, WorkspacePane, WorkspaceTab } from "../../../types";
 import { RDP_REMOTE_RESOLUTION_FIXED } from "../../../types";
 
 type DraggedTreeItem =
@@ -108,6 +108,55 @@ type ConnectionDialogRequest = CreateConnectionRequest & {
   urlPassword?: string;
 };
 
+const CHILD_CONNECTIONS_STORAGE_KEY = "kkterm.workspace.childConnections.v1";
+
+type ChildConnectionPropertiesState = {
+  child: WorkspaceChildConnection;
+  connection: Connection;
+};
+
+function loadStoredChildConnections(): WorkspaceChildConnection[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(CHILD_CONNECTIONS_STORAGE_KEY) ?? "[]") as unknown;
+    return Array.isArray(parsed) ? parsed.filter(isStoredChildConnection) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistStoredChildConnections(children: WorkspaceChildConnection[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(CHILD_CONNECTIONS_STORAGE_KEY, JSON.stringify(children));
+  } catch {
+    // Storage can be unavailable or full; keep runtime state working.
+  }
+}
+
+function isStoredChildConnection(value: unknown): value is WorkspaceChildConnection {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const child = value as Partial<WorkspaceChildConnection>;
+  return (
+    typeof child.id === "string" &&
+    child.id.trim().length > 0 &&
+    typeof child.parentConnectionId === "string" &&
+    child.parentConnectionId.trim().length > 0 &&
+    typeof child.name === "string" &&
+    child.name.trim().length > 0
+  );
+}
+
+function isTerminalWorkspacePane(pane: WorkspacePane): pane is WorkspacePane & { cwd: string } {
+  return pane.kind === undefined || pane.kind === "terminal";
+}
+
 export function ConnectionSidebar({
   onExternalOpenConnection,
   onToggleCollapsed,
@@ -121,13 +170,21 @@ export function ConnectionSidebar({
   const setQuery = useWorkspaceStore((state) => state.setQuery);
   const openConnection = useWorkspaceStore((state) => state.openConnection);
   const openConnectionInNewTab = useWorkspaceStore((state) => state.openConnectionInNewTab);
+  const openChildConnectionInNewTab = useWorkspaceStore((state) => state.openChildConnectionInNewTab);
+  const openChildConnectionLayout = useWorkspaceStore((state) => state.openChildConnectionLayout);
+  const updateOpenChildConnectionMetadata = useWorkspaceStore((state) => state.updateOpenChildConnectionMetadata);
   const refreshOpenConnectionMetadata = useWorkspaceStore((state) => state.refreshOpenConnectionMetadata);
   const tabs = useWorkspaceStore((state) => state.tabs);
   const activeTabId = useWorkspaceStore((state) => state.activeTabId);
+  const activateTab = useWorkspaceStore((state) => state.activateTab);
+  const closeChildConnection = useWorkspaceStore((state) => state.closeChildConnection);
+  const setFocusedPane = useWorkspaceStore((state) => state.setFocusedPane);
+  const maximizeChildConnectionPane = useWorkspaceStore((state) => state.maximizeChildConnectionPane);
   const addConnectionToTerminalPane = useWorkspaceStore((state) => state.addConnectionToTerminalPane);
   const saveConnectionLayout = useWorkspaceStore((state) => state.saveConnectionLayout);
   const resetConnectionLayout = useWorkspaceStore((state) => state.resetConnectionLayout);
   const activeSessionCounts = useWorkspaceStore((state) => state.activeSessionCounts);
+  const closeTab = useWorkspaceStore((state) => state.closeTab);
   const generalSettings = useWorkspaceStore((state) => state.generalSettings);
   const setGeneralSettings = useWorkspaceStore((state) => state.setGeneralSettings);
   const openElevatedLocalTerminal = useWorkspaceStore((state) => state.openElevatedLocalTerminal);
@@ -149,7 +206,10 @@ export function ConnectionSidebar({
   const [collapsedFolderIds, setCollapsedFolderIds] = useState<Set<string>>(loadCollapsedFolderIds);
   const [pendingFolderDraft, setPendingFolderDraft] = useState<PendingFolderDraft | null>(null);
   const [inlineRenameTarget, setInlineRenameTarget] = useState<InlineRenameTarget | null>(null);
+  const [inlineChildRenameTarget, setInlineChildRenameTarget] = useState<string | null>(null);
   const [treeContextMenu, setTreeContextMenu] = useState<TreeContextMenuState | null>(null);
+  const [childConnections, setChildConnections] = useState<WorkspaceChildConnection[]>(loadStoredChildConnections);
+  const [childProperties, setChildProperties] = useState<ChildConnectionPropertiesState | null>(null);
   const [editConnection, setEditConnection] = useState<EditConnectionState | null>(null);
   const [transferSshPublicKeyDialog, setTransferSshPublicKeyDialog] =
     useState<TransferSshPublicKeyDialogState | null>(null);
@@ -157,6 +217,21 @@ export function ConnectionSidebar({
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<DeleteTarget | null>(null);
   const showAllConnections = generalSettings.showAllConnectionsInTree;
+  const showChildTabsInTree = generalSettings.hideTopTabButtons;
+  const reusableChildIconDataUrls = useMemo(() => {
+    const urls = new Set<string>();
+    for (const connection of flattenConnections(tree)) {
+      if (connection.iconDataUrl) {
+        urls.add(connection.iconDataUrl);
+      }
+    }
+    for (const child of childConnections) {
+      if (child.iconDataUrl) {
+        urls.add(child.iconDataUrl);
+      }
+    }
+    return [...urls];
+  }, [childConnections, tree]);
   const addConnectionRef = useRef<HTMLDivElement | null>(null);
   const quickConnectRef = useRef<HTMLDivElement | null>(null);
   const draggedItemRef = useRef<DraggedTreeItem | null>(null);
@@ -181,6 +256,52 @@ export function ConnectionSidebar({
       void unlistenPromise.then((unlisten) => unlisten());
     };
   }, []);
+
+  useEffect(() => {
+    persistStoredChildConnections(childConnections);
+  }, [childConnections]);
+
+  useEffect(() => {
+    function handleChildConnectionClosed(event: Event) {
+      const detail = (event as CustomEvent<{ childConnectionId?: string }>).detail;
+      if (!detail?.childConnectionId) {
+        return;
+      }
+      setChildConnections((current) =>
+        current.filter((child) => child.id !== detail.childConnectionId),
+      );
+    }
+
+    window.addEventListener(CHILD_CONNECTION_CLOSED_EVENT, handleChildConnectionClosed);
+    return () =>
+      window.removeEventListener(CHILD_CONNECTION_CLOSED_EVENT, handleChildConnectionClosed);
+  }, []);
+
+  useEffect(() => {
+    if (!showChildTabsInTree) {
+      return;
+    }
+    setChildConnections((current) => {
+      let changed = false;
+      const cwdByChildId = new Map<string, string>();
+      for (const tab of tabs) {
+        for (const pane of tab.panes) {
+          if (pane.childConnectionId && isTerminalWorkspacePane(pane) && pane.cwd.trim()) {
+            cwdByChildId.set(pane.childConnectionId, pane.cwd.trim());
+          }
+        }
+      }
+      const next = current.map((child) => {
+        const cwd = cwdByChildId.get(child.id);
+        if (!cwd || child.cwd === cwd) {
+          return child;
+        }
+        changed = true;
+        return { ...child, cwd };
+      });
+      return changed ? next : current;
+    });
+  }, [showChildTabsInTree, tabs]);
 
   useEffect(() => {
     function handleConnectionTabContextMenu(event: Event) {
@@ -318,13 +439,139 @@ export function ConnectionSidebar({
       void handleOpenConnectionInNewTab(connection);
       return;
     }
+    const children = childrenForConnection(connection.id);
+    if (children.length > 0) {
+      openChildConnectionLayout(connection, children);
+      return;
+    }
     openConnection(connection);
+  }
+
+  function openTabsForConnection(connectionId: string) {
+    return showChildTabsInTree
+      ? tabs.filter((tab) =>
+          tab.connection?.id === connectionId,
+        )
+      : [];
+  }
+
+  function childrenForConnection(connectionId: string) {
+    return showChildTabsInTree
+      ? childConnections.filter((child) => child.parentConnectionId === connectionId)
+      : [];
+  }
+
+  function updateChildConnection(child: WorkspaceChildConnection) {
+    setChildConnections((current) =>
+      current.map((entry) => (entry.id === child.id ? child : entry)),
+    );
+    updateOpenChildConnectionMetadata(child);
+  }
+
+  async function createChildConnection(connection: Connection) {
+    const existing = childConnections.filter((child) => child.parentConnectionId === connection.id);
+    const tmuxSessionId =
+      connection.type === "ssh" && connection.useTmuxSessions !== false
+        ? (await preferredTmuxSessionIdForNewTab(connection)) ?? appendTmuxSessionId(connection)
+        : undefined;
+    const name = tmuxSessionId || `${connection.name}#${existing.length + 1}`;
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${connection.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const child: WorkspaceChildConnection = {
+      id,
+      parentConnectionId: connection.id,
+      name,
+      tmuxSessionId,
+      cwd: connection.type === "local" ? connection.localStartupDirectory?.trim() || "." : "~",
+      iconBackgroundColor: connection.iconBackgroundColor ?? null,
+      iconDataUrl: connection.iconDataUrl ?? null,
+    };
+    setChildConnections((current) => [...current, child]);
+    return child;
   }
 
   async function handleOpenConnectionInNewTab(connection: Connection) {
     rememberConnection(connection);
+    if (showChildTabsInTree) {
+      const child = await createChildConnection(connection);
+      openChildConnectionInNewTab(connection, child);
+      return;
+    }
     const tmuxSessionId = await preferredTmuxSessionIdForNewTab(connection);
     openConnectionInNewTab(connection, { tmuxSessionId });
+  }
+
+  function handleOpenChildConnection(connection: Connection, child: WorkspaceChildConnection) {
+    const existingChildLocation = tabs.flatMap((tab) =>
+      tab.panes
+        .filter((pane) => pane.childConnectionId === child.id)
+        .map((pane) => ({ tab, pane })),
+    )[0];
+    if (existingChildLocation) {
+      if (existingChildLocation.tab.childConnectionGroupParentId) {
+        maximizeChildConnectionPane(existingChildLocation.tab.id, existingChildLocation.pane.id);
+      } else {
+        activateTab(existingChildLocation.tab.id);
+        setFocusedPane(existingChildLocation.tab.id, existingChildLocation.pane.id);
+      }
+      onExternalOpenConnection?.();
+      return;
+    }
+    rememberConnection(connection);
+    openChildConnectionInNewTab(connection, child);
+  }
+
+  function handleRenameChildConnection(child: WorkspaceChildConnection, name: string) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return false;
+    }
+    updateChildConnection({ ...child, name: trimmedName });
+    return true;
+  }
+
+  function handleCloseChildConnection(childConnectionId: string) {
+    closeChildConnection(childConnectionId);
+    setChildConnections((current) =>
+      current.filter((child) => child.id !== childConnectionId),
+    );
+  }
+
+  async function handleChildContextMenu(
+    connection: Connection,
+    child: WorkspaceChildConnection,
+    event: ReactMouseEvent<HTMLElement>,
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    await showNativeContextMenu(
+      [
+        {
+          kind: "item",
+          label: t("connections.rename"),
+          iconSvg: nativeMenuIcons.pencil,
+          action: () => setInlineChildRenameTarget(child.id),
+        },
+        {
+          kind: "item",
+          label: t("connections.properties"),
+          iconSvg: nativeMenuIcons.settings,
+          action: () => setChildProperties({ child, connection }),
+        },
+        {
+          kind: "separator",
+        },
+        {
+          kind: "item",
+          label: t("common.close"),
+          iconSvg: nativeMenuIcons.x,
+          action: () => handleCloseChildConnection(child.id),
+        },
+      ],
+      { x: event.clientX, y: event.clientY },
+    );
   }
 
   async function preferredTmuxSessionIdForNewTab(connection: Connection) {
@@ -358,6 +605,11 @@ export function ConnectionSidebar({
         if (pane.connection?.id === connectionId && "tmuxSessionId" in pane && pane.tmuxSessionId) {
           sessionIds.add(pane.tmuxSessionId);
         }
+      }
+    }
+    for (const child of childConnections) {
+      if (child.parentConnectionId === connectionId && child.tmuxSessionId) {
+        sessionIds.add(child.tmuxSessionId);
       }
     }
     return sessionIds;
@@ -1145,7 +1397,19 @@ export function ConnectionSidebar({
       ];
     }
 
-    const items: NativeContextMenuItem[] = [
+    const items: NativeContextMenuItem[] = [];
+    if (menu.kind === "connection") {
+      items.push(
+        {
+          kind: "item",
+          label: t("workspace.newTab"),
+          iconSvg: nativeMenuIcons.squarePlus,
+          action: () => handleTreeMenuOpenNewTab(menu),
+        },
+        { kind: "separator" },
+      );
+    }
+    items.push(
       {
         kind: "item",
         label: t("connections.rename"),
@@ -1158,13 +1422,14 @@ export function ConnectionSidebar({
         iconSvg: nativeMenuIcons.trash,
         action: () => void handleTreeMenuDelete(menu),
       },
-    ];
+    );
 
     if (menu.kind !== "connection") {
       return items;
     }
 
     const isPinned = generalSettings.pinnedConnectionIds.includes(menu.connection.id);
+    const isConnected = (activeSessionCounts[menu.connection.id] ?? 0) > 0;
     const canAddToPane = Boolean(tabs.find((tab) => tab.id === activeTabId && tab.kind === "terminal"));
     items.push(
       { kind: "separator" },
@@ -1175,6 +1440,15 @@ export function ConnectionSidebar({
         action: () => void handleTreeMenuToggleRailPin(menu),
       },
     );
+
+    if (isConnected) {
+      items.push({
+        kind: "item",
+        label: t("connections.closeConnection"),
+        iconSvg: nativeMenuIcons.x,
+        action: () => handleTreeMenuCloseConnection(menu),
+      });
+    }
 
     items.push({
       kind: "submenu",
@@ -1310,6 +1584,19 @@ export function ConnectionSidebar({
     if (menu.kind === "connection") {
       setFormError("");
       setEditConnection({ connection: menu.connection, folderId: menu.folderId });
+    }
+  }
+
+  function handleTreeMenuCloseConnection(menu: TreeContextMenuState) {
+    setTreeContextMenu(null);
+    if (menu.kind !== "connection") {
+      return;
+    }
+    const tabIds = tabs
+      .filter((tab) => tab.connection?.id === menu.connection.id)
+      .map((tab) => tab.id);
+    for (const tabId of tabIds) {
+      closeTab(tabId);
     }
   }
 
@@ -1740,17 +2027,29 @@ export function ConnectionSidebar({
         onContextMenu={handleTreeContextMenu}
       >
         {filteredTree.connections.map((connection, connectionIndex) => (
-          <ConnectionRow
+          <ConnectionRowWithChildTabs
+            activeTabId={activeTabId}
+            childTabs={openTabsForConnection(connection.id)}
+            childConnections={childrenForConnection(connection.id)}
             connection={connection}
             key={connection.id}
             connectionIndex={connectionIndex}
             dragDisabled={dragDisabled}
+            folderId={undefined}
             isRenaming={inlineRenameTarget?.kind === "connection" && inlineRenameTarget.id === connection.id}
             isDraggingSource={draggedSourceId === `connection-${connection.id}`}
             isDropTarget={dropTarget === `connection-${connection.id}`}
-            onClickCapture={handleTreeClickCapture}
+            onChildContextMenu={handleChildContextMenu}
             onCancelRename={() => setInlineRenameTarget(null)}
+            onClickCapture={handleTreeClickCapture}
+            onCloseChildTab={handleCloseChildConnection}
             onCommitRename={(name) => commitConnectionRename(connection, name)}
+            onOpenChildConnection={handleOpenChildConnection}
+            onRenameChildConnection={handleRenameChildConnection}
+            inlineChildRenameTarget={inlineChildRenameTarget}
+            onStartChildRename={setInlineChildRenameTarget}
+            onCancelChildRename={() => setInlineChildRenameTarget(null)}
+            onContextMenu={(event) => handleConnectionContextMenu(connection, undefined, event)}
             onOpen={(event) => {
               if (event.ctrlKey) {
                 handleOpenConnection(connection, { forceNewTab: true });
@@ -1758,7 +2057,6 @@ export function ConnectionSidebar({
               }
               handleOpenConnection(connection);
             }}
-            onContextMenu={(event) => handleConnectionContextMenu(connection, undefined, event)}
             onPointerDragStart={(event) =>
               handlePointerDragStart(
                 event,
@@ -1783,7 +2081,10 @@ export function ConnectionSidebar({
         ) : null}
         {showAllConnections
           ? visibleFlatConnections.map((connection, connectionIndex) => (
-              <ConnectionRow
+              <ConnectionRowWithChildTabs
+                activeTabId={activeTabId}
+                childTabs={openTabsForConnection(connection.id)}
+                childConnections={childrenForConnection(connection.id)}
                 connection={connection}
                 key={connection.id}
                 connectionIndex={connectionIndex}
@@ -1791,9 +2092,16 @@ export function ConnectionSidebar({
                 isRenaming={inlineRenameTarget?.kind === "connection" && inlineRenameTarget.id === connection.id}
                 isDraggingSource={false}
                 isDropTarget={false}
-                onClickCapture={handleTreeClickCapture}
+                onChildContextMenu={handleChildContextMenu}
                 onCancelRename={() => setInlineRenameTarget(null)}
+                onClickCapture={handleTreeClickCapture}
+                onCloseChildTab={handleCloseChildConnection}
                 onCommitRename={(name) => commitConnectionRename(connection, name)}
+                onOpenChildConnection={handleOpenChildConnection}
+                onRenameChildConnection={handleRenameChildConnection}
+                inlineChildRenameTarget={inlineChildRenameTarget}
+                onStartChildRename={setInlineChildRenameTarget}
+                onCancelChildRename={() => setInlineChildRenameTarget(null)}
                 onOpen={(event) => {
                   if (event.ctrlKey) {
                     handleOpenConnection(connection, { forceNewTab: true });
@@ -1827,6 +2135,16 @@ export function ConnectionSidebar({
                 onContextMenu={handleFolderContextMenu}
                 onConnectionContextMenu={handleConnectionContextMenu}
                 onCreateFolder={handleCreateFolder}
+                activeTabId={activeTabId}
+                childTabsForConnection={openTabsForConnection}
+                childConnectionsForConnection={childrenForConnection}
+                onChildContextMenu={handleChildContextMenu}
+                onCloseChildTab={handleCloseChildConnection}
+                onOpenChildConnection={handleOpenChildConnection}
+                onRenameChildConnection={handleRenameChildConnection}
+                inlineChildRenameTarget={inlineChildRenameTarget}
+                onStartChildRename={setInlineChildRenameTarget}
+                onCancelChildRename={() => setInlineChildRenameTarget(null)}
                 onOpenConnection={(connection, event) => {
                   if (event.ctrlKey) {
                     handleOpenConnection(connection, { forceNewTab: true });
@@ -1959,11 +2277,117 @@ export function ConnectionSidebar({
           onSubmit={(username, password) => void handleTransferSshPublicKey(username, password)}
         />
       ) : null}
+      {childProperties ? (
+        <ChildConnectionPropertiesDialog
+          customIconDataUrls={reusableChildIconDataUrls}
+          state={childProperties}
+          onCancel={() => setChildProperties(null)}
+          onSave={(child) => {
+            updateChildConnection(child);
+            setChildProperties(null);
+          }}
+        />
+      ) : null}
     </aside>
   );
 }
 
+function ChildConnectionPropertiesDialog({
+  customIconDataUrls,
+  state,
+  onCancel,
+  onSave,
+}: {
+  customIconDataUrls: string[];
+  state: ChildConnectionPropertiesState;
+  onCancel: () => void;
+  onSave: (child: WorkspaceChildConnection) => void;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = useState(state.child.name);
+  const [iconDataUrl, setIconDataUrl] = useState<string | null>(state.child.iconDataUrl ?? null);
+  const [iconBackgroundColor, setIconBackgroundColor] = useState<string | null>(
+    state.child.iconBackgroundColor ?? null,
+  );
+  const trimmedName = name.trim();
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!trimmedName) {
+      return;
+    }
+    onSave({
+      ...state.child,
+      name: trimmedName,
+      iconDataUrl,
+      iconBackgroundColor,
+    });
+  }
+
+  return (
+    <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
+      <form className="connection-dialog child-connection-properties-dialog" onSubmit={handleSubmit}>
+        <header className="connection-dialog-header compact">
+          <div>
+            <p className="panel-label">{t("connections.childConnectionProperties")}</p>
+          </div>
+          <button
+            aria-label={t("connections.close")}
+            className="icon-button"
+            onClick={onCancel}
+            type="button"
+          >
+            <X size={15} />
+          </button>
+        </header>
+        <div className="connection-type-summary">
+          <div className="connection-appearance-controls">
+            <ConnectionIconPicker
+              customIconDataUrls={customIconDataUrls}
+              iconBackgroundColor={iconBackgroundColor}
+              iconDataUrl={iconDataUrl}
+              localShell={state.connection.localShell}
+              onChange={setIconDataUrl}
+              type={state.connection.type}
+            />
+            <ConnectionIconBackgroundPicker
+              color={iconBackgroundColor}
+              onChange={setIconBackgroundColor}
+            />
+          </div>
+          <span>
+            <strong>{state.connection.name}</strong>
+            <small>{connectionSubtitle(state.connection)}</small>
+          </span>
+        </div>
+        <div className="connection-dialog-fields">
+          <label>
+            <span>{t("connections.nameOptional")}</span>
+            <input
+              autoFocus
+              onChange={(event) => setName(event.currentTarget.value)}
+              placeholder={t("connections.connectionName")}
+              value={name}
+            />
+          </label>
+        </div>
+        <div className="dialog-actions">
+          <button className="approve-button" disabled={!trimmedName} type="submit">
+            {t("common.save")}
+          </button>
+          <button className="toolbar-button" onClick={onCancel} type="button">
+            {t("common.cancel")}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function ConnectionFolderNode({
+  activeTabId,
+  childConnectionsForConnection,
+  childTabsForConnection,
   collapsedFolderIds,
   dragDisabled,
   draggedSourceId,
@@ -1986,7 +2410,17 @@ function ConnectionFolderNode({
   onCancelRename,
   onCommitConnectionRename,
   onCommitFolderRename,
+  onChildContextMenu,
+  onCloseChildTab,
+  onOpenChildConnection,
+  onRenameChildConnection,
+  inlineChildRenameTarget,
+  onStartChildRename,
+  onCancelChildRename,
 }: {
+  activeTabId: string;
+  childConnectionsForConnection: (connectionId: string) => WorkspaceChildConnection[];
+  childTabsForConnection: (connectionId: string) => WorkspaceTab[];
   collapsedFolderIds: Set<string>;
   dragDisabled: boolean;
   draggedSourceId: string;
@@ -2010,6 +2444,17 @@ function ConnectionFolderNode({
   onCancelRename: () => void;
   onCommitConnectionRename: (connection: Connection, name: string) => Promise<boolean>;
   onCommitFolderRename: (folder: ConnectionFolder, name: string) => Promise<boolean>;
+  onChildContextMenu: (
+    connection: Connection,
+    child: WorkspaceChildConnection,
+    event: ReactMouseEvent<HTMLElement>,
+  ) => void | Promise<void>;
+  onCloseChildTab: (childConnectionId: string) => void;
+  onOpenChildConnection: (connection: Connection, child: WorkspaceChildConnection) => void;
+  onRenameChildConnection: (child: WorkspaceChildConnection, name: string) => boolean;
+  inlineChildRenameTarget: string | null;
+  onStartChildRename: (childConnectionId: string) => void;
+  onCancelChildRename: () => void;
   onConnectionContextMenu: (
     connection: Connection,
     folderId: string | undefined,
@@ -2099,7 +2544,10 @@ function ConnectionFolderNode({
           {folder.connections.length > 0 ? (
             <div className="tree-folder-connections">
               {folder.connections.map((connection, connectionIndex) => (
-                <ConnectionRow
+                <ConnectionRowWithChildTabs
+                  activeTabId={activeTabId}
+                  childConnections={childConnectionsForConnection(connection.id)}
+                  childTabs={childTabsForConnection(connection.id)}
                   connection={connection}
                   connectionIndex={connectionIndex}
                   dragDisabled={dragDisabled}
@@ -2108,9 +2556,16 @@ function ConnectionFolderNode({
                   isDraggingSource={draggedSourceId === `connection-${connection.id}`}
                   isDropTarget={dropTarget === `connection-${connection.id}`}
                   key={connection.id}
-                  onClickCapture={onClickCapture}
+                  onChildContextMenu={onChildContextMenu}
                   onCancelRename={onCancelRename}
+                  onCancelChildRename={onCancelChildRename}
+                  onClickCapture={onClickCapture}
+                  onCloseChildTab={onCloseChildTab}
                   onCommitRename={(name) => onCommitConnectionRename(connection, name)}
+                  onOpenChildConnection={onOpenChildConnection}
+                  onRenameChildConnection={onRenameChildConnection}
+                  inlineChildRenameTarget={inlineChildRenameTarget}
+                  onStartChildRename={onStartChildRename}
                   onOpen={(event) => onOpenConnection(connection, event)}
                   onContextMenu={(event) => onConnectionContextMenu(connection, folder.id, event)}
                   onPointerDragStart={(event) =>
@@ -2148,6 +2603,9 @@ function ConnectionFolderNode({
               level={level + 1}
               parentFolderId={folder.id}
               folderIndex={childFolderIndex}
+              activeTabId={activeTabId}
+              childConnectionsForConnection={childConnectionsForConnection}
+              childTabsForConnection={childTabsForConnection}
               onClickCapture={onClickCapture}
               pendingFolderDraft={pendingFolderDraft}
               inlineRenameTarget={inlineRenameTarget}
@@ -2156,6 +2614,13 @@ function ConnectionFolderNode({
               onCancelRename={onCancelRename}
               onCommitConnectionRename={onCommitConnectionRename}
               onCommitFolderRename={onCommitFolderRename}
+              onChildContextMenu={onChildContextMenu}
+              onCloseChildTab={onCloseChildTab}
+              onOpenChildConnection={onOpenChildConnection}
+              onRenameChildConnection={onRenameChildConnection}
+              inlineChildRenameTarget={inlineChildRenameTarget}
+              onStartChildRename={onStartChildRename}
+              onCancelChildRename={onCancelChildRename}
               onConnectionContextMenu={onConnectionContextMenu}
               onContextMenu={onContextMenu}
               onCreateFolder={onCreateFolder}
@@ -2276,7 +2741,9 @@ function InlineTreeRenameInput({
       isSettlingRef.current = false;
       inputRef.current?.focus();
       inputRef.current?.select();
+      return;
     }
+    onCancel();
   }
 
   return (
@@ -2394,6 +2861,12 @@ function TreeContextMenu({
             <span>{t("connections.newFolder")}</span>
           </button>
         </>
+      ) : null}
+      {menu.kind === "connection" ? (
+        <button onClick={onOpenNewTab} role="menuitem" type="button">
+          <SquarePlus className="menu-item-icon" size={15} />
+          <span>{t("workspace.newTab")}</span>
+        </button>
       ) : null}
       {menu.kind !== "tree" ? (
         <>
@@ -3746,11 +4219,231 @@ function TreeDragPreview({ preview }: { preview: TreeDragPreview }) {
   );
 }
 
+function ConnectionRowWithChildTabs({
+  activeTabId,
+  childConnections,
+  childTabs,
+  connection,
+  connectionIndex,
+  dragDisabled,
+  folderId,
+  isRenaming,
+  isDraggingSource,
+  isDropTarget,
+  onChildContextMenu,
+  onCancelChildRename,
+  onCancelRename,
+  onClickCapture,
+  onCloseChildTab,
+  onCommitRename,
+  onContextMenu,
+  onOpen,
+  onOpenChildConnection,
+  onPointerDragStart,
+  onRenameChildConnection,
+  inlineChildRenameTarget,
+  onStartChildRename,
+}: {
+  activeTabId: string;
+  childConnections: WorkspaceChildConnection[];
+  childTabs: WorkspaceTab[];
+  connection: Connection;
+  connectionIndex: number;
+  dragDisabled: boolean;
+  folderId?: string;
+  isRenaming: boolean;
+  isDraggingSource: boolean;
+  isDropTarget: boolean;
+  onChildContextMenu: (
+    connection: Connection,
+    child: WorkspaceChildConnection,
+    event: ReactMouseEvent<HTMLElement>,
+  ) => void | Promise<void>;
+  onCancelChildRename: () => void;
+  onCancelRename: () => void;
+  onClickCapture: (event: ReactMouseEvent) => void;
+  onCloseChildTab: (childConnectionId: string) => void;
+  onCommitRename: (name: string) => Promise<boolean>;
+  onContextMenu: (event: ReactMouseEvent<HTMLElement>) => void;
+  onOpen: (event: ReactMouseEvent<HTMLButtonElement>) => void;
+  onOpenChildConnection: (connection: Connection, child: WorkspaceChildConnection) => void;
+  onPointerDragStart: (event: ReactPointerEvent<HTMLElement>) => void;
+  onRenameChildConnection: (child: WorkspaceChildConnection, name: string) => boolean;
+  inlineChildRenameTarget: string | null;
+  onStartChildRename: (childConnectionId: string) => void;
+}) {
+  const activeTab = childTabs.find((tab) => tab.id === activeTabId);
+  const isActiveParent =
+    activeTab?.childConnectionGroupParentId === connection.id && !activeTab.focusedPaneId
+      ? true
+      : Boolean(
+          activeTab &&
+            activeTab.connection?.id === connection.id &&
+            !activeTab.childConnectionId &&
+            !activeTab.childConnectionGroupParentId,
+        );
+  const childLocationById = new Map<string, { tab: WorkspaceTab; paneId?: string }>();
+  for (const tab of childTabs) {
+    if (tab.childConnectionId) {
+      childLocationById.set(tab.childConnectionId, { tab });
+    }
+    for (const pane of tab.panes) {
+      if (pane.childConnectionId && !childLocationById.has(pane.childConnectionId)) {
+        childLocationById.set(pane.childConnectionId, { tab, paneId: pane.id });
+      }
+    }
+  }
+  return (
+    <>
+      <ConnectionRow
+        connection={connection}
+        connectionIndex={connectionIndex}
+        dragDisabled={dragDisabled}
+        folderId={folderId}
+        isActiveParent={isActiveParent}
+        isDraggingSource={isDraggingSource}
+        isDropTarget={isDropTarget}
+        isRenaming={isRenaming}
+        onCancelRename={onCancelRename}
+        onClickCapture={onClickCapture}
+        onCommitRename={onCommitRename}
+        onContextMenu={onContextMenu}
+        onOpen={onOpen}
+        onPointerDragStart={onPointerDragStart}
+      />
+      {childConnections.map((child) => {
+        const location = childLocationById.get(child.id);
+        const tab = location?.tab;
+        const active =
+          tab?.id === activeTabId &&
+          (!location?.paneId || tab.focusedPaneId === location.paneId);
+        return (
+        <ConnectionChildTabRow
+          active={active}
+          child={child}
+          connection={connection}
+          connected={Boolean(location)}
+          isRenaming={inlineChildRenameTarget === child.id}
+          key={child.id}
+          onActivate={() => onOpenChildConnection(connection, child)}
+          onCancelRename={onCancelChildRename}
+          onClose={() => onCloseChildTab(child.id)}
+          onCommitRename={(name) => onRenameChildConnection(child, name)}
+          onContextMenu={(event) => void onChildContextMenu(connection, child, event)}
+          onRename={() => onStartChildRename(child.id)}
+        />
+        );
+      })}
+    </>
+  );
+}
+
+function ConnectionChildTabRow({
+  active,
+  child,
+  connection,
+  connected,
+  isRenaming,
+  onActivate,
+  onCancelRename,
+  onClose,
+  onCommitRename,
+  onContextMenu,
+  onRename,
+}: {
+  active: boolean;
+  child: WorkspaceChildConnection;
+  connection: Connection;
+  connected: boolean;
+  isRenaming: boolean;
+  onActivate: () => void;
+  onCancelRename: () => void;
+  onClose?: () => void;
+  onCommitRename: (name: string) => boolean;
+  onContextMenu: (event: ReactMouseEvent<HTMLElement>) => void;
+  onRename: () => void;
+}) {
+  const { t } = useTranslation();
+  const title = child.name;
+  const clickTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current !== null) {
+        window.clearTimeout(clickTimerRef.current);
+      }
+    };
+  }, []);
+
+  function clearClickTimer() {
+    if (clickTimerRef.current !== null) {
+      window.clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+  }
+
+  return (
+    <div
+      className={`connection-child-tab-row${active ? " active" : ""}`}
+      onContextMenu={onContextMenu}
+    >
+      <button
+        className="connection-child-tab-open"
+        onClick={() => {
+          clearClickTimer();
+          clickTimerRef.current = window.setTimeout(() => {
+            clickTimerRef.current = null;
+            onActivate();
+          }, 180);
+        }}
+        onDoubleClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          clearClickTimer();
+          onRename();
+        }}
+        type="button"
+      >
+        <ConnectionGlyph
+          iconBackgroundColor={child.iconBackgroundColor ?? connection.iconBackgroundColor}
+          iconDataUrl={child.iconDataUrl ?? connection.iconDataUrl}
+          localShell={connection.localShell}
+          size={14}
+          type={connection.type}
+        />
+        <span className="connection-main">
+          {isRenaming ? (
+            <InlineTreeRenameInput
+              ariaLabel={t("connections.rename")}
+              initialName={title}
+              onCancel={onCancelRename}
+              onCommit={async (name) => onCommitRename(name)}
+            />
+          ) : (
+            <strong>{title}</strong>
+          )}
+        </span>
+      </button>
+      <span className={`status-dot ${connected ? "connected" : "idle"}`} />
+      <button
+        aria-label={t("workspace.closeTab", { title })}
+        className="connection-child-tab-close"
+        onClick={onClose}
+        title={t("workspace.closeTab", { title })}
+        type="button"
+      >
+        <X size={12} />
+      </button>
+    </div>
+  );
+}
+
 function ConnectionRow({
   connection,
   connectionIndex,
   dragDisabled,
   folderId,
+  isActiveParent,
   isRenaming,
   isDraggingSource,
   isDropTarget,
@@ -3765,6 +4458,7 @@ function ConnectionRow({
   connectionIndex: number;
   dragDisabled: boolean;
   folderId?: string;
+  isActiveParent: boolean;
   isRenaming: boolean;
   isDraggingSource: boolean;
   isDropTarget: boolean;
@@ -3779,6 +4473,7 @@ function ConnectionRow({
     <div
       className={`connection-row ${dragDisabled ? "" : "can-drag"} ${
         isDropTarget ? "drop-target" : ""
+      } ${isActiveParent ? "active" : ""
       } ${isDraggingSource ? "dragging-source" : ""
       }`}
       data-connection-id={connection.id}

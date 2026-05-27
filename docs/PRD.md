@@ -34,6 +34,7 @@ The product will be light chrome with dark terminal panes by default, optimized 
 13. As a terminal user, I want local terminal connections to require no host details, so that launching the default shell is fast and obvious.
 14. As a Windows user, I want saved local terminal options for PowerShell, Command Prompt, and WSL, so that local terminals match the shell I need.
 15. As a terminal user, I want SSH terminal tabs with optional named tmux session resume per Pane, so that remote shell work happens in the same workspace as local work and can return to the same remote context.
+15a. As a terminal power user, I want Child Connection Tabs in the Connection Tree, so that repeated Tabs for the same saved Connection can be named, reopened lazily, resumed into the same tmux session or directory, and viewed together as a multi-Pane layout without crowding the top Tab Strip.
 16. As a terminal user, I want split terminal panes, so that I can monitor and operate multiple shells in one tab.
 17. As a terminal user, I want xterm-compatible behavior, so that tools like vim, tmux, htop, btop, lazygit, git, npm, pnpm, and cargo work correctly.
 18. As a terminal user, I want truecolor, mouse support, alternate screen, bracketed paste, hyperlinks, and scrollback search, so that modern terminal apps feel correct.

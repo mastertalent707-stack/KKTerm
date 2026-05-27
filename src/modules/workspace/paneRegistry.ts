@@ -5,6 +5,14 @@ const inputWriters = new Map<string, (data: string) => void>();
 const rdpTextSenders = new Map<string, (text: string, pressEnter: boolean) => Promise<void>>();
 const remoteDesktopControllers = new Map<string, RemoteDesktopController>();
 const fileBrowserControllers = new Map<string, FileBrowserController>();
+const movingTerminalPaneIds = new Set<string>();
+const preservedTerminalPaneRuntimes = new Map<string, PreservedTerminalPaneRuntime>();
+
+export type PreservedTerminalPaneRuntime = {
+  bufferText: string;
+  sessionId: string;
+  sessionStarted: boolean;
+};
 
 export type RemoteDesktopController = {
   kind: "rdp" | "vnc";
@@ -35,6 +43,35 @@ export function unregisterPaneRenderer(paneId: string, renderer: TerminalRendere
 
 export function getPaneRenderer(paneId: string): TerminalRenderer | undefined {
   return renderers.get(paneId);
+}
+
+export function markPanesForRuntimeMove(paneIds: string[]) {
+  for (const paneId of paneIds) {
+    movingTerminalPaneIds.add(paneId);
+  }
+}
+
+export function shouldPreservePaneRuntimeOnUnmount(paneId: string) {
+  if (!movingTerminalPaneIds.has(paneId)) {
+    return false;
+  }
+  movingTerminalPaneIds.delete(paneId);
+  return true;
+}
+
+export function preserveTerminalPaneRuntime(
+  paneId: string,
+  runtime: PreservedTerminalPaneRuntime,
+) {
+  preservedTerminalPaneRuntimes.set(paneId, runtime);
+}
+
+export function takePreservedTerminalPaneRuntime(paneId: string) {
+  const runtime = preservedTerminalPaneRuntimes.get(paneId);
+  if (runtime) {
+    preservedTerminalPaneRuntimes.delete(paneId);
+  }
+  return runtime;
 }
 
 export function registerPaneInputWriter(paneId: string, writer: (data: string) => void) {

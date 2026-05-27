@@ -92,6 +92,16 @@ test("custom titlebar controls stay anchored to the visible viewport", async () 
   );
   assert.match(
     controlsRule.groups.body,
+    /\bposition:\s*absolute;/,
+    "the window controls cluster should be positioned independently of title text layout",
+  );
+  assert.match(
+    controlsRule.groups.body,
+    /\bright:\s*0;/,
+    "the window controls cluster should stay anchored to the visible right edge",
+  );
+  assert.match(
+    controlsRule.groups.body,
     /\bflex:\s*0\s+0\s+auto;/,
     "the window controls cluster should not shrink away from the right edge",
   );

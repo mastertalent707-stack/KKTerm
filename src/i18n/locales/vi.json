@@ -891,7 +891,11 @@
     "vnc": "VNC",
     "vncOptions": "Tùy chọn VNC",
     "windowsRdp": "Windows RDP",
-    "wsl": "WSL"
+    "wsl": "WSL",
+    "closeConnection": "Đóng kết nối",
+    "childConnectionProperties": "Sửa thuộc tính Tab kết nối con",
+    "lucideIcons": "Biểu tượng Lucide",
+    "selectLucideIcon": "Dùng biểu tượng Lucide {{icon}}"
   },
   "dashboard": {
     "accent": "Nhấn",
@@ -1836,7 +1840,12 @@
     "builtInMcpConfigMethodRunCommandOrManualEdit": "Chạy lệnh / sửa thủ công",
     "builtInMcpConfigMethodManualEdit": "Sửa thủ công",
     "exportSettings": "Xuất",
-    "exportSettingsComplete": "Đã xuất cài đặt: {{filename}}."
+    "exportSettingsComplete": "Đã xuất cài đặt: {{filename}}.",
+    "sectionWorkspace": "Không gian làm việc",
+    "workspaceTabs": "Tab",
+    "hideTopTabButtons": "Dùng Tab kết nối con trong cây kết nối",
+    "hideTopTabButtonsDesc": "Khi bật, dải Tab phía trên sẽ bị ẩn và các Tab kết nối con đã lưu xuất hiện dưới dạng hàng chữ nghiêng bên dưới Kết nối cha.",
+    "workspaceSaved": "Đã lưu cài đặt không gian làm việc."
   },
   "sftp": {
     "accessed": "Accessed",

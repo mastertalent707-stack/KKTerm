@@ -3,8 +3,8 @@
 ## AI grep hints
 
 - Keys: `settings.*` (full namespace — over 400 keys; section roots listed below), including General keys `settings.autoStartWithWindows`, `settings.minimizeToTray`, `settings.useDirectxScreenCapture`, `settings.statusBar`, `settings.statusBarMonitor`, `settings.statusBarMonitorInterval`, `settings.debug`, `settings.advancedDebugging`, Appearance title-bar keys `settings.titleBar`, `settings.useCustomTitleBar`, `settings.useCustomTitleBarHint`, and AI provider keys `settings.apiMode`, `settings.apiModeChatCompletions`, `settings.apiModeResponses`, `settings.extraHeaders`, `settings.extraHeadersPlaceholder`, and `settings.assistantSkills*`
-- Topics: General, Appearance, Dashboard, Credentials & MCP, AI Assistant, assistant tool defaults, collapsible assistant tools, collapsible Assistant Skills, bundled skills, SKILL.md, SSH, Terminal, network troubleshooting, DNS, DHCP, firewall, TLS certificates, RDP, VNC, URL, About; settings draft/save/reset; backup ZIP; settings import; reset all; Windows startup; launch minimized; DirectX screenshot capture; Status Bar CPU/RAM/Network monitor; custom title bar; native Windows title bar; Advanced Debugging; AI Assistant debug logs; MCP debug logs; built-in MCP config; random dynamic Dashboard backgrounds
-- Synonyms: "preferences", "options", "config", "theme", "dark mode", "color", "language", "API key", "import settings", "factory reset", "show me where", "start with Windows", "run at login", "launch minimized", "custom title bar", "titlebar", "window chrome", "native title bar", "Windows title bar", "DirectX", "DXGI", "screen capture", "screenshot acceleration", "status bar", "CPU monitor", "RAM monitor", "network monitor", "host usage", "performance overhead", "debug", "diagnostics", "AI debug log", "MCP debug log", "aiassistant.debug.log", "mcp.debug.log", "MCP config", "mcpServers", "mcp_servers", "TOML", "kkterm-cli", "Codex MCP", "Claude MCP", "expand tools", "collapse skills", "random wallpaper", "dynamic wallpaper", "dashboard background", "network-connectivity-troubleshooter", "dns-dhcp-troubleshooter", "firewall-port-troubleshooter", "tls-certificate-troubleshooter"
+- Topics: General, Appearance, Dashboard, Workspace, Credentials & MCP, AI Assistant, assistant tool defaults, collapsible assistant tools, collapsible Assistant Skills, bundled skills, SKILL.md, SSH, Terminal, network troubleshooting, DNS, DHCP, firewall, TLS certificates, RDP, VNC, URL, About; settings draft/save/reset; backup ZIP; settings import; reset all; Windows startup; launch minimized; DirectX screenshot capture; Status Bar CPU/RAM/Network monitor; custom title bar; native Windows title bar; Advanced Debugging; AI Assistant debug logs; MCP debug logs; built-in MCP config; random dynamic Dashboard backgrounds; hidden top Tab Strip; Child Connection Tabs in the Connection Tree
+- Synonyms: "preferences", "options", "config", "theme", "dark mode", "color", "language", "API key", "import settings", "factory reset", "show me where", "start with Windows", "run at login", "launch minimized", "custom title bar", "titlebar", "window chrome", "native title bar", "Windows title bar", "DirectX", "DXGI", "screen capture", "screenshot acceleration", "status bar", "CPU monitor", "RAM monitor", "network monitor", "host usage", "performance overhead", "debug", "diagnostics", "AI debug log", "MCP debug log", "aiassistant.debug.log", "mcp.debug.log", "MCP config", "mcpServers", "mcp_servers", "TOML", "kkterm-cli", "Codex MCP", "Claude MCP", "expand tools", "collapse skills", "random wallpaper", "dynamic wallpaper", "dashboard background", "top tabs", "tab buttons", "hide tabs", "connection tree tabs", "child tabs", "saved tabs", "network-connectivity-troubleshooter", "dns-dhcp-troubleshooter", "firewall-port-troubleshooter", "tls-certificate-troubleshooter"
 
 > Settings page styling is consistent across sections. Related controls live inside the shared `settings-subsection settings-fieldset` group so the group title sits in the border. Editable controls look editable; disabled / readonly controls stay muted. Delete buttons inside Settings are icon-only red trash cans (no visible "Delete" text). Destructive Settings-wide actions live in **General → Settings data**, behind app-owned confirmation dialogs — not inside feature-specific sections.
 
@@ -33,6 +33,7 @@ Settings tutorial targets:
   - `settings.sectionGeneral`
   - `settings.sectionAppearance`
   - `settings.sectionDashboard`
+  - `settings.sectionWorkspace`
   - `settings.sectionCredentials`
   - `settings.sectionAiAssistant`
   - `settings.sectionSsh`
@@ -77,6 +78,13 @@ Settings tutorial targets:
   - Widget network tools remain enabled for script widgets that declare `permissions.networkTools`. The underlying setting keys `settings.dashboardAllowWidgetNetworkTools` / `settings.dashboardAllowWidgetNetworkToolsDesc` are hidden from Settings for now.
 - Performance group `settings.dashboardPerformance`:
   - Active script widgets cap: `settings.dashboardMaxActiveScriptWidgets` (hint `settings.dashboardMaxActiveScriptWidgetsHint`).
+
+## Workspace
+
+- Section header `settings.sectionWorkspace`.
+- Tabs group `settings.workspaceTabs`.
+- Toggle `settings.hideTopTabButtons` (hint `settings.hideTopTabButtonsDesc`). When on, the top `workspace.tabStrip` buttons are hidden and new Tabs opened from saved Connections become **Child Connection Tabs**. Child Connection Tabs are shown as italic rows under their parent Connection in the Connection Tree, persist across launches, open lazily when selected, can be renamed, and expose `connections.childConnectionProperties` for child icon/color edits.
+- Save status: `settings.workspaceSaved`.
 
 ## Credentials & MCP
 

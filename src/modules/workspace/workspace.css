@@ -8,6 +8,10 @@
   background: var(--chrome-strong);
 }
 
+.workspace.workspace-tabs-hidden {
+  grid-template-rows: minmax(0, 1fr);
+}
+
 .toolbar-cluster,
 .approval-actions {
   display: flex;
