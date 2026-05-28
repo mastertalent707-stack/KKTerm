@@ -3,6 +3,7 @@ export type SettingsSectionId =
   | "appearance-settings"
   | "dashboard-settings"
   | "workspace-settings"
+  | "installer-settings"
   | "credentials-settings"
   | "assistant-settings"
   | "ssh-settings"
@@ -127,6 +128,16 @@ const SETTINGS_SECTIONS: Record<SettingsSectionId, SettingsSectionSummary> = {
       {
         key: "settings.hideTopTabButtons",
         description: "Enable Child Connection Tabs: hides the top Tab Strip and shows saved Child Connection Tabs under their parent Connections in the Connection Tree.",
+      },
+    ],
+  },
+  "installer-settings": {
+    labelKey: "settings.sectionInstaller",
+    fallbackLabel: "Installer Helper",
+    controls: [
+      {
+        key: "settings.installerShowOnRail",
+        description: "Show or hide the Installer Helper icon on the Activity Rail.",
       },
     ],
   },

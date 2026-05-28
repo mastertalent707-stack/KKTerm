@@ -199,6 +199,7 @@ export interface GeneralSettings {
   showConnectedConnectionsInRail: boolean;
   showAllConnectionsInTree: boolean;
   hideTopTabButtons: boolean;
+  showInstallerOnRail: boolean;
   pinnedConnectionIds: string[];
   allowClipboardRead: boolean;
   autoStartWithWindows: boolean;
