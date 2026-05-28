@@ -1751,7 +1751,13 @@ impl Storage {
         let stored_version: i32 = connection
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .map_err(to_storage_error)?;
-        if stored_version < SCHEMA_USER_VERSION {
+        // The Dashboard tables get rebuilt only when the user's stored
+        // version predates the last Dashboard-schema-changing migration
+        // (v16). Pure-additive schema bumps after v16 (v17 added
+        // `installer_tool_state`) must NOT drop these tables — that
+        // would wipe Dashboard Views and AI Created Widgets on every
+        // upgrade for users already on v16+.
+        if stored_version < 16 {
             connection
                 .execute_batch(
                     r#"
