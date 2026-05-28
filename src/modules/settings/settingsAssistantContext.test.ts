@@ -75,6 +75,7 @@ const sectionIds: SettingsSectionId[] = [
   "general-settings",
   "appearance-settings",
   "dashboard-settings",
+  "installer-settings",
   "credentials-settings",
   "assistant-settings",
   "ssh-settings",

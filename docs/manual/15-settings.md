@@ -34,6 +34,7 @@ Settings tutorial targets:
   - `settings.sectionAppearance`
   - `settings.sectionDashboard`
   - `settings.sectionWorkspace`
+  - `settings.sectionInstaller`
   - `settings.sectionCredentials`
   - `settings.sectionAiAssistant`
   - `settings.sectionSsh`
@@ -85,6 +86,13 @@ Settings tutorial targets:
 - Tabs group `settings.workspaceTabs`.
 - Toggle `settings.hideTopTabButtons` (hint `settings.hideTopTabButtonsDesc`). When on, the top `workspace.tabStrip` buttons are hidden and new Tabs opened from saved Connections become **Child Connection Tabs**. Child Connection Tabs are shown as italic rows under their parent Connection in the Connection Tree, persist across launches, open lazily when selected, can be renamed, and expose `connections.childConnectionProperties` for child icon/color edits.
 - Save status: `settings.workspaceSaved`.
+
+## Installer Helper
+
+- Section header `settings.sectionInstaller`. Owned by `src/modules/settings/InstallerSettings.tsx`.
+- Activity Rail group `settings.installerRail`:
+  - Toggle `settings.installerShowOnRail` (hint `settings.installerShowOnRailDesc`). When on, the Installer Helper icon appears on the Activity Rail; when off (default while the Module is in progress), the icon is hidden.
+- Save status: `settings.installerSaved`.
 
 ## Credentials & MCP
 

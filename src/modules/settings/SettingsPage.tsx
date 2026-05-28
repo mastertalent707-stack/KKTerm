@@ -8,6 +8,7 @@ import {
   Monitor,
   Globe,
   Network,
+  Package,
   Palette,
   Server,
   Settings as SettingsIcon,
@@ -22,6 +23,7 @@ import { AppearanceSettings } from "./AppearanceSettings";
 import { DashboardSettings } from "./DashboardSettings";
 import { CredentialsSettings } from "./CredentialsSettings";
 import { GeneralSettings } from "./GeneralSettings";
+import { InstallerSettings } from "./InstallerSettings";
 import { RdpSettings } from "./RdpSettings";
 import { SshSettings } from "./SshSettings";
 import { TerminalSettings as TerminalSettingsPage } from "./TerminalSettings";
@@ -107,6 +109,14 @@ export function SettingsPage({
             <span>{t("settings.sectionWorkspace")}</span>
           </button>
           <button
+            className={settingsNavItemClass("installer-settings", activeSectionId)}
+            onClick={() => onActiveSectionChange("installer-settings")}
+            type="button"
+          >
+            <Package size={16} />
+            <span>{t("settings.sectionInstaller")}</span>
+          </button>
+          <button
             className={settingsNavItemClass("credentials-settings", activeSectionId)}
             onClick={() => onActiveSectionChange("credentials-settings")}
             type="button"
@@ -182,6 +192,7 @@ export function SettingsPage({
           )}
           {activeSectionId === "dashboard-settings" && <DashboardSettings />}
           {activeSectionId === "workspace-settings" && <WorkspaceSettings />}
+          {activeSectionId === "installer-settings" && <InstallerSettings />}
           {activeSectionId === "credentials-settings" && <CredentialsSettings />}
           {activeSectionId === "assistant-settings" && <AiSettings />}
           {activeSectionId === "ssh-settings" && <SshSettings />}
