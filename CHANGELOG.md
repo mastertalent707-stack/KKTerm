@@ -3,6 +3,25 @@
 All notable changes to KKTerm are documented here.
 
 ## Highlights
+- Easier-to-use SFTP toolbar browser via a popup (because rummaging around tabs is a chore).
+- Improved Connection visibility and native URL handling for RDP and webview-based Sessions.
+
+## New
+- **SFTP toolbar browser opens as a popup**. *(c5c903b)*
+
+## Improved
+- **Fix native URL handling** for webview-based functionality. *(55aacd0)*
+- **Improve RDP Session visibility** behavior. *(55aacd0)*
+
+## Fixed
+- **RDP session visibility** and **native URL** issues addressed. *(55aacd0)*  
+- **SFTP toolbar browser presentation** corrected to use a popup. *(c5c903b)*
+
+## Internal
+- Updated documentation and tests for SFTP toolbar popup. *(c5c903b)*
+- Added/updated RDP and webview visibility lifecycle tests. *(55aacd0)*
+
+## Highlights
 - Fixed App Launcher behavior so toggling **Show file extensions** no longer wipes pinned shortcuts.
 - Improved Dashboard so dynamic content (including video backgrounds) continues playing when KKTerm loses OS window focus.
 - Added **child connection workspace mode** for Connection tabs/Panes within a Session workspace.
