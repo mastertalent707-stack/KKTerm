@@ -6,7 +6,7 @@ This manual describes how to operate every user-facing aspect of KKTerm. It is s
 
 UI labels are referenced by their i18n key, not English text. A reference like **`connections.quickConnect`** points to the string at that path in `src/i18n/locales/en.json` (and its translated siblings under `src/i18n/locales/`). When the visible label changes, only the locale JSON changes — this document stays valid as long as the key stays.
 
-Domain terms used here — **Connection**, **Quick Connect**, **Session**, **Tab**, **Pane**, **Dashboard View**, **Widget Instance** — are defined in `CONTEXT.md`. Do not substitute "profile", "host entry", "browser tab", etc.
+Domain terms used here — **Connection**, **Quick Connect**, **Session**, **Tab**, **Child Connection Tab**, **Pane**, **Dashboard View**, **Widget Instance** — are defined in `CONTEXT.md`. Do not substitute "profile", "host entry", "browser tab", etc.
 
 When a doc says "right-click on X", the implementation is a Tauri native context menu via `src/lib/nativeContextMenu.ts`. When it says "popover" or "dialog", it is an app-owned DOM surface.
 
@@ -21,8 +21,8 @@ When a doc says "right-click on X", the implementation is a Tauri native context
 |---|------|--------|-------------------------|
 | 01 | [01-getting-started.md](01-getting-started.md) | First launch, app shell, primary navigation | `app`, `common` |
 | 02 | [02-app-layout.md](02-app-layout.md) | Activity Rail, Connections panel, AI panel, Status Bar, resize handles | `app`, `workspace` |
-| 03 | [03-connections.md](03-connections.md) | Saved Connections, folders, search, Quick Connect, pin to rail | `connections` |
-| 04 | [04-workspace-tabs-panes.md](04-workspace-tabs-panes.md) | Tab Strip, opening Sessions, Pane splits, closing | `workspace`, `terminal` |
+| 03 | [03-connections.md](03-connections.md) | Saved Connections, folders, search, Quick Connect, Child Connection Tabs, pin to rail | `connections` |
+| 04 | [04-workspace-tabs-panes.md](04-workspace-tabs-panes.md) | Tab Strip, Child Connection Tabs, opening Sessions, Pane splits, closing | `workspace`, `terminal` |
 | 05 | [05-terminal.md](05-terminal.md) | Local terminal, Telnet, Serial, find, copy/paste, font, buffer save | `terminal` |
 | 06 | [06-ssh-and-tmux.md](06-ssh-and-tmux.md) | SSH host-key trust, tmux sessions, SSH port forwarding | `terminal` |
 | 07 | [07-sftp.md](07-sftp.md) | SFTP browser, transfers, conflicts, properties, chmod/chown | `sftp` |

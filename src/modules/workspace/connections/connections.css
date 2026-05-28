@@ -426,11 +426,13 @@
   padding: 2px 4px;
 }
 
-.connection-row:hover {
+.connection-row:hover,
+.connection-child-tab-row:hover {
   background: var(--surface);
 }
 
-.connection-open {
+.connection-open,
+.connection-child-tab-open {
   flex: 1 1 auto;
   gap: 6px;
   min-width: 0;
@@ -438,8 +440,75 @@
   text-align: left;
 }
 
+.connection-child-tab-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  margin-left: 24px;
+  padding: 2px 4px 2px 10px;
+  color: var(--text);
+  background: transparent;
+  border-left: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.connection-child-tab-row.active {
+  background: var(--accent-soft);
+}
+
+.connection-row.active {
+  background: var(--accent-soft);
+}
+
+.connection-child-tab-open {
+  display: flex;
+  align-items: center;
+  color: inherit;
+  background: transparent;
+}
+
+.connection-child-tab-row .connection-main strong {
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.connection-child-tab-row .tree-rename-input {
+  height: 20px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.connection-child-tab-row .connection-main small {
+  font-size: 11px;
+}
+
+.connection-child-tab-close {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+  background: transparent;
+  border-radius: 5px;
+}
+
+.connection-child-tab-close:hover {
+  color: var(--text);
+  background: var(--surface-muted);
+}
+
 .connection-open > .i-icon,
 .connection-open > .connection-icon-shell,
+.connection-child-tab-open > .i-icon,
+.connection-child-tab-open > .connection-icon-shell,
 .quick-connect-menu .i-icon,
 .quick-connect-menu .connection-icon-shell,
 .tree-drag-preview .connection-icon-shell,
@@ -574,6 +643,21 @@
   justify-content: flex-start;
 }
 
+.child-connection-properties-dialog .connection-dialog-header {
+  position: relative;
+  padding-right: 34px;
+}
+
+.connection-dialog-backdrop .child-connection-properties-dialog {
+  overflow: visible;
+}
+
+.child-connection-properties-dialog .connection-dialog-header .icon-button {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+}
+
 .connection-dialog-header {
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
@@ -690,9 +774,11 @@
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  z-index: 3;
+  z-index: 20;
   display: grid;
   width: 236px;
+  max-height: min(430px, calc(100vh - 140px));
+  overflow-y: auto;
   gap: 10px;
   padding: 10px;
   background: var(--surface);
@@ -861,11 +947,16 @@
 
 .connection-icon-choice img,
 .connection-icon-choice .connection-icon-shell,
-.connection-icon-choice .connection-icon-image {
+.connection-icon-choice .connection-icon-image,
+.connection-icon-choice .connection-icon-lucide-preview {
   max-width: 22px;
   max-height: 22px;
   object-fit: contain;
   border-radius: 4px;
+}
+
+.connection-icon-choice .connection-icon-lucide-preview {
+  color: var(--text);
 }
 
 .connection-icon-picker-actions {

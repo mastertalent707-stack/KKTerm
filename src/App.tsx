@@ -103,6 +103,7 @@ function App() {
   const [tutorialHighlightRequest, setTutorialHighlightRequest] =
     useState<TutorialHighlightRequest>();
   const appearanceSettings = useWorkspaceStore((state) => state.appearanceSettings);
+  const hideTopTabButtons = useWorkspaceStore((state) => state.generalSettings.hideTopTabButtons);
   const resetAllLayouts = useWorkspaceStore((state) => state.resetAllLayouts);
   const appShellRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -197,8 +198,8 @@ function App() {
             onPointerDown={handleConnectionPanelResize}
           />
         )}
-        <main className="workspace">
-          <TabStrip />
+        <main className={`workspace${hideTopTabButtons ? " workspace-tabs-hidden" : ""}`}>
+          {hideTopTabButtons ? null : <TabStrip />}
           <WorkspaceCanvas workspaceActive={activePage === "workspace"} />
         </main>
       </div>

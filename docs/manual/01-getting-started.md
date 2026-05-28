@@ -16,7 +16,7 @@ See `CONTEXT.md` for the canonical domain terms — **Connection**, **Quick Conn
 
 On first launch KKTerm seeds:
 
-- An empty Connection Tree (see [03-connections.md](03-connections.md)).
+- An empty Connection Tree (see [03-connections.md](03-connections.md)); when enabled, this same tree also hosts Child Connection Tabs under parent Connections.
 - A single Dashboard View named `dashboard.defaultView` ("Default") with one App Launcher Widget Instance.
 - Default Settings, persisted to SQLite.
 - Locale defaulting to the user's OS language if a matching JSON exists under `src/i18n/locales/`, falling back to English.
@@ -29,7 +29,7 @@ The window is divided into four regions:
 
 1. **Activity Rail** (48 px, left edge) — primary navigation. See [02-app-layout.md](02-app-layout.md).
 2. **Connections Panel** (resizable, left) — visible inside the Workspace Module only. See [03-connections.md](03-connections.md).
-3. **Workspace Canvas** (centre) — Tab Strip plus active Tab content for the current Module.
+3. **Workspace Canvas** (centre) — Tab Strip plus active Tab content for the current Module, or Child Connection Tabs in the Connection Tree when the top Tab Strip is hidden.
 4. **AI Assistant Panel** (resizable, right) — `app.aiAssistant`. Collapsible. See [13-ai-assistant.md](13-ai-assistant.md).
 5. **Status Bar** (bottom, full width) — host usage metrics and transient notifications.
 

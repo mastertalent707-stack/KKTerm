@@ -11,6 +11,7 @@ import {
   Palette,
   Server,
   Settings as SettingsIcon,
+  SquareStack,
   Terminal,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -26,6 +27,7 @@ import { SshSettings } from "./SshSettings";
 import { TerminalSettings as TerminalSettingsPage } from "./TerminalSettings";
 import { UrlSettings } from "./UrlSettings";
 import { VncSettings } from "./VncSettings";
+import { WorkspaceSettings } from "./WorkspaceSettings";
 import {
   buildSettingsAssistantContext,
   type SettingsAssistantContext,
@@ -95,6 +97,14 @@ export function SettingsPage({
           >
             <LayoutDashboard size={16} />
             <span>{t("settings.sectionDashboard")}</span>
+          </button>
+          <button
+            className={settingsNavItemClass("workspace-settings", activeSectionId)}
+            onClick={() => onActiveSectionChange("workspace-settings")}
+            type="button"
+          >
+            <SquareStack size={16} />
+            <span>{t("settings.sectionWorkspace")}</span>
           </button>
           <button
             className={settingsNavItemClass("credentials-settings", activeSectionId)}
@@ -171,6 +181,7 @@ export function SettingsPage({
             <AppearanceSettings onResetLayout={onResetLayout} />
           )}
           {activeSectionId === "dashboard-settings" && <DashboardSettings />}
+          {activeSectionId === "workspace-settings" && <WorkspaceSettings />}
           {activeSectionId === "credentials-settings" && <CredentialsSettings />}
           {activeSectionId === "assistant-settings" && <AiSettings />}
           {activeSectionId === "ssh-settings" && <SshSettings />}

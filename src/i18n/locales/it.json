@@ -891,7 +891,11 @@
     "vnc": "VNC",
     "vncOptions": "Opzioni VNC",
     "windowsRdp": "Desktop remoto di Windows",
-    "wsl": "WSL"
+    "wsl": "WSL",
+    "closeConnection": "Chiudi connessione",
+    "childConnectionProperties": "Modifica proprietà scheda connessione figlia",
+    "lucideIcons": "Icone Lucide",
+    "selectLucideIcon": "Usa icona Lucide {{icon}}"
   },
   "dashboard": {
     "accent": "Accento",
@@ -1836,7 +1840,12 @@
     "builtInMcpConfigMethodRunCommandOrManualEdit": "Esegui comando / modifica manuale",
     "builtInMcpConfigMethodManualEdit": "Modifica manuale",
     "exportSettings": "Esporta",
-    "exportSettingsComplete": "Impostazioni esportate: {{filename}}."
+    "exportSettingsComplete": "Impostazioni esportate: {{filename}}.",
+    "sectionWorkspace": "Area di lavoro",
+    "workspaceTabs": "Schede",
+    "hideTopTabButtons": "Usa le schede connessione figlia nell’albero delle connessioni",
+    "hideTopTabButtonsDesc": "Quando è attivo, la barra superiore delle schede viene nascosta e le schede connessione figlia salvate appaiono come righe in corsivo sotto la connessione padre.",
+    "workspaceSaved": "Impostazioni dell’area di lavoro salvate."
   },
   "sftp": {
     "accessed": "Accesso",

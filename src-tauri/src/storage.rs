@@ -219,6 +219,8 @@ pub struct GeneralSettings {
     #[serde(default)]
     show_all_connections_in_tree: bool,
     #[serde(default)]
+    hide_top_tab_buttons: bool,
+    #[serde(default)]
     pinned_connection_ids: Vec<String>,
     #[serde(default = "default_allow_clipboard_read")]
     allow_clipboard_read: bool,
@@ -4117,6 +4119,7 @@ fn default_general_settings() -> GeneralSettings {
         auto_update_checks_enabled: default_auto_update_checks_enabled(),
         show_connected_connections_in_rail: true,
         show_all_connections_in_tree: false,
+        hide_top_tab_buttons: false,
         pinned_connection_ids: Vec::new(),
         allow_clipboard_read: default_allow_clipboard_read(),
         auto_start_with_windows: false,
@@ -6114,6 +6117,7 @@ mod tests {
         assert!(defaults.auto_update_checks_enabled);
         assert!(defaults.show_connected_connections_in_rail);
         assert!(!defaults.show_all_connections_in_tree);
+        assert!(!defaults.hide_top_tab_buttons);
         assert!(defaults.pinned_connection_ids.is_empty());
         assert!(defaults.allow_clipboard_read);
         assert!(!defaults.auto_start_with_windows);
@@ -6131,6 +6135,7 @@ mod tests {
                 auto_update_checks_enabled: false,
                 show_connected_connections_in_rail: true,
                 show_all_connections_in_tree: true,
+                hide_top_tab_buttons: true,
                 pinned_connection_ids: vec![
                     " connection-a ".to_string(),
                     "connection-a".to_string(),
@@ -6152,6 +6157,7 @@ mod tests {
         assert!(!updated.auto_update_checks_enabled);
         assert!(updated.show_connected_connections_in_rail);
         assert!(updated.show_all_connections_in_tree);
+        assert!(updated.hide_top_tab_buttons);
         assert_eq!(
             updated.pinned_connection_ids,
             vec!["connection-a".to_string(), "connection-b".to_string()]
@@ -6411,6 +6417,7 @@ mod tests {
                 auto_update_checks_enabled: true,
                 show_connected_connections_in_rail: true,
                 show_all_connections_in_tree: true,
+                hide_top_tab_buttons: true,
                 pinned_connection_ids: vec!["connection-pinned".to_string()],
                 allow_clipboard_read: true,
                 auto_start_with_windows: true,
@@ -6432,6 +6439,7 @@ mod tests {
                 auto_update_checks_enabled: true,
                 show_connected_connections_in_rail: false,
                 show_all_connections_in_tree: false,
+                hide_top_tab_buttons: false,
                 pinned_connection_ids: Vec::new(),
                 allow_clipboard_read: false,
                 auto_start_with_windows: false,
@@ -6455,6 +6463,7 @@ mod tests {
         assert!(!imported.general_settings.auto_backup_enabled);
         assert!(imported.general_settings.show_connected_connections_in_rail);
         assert!(imported.general_settings.show_all_connections_in_tree);
+        assert!(imported.general_settings.hide_top_tab_buttons);
         assert_eq!(
             imported.general_settings.pinned_connection_ids,
             vec!["connection-pinned".to_string()]

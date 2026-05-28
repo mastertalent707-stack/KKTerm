@@ -891,7 +891,11 @@
     "vnc": "VNC",
     "vncOptions": "VNC オプション",
     "windowsRdp": "Windows リモートデスクトップ",
-    "wsl": "WSL"
+    "wsl": "WSL",
+    "closeConnection": "接続を閉じる",
+    "childConnectionProperties": "子接続タブのプロパティを編集",
+    "lucideIcons": "Lucide アイコン",
+    "selectLucideIcon": "Lucide {{icon}} アイコンを使用"
   },
   "dashboard": {
     "accent": "アクセント",
@@ -1836,7 +1840,12 @@
     "builtInMcpConfigMethodRunCommandOrManualEdit": "コマンドを実行 / 手動編集",
     "builtInMcpConfigMethodManualEdit": "手動編集",
     "exportSettings": "エクスポート",
-    "exportSettingsComplete": "設定をエクスポートしました: {{filename}}。"
+    "exportSettingsComplete": "設定をエクスポートしました: {{filename}}。",
+    "sectionWorkspace": "ワークスペース",
+    "workspaceTabs": "タブ",
+    "hideTopTabButtons": "接続ツリーで子接続タブを使用",
+    "hideTopTabButtonsDesc": "有効にすると、上部のタブストリップが非表示になり、保存済みの子接続タブが親接続の下に斜体の行として表示されます。",
+    "workspaceSaved": "ワークスペース設定を保存しました。"
   },
   "sftp": {
     "accessed": "アクセス日時",

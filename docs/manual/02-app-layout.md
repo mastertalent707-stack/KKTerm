@@ -3,8 +3,8 @@
 ## AI grep hints
 
 - Keys: `app.primaryNav`, `app.connectionRail`, `app.connectedConnectionsRail`, `app.resizeConnections`, `app.resizeAiAssistant`, `app.openConnectedConnection`, `app.openPinnedConnection`, `app.dontSleepStatusEnabled`, `workspace.workspaceSurface`, `workspace.hostUsage`
-- Topics: Activity Rail, panel resize, pinned Connections on the rail, Connections panel collapse, universal AI Assistant panel, universal host usage status bar, Don't Sleep Status Bar indicator, tutorial targets `app.activityRailWorkspace`, `app.activityRailDashboard`, `app.connectionRail`, `app.activityRailDontSleep`, `app.activityRailInstaller`, `app.activityRailSettings`, `app.connectionsResize`, `app.aiAssistantResize`, `workspace.statusBar`, `workspace.hostUsage`
-- Synonyms: "left bar", "sidebar", "right panel", "AI sidebar", "make panel wider", "hide the AI panel", "bottom bar", "coffee icon", "don't sleep indicator"
+- Topics: Activity Rail, panel resize, pinned Connections on the rail, Connections panel collapse, Child Connection Tabs, universal AI Assistant panel, universal host usage status bar, Don't Sleep Status Bar indicator, tutorial targets `app.activityRailWorkspace`, `app.activityRailDashboard`, `app.connectionRail`, `app.activityRailDontSleep`, `app.activityRailInstaller`, `app.activityRailSettings`, `app.connectionsResize`, `app.aiAssistantResize`, `workspace.statusBar`, `workspace.hostUsage`
+- Synonyms: "left bar", "sidebar", "right panel", "AI sidebar", "make panel wider", "hide the AI panel", "bottom bar", "coffee icon", "don't sleep indicator", "connection tree tabs", "child tabs"
 
 ## Activity Rail (48 px, left edge)
 
@@ -26,7 +26,7 @@ Non-Workspace pages (Dashboard and Settings) stay inset from the 48 px rail so i
 
 ## Connections Panel (left, inside Workspace Module)
 
-Resizable. Collapsed/expanded state persists across launches. See [03-connections.md](03-connections.md) for the tree itself.
+Resizable. Collapsed/expanded state persists across launches. See [03-connections.md](03-connections.md) for the tree itself. When `settings.hideTopTabButtons` is enabled, this panel also becomes the primary Tab navigator by showing Child Connection Tabs under parent Connections.
 
 - Collapse: `connections.collapseColumn`
 - Resize handle: `app.resizeConnections`
@@ -37,7 +37,7 @@ The panel only appears inside the Workspace Module. Switching to Dashboard or Se
 
 ## Workspace Canvas (centre)
 
-The active Module owns this area. Each Module renders its own layout inside it. For the Workspace Module specifically, the Canvas contains the Tab Strip and active Tab content (terminal, SFTP, WebView, RDP, VNC, Pane splits). See [04-workspace-tabs-panes.md](04-workspace-tabs-panes.md).
+The active Module owns this area. Each Module renders its own layout inside it. For the Workspace Module specifically, the Canvas contains the Tab Strip and active Tab content (terminal, SFTP, WebView, RDP, VNC, Pane splits). If Child Connection Tabs are enabled, the top Tab Strip is hidden and Tab navigation moves into the Connections Panel. See [04-workspace-tabs-panes.md](04-workspace-tabs-panes.md).
 
 Accessibility label: `workspace.workspaceSurface`. Per-Connection-kind labels use `workspace.connectionKind` with the kind interpolated.
 

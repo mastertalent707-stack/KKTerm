@@ -45,6 +45,7 @@ AI Assistant context is also a command-boundary concern. Any frontend page conte
 - `src/modules/settings/GeneralSettings.tsx` — Language (i18n) selector, Auto Backup toggle and last-backup status, connected Connection rail shortcut toggle, minimize-to-tray toggle, DirectX screen capture toggle, settings export/import actions, database folder opener.
 - `src/modules/settings/AppearanceSettings.tsx` — App UI font family, layout reset, Color Scheme selection and preview, including tutorial target `settings.appearance.colorScheme`.
 - `src/modules/settings/DashboardSettings.tsx` — Dashboard-wide preferences: default landing view, widget network-tools permission, and the active script widget cap. Per-view grid density is owned by the view row and edited from the Dashboard topbar in edit mode only.
+- `src/modules/settings/WorkspaceSettings.tsx` — Workspace display preferences, including whether the top Tab Strip is hidden in favor of Child Connection Tabs under parent Connections in the Connection Tree.
 - `src/modules/settings/AiSettings.tsx` — AI provider kind, dynamic provider fields, provider-specific model selector, custom model ID input, API key, output language, and insecure TLS provider toggle. Provider addition rules live in `docs/AI_PROVIDERS.md`.
 - `src/modules/settings/SshSettings.tsx` — SSH defaults, SSH terminal buffer behavior, SSH port redirect visibility, SSH OSC 52 clipboard policy, and SFTP transfer defaults summary.
 - `src/modules/settings/TerminalSettings.tsx` — Local terminal font, size, line height, scrollback, cursor, default shell, and local terminal toggles. Do not put SSH-only terminal behavior here; SSH terminal behavior belongs in `SshSettings.tsx`.
@@ -129,9 +130,11 @@ RDP sizing has an important diagnostic trap: gray left/right gutters or a visibl
 
 ### Connection Tree
 
-Owns root-level saved Connections, optional folders, subfolders, search/filter, drag/drop ordering, rename/delete/duplicate, quick connect, and open-session status badges.
+Owns root-level saved Connections, optional folders, subfolders, search/filter, drag/drop ordering, rename/delete/duplicate, quick connect, optional Child Connection Tabs, and open-session status badges.
 
 Current implementation note: a Connection may have no folder and live directly in the root of the tree. Folders may contain Connections and subfolders. Status badges are derived from active frontend workspace Sessions. Durable Connections load as idle and do not persist live session state in SQLite.
+
+Child Connection Tabs are frontend workspace state, not nested durable Connections. They are shown as italic rows under a parent Connection when `settings.hideTopTabButtons` is enabled. A Child Connection Tab stores the child row id, parent Connection id, user-facing child name, optional icon/background override, optional tmux session id, and optional last terminal working directory in local workspace storage (`kkterm.workspace.childConnections.v1`). Startup does not connect these children: selecting a child row creates the live Session lazily, and selecting the parent Connection opens all of its Child Connection Tabs together in a generated split layout.
 
 For tmux-enabled SSH Connections, per-Pane tmux session names are generated and remembered in the frontend workspace layer so split Panes can resume independently. New Pane names are drawn directly from the active locale's `ai.tmuxSessionLabels` pool, so the actual remote tmux session name is localized rather than an English slug with a translated display label. The locale pools do not need to map one-to-one with English. The frontend stores these Pane names under `kkterm.tmuxSessions.<connectionId>` so the same Connection can reopen its previous Pane-to-tmux mapping. Stored Pane ids are reused as literal remote tmux names when they are tmux-safe (no whitespace, colon, semicolon, or control characters). The durable Connection stores only the launch preference and non-user-facing namespace fields; those fields are not the active Pane tmux session id.
 
@@ -411,6 +414,7 @@ Workspace chrome layout is global state. Connection-specific live context may ch
 - `src/ai/assistant.css` — AI Assistant panel, markdown renderer, composer, attachment previews, permission menus, tool approval cards, and assistant work timeline CSS.
 - `src/modules/settings/SettingsPage.tsx` — Settings shell with sidebar nav and section routing.
 - `src/modules/settings/settingsAssistantContext.ts` — Settings-to-AI context projection: active section, visible i18n control keys, and allowed tutorial targets.
+- `src/modules/settings/WorkspaceSettings.tsx` — Workspace display preferences, including the top Tab Strip / Child Connection Tab presentation toggle.
 - `src/modules/settings/UrlSettings.tsx` — URL Connection security defaults, saved website password metadata, and URL data shard management.
 - `src/modules/settings/shared.tsx` — Shared `SettingsSummary` and `PlannedSettingsGrid` for settings pages.
 - `src/modules/settings/aboutData.ts` — Product metadata and open-source component groups.

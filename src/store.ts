@@ -41,20 +41,24 @@ import type {
   QuickCommand,
   TerminalSettings,
   TerminalStartMetric,
+  LayoutNode,
   WorkspacePane,
   StatusBarNotice,
+  WorkspaceChildConnection,
   WorkspaceTab,
 } from "./types";
 import i18next from "./i18n/config";
 import { invokeCommand } from "./lib/tauri";
 import { elevatedLocalShellAction } from "./modules/workspace/connections/quickConnectMenuModel";
 import type { LocalShellOption } from "./modules/workspace/connections/utils";
+import { markPanesForRuntimeMove } from "./modules/workspace/paneRegistry";
 
 const LAYOUT_STORAGE_PREFIX = "kkterm.layout.";
 const TMUX_SESSION_STORAGE_PREFIX = "kkterm.tmuxSessions.";
 const QUICK_COMMAND_BAR_STORAGE_PREFIX = "kkterm.quickCommandBar.";
 const QUICK_COMMANDS_STORAGE_PREFIX = "kkterm.quickCommands.";
 const TMUX_SESSION_ID_PATTERN = /^[^\s:;]+$/u;
+export const CHILD_CONNECTION_CLOSED_EVENT = "kkterm:workspace-child-connection-closed";
 let statusBarNoticeSequence = 0;
 // English fallback names used only when the active locale has no tmux-safe
 // ai.tmuxSessionLabels pool. Locales own their pool; names do not map by index.
@@ -426,7 +430,7 @@ function buildPanesForConnection(
       id:
         index === 0
           ? `pane-${baseId}`
-          : `pane-${baseId}-${index}-${Date.now()}`,
+          : createPaneId(baseId),
       title: index === 0 ? baseTitle : `${baseTitle} ${index + 1}`,
       toolbarTitle: toolbarTitleForConnection(connection),
       cwd: baseCwd,
@@ -445,9 +449,9 @@ function buildPanesFromStoredLayout(
   const paneCount = Math.max(1, stored?.paneCount ?? 1);
   const fallback =
     connection.type === "url" || isRemoteDesktopConnection(connection)
-      ? Array.from({ length: paneCount }, (_, index) => {
+      ? Array.from({ length: paneCount }, () => {
           const pane = buildPaneForConnection(connection);
-          return pane ? { ...pane, id: `pane-${connection.id}-${index}-${Date.now()}` } : null;
+          return pane ? { ...pane, id: createPaneId(connection.id) } : null;
         }).filter((pane): pane is WorkspacePane => Boolean(pane))
       : buildPanesForConnection(connection, paneCount);
   if (!stored?.panes?.length) {
@@ -465,10 +469,10 @@ function buildPanesFromStoredLayout(
 
 function buildPaneFromStoredLayoutPane(
   storedPane: NonNullable<StoredConnectionLayout["panes"]>[number],
-  index: number,
+  _index: number,
 ): WorkspacePane | null {
   const connection = storedPane.connection;
-  const id = `pane-${connection.id}-${index}-${Date.now()}`;
+  const id = createPaneId(connection.id);
   const title = storedPane.title?.trim() || titleForConnectionPane(connection);
   const toolbarTitle = toolbarTitleForConnection(connection);
   if (connection.type === "url") {
@@ -566,6 +570,13 @@ function terminalPaneTitleForConnection(connection: Connection) {
 function buildPaneForConnection(
   connection: Connection,
   focusedPane?: WorkspacePane,
+  options?: {
+    childConnectionId?: string;
+    cwd?: string;
+    title?: string;
+    toolbarTitle?: string;
+    tmuxSessionId?: string;
+  },
 ): WorkspacePane | null {
   if (connection.type === "url") {
     if (!connection.url) {
@@ -573,9 +584,10 @@ function buildPaneForConnection(
     }
     return {
       kind: "webview",
-      id: `pane-${connection.id}-${Date.now()}`,
+      id: createPaneId(connection.id),
+      childConnectionId: options?.childConnectionId,
       title: titleForConnectionPane(connection),
-      toolbarTitle: toolbarTitleForConnection(connection),
+      toolbarTitle: options?.toolbarTitle ?? toolbarTitleForConnection(connection),
       connection,
       url: connection.url,
       dataPartition: connection.dataPartition,
@@ -585,23 +597,79 @@ function buildPaneForConnection(
   if (isRemoteDesktopConnection(connection)) {
     return {
       kind: "remoteDesktop",
-      id: `pane-${connection.id}-${Date.now()}`,
+      id: createPaneId(connection.id),
+      childConnectionId: options?.childConnectionId,
       title: titleForConnectionPane(connection),
-      toolbarTitle: toolbarTitleForConnection(connection),
+      toolbarTitle: options?.toolbarTitle ?? toolbarTitleForConnection(connection),
       connection,
     };
   }
 
   return {
     kind: "terminal",
-    id: `pane-${connection.id}-${Date.now()}`,
-    title: titleForConnectionPane(connection),
-    toolbarTitle: toolbarTitleForConnection(connection),
-    cwd: inheritedTerminalCwdForConnection(connection, focusedPane),
+    id: createPaneId(connection.id),
+    childConnectionId: options?.childConnectionId,
+    title: options?.title ?? titleForConnectionPane(connection),
+    toolbarTitle: options?.toolbarTitle ?? toolbarTitleForConnection(connection),
+    cwd: options?.cwd?.trim() || inheritedTerminalCwdForConnection(connection, focusedPane),
     buffer: "",
     connection,
-    tmuxSessionId: appendTmuxSessionId(connection),
+    tmuxSessionId: options?.tmuxSessionId ?? appendTmuxSessionId(connection),
   };
+}
+
+function connectionForChild(connection: Connection, child: WorkspaceChildConnection): Connection {
+  return {
+    ...connection,
+    iconBackgroundColor: child.iconBackgroundColor ?? connection.iconBackgroundColor,
+    iconDataUrl: child.iconDataUrl ?? connection.iconDataUrl,
+  };
+}
+
+function layoutForChildPanes(panes: WorkspacePane[]): LayoutNode | undefined {
+  if (panes.length <= 2) {
+    return defaultLayoutFor(panes);
+  }
+  const leaf = (pane: WorkspacePane): LayoutNode => ({ type: "leaf", paneId: pane.id });
+  if (panes.length === 3) {
+    return {
+      type: "split",
+      orientation: "vertical",
+      children: [
+        {
+          type: "split",
+          orientation: "horizontal",
+          children: [leaf(panes[0]!), leaf(panes[1]!)],
+        },
+        leaf(panes[2]!),
+      ],
+    };
+  }
+  const columns = Math.ceil(Math.sqrt(panes.length));
+  const rows: LayoutNode[] = [];
+  for (let index = 0; index < panes.length; index += columns) {
+    const rowPanes = panes.slice(index, index + columns);
+    rows.push(
+      rowPanes.length === 1
+        ? leaf(rowPanes[0]!)
+        : {
+            type: "split",
+            orientation: "horizontal",
+            children: rowPanes.map(leaf),
+          },
+    );
+  }
+  return rows.length === 1
+    ? rows[0]
+    : { type: "split", orientation: "vertical", children: rows };
+}
+
+function createPaneId(connectionId: string) {
+  const suffix =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `pane-${connectionId}-${suffix}`;
 }
 
 function createConnectionTabId(connectionId: string) {
@@ -679,6 +747,17 @@ function decrementActiveSessionCounts(
   return nextCounts;
 }
 
+function emitChildConnectionClosed(childConnectionId: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.dispatchEvent(
+    new CustomEvent(CHILD_CONNECTION_CLOSED_EVENT, {
+      detail: { childConnectionId },
+    }),
+  );
+}
+
 interface WorkspaceState {
   query: string;
   tabs: WorkspaceTab[];
@@ -733,8 +812,25 @@ interface WorkspaceState {
   openConnection: (connection: Connection) => void;
   openConnectionInNewTab: (
     connection: Connection,
-    options?: { tmuxSessionId?: string },
+    options?: {
+      childConnectionId?: string;
+      cwd?: string;
+      iconBackgroundColor?: string | null;
+      iconDataUrl?: string | null;
+      title?: string;
+      toolbarTitle?: string;
+      tmuxSessionId?: string;
+    },
   ) => void;
+  openChildConnectionInNewTab: (
+    connection: Connection,
+    child: WorkspaceChildConnection,
+  ) => void;
+  openChildConnectionLayout: (
+    connection: Connection,
+    children: WorkspaceChildConnection[],
+  ) => void;
+  updateOpenChildConnectionMetadata: (child: WorkspaceChildConnection) => void;
   openUrlConnection: (connection: Connection) => void;
   openSshPortForwardBrowser: (
     sourceConnection: Connection,
@@ -755,6 +851,9 @@ interface WorkspaceState {
     direction: SplitDirection,
   ) => void;
   closePane: (tabId: string, paneId: string) => void;
+  closeChildConnection: (childConnectionId: string) => void;
+  maximizeChildConnectionPane: (tabId: string, paneId: string) => void;
+  updatePaneCwd: (tabId: string, paneId: string, cwd: string) => void;
   setQuickCommandBarVisible: (tabId: string, visible: boolean) => void;
   ensureQuickCommandsLoaded: (connectionId: string | undefined) => void;
   addQuickCommand: (connectionId: string | undefined, command: QuickCommand) => void;
@@ -1031,13 +1130,23 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       return;
     }
 
-    const pane = buildPaneForConnection(connection);
+    const paneConnection =
+      options?.iconDataUrl !== undefined || options?.iconBackgroundColor !== undefined
+        ? {
+            ...connection,
+            iconBackgroundColor: options.iconBackgroundColor ?? connection.iconBackgroundColor,
+            iconDataUrl: options.iconDataUrl ?? connection.iconDataUrl,
+          }
+        : connection;
+    const pane = buildPaneForConnection(paneConnection, undefined, {
+      childConnectionId: options?.childConnectionId,
+      cwd: options?.cwd,
+      title: options?.tmuxSessionId ?? options?.title,
+      toolbarTitle: options?.toolbarTitle,
+      tmuxSessionId: options?.tmuxSessionId,
+    });
     if (!pane) {
       return;
-    }
-    if (isTerminalPane(pane) && options?.tmuxSessionId) {
-      pane.tmuxSessionId = options.tmuxSessionId;
-      pane.title = options.tmuxSessionId;
     }
 
     const tabId = createConnectionTabId(connection.id);
@@ -1049,15 +1158,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           : terminalConnectionSubtitle(connection);
     const tab: WorkspaceTab = {
       id: tabId,
-      title: connection.name,
-      toolbarTitle: toolbarTitleForConnection(connection),
+      childConnectionId: options?.childConnectionId,
+      title: options?.title ?? connection.name,
+      toolbarTitle: options?.toolbarTitle ?? toolbarTitleForConnection(connection),
       subtitle,
       kind: "terminal",
       panes: [pane],
       layout: defaultLayoutFor([pane]),
       focusedPaneId: pane.id,
       quickCommandBarVisible: loadStoredQuickCommandBarVisible(connection.id),
-      connection,
+      connection: paneConnection,
       url: connection.url,
       dataPartition: connection.dataPartition,
     };
@@ -1069,6 +1179,222 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         state.activeSessionCounts,
         urlConnectionIdsForTab(tab),
       ),
+    }));
+  },
+  openChildConnectionInNewTab: (connection, child) => {
+    get().openConnectionInNewTab(connection, {
+      childConnectionId: child.id,
+      cwd: child.cwd,
+      iconBackgroundColor: child.iconBackgroundColor,
+      iconDataUrl: child.iconDataUrl,
+      title: child.name,
+      toolbarTitle: child.name,
+      tmuxSessionId: child.tmuxSessionId,
+    });
+  },
+  openChildConnectionLayout: (connection, children) => {
+    const state = get();
+    const existingGroupTab = state.tabs.find(
+      (tab) => tab.childConnectionGroupParentId === connection.id,
+    );
+
+    const uniqueChildren = children.filter(
+      (child, index, all) => all.findIndex((entry) => entry.id === child.id) === index,
+    );
+    const childIds = new Set(uniqueChildren.map((child) => child.id));
+    const groupPaneByChildId = new Map<string, WorkspacePane>();
+    if (existingGroupTab) {
+      for (const pane of existingGroupTab.panes) {
+        if (pane.childConnectionId && childIds.has(pane.childConnectionId)) {
+          groupPaneByChildId.set(pane.childConnectionId, pane);
+        }
+      }
+    }
+
+    const externalPaneByChildId = new Map<
+      string,
+      { pane: WorkspacePane; tab: WorkspaceTab }
+    >();
+    for (const tab of state.tabs) {
+      if (tab.id === existingGroupTab?.id) {
+        continue;
+      }
+      for (const pane of tab.panes) {
+        if (
+          pane.childConnectionId &&
+          childIds.has(pane.childConnectionId) &&
+          !externalPaneByChildId.has(pane.childConnectionId)
+        ) {
+          externalPaneByChildId.set(pane.childConnectionId, { pane, tab });
+        }
+      }
+    }
+    const movedPaneIds = new Set<string>();
+    const newPanes: WorkspacePane[] = [];
+    const childPanes = uniqueChildren
+      .map((child) => {
+        const groupPane = groupPaneByChildId.get(child.id);
+        if (groupPane) {
+          return {
+            ...groupPane,
+            childConnectionId: child.id,
+            connection: connectionForChild(connection, child),
+            title: child.tmuxSessionId ?? child.name,
+            toolbarTitle: child.name,
+          };
+        }
+        const existing = externalPaneByChildId.get(child.id);
+        if (existing) {
+          movedPaneIds.add(existing.pane.id);
+          return {
+            ...existing.pane,
+            childConnectionId: child.id,
+            connection: connectionForChild(connection, child),
+            title: child.tmuxSessionId ?? child.name,
+            toolbarTitle: child.name,
+          };
+        }
+        const childConnection = connectionForChild(connection, child);
+        const pane = buildPaneForConnection(childConnection, undefined, {
+          childConnectionId: child.id,
+          cwd: child.cwd,
+          title: child.tmuxSessionId ?? child.name,
+          toolbarTitle: child.name,
+          tmuxSessionId: child.tmuxSessionId,
+        });
+        if (pane) {
+          newPanes.push(pane);
+        }
+        return pane;
+      })
+      .filter((pane): pane is WorkspacePane => Boolean(pane));
+    if (childPanes.length === 0) {
+      get().openConnection(connection);
+      return;
+    }
+    const tabId = existingGroupTab?.id ?? createConnectionTabId(`${connection.id}-children`);
+    const tab: WorkspaceTab = {
+      ...existingGroupTab,
+      id: tabId,
+      childConnectionGroupParentId: connection.id,
+      title: connection.name,
+      toolbarTitle: toolbarTitleForConnection(connection),
+      subtitle: terminalConnectionSubtitle(connection),
+      kind: "terminal",
+      panes: childPanes,
+      layout: layoutForChildPanes(childPanes),
+      focusedPaneId: undefined,
+      maximizedPaneId: undefined,
+      quickCommandBarVisible: false,
+      connection,
+    };
+    const terminalPaneIdsToMove = childPanes
+      .filter((pane) => movedPaneIds.has(pane.id) && isTerminalPane(pane))
+      .map((pane) => pane.id);
+    markPanesForRuntimeMove(terminalPaneIdsToMove);
+    set((state) => ({
+      tabs: [
+        ...state.tabs.flatMap((entry) => {
+          if (entry.id === tab.id) {
+            return [tab];
+          }
+          const movedPaneIdsInTab = entry.panes
+            .filter((pane) => movedPaneIds.has(pane.id))
+            .map((pane) => pane.id);
+          if (movedPaneIdsInTab.length === 0) {
+            return [entry];
+          }
+          const nextPanes = entry.panes.filter((pane) => !movedPaneIds.has(pane.id));
+          if (nextPanes.length === 0) {
+            return [];
+          }
+          const nextLayout = ensureLayout(entry.layout, nextPanes);
+          return [
+            {
+              ...entry,
+              childConnectionId:
+                entry.childConnectionId && childIds.has(entry.childConnectionId)
+                  ? undefined
+                  : entry.childConnectionId,
+              panes: nextPanes,
+              layout: nextLayout,
+              focusedPaneId:
+                entry.focusedPaneId && movedPaneIds.has(entry.focusedPaneId)
+                  ? leafOrder(nextLayout)[0] ?? nextPanes[0]?.id
+                  : entry.focusedPaneId,
+            },
+          ];
+        }),
+        ...(existingGroupTab ? [] : [tab]),
+      ],
+      activeTabId: tab.id,
+      activeSessionCounts: incrementActiveSessionCounts(
+        state.activeSessionCounts,
+        newPanes.flatMap((pane) =>
+          pane.kind === "webview" && pane.connection.type === "url"
+            ? [pane.connection.id]
+            : [],
+        ),
+      ),
+    }));
+  },
+  updateOpenChildConnectionMetadata: (child) => {
+    set((state) => ({
+      tabs: state.tabs.map((tab) => {
+        const tabMatches = tab.childConnectionId === child.id;
+        let panesChanged = false;
+        const panes = tab.panes.map((pane) => {
+          if (pane.childConnectionId !== child.id || !pane.connection) {
+            return pane;
+          }
+          panesChanged = true;
+          const connection = pane.connection;
+          const nextIconBackgroundColor = child.iconBackgroundColor ?? connection.iconBackgroundColor;
+          const nextIconDataUrl = child.iconDataUrl ?? connection.iconDataUrl;
+          const nextConnection =
+            nextIconBackgroundColor === connection.iconBackgroundColor &&
+            nextIconDataUrl === connection.iconDataUrl
+              ? connection
+              : {
+                  ...connection,
+                  iconBackgroundColor: nextIconBackgroundColor,
+                  iconDataUrl: nextIconDataUrl,
+                };
+          return {
+            ...pane,
+            toolbarTitle: child.name,
+            connection: nextConnection,
+          };
+        });
+        if (!tabMatches && !panesChanged) {
+          return tab;
+        }
+        const tabConnection = tab.connection;
+        const nextTabConnection =
+          tabMatches && tabConnection
+            ? (() => {
+                const nextIconBackgroundColor = child.iconBackgroundColor ?? tabConnection.iconBackgroundColor;
+                const nextIconDataUrl = child.iconDataUrl ?? tabConnection.iconDataUrl;
+                return nextIconBackgroundColor === tabConnection.iconBackgroundColor &&
+                  nextIconDataUrl === tabConnection.iconDataUrl
+                  ? tabConnection
+                  : {
+                      ...tabConnection,
+                      iconBackgroundColor: nextIconBackgroundColor,
+                      iconDataUrl: nextIconDataUrl,
+                    };
+              })()
+            : tabConnection;
+        return tabMatches
+          ? {
+              ...tab,
+              title: child.name,
+              toolbarTitle: child.name,
+              panes,
+              connection: nextTabConnection,
+            }
+          : { ...tab, panes };
+      }),
     }));
   },
   openRemoteDesktopConnection: (connection) => {
@@ -1308,7 +1634,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       kind: "terminal",
       panes: [
         {
-          id: `pane-${connection.id}-terminal-${Date.now()}`,
+          id: createPaneId(`${connection.id}-terminal`),
           title: "ssh",
           toolbarTitle: toolbarTitleForConnection(connection),
           cwd: normalizedPath,
@@ -1461,11 +1787,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!tab || tab.kind !== "terminal") {
       return;
     }
+    const closingPane = tab.panes.find((pane) => pane.id === paneId);
+    if (closingPane?.childConnectionId) {
+      get().closeChildConnection(closingPane.childConnectionId);
+      return;
+    }
     if (tab.panes.length <= 1) {
       get().closeTab(tabId);
       return;
     }
-    const closingPane = tab.panes.find((pane) => pane.id === paneId);
     const nextPanes = tab.panes.filter((p) => p.id !== paneId);
     const nextLayout = ensureLayout(tab.layout, nextPanes);
     const nextFocusedPaneId =
@@ -1487,6 +1817,104 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         closingPane?.kind === "webview"
           ? decrementActiveSessionCounts(s.activeSessionCounts, [closingPane.connection.id])
           : s.activeSessionCounts,
+    }));
+  },
+  closeChildConnection: (childConnectionId) => {
+    let removed = false;
+    set((state) => {
+      const closedUrlConnectionIds: string[] = [];
+      const tabs = state.tabs.flatMap((tab) => {
+        const tabMatches = tab.childConnectionId === childConnectionId;
+        const matchingPanes = tab.panes.filter(
+          (pane) => pane.childConnectionId === childConnectionId,
+        );
+        if (!tabMatches && matchingPanes.length === 0) {
+          return [tab];
+        }
+
+        removed = true;
+        closedUrlConnectionIds.push(
+          ...urlConnectionIdsForTab({
+            ...tab,
+            panes: tabMatches ? tab.panes : matchingPanes,
+          }),
+        );
+        const nextPanes = tab.panes.filter(
+          (pane) => pane.childConnectionId !== childConnectionId,
+        );
+        if (tabMatches || nextPanes.length === 0) {
+          return [];
+        }
+
+        const nextLayout = ensureLayout(tab.layout, nextPanes);
+        const nextFocusedPaneId =
+          tab.focusedPaneId && nextPanes.some((pane) => pane.id === tab.focusedPaneId)
+            ? tab.focusedPaneId
+            : leafOrder(nextLayout)[0] ?? nextPanes[0]?.id;
+        const nextMaximizedPaneId =
+          tab.maximizedPaneId && nextPanes.some((pane) => pane.id === tab.maximizedPaneId)
+            ? tab.maximizedPaneId
+            : undefined;
+        return [
+          {
+            ...tab,
+            panes: nextPanes,
+            layout: nextLayout,
+            focusedPaneId: nextFocusedPaneId,
+            maximizedPaneId: nextMaximizedPaneId,
+          },
+        ];
+      });
+      return {
+        tabs,
+        activeTabId:
+          tabs.some((tab) => tab.id === state.activeTabId)
+            ? state.activeTabId
+            : tabs[0]?.id ?? "",
+        activeSessionCounts: decrementActiveSessionCounts(
+          state.activeSessionCounts,
+          closedUrlConnectionIds,
+        ),
+      };
+    });
+    if (removed) {
+      emitChildConnectionClosed(childConnectionId);
+    }
+  },
+  maximizeChildConnectionPane: (tabId, paneId) => {
+    set((state) => ({
+      activeTabId: tabId,
+      tabs: state.tabs.map((tab) =>
+        tab.id === tabId && tab.childConnectionGroupParentId
+          ? {
+              ...tab,
+              focusedPaneId: paneId,
+              maximizedPaneId: paneId,
+            }
+          : tab.id === tabId
+            ? { ...tab, focusedPaneId: paneId }
+            : tab,
+      ),
+    }));
+  },
+  updatePaneCwd: (tabId, paneId, cwd) => {
+    const nextCwd = cwd.trim();
+    if (!nextCwd) {
+      return;
+    }
+    set((state) => ({
+      tabs: state.tabs.map((tab) =>
+        tab.id !== tabId
+          ? tab
+          : {
+              ...tab,
+              panes: tab.panes.map((pane) =>
+                pane.id === paneId && isTerminalPane(pane) && pane.cwd !== nextCwd
+                  ? { ...pane, cwd: nextCwd }
+                  : pane,
+              ),
+            },
+      ),
     }));
   },
   setQuickCommandBarVisible: (tabId, visible) => {
@@ -1628,7 +2056,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         }
 
         const newPane: TerminalPane = {
-          id: `pane-${connection.id}-${Date.now()}`,
+          id: createPaneId(connection.id),
           title: tmuxSessionId,
           toolbarTitle: toolbarTitleForConnection(connection),
           cwd: focusedPane.cwd,

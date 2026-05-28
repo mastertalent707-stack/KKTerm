@@ -3,7 +3,8 @@
 ## AI grep hints
 
 - Keys: `connections.*` (full namespace), `app.connectionRail`
-- Topics: Connection Tree, folders, search, Quick Connect, Add Connection, tutorial targets `connections.panel`, `connections.search`, `connections.quickConnect`, `connections.addConnection`, `connections.folderControls`, `connections.tree`, rename, delete, duplicate, pin to rail, drag/drop, properties dialog, icon image, icon background
+- Topics: Connection Tree, Child Connection Tabs, folders, search, Quick Connect, Add Connection, tutorial targets `connections.panel`, `connections.search`, `connections.quickConnect`, `connections.addConnection`, `connections.folderControls`, `connections.tree`, rename, delete, duplicate, pin to rail, drag/drop, properties dialog, icon image, icon background
+- Synonyms: "child tab", "connection tree tab", "saved tab", "named tab under a connection", "sub tab"
 - Synonyms: "saved host", "profile", "ssh entry", "create folder", "favourites", "icon color", "connection color"
 
 > **Term:** "Connection" is the canonical name for a durable openable resource. Do not use "profile", "host entry", or "saved session". A Connection only becomes a live **Session** when opened; switching Tabs does not end the Session.
@@ -49,11 +50,20 @@ Driven by `src/lib/nativeContextMenu.ts`. On a Connection or folder node:
 - `connections.rename`, dialogs `connections.renameFolder` / `connections.renameConnection`
 - `connections.delete`, confirmation copy `connections.deleteFolderConfirm` or `connections.deleteConnectionConfirm`, with caveat `connections.cannotBeUndone`
 - Pin to rail: `connections.pinToRail` / `connections.unpinFromRail`. Status: `connections.pinnedToRailStatus`, `connections.unpinnedFromRailStatus`. Error: `connections.pinRailError`.
+- Top-level `workspace.newTab` on Connection rows. This opens the same new Tab flow as the Add-to-folder `workspace.newTab` entry and remains available in both places.
 - Add to folder: `connections.addTo`, including `workspace.newTab` with shortcut hint `connections.newTabShortcut`, then pane placement directions `connections.left`, `connections.right`, `connections.lower`, `connections.upper`.
 - Layout (Pane placement when opening): `connections.layout` with directions `connections.left`, `connections.right`, `connections.lower`, `connections.upper`
 - `connections.properties`
 
 Icons are rasterized to 16 px PNG bytes via `src/lib/nativeContextMenu.ts`. Do not pass raw SVG paths to Tauri menu APIs.
+
+## Child Connection Tabs
+
+A **Child Connection Tab** is a saved Tab entry shown as an italic child row below its parent Connection when `settings.hideTopTabButtons` is enabled. It is a Workspace presentation/reopen record, not a nested durable Connection. The parent Connection still owns host, protocol, credential metadata, and folder placement.
+
+New Tabs opened from a saved Connection become Child Connection Tabs in this mode. They persist across app launches but open lazily: KKTerm starts the live Session only when the user selects the child row. Right-clicking a child row offers `connections.rename` and `connections.properties`; the properties dialog title is `connections.childConnectionProperties` and edits the child Tab name, icon image, and icon background without changing the parent Connection.
+
+Clicking a parent Connection with Child Connection Tabs opens all of its children together in one split workspace Tab when none of those children are already live. If a child Tab is already open, KKTerm focuses the existing child Tab/Pane instead of reconnecting.
 
 ## Add Connection / Quick Connect dialogs
 
@@ -76,7 +86,7 @@ path.
 
 **Add Connection** uses the same form shape but persists to SQLite. The Type selector label is `connections.type`.
 
-For saved Connections, the properties/Add Connection header includes Connection icon presentation controls. `connections.editIcon` changes the icon image. `connections.editIconBackground` opens the circular icon background picker; `connections.iconBackground` labels the picker, `connections.transparentIconBackground` clears the color back to the default transparent state, and `connections.selectIconBackground` applies a palette color. The chosen background is shown behind Connection icons in the Connection Tree and on pinned/connected Activity Rail Connection shortcuts. Workspace Tab rename is runtime-only Tab UI state and does not update the saved Connection `name`, icon, background, or `tabTitle`.
+For saved Connections, the properties/Add Connection header includes Connection icon presentation controls. `connections.editIcon` changes the icon image through default protocol icons, Lucide icon choices (`connections.lucideIcons` / `connections.selectLucideIcon`), saved images, or a newly chosen image. `connections.editIconBackground` opens the circular icon background picker; `connections.iconBackground` labels the picker, `connections.transparentIconBackground` clears the color back to the default transparent state, and `connections.selectIconBackground` applies a palette color. The chosen background is shown behind Connection icons in the Connection Tree and on pinned/connected Activity Rail Connection shortcuts. Workspace Tab rename is runtime-only Tab UI state and does not update the saved Connection `name`, icon, background, or `tabTitle`.
 
 ## Drag and drop
 

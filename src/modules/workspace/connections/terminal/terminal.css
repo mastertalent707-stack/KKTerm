@@ -52,6 +52,7 @@
 
 .terminal-grid {
   display: flex;
+  position: relative;
   min-height: 0;
   min-width: 0;
   gap: 10px;
@@ -92,6 +93,37 @@
   flex: 1 1 0;
   min-width: 0;
   min-height: 0;
+}
+
+.terminal-workspace-pane-maximized .terminal-layout-split {
+  display: contents;
+}
+
+.terminal-workspace-pane-maximized .terminal-layout-leaf {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.985);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.terminal-workspace-pane-maximized .terminal-layout-leaf.terminal-layout-maximized {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-workspace-pane-maximized .terminal-layout-leaf {
+    transition: none;
+  }
 }
 
 .embedded-workspace-pane {
@@ -1577,4 +1609,41 @@
 .xterm-host .xterm .xterm-viewport::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+.sftp-popup-dialog-backdrop {
+  padding: 24px;
+}
+
+.connection-dialog.sftp-popup-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1180px, calc(100vw - 48px));
+  height: min(820px, calc(100vh - 48px));
+  max-height: calc(100vh - 48px);
+  padding: 0;
+  overflow: hidden;
+}
+
+.sftp-popup-dialog .connection-dialog-header {
+  flex: 0 0 auto;
+  padding: 16px 54px 12px 18px;
+}
+
+.sftp-popup-dialog .connection-dialog-header h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.sftp-popup-dialog-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 14px 14px;
+}
+
+.sftp-popup-dialog-body .sftp-workspace {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
 }

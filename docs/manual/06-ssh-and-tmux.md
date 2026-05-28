@@ -3,8 +3,8 @@
 ## AI grep hints
 
 - Keys: `terminal.verifyingHostKey`, `terminal.sshHostKeyChanged`, `terminal.sshHostKeyChangedDetail`, `terminal.sshHostKeyChangeDetail`, `terminal.trustHostKey`, `terminal.hostKeyNotTrusted`, `terminal.selectKeyFile`, `terminal.sshContextUnavailable`, `terminal.showTmux`, `terminal.editTmuxSession`, `terminal.tmuxSessionName`, `terminal.tmuxSessionNameRequired`, `terminal.tmuxSessionNameInvalid`, `terminal.tmuxSessionRenamed`, `terminal.tmuxSessions`, `terminal.refreshTmux`, `terminal.noTmuxSessions`, `terminal.attached`, `terminal.detached`, `terminal.detachTmux`, `terminal.closeTmux`, `terminal.openInPane`, `terminal.openLeft`, `terminal.openRight`, `terminal.openAbove`, `terminal.openBelow`, `terminal.mouseOn`, `terminal.mouseOff`, `terminal.sshPortRedirect`, `terminal.remoteLoopbackPorts`, `terminal.refreshPorts`, `terminal.scanningPorts`, `terminal.noRemoteLoopbackPorts`, `terminal.remoteLoopbackPort`, `terminal.openPortInBrowser`, `terminal.sshPortForwardOpened`
-- Topics: SSH host key trust, tmux session list, attach / detach / rename tmux, SSH local port forward for remote loopback services, tutorial targets `terminal.tmuxSessions`, `terminal.sshPortRedirect`
-- Synonyms: "trust this host", "key fingerprint changed", "MITM warning", "tmux session", "screen", "port forward", "tunnel"
+- Topics: SSH host key trust, tmux session list, attach / detach / rename tmux, Child Connection Tab tmux resume, SSH local port forward for remote loopback services, tutorial targets `terminal.tmuxSessions`, `terminal.sshPortRedirect`
+- Synonyms: "trust this host", "key fingerprint changed", "MITM warning", "tmux session", "screen", "child tmux tab", "saved tmux tab", "port forward", "tunnel"
 
 ## Host key trust
 
@@ -30,6 +30,8 @@ For tmux-enabled SSH Sessions, an unexpected channel close may silently attempt 
 SSH Connections may opt into tmux. When tmux is enabled, opening the Connection starts (or attaches to) a named tmux session on the remote host. If `tmux` is not installed on the remote, the Pane silently falls back to the normal shell — no error dialog.
 
 When a tmux-enabled SSH Connection is opened through the Connection Tree `workspace.newTab` path (`connections.newTabShortcut`), KKTerm first asks the remote for tmux sessions and picks the newest unattached session by `session_created`, excluding tmux Session ids that are already present in current workspace Panes. If no eligible session is available, or if the tmux listing fails, the new Tab falls through to the normal new-Pane tmux naming path.
+
+When Child Connection Tabs are enabled through `settings.hideTopTabButtons`, a tmux-enabled SSH child uses its tmux session id as the default Child Connection Tab name. The child stores that tmux session id so reopening the child row after app launch attaches to the same remote tmux session instead of allocating a new one. This child record is still frontend Workspace state; the saved SSH Connection stores only the tmux launch preference.
 
 ### Tmux session list popover
 

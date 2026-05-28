@@ -891,7 +891,11 @@
     "vnc": "VNC",
     "vncOptions": "Opciones de VNC",
     "windowsRdp": "Escritorio remoto de Windows",
-    "wsl": "WSL"
+    "wsl": "WSL",
+    "closeConnection": "Cerrar conexión",
+    "childConnectionProperties": "Editar propiedades de pestaña de conexión secundaria",
+    "lucideIcons": "Iconos Lucide",
+    "selectLucideIcon": "Usar icono Lucide {{icon}}"
   },
   "dashboard": {
     "accent": "Acento",
@@ -1836,7 +1840,12 @@
     "builtInMcpConfigMethodRunCommandOrManualEdit": "Ejecutar comando / edición manual",
     "builtInMcpConfigMethodManualEdit": "Edición manual",
     "exportSettings": "Exportar",
-    "exportSettingsComplete": "Ajustes exportados: {{filename}}."
+    "exportSettingsComplete": "Ajustes exportados: {{filename}}.",
+    "sectionWorkspace": "Espacio de trabajo",
+    "workspaceTabs": "Pestañas",
+    "hideTopTabButtons": "Usar pestañas de conexión secundarias en el árbol de conexiones",
+    "hideTopTabButtonsDesc": "Cuando está activado, la tira superior de pestañas se oculta y las pestañas de conexión secundarias guardadas aparecen en cursiva bajo su conexión principal.",
+    "workspaceSaved": "Configuración del espacio de trabajo guardada."
   },
   "sftp": {
     "accessed": "Accedido",

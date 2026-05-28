@@ -2,6 +2,7 @@ export type SettingsSectionId =
   | "general-settings"
   | "appearance-settings"
   | "dashboard-settings"
+  | "workspace-settings"
   | "credentials-settings"
   | "assistant-settings"
   | "ssh-settings"
@@ -116,6 +117,16 @@ const SETTINGS_SECTIONS: Record<SettingsSectionId, SettingsSectionSummary> = {
         key: "settings.dashboardMaxActiveScriptWidgets",
         description: "Active script widget iframe cap.",
         tutorialTargetId: "settings.dashboardMaxActiveScriptWidgets",
+      },
+    ],
+  },
+  "workspace-settings": {
+    labelKey: "settings.sectionWorkspace",
+    fallbackLabel: "Workspace",
+    controls: [
+      {
+        key: "settings.hideTopTabButtons",
+        description: "Enable Child Connection Tabs: hides the top Tab Strip and shows saved Child Connection Tabs under their parent Connections in the Connection Tree.",
       },
     ],
   },
