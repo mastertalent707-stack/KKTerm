@@ -379,11 +379,16 @@ impl FtpSessionManager {
     }
 
     pub fn close_ftp_session(&self, session_id: &str) -> Result<(), String> {
-        let mut sessions = self
-            .sessions
-            .lock()
-            .map_err(|_| "FTP session lock is poisoned".to_string())?;
-        if let Some(mut conn) = sessions.remove(session_id) {
+        // Remove under the lock, then drop the guard before the blocking QUIT
+        // so a slow/hung server teardown can't freeze every other FTP session.
+        let removed = {
+            let mut sessions = self
+                .sessions
+                .lock()
+                .map_err(|_| "FTP session lock is poisoned".to_string())?;
+            sessions.remove(session_id)
+        };
+        if let Some(mut conn) = removed {
             let _ = conn.runtime.block_on(async {
                 match &mut conn.transport {
                     FtpTransport::Plain(s) => s.quit().await.ok(),

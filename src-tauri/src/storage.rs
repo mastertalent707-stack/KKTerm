@@ -1228,6 +1228,11 @@ impl Storage {
                 .map_err(|error| format!("failed to prepare database replacement: {error}"))?;
             let old_connection = std::mem::replace(&mut *connection, placeholder);
             drop(old_connection);
+            // Closing the old connection checkpoints and removes its WAL, but
+            // clear any stale sidecars defensively before overwriting the main
+            // file: a leftover -wal/-shm from the previous database would be
+            // misapplied to the freshly imported file on reopen.
+            remove_wal_sidecars(&self.db_path)?;
             fs::copy(&temp_import_path, &self.db_path).map_err(|error| {
                 format!(
                     "failed to replace database {} with import {}: {error}",
@@ -3100,9 +3105,20 @@ impl Storage {
     }
 
     fn lock(&self) -> Result<std::sync::MutexGuard<'_, SqliteConnection>, String> {
-        self.connection
-            .lock()
-            .map_err(|_| "SQLite connection lock is poisoned".to_string())
+        match self.connection.lock() {
+            Ok(guard) => Ok(guard),
+            Err(poison) => {
+                // Recover rather than permanently failing every caller: the
+                // inner connection is still usable after a panic. A best-effort
+                // ROLLBACK clears any half-open transaction the panicked caller
+                // left behind. This mirrors with_connection_infallible so all
+                // DB accessors recover uniformly instead of with_connection*
+                // callers seeing "lock is poisoned" forever (M-3).
+                let recovered = poison.into_inner();
+                let _ = recovered.execute("ROLLBACK", []);
+                Ok(recovered)
+            }
+        }
     }
 
     pub(crate) fn with_connection<R>(
@@ -3150,7 +3166,49 @@ fn open_initialized_connection(db_path: &Path) -> Result<SqliteConnection, Strin
     connection
         .pragma_update(None, "foreign_keys", "ON")
         .map_err(|error| format!("failed to enable SQLite foreign keys: {error}"))?;
+    // WAL + NORMAL synchronous shortens how long each write holds SQLite's
+    // internal locks (and the surrounding Rust connection mutex), which reduces
+    // main-thread stalls; busy_timeout avoids spurious SQLITE_BUSY if a future
+    // reader connection is added. Best-effort: a backend that rejects WAL (e.g.
+    // certain network filesystems) must still open, so failures are not fatal.
+    if let Err(error) = connection.pragma_update(None, "journal_mode", "WAL") {
+        eprintln!("failed to enable SQLite WAL journal mode: {error}");
+    }
+    if let Err(error) = connection.pragma_update(None, "synchronous", "NORMAL") {
+        eprintln!("failed to set SQLite synchronous=NORMAL: {error}");
+    }
+    if let Err(error) = connection.busy_timeout(std::time::Duration::from_secs(5)) {
+        eprintln!("failed to set SQLite busy_timeout: {error}");
+    }
     Ok(connection)
+}
+
+/// Run a blocking database closure from an `async` Tauri command without
+/// starving the async runtime's worker pool. The connection mutex + blocking
+/// rusqlite calls would otherwise park a tokio worker for the op's duration.
+///
+/// Uses tokio's `block_in_place` when running on the multi-threaded runtime
+/// (which is how Tauri executes async commands), and falls back to calling the
+/// closure directly when not on a multi-thread worker — e.g. unit tests or a
+/// current-thread runtime — so it can never panic on the wrong runtime flavor.
+pub(crate) fn run_blocking_db<R>(f: impl FnOnce() -> R) -> R {
+    use tokio::runtime::{Handle, RuntimeFlavor};
+    match Handle::try_current().map(|handle| handle.runtime_flavor()) {
+        Ok(RuntimeFlavor::MultiThread) => tokio::task::block_in_place(f),
+        _ => f(),
+    }
+}
+
+/// Remove the WAL sidecar files (`-wal`, `-shm`) for a database path. Safe to
+/// call when they do not exist. Used before reopening after a raw file replace
+/// so stale sidecars from the previous connection cannot corrupt the new file.
+fn remove_wal_sidecars(db_path: &Path) -> Result<(), String> {
+    for suffix in ["-wal", "-shm"] {
+        let mut sidecar = db_path.as_os_str().to_os_string();
+        sidecar.push(suffix);
+        remove_file_if_exists(Path::new(&sidecar))?;
+    }
+    Ok(())
 }
 
 fn table_exists(connection: &SqliteConnection, table: &str) -> Result<bool, String> {
@@ -5303,12 +5361,23 @@ fn make_tmux_connection_id(connection_id: &str) -> String {
     make_unique_id("kkterm", connection_id)
 }
 
+/// Process-wide monotonic counter appended to generated ids. The millisecond
+/// timestamp alone collides when two ids are generated within the same
+/// millisecond (e.g. two inserts in a tight loop), which produced duplicate
+/// primary keys; the counter makes ids unique regardless of insert speed.
+fn next_id_sequence() -> u64 {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    COUNTER.fetch_add(1, Ordering::Relaxed)
+}
+
 fn make_connection_password_credential_id() -> String {
     let unique = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|duration| duration.as_millis())
         .unwrap_or_default();
-    format!("connection-password-credential-{unique}")
+    let sequence = next_id_sequence();
+    format!("connection-password-credential-{unique}-{sequence}")
 }
 
 fn make_unique_id(fallback: &str, name: &str) -> String {
@@ -5330,8 +5399,9 @@ fn make_unique_id(fallback: &str, name: &str) -> String {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|duration| duration.as_millis())
         .unwrap_or_default();
+    let sequence = next_id_sequence();
     format!(
-        "{}-{unique}",
+        "{}-{unique}-{sequence}",
         if slug.is_empty() { fallback } else { &slug }
     )
 }

@@ -473,6 +473,31 @@ struct WebviewDownloadPayload {
     success: Option<bool>,
 }
 
+/// RAII reservation for the `starting_sessions` set. Clears the reservation on
+/// drop — including any early `?` return or panic during startup — unless
+/// `commit()` is called on success. Without this, an error after the
+/// reservation but before insertion (e.g. a failed clipboard/cert configure or
+/// navigate) left the session id stuck as "already starting" until restart.
+struct StartingReservation<'a> {
+    manager: &'a WebviewSessionManager,
+    session_id: String,
+    committed: bool,
+}
+
+impl StartingReservation<'_> {
+    fn commit(mut self) {
+        self.committed = true;
+    }
+}
+
+impl Drop for StartingReservation<'_> {
+    fn drop(&mut self) {
+        if !self.committed {
+            self.manager.clear_starting(&self.session_id);
+        }
+    }
+}
+
 impl WebviewSessionManager {
     pub fn new(allow_clipboard_read: bool) -> Self {
         Self {
@@ -532,16 +557,17 @@ impl WebviewSessionManager {
                 ));
             }
         }
+        // From here on, any early return clears the reservation via Drop unless
+        // we commit() on success.
+        let starting_reservation = StartingReservation {
+            manager: self,
+            session_id: session_id.clone(),
+            committed: false,
+        };
 
-        let host_window = app.get_window(HOST_WINDOW_LABEL).map_or_else(
-            || {
-                self.clear_starting(&session_id);
-                Err(format!(
-                    "host window '{HOST_WINDOW_LABEL}' is not available"
-                ))
-            },
-            Ok,
-        )?;
+        let host_window = app.get_window(HOST_WINDOW_LABEL).ok_or_else(|| {
+            format!("host window '{HOST_WINDOW_LABEL}' is not available")
+        })?;
 
         let label = webview_label_for(&session_id);
         let navigation_app = app.clone();
@@ -631,10 +657,7 @@ impl WebviewSessionManager {
 
         let webview = host_window
             .add_child(builder, position, size)
-            .map_err(|error| {
-                self.clear_starting(&session_id);
-                format!("failed to attach child webview: {error}")
-            })?;
+            .map_err(|error| format!("failed to attach child webview: {error}"))?;
 
         configure_clipboard_read_permission(&webview, Arc::clone(&self.clipboard_read_allowed))?;
         configure_certificate_error_bypass(&webview, ignore_certificate_errors)?;
@@ -652,7 +675,7 @@ impl WebviewSessionManager {
                 visible: true,
             },
         );
-        self.clear_starting(&session_id);
+        starting_reservation.commit();
 
         Ok(WebviewSessionStarted {
             session_id,
