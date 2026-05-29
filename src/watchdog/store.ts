@@ -39,6 +39,7 @@ interface WatchdogStoreState {
   ticks: Record<string, WatchdogTick[]>;
   triggers: Record<string, WatchdogTriggerEvent[]>;
   interventions: Record<string, WatchdogInterventionEntry[]>;
+  reports: Record<string, WatchdogReport>;
   /// AI-generated lifecycle summary, keyed by watchdog id. Populated on
   /// demand when the user clicks Summarize; persists until dismiss/restart.
   aiSummaries: Record<string, WatchdogAiSummary>;
@@ -55,6 +56,7 @@ interface WatchdogStoreState {
   load: () => Promise<void>;
   applyEvent: (event: WatchdogEvent) => void;
   refreshInterventions: (watchdogId: string) => Promise<void>;
+  refreshWatchdog: (watchdogId: string) => Promise<void>;
 
   setSelected: (id: string | null) => void;
   setPopoverOpen: (open: boolean) => void;
@@ -72,6 +74,7 @@ export const useWatchdogStore = create<WatchdogStoreState>((set, get) => ({
   ticks: {},
   triggers: {},
   interventions: {},
+  reports: {},
   aiSummaries: {},
   summaryInFlight: {},
   selectedId: null,
@@ -147,6 +150,9 @@ export const useWatchdogStore = create<WatchdogStoreState>((set, get) => ({
         // Also patch the summary's lastValue + pollCount so the popover
         // updates without waiting for a stateChange.
         const summary = s.summaries[watchdogId];
+        if (!summary) {
+          void get().refreshWatchdog(watchdogId);
+        }
         const nextSummary = summary
           ? {
               ...summary,
@@ -172,6 +178,9 @@ export const useWatchdogStore = create<WatchdogStoreState>((set, get) => ({
       set((s) => {
         const existing = s.triggers[watchdogId] ?? [];
         const summary = s.summaries[watchdogId];
+        if (!summary) {
+          void get().refreshWatchdog(watchdogId);
+        }
         const nextSummary = summary
           ? {
               ...summary,
@@ -198,6 +207,7 @@ export const useWatchdogStore = create<WatchdogStoreState>((set, get) => ({
       set((s) => {
         const summary = s.summaries[watchdogId];
         if (!summary) {
+          void get().refreshWatchdog(watchdogId);
           return s;
         }
         return {
@@ -258,6 +268,34 @@ export const useWatchdogStore = create<WatchdogStoreState>((set, get) => ({
     }));
   },
 
+  async refreshWatchdog(watchdogId) {
+    const report = await get().getReport(watchdogId);
+    if (!report) {
+      return;
+    }
+    const existing = get().summaries[watchdogId];
+    const summary: WatchdogSummary = {
+      id: report.id,
+      name: report.name,
+      state: report.state,
+      createdAt: report.createdAt,
+      pollMs: report.config.pollMs,
+      triggerCount: report.triggers.length,
+      pollCount: Math.max(existing?.pollCount ?? 0, report.ticks.length),
+      lastValue: report.ticks[report.ticks.length - 1]?.value ?? null,
+    };
+    set((s) => ({
+      reports: { ...s.reports, [watchdogId]: report },
+      summaries: { ...s.summaries, [watchdogId]: summary },
+      ticks: { ...s.ticks, [watchdogId]: report.ticks },
+      triggers: { ...s.triggers, [watchdogId]: report.triggers },
+      interventions: {
+        ...s.interventions,
+        [watchdogId]: report.interventions.map((r) => ({ ...r, inFlight: false })),
+      },
+    }));
+  },
+
   setSelected(id) {
     set({ selectedId: id });
   },
@@ -295,12 +333,14 @@ export const useWatchdogStore = create<WatchdogStoreState>((set, get) => ({
       const { [id]: ___, ...restTriggers } = s.triggers;
       const { [id]: ____, ...restInterventions } = s.interventions;
       const { [id]: _____, ...restAiSummaries } = s.aiSummaries;
+      const { [id]: ______, ...restReports } = s.reports;
       return {
         summaries: restSummaries,
         ticks: restTicks,
         triggers: restTriggers,
         interventions: restInterventions,
         aiSummaries: restAiSummaries,
+        reports: restReports,
         selectedId: s.selectedId === id ? null : s.selectedId,
       };
     });
@@ -311,7 +351,9 @@ export const useWatchdogStore = create<WatchdogStoreState>((set, get) => ({
       return null;
     }
     try {
-      return await invokeCommand("watchdog_get_report", { id });
+      const report = await invokeCommand("watchdog_get_report", { id });
+      set((s) => ({ reports: { ...s.reports, [id]: report } }));
+      return report;
     } catch (error) {
       console.error("[watchdog] getReport failed", error);
       return null;

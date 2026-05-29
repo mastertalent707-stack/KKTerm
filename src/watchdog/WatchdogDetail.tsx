@@ -4,7 +4,14 @@ import { X } from "lucide-react";
 import { useWatchdogStore } from "./store";
 import type { WatchdogInterventionEntry } from "./store";
 import { isTerminalState } from "./types";
-import type { WatchdogTick } from "./types";
+import type {
+  WatchdogAction,
+  WatchdogNotification,
+  WatchdogState,
+  WatchdogStop,
+  WatchdogTarget,
+  WatchdogTick,
+} from "./types";
 import {
   WatchdogStateIcon,
   WatchdogStateLabel,
@@ -20,12 +27,14 @@ export function WatchdogDetail({ id, onClose }: { id: string; onClose: () => voi
   const ticks = useWatchdogStore((s) => s.ticks[id]);
   const triggers = useWatchdogStore((s) => s.triggers[id]);
   const interventions = useWatchdogStore((s) => s.interventions[id]);
+  const report = useWatchdogStore((s) => s.reports[id]);
   const aiSummary = useWatchdogStore((s) => s.aiSummaries[id]);
   const summaryInFlight = useWatchdogStore((s) => Boolean(s.summaryInFlight[id]));
   const cancel = useWatchdogStore((s) => s.cancel);
   const dismiss = useWatchdogStore((s) => s.dismiss);
   const generateSummary = useWatchdogStore((s) => s.generateSummary);
   const saveReport = useWatchdogStore((s) => s.saveReport);
+  const refreshWatchdog = useWatchdogStore((s) => s.refreshWatchdog);
 
   // Escape closes the dialog.
   useEffect(() => {
@@ -35,6 +44,10 @@ export function WatchdogDetail({ id, onClose }: { id: string; onClose: () => voi
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  useEffect(() => {
+    void refreshWatchdog(id);
+  }, [id, refreshWatchdog]);
 
   if (!summary) {
     // Dismissed mid-render — close cleanly.
@@ -64,10 +77,20 @@ export function WatchdogDetail({ id, onClose }: { id: string; onClose: () => voi
       <section className="watchdog-detail-body">
         <Sparkline ticks={ticks ?? []} />
         <dl className="watchdog-detail-stats">
+          <Stat label={t("watchdog.detail.elapsed")} value={formatElapsed(summary.createdAt)} />
+          <Stat label={t("watchdog.detail.nextCheck")} value={formatNextCheck(summary.state, summary.pollMs)} />
           <Stat label={t("watchdog.detail.lastValue")} value={formatLastValue(summary.lastValue)} />
           <Stat label={t("watchdog.detail.polls")} value={String(summary.pollCount)} />
           <Stat label={t("watchdog.detail.triggers")} value={String(summary.triggerCount)} />
           <Stat label={t("watchdog.detail.interval")} value={`${(summary.pollMs / 1000).toFixed(1)}s`} />
+          {report ? (
+            <>
+              <Stat label={t("watchdog.detail.watchSummary")} value={describeTarget(report.config.target, t)} />
+              <Stat label={t("watchdog.detail.exitCondition")} value={describeStop(report.config.stop, t)} />
+              <Stat label={t("watchdog.detail.notificationMethod")} value={describeNotification(report.config.notification, t)} />
+              <Stat label={t("watchdog.detail.actionMode")} value={describeAction(report.config.action, t)} />
+            </>
+          ) : null}
         </dl>
         <TriggerList triggers={triggers ?? []} />
         <InterventionList interventions={interventions ?? []} />
@@ -110,6 +133,74 @@ export function WatchdogDetail({ id, onClose }: { id: string; onClose: () => voi
       </footer>
     </div>
   );
+}
+
+function formatElapsed(createdAt: number) {
+  return formatDuration(Date.now() - createdAt);
+}
+
+function formatNextCheck(state: WatchdogState, pollMs: number) {
+  if (isTerminalState(state)) {
+    return "—";
+  }
+  const lastPollAt = "lastPollAt" in state ? state.lastPollAt : Date.now();
+  return formatDuration(Math.max(0, lastPollAt + pollMs - Date.now()));
+}
+
+function formatDuration(ms: number) {
+  const totalSeconds = Math.max(0, Math.round(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes === 0) {
+    return `${seconds}s`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours === 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${hours}h ${remainingMinutes}m`;
+}
+
+function describeTarget(target: WatchdogTarget, t: (key: string, options?: Record<string, unknown>) => string) {
+  switch (target.kind) {
+    case "performanceCounter":
+      return t("watchdog.detail.targetPerformance", { metric: target.metric });
+    case "sshSessionOutputSilence":
+      return t("watchdog.detail.targetSshSilence");
+    case "ping":
+      return t("watchdog.detail.targetPing", { host: target.host });
+    case "tcpReachable":
+      return t("watchdog.detail.targetTcp", { host: target.host, port: target.port });
+    case "mock":
+      return t("watchdog.detail.targetMock");
+  }
+}
+
+function describeStop(stop: WatchdogStop, t: (key: string, options?: Record<string, unknown>) => string) {
+  switch (stop.kind) {
+    case "afterDuration":
+      return t("watchdog.detail.stopAfterDuration", { duration: formatDuration(stop.ms) });
+    case "afterTriggerCount":
+      return t("watchdog.detail.stopAfterTriggerCount", { count: stop.n });
+    case "afterFirstTrigger":
+      return t("watchdog.detail.stopAfterFirstTrigger");
+    case "afterPollCount":
+      return t("watchdog.detail.stopAfterPollCount", { count: stop.n });
+    case "untilCanceled":
+      return t("watchdog.detail.stopUntilCanceled");
+  }
+}
+
+function describeNotification(
+  notification: WatchdogNotification,
+  t: (key: string) => string,
+) {
+  return t(`watchdog.detail.notification.${notification}`);
+}
+
+function describeAction(action: WatchdogAction, t: (key: string) => string) {
+  return t(`watchdog.detail.action.${action.kind}`);
 }
 
 function SummarySection({

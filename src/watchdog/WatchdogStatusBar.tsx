@@ -56,7 +56,7 @@ export function WatchdogStatusBar() {
       <button
         ref={buttonRef}
         type="button"
-        className={`status-bar-action watchdog-status-button${allDone ? " is-all-done" : ""}`}
+        className={`status-bar-action watchdog-status-button${allDone ? " is-all-done" : " is-active"}`}
         aria-label={label}
         aria-expanded={popoverOpen}
         onClick={togglePopover}
