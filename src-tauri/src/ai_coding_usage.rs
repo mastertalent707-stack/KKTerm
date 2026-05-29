@@ -88,7 +88,7 @@ pub struct AiCodingUsageState {
 pub async fn ai_coding_usage_load(
     storage: tauri::State<'_, storage::Storage>,
 ) -> Result<AiCodingUsageState, String> {
-    storage.with_connection(load_state)
+    crate::storage::run_blocking_db(|| storage.with_connection(load_state))
 }
 
 #[tauri::command]
@@ -99,16 +99,18 @@ pub async fn ai_coding_usage_connect(
 ) -> Result<AiCodingUsageProviderState, String> {
     let cli_paths = provider_cli_paths(&storage)?;
     let result = run_provider_connect(app, provider, cli_paths).await;
-    storage.with_connection_mut(|connection| {
-        match result {
-            Ok(update) => {
-                save_provider_update(connection, provider, update)?;
+    crate::storage::run_blocking_db(|| {
+        storage.with_connection_mut(|connection| {
+            match result {
+                Ok(update) => {
+                    save_provider_update(connection, provider, update)?;
+                }
+                Err(error) => {
+                    save_provider_error(connection, provider, &error)?;
+                }
             }
-            Err(error) => {
-                save_provider_error(connection, provider, &error)?;
-            }
-        }
-        load_provider_state(connection, provider)
+            load_provider_state(connection, provider)
+        })
     })
 }
 
@@ -127,14 +129,16 @@ pub async fn ai_coding_usage_refresh(
         ));
     }
 
-    storage.with_connection_mut(|connection| {
-        for (provider, result) in updates {
-            match result {
-                Ok(update) => save_provider_update(connection, provider, update)?,
-                Err(error) => save_provider_error(connection, provider, &error)?,
+    crate::storage::run_blocking_db(|| {
+        storage.with_connection_mut(|connection| {
+            for (provider, result) in updates {
+                match result {
+                    Ok(update) => save_provider_update(connection, provider, update)?,
+                    Err(error) => save_provider_error(connection, provider, &error)?,
+                }
             }
-        }
-        load_state(connection)
+            load_state(connection)
+        })
     })
 }
 
@@ -146,16 +150,18 @@ pub async fn ai_coding_usage_reconnect(
 ) -> Result<AiCodingUsageProviderState, String> {
     let cli_paths = provider_cli_paths(&storage)?;
     let result = run_provider_reconnect(app, provider, cli_paths).await;
-    storage.with_connection_mut(|connection| {
-        match result {
-            Ok(update) => {
-                save_provider_update(connection, provider, update)?;
+    crate::storage::run_blocking_db(|| {
+        storage.with_connection_mut(|connection| {
+            match result {
+                Ok(update) => {
+                    save_provider_update(connection, provider, update)?;
+                }
+                Err(error) => {
+                    save_provider_error(connection, provider, &error)?;
+                }
             }
-            Err(error) => {
-                save_provider_error(connection, provider, &error)?;
-            }
-        }
-        load_provider_state(connection, provider)
+            load_provider_state(connection, provider)
+        })
     })
 }
 
@@ -164,20 +170,22 @@ pub async fn ai_coding_usage_disconnect(
     storage: tauri::State<'_, storage::Storage>,
     provider: AiCodingUsageProvider,
 ) -> Result<AiCodingUsageProviderState, String> {
-    storage.with_connection_mut(|connection| {
-        connection
-            .execute(
-                "DELETE FROM ai_coding_usage_accounts WHERE provider = ?1",
-                params![provider.as_str()],
-            )
-            .map_err(|error| format!("failed to remove usage account: {error}"))?;
-        connection
-            .execute(
-                "DELETE FROM ai_coding_usage_snapshots WHERE provider = ?1",
-                params![provider.as_str()],
-            )
-            .map_err(|error| format!("failed to remove usage snapshot: {error}"))?;
-        Ok(disconnected_state(provider))
+    crate::storage::run_blocking_db(|| {
+        storage.with_connection_mut(|connection| {
+            connection
+                .execute(
+                    "DELETE FROM ai_coding_usage_accounts WHERE provider = ?1",
+                    params![provider.as_str()],
+                )
+                .map_err(|error| format!("failed to remove usage account: {error}"))?;
+            connection
+                .execute(
+                    "DELETE FROM ai_coding_usage_snapshots WHERE provider = ?1",
+                    params![provider.as_str()],
+                )
+                .map_err(|error| format!("failed to remove usage snapshot: {error}"))?;
+            Ok(disconnected_state(provider))
+        })
     })
 }
 

@@ -3105,9 +3105,20 @@ impl Storage {
     }
 
     fn lock(&self) -> Result<std::sync::MutexGuard<'_, SqliteConnection>, String> {
-        self.connection
-            .lock()
-            .map_err(|_| "SQLite connection lock is poisoned".to_string())
+        match self.connection.lock() {
+            Ok(guard) => Ok(guard),
+            Err(poison) => {
+                // Recover rather than permanently failing every caller: the
+                // inner connection is still usable after a panic. A best-effort
+                // ROLLBACK clears any half-open transaction the panicked caller
+                // left behind. This mirrors with_connection_infallible so all
+                // DB accessors recover uniformly instead of with_connection*
+                // callers seeing "lock is poisoned" forever (M-3).
+                let recovered = poison.into_inner();
+                let _ = recovered.execute("ROLLBACK", []);
+                Ok(recovered)
+            }
+        }
     }
 
     pub(crate) fn with_connection<R>(
@@ -3170,6 +3181,22 @@ fn open_initialized_connection(db_path: &Path) -> Result<SqliteConnection, Strin
         eprintln!("failed to set SQLite busy_timeout: {error}");
     }
     Ok(connection)
+}
+
+/// Run a blocking database closure from an `async` Tauri command without
+/// starving the async runtime's worker pool. The connection mutex + blocking
+/// rusqlite calls would otherwise park a tokio worker for the op's duration.
+///
+/// Uses tokio's `block_in_place` when running on the multi-threaded runtime
+/// (which is how Tauri executes async commands), and falls back to calling the
+/// closure directly when not on a multi-thread worker — e.g. unit tests or a
+/// current-thread runtime — so it can never panic on the wrong runtime flavor.
+pub(crate) fn run_blocking_db<R>(f: impl FnOnce() -> R) -> R {
+    use tokio::runtime::{Handle, RuntimeFlavor};
+    match Handle::try_current().map(|handle| handle.runtime_flavor()) {
+        Ok(RuntimeFlavor::MultiThread) => tokio::task::block_in_place(f),
+        _ => f(),
+    }
 }
 
 /// Remove the WAL sidecar files (`-wal`, `-shm`) for a database path. Safe to

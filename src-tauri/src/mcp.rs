@@ -746,14 +746,16 @@ pub async fn mcp_create_server(
         created_at: chrono_now(),
         updated_at: chrono_now(),
     };
-    storage(&app).with_connection_infallible(|conn| {
-        insert_server_with_secret(
-            conn,
-            &server,
-            secret,
-            |owner_id, value| secrets.store_mcp_server_secret(owner_id, value),
-            |owner_id| secrets.delete_mcp_server_secret(owner_id),
-        )
+    crate::storage::run_blocking_db(|| {
+        storage(&app).with_connection_infallible(|conn| {
+            insert_server_with_secret(
+                conn,
+                &server,
+                secret,
+                |owner_id, value| secrets.store_mcp_server_secret(owner_id, value),
+                |owner_id| secrets.delete_mcp_server_secret(owner_id),
+            )
+        })
     })
 }
 
@@ -837,25 +839,27 @@ pub async fn mcp_update_server(
         // We still allow auth-less changes by clearing template fields if no secret remains.
     }
     let headers_json = serde_json::to_string(&new_headers).unwrap_or_else(|_| "{}".to_string());
-    storage(&app).with_connection_infallible(|conn| -> Result<(), McpCommandError> {
-        conn.execute(
-            "UPDATE mcp_servers
-             SET name = ?2, url = ?3, headers_json = ?4, secret_header_name = ?5,
-                 secret_value_template = ?6, has_secret = ?7, updated_at = ?8
-             WHERE id = ?1",
-            params![
-                id,
-                new_name,
-                new_url,
-                headers_json,
-                new_secret_header_name,
-                new_value_template,
-                i64::from(has_secret),
-                chrono_now(),
-            ],
-        )
-        .map_err(map_unique_violation)?;
-        Ok(())
+    crate::storage::run_blocking_db(|| {
+        storage(&app).with_connection_infallible(|conn| -> Result<(), McpCommandError> {
+            conn.execute(
+                "UPDATE mcp_servers
+                 SET name = ?2, url = ?3, headers_json = ?4, secret_header_name = ?5,
+                     secret_value_template = ?6, has_secret = ?7, updated_at = ?8
+                 WHERE id = ?1",
+                params![
+                    id,
+                    new_name,
+                    new_url,
+                    headers_json,
+                    new_secret_header_name,
+                    new_value_template,
+                    i64::from(has_secret),
+                    chrono_now(),
+                ],
+            )
+            .map_err(map_unique_violation)?;
+            Ok(())
+        })
     })?;
     storage(&app)
         .with_connection_infallible(|conn| get_server_by_id(conn, &id))?
@@ -892,20 +896,23 @@ pub async fn mcp_refresh_tools(
     let outcome = fetch_tools(&http, &server, secret.as_deref()).await;
     let app_clone = app.clone();
     let id_clone = server.id.clone();
-    match &outcome {
-        Ok(tools) => {
-            let tools_json = serde_json::to_string(tools).unwrap_or_else(|_| "{}".to_string());
-            storage(&app_clone).with_connection_infallible(|conn| {
-                update_status(conn, &id_clone, "ok", None, Some(&tools_json))
-            })?;
+    crate::storage::run_blocking_db(|| -> Result<(), McpCommandError> {
+        match &outcome {
+            Ok(tools) => {
+                let tools_json = serde_json::to_string(tools).unwrap_or_else(|_| "{}".to_string());
+                storage(&app_clone).with_connection_infallible(|conn| {
+                    update_status(conn, &id_clone, "ok", None, Some(&tools_json))
+                })?;
+            }
+            Err(err) => {
+                let (status, message) = status_for_error(err);
+                storage(&app_clone).with_connection_infallible(|conn| {
+                    update_status(conn, &id_clone, status, Some(message.as_str()), None)
+                })?;
+            }
         }
-        Err(err) => {
-            let (status, message) = status_for_error(err);
-            storage(&app_clone).with_connection_infallible(|conn| {
-                update_status(conn, &id_clone, status, Some(message.as_str()), None)
-            })?;
-        }
-    }
+        Ok(())
+    })?;
     outcome?;
     storage(&app)
         .with_connection_infallible(|conn| get_server_by_id(conn, &id))?
@@ -939,7 +946,7 @@ pub async fn mcp_call_tool(
     let outcome = call_tool(&http, &server, secret.as_deref(), &tool_name, arguments).await;
     let app_clone = app.clone();
     let id_clone = server.id.clone();
-    match &outcome {
+    crate::storage::run_blocking_db(|| match &outcome {
         Ok(_) => {
             let _ = storage(&app_clone).with_connection_infallible(|conn| {
                 update_status(conn, &id_clone, "ok", None, None)
@@ -951,7 +958,7 @@ pub async fn mcp_call_tool(
                 update_status(conn, &id_clone, status, Some(message.as_str()), None)
             });
         }
-    }
+    });
     let result_value = outcome?;
     let is_error = result_value
         .get("isError")
