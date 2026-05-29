@@ -5,31 +5,6 @@
   position: relative;
 }
 
-.watchdog-status-button.is-all-done {
-  color: var(--green, #4ade80);
-}
-
-.watchdog-status-button.is-active svg {
-  animation: watchdog-scan 1.8s ease-in-out infinite;
-}
-
-.watchdog-status-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  min-width: 14px;
-  height: 14px;
-  padding: 0 3px;
-  border-radius: 7px;
-  background: var(--accent);
-  color: white;
-  font-size: 9px;
-  font-weight: 600;
-  line-height: 14px;
-  text-align: center;
-  pointer-events: none;
-}
-
 .watchdog-popover {
   position: absolute;
   right: 8px;
@@ -129,12 +104,9 @@
   color: var(--text);
 }
 
-.watchdog-state-icon.is-running { color: var(--text-muted); }
-.watchdog-state-icon.is-triggered { color: var(--accent); }
-.watchdog-state-icon.is-intervening { color: var(--accent); animation: watchdog-pulse 1.2s ease-in-out infinite; }
+.watchdog-state-icon.is-running { color: var(--green, #4ade80); animation: watchdog-pulse 1.2s ease-in-out infinite; }
 .watchdog-state-icon.is-completed { color: var(--green, #4ade80); }
-.watchdog-state-icon.is-canceled { color: var(--text-muted); }
-.watchdog-state-icon.is-error { color: var(--red, #ef4444); }
+.watchdog-state-icon.is-stopped { color: var(--amber, #f59e0b); }
 
 @keyframes watchdog-pulse {
   0%, 100% { opacity: 0.5; }

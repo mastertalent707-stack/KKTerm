@@ -117,7 +117,7 @@ export function WatchdogDetail({ id, onClose }: { id: string; onClose: () => voi
               onClose();
             }}
           >
-            {t("watchdog.dismiss")}
+            {t("watchdog.completedAction")}
           </button>
         ) : (
           <button

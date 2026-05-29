@@ -26,6 +26,7 @@ import {
   Settings,
   ShieldAlert,
   Square,
+  Trash2,
   X,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -115,6 +116,12 @@ import type {
 } from "./assistantTypes";
 
 export type { AssistantPageContext } from "./assistantTypes";
+
+type AssistantQueuedPrompt = {
+  id: string;
+  intent: AssistantPromptIntent;
+  prompt: string;
+};
 
 function resolveAssistantOutputLanguage(outputLanguage: string): string | undefined {
   if (!outputLanguage) {
@@ -857,6 +864,7 @@ export function AssistantPanel({
   const [isSendingPrompt, setIsSendingPrompt] = useState(false);
   const [pendingToolApprovals, setPendingToolApprovals] = useState<PendingToolApproval[]>([]);
   const [assistantIntent, setAssistantIntent] = useState<AssistantPromptIntent>("chat");
+  const [assistantPromptQueue, setAssistantPromptQueue] = useState<AssistantQueuedPrompt[]>([]);
   const [displayedIntentExamples, setDisplayedIntentExamples] = useState<string[]>([]);
   const [addContextMenuOpen, setAddContextMenuOpen] = useState(false);
   const [permissionMenuOpen, setPermissionMenuOpen] = useState(false);
@@ -872,6 +880,8 @@ export function AssistantPanel({
   const [refreshedModelOptions, setRefreshedModelOptions] = useState<AiProviderModelOption[]>([]);
   const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const chatLogRef = useRef<HTMLDivElement | null>(null);
+  const messagesRef = useRef<AssistantChatMessage[]>([]);
+  const assistantPromptQueueRef = useRef<AssistantQueuedPrompt[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const addContextMenuRef = useRef<HTMLDivElement | null>(null);
   const permissionMenuRef = useRef<HTMLDivElement | null>(null);
@@ -1039,6 +1049,10 @@ export function AssistantPanel({
       writeLegacyAssistantChatHistory(chatHistory);
     }
   }, [chatHistory]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   useEffect(() => {
     setAssistantWorking(isSendingPrompt);
@@ -1263,6 +1277,7 @@ export function AssistantPanel({
       return;
     }
     saveCurrentChat();
+    messagesRef.current = [];
     setMessages([]);
     setCurrentThreadId(createAssistantChatThreadId());
     setCurrentThreadTitle(undefined);
@@ -1272,6 +1287,7 @@ export function AssistantPanel({
     setFileContexts([]);
     setImagePasteRejected(false);
     setAssistantIntent("chat");
+    setAssistantPromptQueueState([]);
     setPendingToolApprovals([]);
     allowedToolApprovalsForCurrentChatRef.current.clear();
     setDisplayedIntentExamples([]);
@@ -1324,6 +1340,7 @@ export function AssistantPanel({
     saveCurrentChat();
     setCurrentThreadId(thread.id);
     setCurrentThreadTitle(thread.title);
+    messagesRef.current = thread.messages;
     setMessages(thread.messages);
     setPrompt("");
     setChatError("");
@@ -1331,6 +1348,7 @@ export function AssistantPanel({
     setFileContexts([]);
     setImagePasteRejected(false);
     setAssistantIntent("chat");
+    setAssistantPromptQueueState([]);
     setPendingToolApprovals([]);
     allowedToolApprovalsForCurrentChatRef.current.clear();
     setDisplayedIntentExamples([]);
@@ -1989,15 +2007,72 @@ export function AssistantPanel({
     return sanitizeAssistantThreadTitle(response.content);
   }
 
+  function setAssistantPromptQueueState(
+    next:
+      | AssistantQueuedPrompt[]
+      | ((current: AssistantQueuedPrompt[]) => AssistantQueuedPrompt[]),
+  ) {
+    setAssistantPromptQueue((current) => {
+      const resolved = typeof next === "function" ? next(current) : next;
+      assistantPromptQueueRef.current = resolved;
+      return resolved;
+    });
+  }
+
+  function queueAssistantPrompt(normalizedPrompt: string, requestIntent: AssistantPromptIntent) {
+    const queuedPrompt: AssistantQueuedPrompt = {
+      id: `assistant-queued-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      intent: requestIntent,
+      prompt: normalizedPrompt,
+    };
+    setAssistantPromptQueueState((current) => [...current, queuedPrompt]);
+    setPrompt("");
+    setAssistantIntent("chat");
+    setDisplayedIntentExamples([]);
+    setChatError("");
+    window.requestAnimationFrame(() => {
+      composerTextareaRef.current?.focus();
+    });
+  }
+
+  function removeQueuedAssistantPrompt(id: string) {
+    setAssistantPromptQueueState((current) => current.filter((item) => item.id !== id));
+  }
+
+  function runQueuedAssistantPrompt() {
+    const [nextPrompt, ...remaining] = assistantPromptQueueRef.current;
+    if (!nextPrompt) {
+      return;
+    }
+    setAssistantPromptQueueState(remaining);
+    window.setTimeout(() => {
+      void runAssistantPrompt(nextPrompt.prompt, nextPrompt.intent, false);
+    }, 0);
+  }
+
   async function submitAssistantPrompt() {
     const normalizedPrompt = prompt.trim();
-    if (!normalizedPrompt || isSendingPrompt) {
+    if (!normalizedPrompt) {
       return;
     }
     const requestIntent = assistantIntentForPrompt(assistantIntent, normalizedPrompt);
+    if (isSendingPrompt) {
+      queueAssistantPrompt(normalizedPrompt, requestIntent);
+      return;
+    }
+
+    await runAssistantPrompt(normalizedPrompt, assistantIntent, true);
+  }
+
+  async function runAssistantPrompt(
+    normalizedPrompt: string,
+    selectedAssistantIntent: AssistantPromptIntent,
+    includeComposerContext: boolean,
+  ) {
+    const requestIntent = assistantIntentForPrompt(selectedAssistantIntent, normalizedPrompt);
     setAssistantIntent(requestIntent);
     const textAttachments: AssistantTextAttachment[] =
-      assistantContextSnippet?.kind === "text"
+      includeComposerContext && assistantContextSnippet?.kind === "text"
         ? [
             {
               id: assistantContextSnippet.id,
@@ -2008,7 +2083,7 @@ export function AssistantPanel({
           ]
         : [];
     let imageAttachments: AssistantImageAttachment[] = [];
-    if (currentModelSupportsImageInput) {
+    if (includeComposerContext && currentModelSupportsImageInput) {
       imageAttachments = [...pastedImageContexts];
       if (assistantScreenshotContext) {
         try {
@@ -2025,17 +2100,19 @@ export function AssistantPanel({
         }
       }
     }
+    const selectedFileContexts = includeComposerContext ? fileContexts : [];
     const userMessage = createAssistantChatMessage(
       "user",
       normalizedPrompt,
       requestIntent,
       textAttachments.length > 0 ? textAttachments : undefined,
       imageAttachments.length > 0 ? imageAttachments : undefined,
-      fileContexts.length > 0 ? fileContexts : undefined,
+      selectedFileContexts.length > 0 ? selectedFileContexts : undefined,
     );
     userMessage.runManifest = createAssistantRunManifest(normalizedPrompt, requestIntent);
-    const previousMessages = messages;
+    const previousMessages = messagesRef.current;
     const nextMessages = [...previousMessages, userMessage];
+    messagesRef.current = nextMessages;
     forceChatScrollToBottomRef.current = true;
     const isFirstThreadMessage = previousMessages.length === 0;
     const fallbackTitle = currentThreadTitle ?? assistantThreadTitle(nextMessages);
@@ -2058,14 +2135,19 @@ export function AssistantPanel({
       );
       assistantMessage.runManifest = createAssistantRunManifest(normalizedPrompt, requestIntent);
       const failedMessages = [...nextMessages, assistantMessage];
+      messagesRef.current = failedMessages;
       setMessages(failedMessages);
       setCurrentThreadTitle(fallbackTitle);
       saveChatMessages(failedMessages, fallbackTitle);
       setPrompt("");
-      setPastedImageContexts([]);
-      setFileContexts([]);
+      setAssistantIntent("chat");
+      setDisplayedIntentExamples([]);
+      if (includeComposerContext) {
+        setPastedImageContexts([]);
+        setFileContexts([]);
+      }
       setImagePasteRejected(false);
-      if (assistantContextSnippet) {
+      if (includeComposerContext && assistantContextSnippet) {
         clearAssistantContextSnippet();
       }
       setChatError("");
@@ -2081,10 +2163,14 @@ export function AssistantPanel({
     setCurrentThreadTitle(fallbackTitle);
     saveChatMessages(nextMessages, fallbackTitle);
     setPrompt("");
-    setPastedImageContexts([]);
-    setFileContexts([]);
+    setAssistantIntent("chat");
+    setDisplayedIntentExamples([]);
+    if (includeComposerContext) {
+      setPastedImageContexts([]);
+      setFileContexts([]);
+    }
     setImagePasteRejected(false);
-    if (assistantContextSnippet) {
+    if (includeComposerContext && assistantContextSnippet) {
       clearAssistantContextSnippet();
     }
     setChatError("");
@@ -2131,6 +2217,7 @@ export function AssistantPanel({
       streamingMessage.runManifest = createAssistantRunManifest(normalizedPrompt, requestIntent);
       let streamingMessageSnapshot = streamingMessage;
       const messagesWithStreaming = [...nextMessages, streamingMessage];
+      messagesRef.current = messagesWithStreaming;
       setMessages(messagesWithStreaming);
 
       // Coalesce rapid token deltas into ~20fps UI updates. Re-rendering the
@@ -2193,7 +2280,7 @@ export function AssistantPanel({
             sourceLabel: attachment.sourceLabel,
             dataUrl: attachment.imageDataUrl,
           })),
-          files: fileContexts.map((attachment) => ({
+          files: selectedFileContexts.map((attachment) => ({
             sourceLabel: attachment.sourceLabel,
             dataUrl: attachment.dataUrl,
             mimeType: attachment.mimeType,
@@ -2228,10 +2315,13 @@ export function AssistantPanel({
         streamingMessageSnapshot.toolCalls,
       );
       setMessages((current) =>
-        current.map((message) =>
-          message.id === streamingMessage.id ? streamingMessageSnapshot : message,
-        ),
+        current.map((message) => {
+          const nextMessage =
+            message.id === streamingMessage.id ? streamingMessageSnapshot : message;
+          return nextMessage;
+        }),
       );
+      messagesRef.current = [...nextMessages, streamingMessageSnapshot];
       saveChatMessages([...nextMessages, streamingMessageSnapshot], threadTitle);
     } catch (error) {
       cancelStreamingFlush();
@@ -2262,11 +2352,13 @@ export function AssistantPanel({
           return failedMessage;
         })(),
       ];
+      messagesRef.current = failedMessages;
       setMessages(failedMessages);
       saveChatMessages(failedMessages, threadTitle);
     } finally {
       if (activeAssistantRequestIdRef.current === requestId) {
         setIsSendingPrompt(false);
+        runQueuedAssistantPrompt();
       }
     }
   }
@@ -2916,6 +3008,27 @@ export function AssistantPanel({
             {t("ai.imageInputNotSupported")}
           </p>
         ) : null}
+        {assistantPromptQueue.length > 0 ? (
+          <section className="assistant-prompt-queue" aria-label={t("ai.queuedPrompts")}>
+            {assistantPromptQueue.map((item, index) => (
+              <div className="assistant-prompt-queue-row" key={item.id}>
+                <span className="assistant-prompt-queue-index">
+                  {t("ai.queuedPromptIndex", { index: index + 1 })}
+                </span>
+                <span className="assistant-prompt-queue-text">{item.prompt}</span>
+                <button
+                  aria-label={t("ai.deleteQueuedPrompt", { prompt: item.prompt })}
+                  className="assistant-prompt-queue-delete"
+                  onClick={() => removeQueuedAssistantPrompt(item.id)}
+                  title={t("ai.deleteQueuedPrompt", { prompt: item.prompt })}
+                  type="button"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))}
+          </section>
+        ) : null}
         {activeComposerIntent ? (
           <section
             aria-label={t("ai.selectedIntent")}
@@ -2955,7 +3068,6 @@ export function AssistantPanel({
           onPaste={(event) => void handleComposerPaste(event)}
           onContextMenu={(event) => void handleComposerContextMenu(event)}
           onChange={(event) => setPrompt(event.currentTarget.value)}
-          disabled={isSendingPrompt}
           placeholder={assistantIntentPlaceholder(assistantIntent, t)}
           rows={3}
           value={prompt}
@@ -2993,6 +3105,17 @@ export function AssistantPanel({
             </button>
             {addContextMenuOpen ? (
               <div className="assistant-add-menu" role="menu" aria-label={t("ai.addContext")}>
+                {canAttachTerminalBuffer ? (
+                  <button
+                    className="assistant-add-menu-item"
+                    onClick={() => void handleAddTerminalBuffer()}
+                    role="menuitem"
+                    type="button"
+                  >
+                    <ScrollText size={15} />
+                    {t("ai.addTerminalBuffer")}
+                  </button>
+                ) : null}
                 <button
                   className="assistant-add-menu-item"
                   onClick={handleAddFiles}
@@ -3031,17 +3154,6 @@ export function AssistantPanel({
                   <Eye size={15} />
                   {t("ai.watchdog")}
                 </button>
-                {canAttachTerminalBuffer ? (
-                  <button
-                    className="assistant-add-menu-item"
-                    onClick={() => void handleAddTerminalBuffer()}
-                    role="menuitem"
-                    type="button"
-                  >
-                    <ScrollText size={15} />
-                    {t("ai.addTerminalBuffer")}
-                  </button>
-                ) : null}
               </div>
             ) : null}
           </div>
@@ -3131,15 +3243,19 @@ export function AssistantPanel({
             ))}
           </div>
           <button
-            aria-label={isSendingPrompt ? t("ai.stopMessage") : t("ai.sendMessage")}
+            aria-label={isSendingPrompt && !prompt.trim() ? t("ai.stopMessage") : t("ai.sendMessage")}
             className="assistant-send-button"
-            data-state={isSendingPrompt ? "stopping" : "sending"}
+            data-state={isSendingPrompt && !prompt.trim() ? "stopping" : "sending"}
             disabled={!isSendingPrompt && !prompt.trim()}
-            onClick={isSendingPrompt ? handleStopAssistantPrompt : undefined}
-            title={isSendingPrompt ? t("ai.stopMessage") : t("ai.sendMessage")}
-            type={isSendingPrompt ? "button" : "submit"}
+            onClick={isSendingPrompt && !prompt.trim() ? handleStopAssistantPrompt : undefined}
+            title={isSendingPrompt && !prompt.trim() ? t("ai.stopMessage") : t("ai.sendMessage")}
+            type={isSendingPrompt && !prompt.trim() ? "button" : "submit"}
           >
-            {isSendingPrompt ? <Square fill="currentColor" size={13} /> : <SendHorizontal size={18} />}
+            {isSendingPrompt && !prompt.trim() ? (
+              <Square fill="currentColor" size={13} />
+            ) : (
+              <SendHorizontal size={18} />
+            )}
           </button>
         </div>
       </form>

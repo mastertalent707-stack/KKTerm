@@ -2016,6 +2016,9 @@
     "createWidget": "Create Widget",
     "watchdog": "Watchdog",
     "selectedIntent": "Selected Assistant intent",
+    "queuedPrompts": "Queued prompts",
+    "queuedPromptIndex": "Next {{index}}",
+    "deleteQueuedPrompt": "Delete queued prompt: {{prompt}}",
     "clearIntent": "Clear {{intent}}",
     "extensions": "Extensions",
     "draftExtension": "Draft Extension",
@@ -2518,6 +2521,7 @@
     "triggersCount": "{{count}} trigger(s)",
     "cancel": "Cancel",
     "dismiss": "Dismiss",
+    "completedAction": "Completed",
     "close": "Close",
     "saveReport": "Save report",
     "state": {
