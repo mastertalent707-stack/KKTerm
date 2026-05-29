@@ -835,7 +835,7 @@ export function AssistantPanel({
   ) => Promise<{ ok: boolean; error?: string }>;
   pageContext?: AssistantPageContext;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const activeTab = useWorkspaceStore((state) =>
     state.tabs.find((tab) => tab.id === state.activeTabId),
   );
@@ -877,6 +877,7 @@ export function AssistantPanel({
   const activeComposerIntentLabel = activeComposerIntent
     ? assistantIntentLabel(activeComposerIntent, t)
     : "";
+  const activeLanguage = i18n.resolvedLanguage ?? i18n.language;
   const [refreshedModelOptions, setRefreshedModelOptions] = useState<AiProviderModelOption[]>([]);
   const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const chatLogRef = useRef<HTMLDivElement | null>(null);
@@ -1049,6 +1050,13 @@ export function AssistantPanel({
       writeLegacyAssistantChatHistory(chatHistory);
     }
   }, [chatHistory]);
+
+  useEffect(() => {
+    if (!activeComposerIntent) {
+      return;
+    }
+    setDisplayedIntentExamples(sampleRandom(assistantIntentExamples(activeComposerIntent, t), 3));
+  }, [activeComposerIntent, activeLanguage, t]);
 
   useEffect(() => {
     messagesRef.current = messages;

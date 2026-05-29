@@ -479,26 +479,26 @@
     "watchdog": "监视",
     "watchdogPlaceholder": "描述要监视的内容。",
     "watchdogExamples": [
-      "alert if CPU over 90% for 5 min",
-      "alert when RAM usage over 80%",
-      "alert when disk usage over 85%",
-      "alert if disk free drops below 10%",
-      "alert when commit memory over 90%",
-      "alert if process count spikes over 800",
-      "alert when handle count exceeds 50000",
-      "alert if KKTerm RAM over 1 GB",
-      "alert when network upstream over 50 MB/s",
-      "let me know when CPU drops back under 50%",
-      "ping my-server.example.com — alert if it goes offline",
-      "monitor 192.168.1.10 and notify if it stops responding",
-      "alert if SSH on my-host stops accepting connections",
-      "alert if port 443 on api.example.com closes",
-      "alert if my database port 5432 stops listening",
-      "watch port 8080 — tell me when it becomes available again",
-      "watch my codex CLI session — nudge it if silent for 60 seconds",
-      "watch this SSH session for 2 minutes of silence then notify me",
-      "monitor my long-running build — alert if output stops for 5 min",
-      "if codex hangs on a prompt, send it /continue automatically"
+      "CPU 超过 90% 持续 5 分钟时提醒",
+      "RAM 使用率超过 80% 时提醒",
+      "磁盘使用率超过 85% 时提醒",
+      "磁盘可用空间低于 10% 时提醒",
+      "提交内存超过 90% 时提醒",
+      "进程数量突然超过 800 时提醒",
+      "句柄数量超过 50000 时提醒",
+      "KKTerm RAM 超过 1 GB 时提醒",
+      "网络上行超过 50 MB/s 时提醒",
+      "CPU 降回 50% 以下时告诉我",
+      "ping my-server.example.com - 如果离线就提醒",
+      "监视 192.168.1.10，若停止响应就通知",
+      "my-host 上的 SSH 停止接受连接时提醒",
+      "api.example.com 的 443 端口关闭时提醒",
+      "我的数据库 5432 端口停止监听时提醒",
+      "监视 8080 端口 - 重新可用时告诉我",
+      "监视我的 Codex CLI 会话 - 静默 60 秒就提醒它",
+      "监视这个 SSH 会话，静默 2 分钟后通知我",
+      "监视我的长时间构建 - 输出停止 5 分钟就提醒",
+      "如果 Codex 卡在提示上，自动发送 /continue"
     ],
     "selectedIntent": "已选择的助手意图",
     "clearIntent": "清除 {{intent}}",
@@ -525,7 +525,10 @@
       "allowedTools": "允许的工具 ({{count}})",
       "allowedToolsCaveat": "在此监控器的生命周期内，AI 可以无需额外提示地调用这些工具。其他工具在运行时会被拒绝。",
       "caps": "硬限制：最多 {{max}} 次干预 · 操作间冷却 {{suppression}} 秒"
-    }
+    },
+    "queuedPrompts": "队列中的提示",
+    "queuedPromptIndex": "下一个 {{index}}",
+    "deleteQueuedPrompt": "删除队列提示：{{prompt}}"
   },
   "app": {
     "aiAssistant": "AI 助手",
@@ -2511,8 +2514,34 @@
       "summarize": "生成摘要",
       "regenerate": "重新生成",
       "summarizing": "正在生成摘要…",
-      "summaryEmpty": "点击“生成摘要”以自然语言生成此监控器的事后分析报告。"
-    }
+      "summaryEmpty": "点击“生成摘要”以自然语言生成此监控器的事后分析报告。",
+      "elapsed": "已用时",
+      "watchSummary": "监视摘要",
+      "nextCheck": "下次检查",
+      "exitCondition": "退出条件",
+      "notificationMethod": "通知",
+      "actionMode": "动作",
+      "targetPerformance": "性能：{{metric}}",
+      "targetSshSilence": "SSH 会话输出静默",
+      "targetPing": "Ping {{host}}",
+      "targetTcp": "TCP {{host}}:{{port}}",
+      "targetMock": "测试计数器",
+      "stopAfterDuration": "{{duration}} 后",
+      "stopAfterTriggerCount": "{{count}} 次触发后",
+      "stopAfterFirstTrigger": "第一次触发后",
+      "stopAfterPollCount": "{{count}} 次轮询后",
+      "stopUntilCanceled": "直到取消",
+      "notification": {
+        "inAppOnly": "仅应用内",
+        "inAppPlusToast": "应用内加 toast 通知",
+        "inAppPlusSound": "应用内加声音"
+      },
+      "action": {
+        "notify": "仅通知",
+        "aiIntervene": "AI 介入"
+      }
+    },
+    "completedAction": "已完成"
   },
   "workspace": {
     "budgetPrefix": "预算",

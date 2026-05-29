@@ -479,26 +479,26 @@
     "watchdog": "監視",
     "watchdogPlaceholder": "監視する内容を説明してください。",
     "watchdogExamples": [
-      "alert if CPU over 90% for 5 min",
-      "alert when RAM usage over 80%",
-      "alert when disk usage over 85%",
-      "alert if disk free drops below 10%",
-      "alert when commit memory over 90%",
-      "alert if process count spikes over 800",
-      "alert when handle count exceeds 50000",
-      "alert if KKTerm RAM over 1 GB",
-      "alert when network upstream over 50 MB/s",
-      "let me know when CPU drops back under 50%",
-      "ping my-server.example.com — alert if it goes offline",
-      "monitor 192.168.1.10 and notify if it stops responding",
-      "alert if SSH on my-host stops accepting connections",
-      "alert if port 443 on api.example.com closes",
-      "alert if my database port 5432 stops listening",
-      "watch port 8080 — tell me when it becomes available again",
-      "watch my codex CLI session — nudge it if silent for 60 seconds",
-      "watch this SSH session for 2 minutes of silence then notify me",
-      "monitor my long-running build — alert if output stops for 5 min",
-      "if codex hangs on a prompt, send it /continue automatically"
+      "CPU が 5 分間 90% を超えたら通知",
+      "RAM 使用率が 80% を超えたら通知",
+      "ディスク使用率が 85% を超えたら通知",
+      "ディスク空き容量が 10% 未満になったら通知",
+      "コミットメモリが 90% を超えたら通知",
+      "プロセス数が 800 を超えて急増したら通知",
+      "ハンドル数が 50000 を超えたら通知",
+      "KKTerm の RAM が 1 GB を超えたら通知",
+      "ネットワーク上りが 50 MB/s を超えたら通知",
+      "CPU が 50% 未満に戻ったら教えて",
+      "my-server.example.com に ping - オフラインになったら通知",
+      "192.168.1.10 を監視し、応答しなくなったら通知",
+      "my-host の SSH が接続を受け付けなくなったら通知",
+      "api.example.com のポート 443 が閉じたら通知",
+      "データベースのポート 5432 が待ち受けを停止したら通知",
+      "ポート 8080 を監視 - 再び利用可能になったら教えて",
+      "Codex CLI セッションを監視 - 60 秒無音なら促して",
+      "この SSH セッションを 2 分間の無音まで監視して通知",
+      "長時間実行中のビルドを監視 - 5 分間出力が止まったら通知",
+      "Codex がプロンプトで止まったら、自動で /continue を送信"
     ],
     "selectedIntent": "選択されたアシスタントインテント",
     "clearIntent": "{{intent}}をクリア",
@@ -525,7 +525,10 @@
       "allowedTools": "許可されたツール ({{count}})",
       "allowedToolsCaveat": "AI はこのウォッチドッグの有効期間中、追加のプロンプトなしにこれらのツールを呼び出すことができます。他のツールは実行時に拒否されます。",
       "caps": "上限: 最大 {{max}} 回の介入 · アクション間の冷却時間 {{suppression}} 秒"
-    }
+    },
+    "queuedPrompts": "キュー内のプロンプト",
+    "queuedPromptIndex": "次 {{index}}",
+    "deleteQueuedPrompt": "キュー内プロンプトを削除: {{prompt}}"
   },
   "app": {
     "aiAssistant": "AIアシスタント",
@@ -2511,8 +2514,34 @@
       "summarize": "要約する",
       "regenerate": "再生成",
       "summarizing": "要約中…",
-      "summaryEmpty": "「要約する」をクリックして、このウォッチドッグの自然言語によるポストモーテムを生成します。"
-    }
+      "summaryEmpty": "「要約する」をクリックして、このウォッチドッグの自然言語によるポストモーテムを生成します。",
+      "elapsed": "経過時間",
+      "watchSummary": "監視サマリー",
+      "nextCheck": "次のチェック",
+      "exitCondition": "終了条件",
+      "notificationMethod": "通知",
+      "actionMode": "アクション",
+      "targetPerformance": "パフォーマンス: {{metric}}",
+      "targetSshSilence": "SSH セッション出力の無音",
+      "targetPing": "Ping {{host}}",
+      "targetTcp": "TCP {{host}}:{{port}}",
+      "targetMock": "テストカウンター",
+      "stopAfterDuration": "{{duration}} 後",
+      "stopAfterTriggerCount": "{{count}} 回のトリガー後",
+      "stopAfterFirstTrigger": "最初のトリガー後",
+      "stopAfterPollCount": "{{count}} 回のポーリング後",
+      "stopUntilCanceled": "キャンセルまで",
+      "notification": {
+        "inAppOnly": "アプリ内のみ",
+        "inAppPlusToast": "アプリ内とトースト",
+        "inAppPlusSound": "アプリ内とサウンド"
+      },
+      "action": {
+        "notify": "通知のみ",
+        "aiIntervene": "AI 介入"
+      }
+    },
+    "completedAction": "完了"
   },
   "workspace": {
     "budgetPrefix": "予算",

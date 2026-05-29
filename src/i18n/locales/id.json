@@ -479,26 +479,26 @@
     "watchdog": "Pengawas",
     "watchdogPlaceholder": "Jelaskan apa yang harus diawasi.",
     "watchdogExamples": [
-      "alert if CPU over 90% for 5 min",
-      "alert when RAM usage over 80%",
-      "alert when disk usage over 85%",
-      "alert if disk free drops below 10%",
-      "alert when commit memory over 90%",
-      "alert if process count spikes over 800",
-      "alert when handle count exceeds 50000",
-      "alert if KKTerm RAM over 1 GB",
-      "alert when network upstream over 50 MB/s",
-      "let me know when CPU drops back under 50%",
-      "ping my-server.example.com — alert if it goes offline",
-      "monitor 192.168.1.10 and notify if it stops responding",
-      "alert if SSH on my-host stops accepting connections",
-      "alert if port 443 on api.example.com closes",
-      "alert if my database port 5432 stops listening",
-      "watch port 8080 — tell me when it becomes available again",
-      "watch my codex CLI session — nudge it if silent for 60 seconds",
-      "watch this SSH session for 2 minutes of silence then notify me",
-      "monitor my long-running build — alert if output stops for 5 min",
-      "if codex hangs on a prompt, send it /continue automatically"
+      "beri peringatan jika CPU di atas 90% selama 5 menit",
+      "beri peringatan saat penggunaan RAM di atas 80%",
+      "beri peringatan saat penggunaan disk di atas 85%",
+      "beri peringatan jika ruang disk kosong turun di bawah 10%",
+      "beri peringatan saat memori commit di atas 90%",
+      "beri peringatan jika jumlah proses melonjak di atas 800",
+      "beri peringatan saat jumlah handle melebihi 50000",
+      "beri peringatan jika RAM KKTerm di atas 1 GB",
+      "beri peringatan saat upstream jaringan di atas 50 MB/s",
+      "beri tahu saya saat CPU turun kembali di bawah 50%",
+      "ping my-server.example.com - beri peringatan jika offline",
+      "pantau 192.168.1.10 dan beri tahu jika berhenti merespons",
+      "beri peringatan jika SSH di my-host berhenti menerima koneksi",
+      "beri peringatan jika port 443 di api.example.com tertutup",
+      "beri peringatan jika port database saya 5432 berhenti mendengarkan",
+      "pantau port 8080 - beri tahu saat tersedia lagi",
+      "pantau sesi CLI Codex saya - dorong jika diam selama 60 detik",
+      "pantau sesi SSH ini untuk 2 menit tanpa output lalu beri tahu saya",
+      "pantau build panjang saya - beri peringatan jika output berhenti 5 menit",
+      "jika Codex macet di prompt, kirim /continue otomatis"
     ],
     "selectedIntent": "Intent asisten yang dipilih",
     "clearIntent": "Hapus {{intent}}",
@@ -525,7 +525,10 @@
       "allowedTools": "Alat yang diizinkan ({{count}})",
       "allowedToolsCaveat": "AI dapat memanggil salah satu dari ini tanpa konfirmasi lebih lanjut selama masa pakai watchdog ini. Alat lain ditolak saat runtime.",
       "caps": "Batas keras: maksimal {{max}} intervensi · jeda {{suppression}} d antara tindakan"
-    }
+    },
+    "queuedPrompts": "Prompt antrean",
+    "queuedPromptIndex": "Berikutnya {{index}}",
+    "deleteQueuedPrompt": "Hapus prompt antrean: {{prompt}}"
   },
   "app": {
     "aiAssistant": "AI Assistant",
@@ -2511,8 +2514,34 @@
       "summarize": "Ringkas",
       "regenerate": "Buat ulang",
       "summarizing": "Meringkas…",
-      "summaryEmpty": "Klik Ringkas untuk membuat post-mortem berbahasa alami dari watchdog ini."
-    }
+      "summaryEmpty": "Klik Ringkas untuk membuat post-mortem berbahasa alami dari watchdog ini.",
+      "elapsed": "Berjalan",
+      "watchSummary": "Ringkasan pantauan",
+      "nextCheck": "Pemeriksaan berikutnya",
+      "exitCondition": "Kondisi keluar",
+      "notificationMethod": "Notifikasi",
+      "actionMode": "Aksi",
+      "targetPerformance": "Performa: {{metric}}",
+      "targetSshSilence": "Output Sesi SSH senyap",
+      "targetPing": "Ping {{host}}",
+      "targetTcp": "TCP {{host}}:{{port}}",
+      "targetMock": "Penghitung uji",
+      "stopAfterDuration": "Setelah {{duration}}",
+      "stopAfterTriggerCount": "Setelah {{count}} pemicu",
+      "stopAfterFirstTrigger": "Setelah pemicu pertama",
+      "stopAfterPollCount": "Setelah {{count}} polling",
+      "stopUntilCanceled": "Sampai dibatalkan",
+      "notification": {
+        "inAppOnly": "Hanya dalam aplikasi",
+        "inAppPlusToast": "Dalam aplikasi plus toast",
+        "inAppPlusSound": "Dalam aplikasi plus suara"
+      },
+      "action": {
+        "notify": "Hanya beri tahu",
+        "aiIntervene": "Intervensi AI"
+      }
+    },
+    "completedAction": "Selesai"
   },
   "workspace": {
     "budgetPrefix": "Anggaran",

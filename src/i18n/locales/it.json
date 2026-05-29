@@ -479,26 +479,26 @@
     "watchdog": "Watchdog",
     "watchdogPlaceholder": "Descrivi cosa monitorare.",
     "watchdogExamples": [
-      "alert if CPU over 90% for 5 min",
-      "alert when RAM usage over 80%",
-      "alert when disk usage over 85%",
-      "alert if disk free drops below 10%",
-      "alert when commit memory over 90%",
-      "alert if process count spikes over 800",
-      "alert when handle count exceeds 50000",
-      "alert if KKTerm RAM over 1 GB",
-      "alert when network upstream over 50 MB/s",
-      "let me know when CPU drops back under 50%",
-      "ping my-server.example.com — alert if it goes offline",
-      "monitor 192.168.1.10 and notify if it stops responding",
-      "alert if SSH on my-host stops accepting connections",
-      "alert if port 443 on api.example.com closes",
-      "alert if my database port 5432 stops listening",
-      "watch port 8080 — tell me when it becomes available again",
-      "watch my codex CLI session — nudge it if silent for 60 seconds",
-      "watch this SSH session for 2 minutes of silence then notify me",
-      "monitor my long-running build — alert if output stops for 5 min",
-      "if codex hangs on a prompt, send it /continue automatically"
+      "avvisa se la CPU supera il 90% per 5 min",
+      "avvisa quando l'uso della RAM supera l'80%",
+      "avvisa quando l'uso del disco supera l'85%",
+      "avvisa se lo spazio libero su disco scende sotto il 10%",
+      "avvisa quando la memoria commit supera il 90%",
+      "avvisa se il numero di processi supera improvvisamente 800",
+      "avvisa quando il numero di handle supera 50000",
+      "avvisa se la RAM di KKTerm supera 1 GB",
+      "avvisa quando l'upstream di rete supera 50 MB/s",
+      "fammi sapere quando la CPU torna sotto il 50%",
+      "esegui ping di my-server.example.com - avvisa se va offline",
+      "monitora 192.168.1.10 e notifica se smette di rispondere",
+      "avvisa se SSH su my-host smette di accettare connessioni",
+      "avvisa se la porta 443 su api.example.com si chiude",
+      "avvisa se la porta 5432 del mio database smette di ascoltare",
+      "controlla la porta 8080 - dimmi quando torna disponibile",
+      "controlla la mia sessione CLI Codex - sollecitala se resta silenziosa per 60 secondi",
+      "controlla questa sessione SSH per 2 minuti di silenzio, poi notificami",
+      "monitora la mia build lunga - avvisa se l'output si ferma per 5 min",
+      "se Codex si blocca su un prompt, invia /continue automaticamente"
     ],
     "selectedIntent": "Intento assistente selezionato",
     "clearIntent": "Cancella {{intent}}",
@@ -525,7 +525,10 @@
       "allowedTools": "Strumenti consentiti ({{count}})",
       "allowedToolsCaveat": "L'AI può chiamare qualsiasi di questi senza ulteriori richieste durante la vita di questo watchdog. Gli altri strumenti vengono rifiutati in fase di esecuzione.",
       "caps": "Limite fisso: massimo {{max}} interventi · {{suppression}} s di attesa tra le azioni"
-    }
+    },
+    "queuedPrompts": "Prompt in coda",
+    "queuedPromptIndex": "Prossimo {{index}}",
+    "deleteQueuedPrompt": "Elimina prompt in coda: {{prompt}}"
   },
   "app": {
     "aiAssistant": "Assistente IA",
@@ -2511,8 +2514,34 @@
       "summarize": "Riepilogare",
       "regenerate": "Rigenera",
       "summarizing": "Riepilogando…",
-      "summaryEmpty": "Fai clic su Riepilogare per generare un post-mortem in linguaggio naturale di questo watchdog."
-    }
+      "summaryEmpty": "Fai clic su Riepilogare per generare un post-mortem in linguaggio naturale di questo watchdog.",
+      "elapsed": "Trascorso",
+      "watchSummary": "Riepilogo monitoraggio",
+      "nextCheck": "Prossimo controllo",
+      "exitCondition": "Condizione di uscita",
+      "notificationMethod": "Notifica",
+      "actionMode": "Azione",
+      "targetPerformance": "Prestazioni: {{metric}}",
+      "targetSshSilence": "Silenzio dell'output della Sessione SSH",
+      "targetPing": "Ping {{host}}",
+      "targetTcp": "TCP {{host}}:{{port}}",
+      "targetMock": "Contatore di test",
+      "stopAfterDuration": "Dopo {{duration}}",
+      "stopAfterTriggerCount": "Dopo {{count}} trigger",
+      "stopAfterFirstTrigger": "Dopo il primo trigger",
+      "stopAfterPollCount": "Dopo {{count}} sondaggi",
+      "stopUntilCanceled": "Fino all'annullamento",
+      "notification": {
+        "inAppOnly": "Solo in-app",
+        "inAppPlusToast": "In-app più notifica toast",
+        "inAppPlusSound": "In-app più suono"
+      },
+      "action": {
+        "notify": "Solo notifica",
+        "aiIntervene": "Intervento AI"
+      }
+    },
+    "completedAction": "Completato"
   },
   "workspace": {
     "budgetPrefix": "Budget",

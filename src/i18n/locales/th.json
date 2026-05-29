@@ -479,26 +479,26 @@
     "watchdog": "เฝ้าระวัง",
     "watchdogPlaceholder": "อธิบายสิ่งที่ต้องการเฝ้าระวัง",
     "watchdogExamples": [
-      "alert if CPU over 90% for 5 min",
-      "alert when RAM usage over 80%",
-      "alert when disk usage over 85%",
-      "alert if disk free drops below 10%",
-      "alert when commit memory over 90%",
-      "alert if process count spikes over 800",
-      "alert when handle count exceeds 50000",
-      "alert if KKTerm RAM over 1 GB",
-      "alert when network upstream over 50 MB/s",
-      "let me know when CPU drops back under 50%",
-      "ping my-server.example.com — alert if it goes offline",
-      "monitor 192.168.1.10 and notify if it stops responding",
-      "alert if SSH on my-host stops accepting connections",
-      "alert if port 443 on api.example.com closes",
-      "alert if my database port 5432 stops listening",
-      "watch port 8080 — tell me when it becomes available again",
-      "watch my codex CLI session — nudge it if silent for 60 seconds",
-      "watch this SSH session for 2 minutes of silence then notify me",
-      "monitor my long-running build — alert if output stops for 5 min",
-      "if codex hangs on a prompt, send it /continue automatically"
+      "แจ้งเตือนถ้า CPU เกิน 90% นาน 5 นาที",
+      "แจ้งเตือนเมื่อการใช้ RAM เกิน 80%",
+      "แจ้งเตือนเมื่อการใช้ดิสก์เกิน 85%",
+      "แจ้งเตือนถ้าพื้นที่ดิสก์ว่างต่ำกว่า 10%",
+      "แจ้งเตือนเมื่อ committed memory เกิน 90%",
+      "แจ้งเตือนถ้าจำนวนโปรเซสพุ่งเกิน 800",
+      "แจ้งเตือนเมื่อจำนวน handle เกิน 50000",
+      "แจ้งเตือนถ้า KKTerm ใช้ RAM เกิน 1 GB",
+      "แจ้งเตือนเมื่ออัปสตรีมเครือข่ายเกิน 50 MB/s",
+      "บอกฉันเมื่อ CPU ลดกลับมาต่ำกว่า 50%",
+      "ping my-server.example.com - แจ้งเตือนถ้าออฟไลน์",
+      "เฝ้าดู 192.168.1.10 และแจ้งถ้าหยุดตอบสนอง",
+      "แจ้งเตือนถ้า SSH บน my-host หยุดรับการเชื่อมต่อ",
+      "แจ้งเตือนถ้าพอร์ต 443 บน api.example.com ปิด",
+      "แจ้งเตือนถ้าพอร์ตฐานข้อมูล 5432 ของฉันหยุดฟัง",
+      "เฝ้าดูพอร์ต 8080 - บอกฉันเมื่อกลับมาใช้งานได้",
+      "เฝ้าดูเซสชัน Codex CLI ของฉัน - กระตุ้นถ้าเงียบ 60 วินาที",
+      "เฝ้าดูเซสชัน SSH นี้จนเงียบ 2 นาทีแล้วแจ้งฉัน",
+      "เฝ้าดู build ที่รันนานของฉัน - แจ้งถ้า output หยุด 5 นาที",
+      "ถ้า Codex ค้างที่ prompt ให้ส่ง /continue อัตโนมัติ"
     ],
     "selectedIntent": "เจตนาผู้ช่วยที่เลือก",
     "clearIntent": "ล้าง {{intent}}",
@@ -525,7 +525,10 @@
       "allowedTools": "เครื่องมือที่อนุญาต ({{count}})",
       "allowedToolsCaveat": "AI สามารถเรียกใช้เครื่องมือเหล่านี้ได้โดยไม่ต้องมีการยืนยันเพิ่มเติมตลอดอายุการใช้งานของวอทช์ด็อกนี้ เครื่องมืออื่นๆ จะถูกปฏิเสธขณะรันไทม์",
       "caps": "ขีดจำกัดสูงสุด: {{max}} การแทรกแซง · หน่วงเวลา {{suppression}} วินาทีระหว่างการดำเนินการ"
-    }
+    },
+    "queuedPrompts": "พรอมป์ในคิว",
+    "queuedPromptIndex": "ถัดไป {{index}}",
+    "deleteQueuedPrompt": "ลบพรอมป์ในคิว: {{prompt}}"
   },
   "app": {
     "aiAssistant": "ผู้ช่วย AI",
@@ -2511,8 +2514,34 @@
       "summarize": "สรุป",
       "regenerate": "สร้างใหม่",
       "summarizing": "กำลังสรุป…",
-      "summaryEmpty": "คลิก 'สรุป' เพื่อสร้างรายงานหลังเหตุการณ์ด้วยภาษาธรรมชาติของวอทช์ด็อกนี้"
-    }
+      "summaryEmpty": "คลิก 'สรุป' เพื่อสร้างรายงานหลังเหตุการณ์ด้วยภาษาธรรมชาติของวอทช์ด็อกนี้",
+      "elapsed": "เวลาที่ผ่านไป",
+      "watchSummary": "สรุปการเฝ้าดู",
+      "nextCheck": "ตรวจครั้งถัดไป",
+      "exitCondition": "เงื่อนไขการออก",
+      "notificationMethod": "การแจ้งเตือน",
+      "actionMode": "การดำเนินการ",
+      "targetPerformance": "ประสิทธิภาพ: {{metric}}",
+      "targetSshSilence": "เอาต์พุตของเซสชัน SSH เงียบ",
+      "targetPing": "Ping {{host}}",
+      "targetTcp": "TCP {{host}}:{{port}}",
+      "targetMock": "ตัวนับทดสอบ",
+      "stopAfterDuration": "หลัง {{duration}}",
+      "stopAfterTriggerCount": "หลังทริกเกอร์ {{count}} ครั้ง",
+      "stopAfterFirstTrigger": "หลังทริกเกอร์ครั้งแรก",
+      "stopAfterPollCount": "หลังโพล {{count}} ครั้ง",
+      "stopUntilCanceled": "จนกว่าจะยกเลิก",
+      "notification": {
+        "inAppOnly": "เฉพาะในแอป",
+        "inAppPlusToast": "ในแอปพร้อม toast",
+        "inAppPlusSound": "ในแอปพร้อมเสียง"
+      },
+      "action": {
+        "notify": "แจ้งเตือนเท่านั้น",
+        "aiIntervene": "ให้ AI แทรกแซง"
+      }
+    },
+    "completedAction": "เสร็จแล้ว"
   },
   "workspace": {
     "budgetPrefix": "งบประมาณ",

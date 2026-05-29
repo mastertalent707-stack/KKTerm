@@ -479,26 +479,26 @@
     "watchdog": "감시",
     "watchdogPlaceholder": "감시할 내용을 설명하세요.",
     "watchdogExamples": [
-      "alert if CPU over 90% for 5 min",
-      "alert when RAM usage over 80%",
-      "alert when disk usage over 85%",
-      "alert if disk free drops below 10%",
-      "alert when commit memory over 90%",
-      "alert if process count spikes over 800",
-      "alert when handle count exceeds 50000",
-      "alert if KKTerm RAM over 1 GB",
-      "alert when network upstream over 50 MB/s",
-      "let me know when CPU drops back under 50%",
-      "ping my-server.example.com — alert if it goes offline",
-      "monitor 192.168.1.10 and notify if it stops responding",
-      "alert if SSH on my-host stops accepting connections",
-      "alert if port 443 on api.example.com closes",
-      "alert if my database port 5432 stops listening",
-      "watch port 8080 — tell me when it becomes available again",
-      "watch my codex CLI session — nudge it if silent for 60 seconds",
-      "watch this SSH session for 2 minutes of silence then notify me",
-      "monitor my long-running build — alert if output stops for 5 min",
-      "if codex hangs on a prompt, send it /continue automatically"
+      "CPU가 5분 동안 90%를 넘으면 알림",
+      "RAM 사용량이 80%를 넘으면 알림",
+      "디스크 사용량이 85%를 넘으면 알림",
+      "디스크 여유 공간이 10% 아래로 떨어지면 알림",
+      "커밋 메모리가 90%를 넘으면 알림",
+      "프로세스 수가 800을 넘어 급증하면 알림",
+      "핸들 수가 50000을 초과하면 알림",
+      "KKTerm RAM이 1 GB를 넘으면 알림",
+      "네트워크 업스트림이 50 MB/s를 넘으면 알림",
+      "CPU가 다시 50% 아래로 내려가면 알려줘",
+      "my-server.example.com에 ping - 오프라인이면 알림",
+      "192.168.1.10을 감시하고 응답이 멈추면 알림",
+      "my-host의 SSH가 연결을 받지 않으면 알림",
+      "api.example.com의 포트 443이 닫히면 알림",
+      "내 데이터베이스 포트 5432가 리슨을 멈추면 알림",
+      "포트 8080 감시 - 다시 사용 가능해지면 알려줘",
+      "내 Codex CLI 세션 감시 - 60초 동안 조용하면 깨워줘",
+      "이 SSH 세션을 2분 동안 무출력 상태로 감시한 뒤 알림",
+      "오래 실행되는 빌드 감시 - 5분 동안 출력이 멈추면 알림",
+      "Codex가 프롬프트에서 멈추면 자동으로 /continue 보내기"
     ],
     "selectedIntent": "선택된 어시스턴트 인텐트",
     "clearIntent": "{{intent}} 지우기",
@@ -525,7 +525,10 @@
       "allowedTools": "허용된 도구 ({{count}})",
       "allowedToolsCaveat": "AI는 이 감시자의 수명 동안 추가 프롬프트 없이 이러한 도구를 호출할 수 있습니다. 다른 도구는 런타임에 거부됩니다.",
       "caps": "하드 캡: 최대 {{max}}회 개입 · 작업 간 {{suppression}}초 쿨다운"
-    }
+    },
+    "queuedPrompts": "대기 중인 프롬프트",
+    "queuedPromptIndex": "다음 {{index}}",
+    "deleteQueuedPrompt": "대기 중인 프롬프트 삭제: {{prompt}}"
   },
   "app": {
     "aiAssistant": "AI 어시스턴트",
@@ -2511,8 +2514,34 @@
       "summarize": "요약",
       "regenerate": "재생성",
       "summarizing": "요약 중…",
-      "summaryEmpty": "요약을 클릭하여 이 감시자의 자연어 사후 분석을 생성합니다."
-    }
+      "summaryEmpty": "요약을 클릭하여 이 감시자의 자연어 사후 분석을 생성합니다.",
+      "elapsed": "경과 시간",
+      "watchSummary": "감시 요약",
+      "nextCheck": "다음 확인",
+      "exitCondition": "종료 조건",
+      "notificationMethod": "알림",
+      "actionMode": "작업",
+      "targetPerformance": "성능: {{metric}}",
+      "targetSshSilence": "SSH 세션 출력 없음",
+      "targetPing": "Ping {{host}}",
+      "targetTcp": "TCP {{host}}:{{port}}",
+      "targetMock": "테스트 카운터",
+      "stopAfterDuration": "{{duration}} 후",
+      "stopAfterTriggerCount": "{{count}}회 트리거 후",
+      "stopAfterFirstTrigger": "첫 트리거 후",
+      "stopAfterPollCount": "{{count}}회 폴링 후",
+      "stopUntilCanceled": "취소할 때까지",
+      "notification": {
+        "inAppOnly": "앱 내에서만",
+        "inAppPlusToast": "앱 내 및 토스트",
+        "inAppPlusSound": "앱 내 및 소리"
+      },
+      "action": {
+        "notify": "알림만",
+        "aiIntervene": "AI 개입"
+      }
+    },
+    "completedAction": "완료됨"
   },
   "workspace": {
     "budgetPrefix": "예산",

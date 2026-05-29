@@ -479,26 +479,26 @@
     "watchdog": "Giám sát",
     "watchdogPlaceholder": "Mô tả những gì cần giám sát.",
     "watchdogExamples": [
-      "alert if CPU over 90% for 5 min",
-      "alert when RAM usage over 80%",
-      "alert when disk usage over 85%",
-      "alert if disk free drops below 10%",
-      "alert when commit memory over 90%",
-      "alert if process count spikes over 800",
-      "alert when handle count exceeds 50000",
-      "alert if KKTerm RAM over 1 GB",
-      "alert when network upstream over 50 MB/s",
-      "let me know when CPU drops back under 50%",
-      "ping my-server.example.com — alert if it goes offline",
-      "monitor 192.168.1.10 and notify if it stops responding",
-      "alert if SSH on my-host stops accepting connections",
-      "alert if port 443 on api.example.com closes",
-      "alert if my database port 5432 stops listening",
-      "watch port 8080 — tell me when it becomes available again",
-      "watch my codex CLI session — nudge it if silent for 60 seconds",
-      "watch this SSH session for 2 minutes of silence then notify me",
-      "monitor my long-running build — alert if output stops for 5 min",
-      "if codex hangs on a prompt, send it /continue automatically"
+      "cảnh báo nếu CPU trên 90% trong 5 phút",
+      "cảnh báo khi mức dùng RAM vượt 80%",
+      "cảnh báo khi mức dùng đĩa vượt 85%",
+      "cảnh báo nếu dung lượng đĩa trống xuống dưới 10%",
+      "cảnh báo khi bộ nhớ commit vượt 90%",
+      "cảnh báo nếu số tiến trình tăng vọt trên 800",
+      "cảnh báo khi số handle vượt 50000",
+      "cảnh báo nếu RAM của KKTerm vượt 1 GB",
+      "cảnh báo khi upstream mạng vượt 50 MB/s",
+      "báo cho tôi khi CPU giảm lại dưới 50%",
+      "ping my-server.example.com - cảnh báo nếu ngoại tuyến",
+      "giám sát 192.168.1.10 và thông báo nếu ngừng phản hồi",
+      "cảnh báo nếu SSH trên my-host ngừng nhận kết nối",
+      "cảnh báo nếu cổng 443 trên api.example.com đóng",
+      "cảnh báo nếu cổng cơ sở dữ liệu 5432 của tôi ngừng lắng nghe",
+      "theo dõi cổng 8080 - báo khi khả dụng trở lại",
+      "theo dõi phiên CLI Codex của tôi - nhắc nếu im lặng 60 giây",
+      "theo dõi phiên SSH này trong 2 phút im lặng rồi thông báo cho tôi",
+      "giám sát bản build chạy lâu - cảnh báo nếu output dừng 5 phút",
+      "nếu Codex kẹt ở prompt, tự động gửi /continue"
     ],
     "selectedIntent": "Ý định trợ lý đã chọn",
     "clearIntent": "Xóa {{intent}}",
@@ -525,7 +525,10 @@
       "allowedTools": "Công cụ được phép ({{count}})",
       "allowedToolsCaveat": "AI có thể gọi bất kỳ công cụ nào trong số này mà không cần thêm lời nhắc trong suốt thời gian hoạt động của bộ giám sát này. Các công cụ khác bị từ chối trong thời gian chạy.",
       "caps": "Giới hạn cứng: tối đa {{max}} lần can thiệp · {{suppression}} giây chờ giữa các hành động"
-    }
+    },
+    "queuedPrompts": "Prompt trong hàng đợi",
+    "queuedPromptIndex": "Tiếp theo {{index}}",
+    "deleteQueuedPrompt": "Xóa prompt trong hàng đợi: {{prompt}}"
   },
   "app": {
     "aiAssistant": "Trợ lý AI",
@@ -2511,8 +2514,34 @@
       "summarize": "Tóm tắt",
       "regenerate": "Tạo lại",
       "summarizing": "Đang tóm tắt…",
-      "summaryEmpty": "Nhấp vào Tóm tắt để tạo báo cáo phân tích hậu kỳ bằng ngôn ngữ tự nhiên của bộ giám sát này."
-    }
+      "summaryEmpty": "Nhấp vào Tóm tắt để tạo báo cáo phân tích hậu kỳ bằng ngôn ngữ tự nhiên của bộ giám sát này.",
+      "elapsed": "Đã trôi qua",
+      "watchSummary": "Tóm tắt giám sát",
+      "nextCheck": "Lần kiểm tra tiếp theo",
+      "exitCondition": "Điều kiện thoát",
+      "notificationMethod": "Thông báo",
+      "actionMode": "Hành động",
+      "targetPerformance": "Hiệu năng: {{metric}}",
+      "targetSshSilence": "Phiên SSH im lặng đầu ra",
+      "targetPing": "Ping {{host}}",
+      "targetTcp": "TCP {{host}}:{{port}}",
+      "targetMock": "Bộ đếm thử nghiệm",
+      "stopAfterDuration": "Sau {{duration}}",
+      "stopAfterTriggerCount": "Sau {{count}} lần kích hoạt",
+      "stopAfterFirstTrigger": "Sau lần kích hoạt đầu tiên",
+      "stopAfterPollCount": "Sau {{count}} lần thăm dò",
+      "stopUntilCanceled": "Cho đến khi hủy",
+      "notification": {
+        "inAppOnly": "Chỉ trong ứng dụng",
+        "inAppPlusToast": "Trong ứng dụng kèm toast",
+        "inAppPlusSound": "Trong ứng dụng kèm âm thanh"
+      },
+      "action": {
+        "notify": "Chỉ thông báo",
+        "aiIntervene": "AI can thiệp"
+      }
+    },
+    "completedAction": "Đã hoàn tất"
   },
   "workspace": {
     "budgetPrefix": "Budget",

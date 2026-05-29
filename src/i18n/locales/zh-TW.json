@@ -479,26 +479,26 @@
     "watchdog": "監視",
     "watchdogPlaceholder": "描述要監視的內容。",
     "watchdogExamples": [
-      "alert if CPU over 90% for 5 min",
-      "alert when RAM usage over 80%",
-      "alert when disk usage over 85%",
-      "alert if disk free drops below 10%",
-      "alert when commit memory over 90%",
-      "alert if process count spikes over 800",
-      "alert when handle count exceeds 50000",
-      "alert if KKTerm RAM over 1 GB",
-      "alert when network upstream over 50 MB/s",
-      "let me know when CPU drops back under 50%",
-      "ping my-server.example.com — alert if it goes offline",
-      "monitor 192.168.1.10 and notify if it stops responding",
-      "alert if SSH on my-host stops accepting connections",
-      "alert if port 443 on api.example.com closes",
-      "alert if my database port 5432 stops listening",
-      "watch port 8080 — tell me when it becomes available again",
-      "watch my codex CLI session — nudge it if silent for 60 seconds",
-      "watch this SSH session for 2 minutes of silence then notify me",
-      "monitor my long-running build — alert if output stops for 5 min",
-      "if codex hangs on a prompt, send it /continue automatically"
+      "CPU 超過 90% 持續 5 分鐘時提醒",
+      "RAM 使用率超過 80% 時提醒",
+      "磁碟使用率超過 85% 時提醒",
+      "磁碟可用空間低於 10% 時提醒",
+      "認可記憶體超過 90% 時提醒",
+      "處理程序數量暴增超過 800 時提醒",
+      "控制代碼數量超過 50000 時提醒",
+      "KKTerm RAM 超過 1 GB 時提醒",
+      "網路上傳超過 50 MB/s 時提醒",
+      "CPU 降回 50% 以下時告訴我",
+      "ping my-server.example.com - 如果離線就提醒",
+      "監視 192.168.1.10，若停止回應就通知",
+      "my-host 上的 SSH 停止接受連線時提醒",
+      "api.example.com 的 443 連接埠關閉時提醒",
+      "我的資料庫 5432 連接埠停止監聽時提醒",
+      "監視 8080 連接埠 - 重新可用時告訴我",
+      "監視我的 Codex CLI 工作階段 - 靜默 60 秒就提醒它",
+      "監視這個 SSH 工作階段，靜默 2 分鐘後通知我",
+      "監視我的長時間建置 - 輸出停止 5 分鐘就提醒",
+      "如果 Codex 卡在提示上，自動傳送 /continue"
     ],
     "selectedIntent": "已選擇的助理意圖",
     "clearIntent": "清除 {{intent}}",
@@ -525,7 +525,10 @@
       "allowedTools": "允許的工具 ({{count}})",
       "allowedToolsCaveat": "在此監控器的生命週期內，AI 可無需額外提示地呼叫這些工具。其他工具在執行時會被拒絕。",
       "caps": "硬性限制：最多 {{max}} 次干預 · 操作間冷卻 {{suppression}} 秒"
-    }
+    },
+    "queuedPrompts": "佇列中的提示",
+    "queuedPromptIndex": "下一個 {{index}}",
+    "deleteQueuedPrompt": "刪除佇列提示：{{prompt}}"
   },
   "app": {
     "aiAssistant": "AI 助理",
@@ -2511,8 +2514,34 @@
       "summarize": "產生摘要",
       "regenerate": "重新產生",
       "summarizing": "正在產生摘要…",
-      "summaryEmpty": "按一下「產生摘要」，以自然語言產生此監控器的事後分析報告。"
-    }
+      "summaryEmpty": "按一下「產生摘要」，以自然語言產生此監控器的事後分析報告。",
+      "elapsed": "已經過",
+      "watchSummary": "監視摘要",
+      "nextCheck": "下次檢查",
+      "exitCondition": "結束條件",
+      "notificationMethod": "通知",
+      "actionMode": "動作",
+      "targetPerformance": "效能：{{metric}}",
+      "targetSshSilence": "SSH 工作階段輸出靜默",
+      "targetPing": "Ping {{host}}",
+      "targetTcp": "TCP {{host}}:{{port}}",
+      "targetMock": "測試計數器",
+      "stopAfterDuration": "{{duration}} 後",
+      "stopAfterTriggerCount": "{{count}} 次觸發後",
+      "stopAfterFirstTrigger": "第一次觸發後",
+      "stopAfterPollCount": "{{count}} 次輪詢後",
+      "stopUntilCanceled": "直到取消",
+      "notification": {
+        "inAppOnly": "僅應用程式內",
+        "inAppPlusToast": "應用程式內加 toast 通知",
+        "inAppPlusSound": "應用程式內加音效"
+      },
+      "action": {
+        "notify": "僅通知",
+        "aiIntervene": "AI 介入"
+      }
+    },
+    "completedAction": "已完成"
   },
   "workspace": {
     "budgetPrefix": "預算",
