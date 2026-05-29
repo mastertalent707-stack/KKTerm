@@ -256,8 +256,15 @@ impl VncSessionManager {
     }
 
     pub fn close_session(&self, request: VncSimpleRequest) -> Result<(), String> {
-        let mut sessions = self.lock_sessions()?;
-        if let Some(mut session) = sessions.remove(&request.session_id) {
+        // Remove under the lock, then drop the guard before the blocking
+        // close() so a hung server teardown can't stall input/status for every
+        // other VNC session. The explicit close is kept (not just the stop
+        // signal) so the socket is actually closed before this returns.
+        let removed = {
+            let mut sessions = self.lock_sessions()?;
+            sessions.remove(&request.session_id)
+        };
+        if let Some(mut session) = removed {
             if let Some(stop) = session.stop.take() {
                 let _ = stop.send(());
             }
