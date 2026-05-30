@@ -29,15 +29,7 @@ pub fn latest_version_in_catalog(recipe: &Recipe, catalog: &Catalog) -> Option<S
 
 fn winget_latest(id: &str) -> Option<String> {
     let output = no_window(&mut Command::new("winget"))
-        .args([
-            "show",
-            "--id",
-            id,
-            "--exact",
-            "--source",
-            "winget",
-            "--disable-interactivity",
-        ])
+        .args(winget_show_args(id))
         .output()
         .ok()?;
     if !output.status.success() {
@@ -54,6 +46,19 @@ fn winget_latest(id: &str) -> Option<String> {
         }
     }
     None
+}
+
+fn winget_show_args(id: &str) -> Vec<&str> {
+    vec![
+        "show",
+        "--id",
+        id,
+        "--exact",
+        "--source",
+        "winget",
+        "--accept-source-agreements",
+        "--disable-interactivity",
+    ]
 }
 
 fn npm_latest(pkg: &str) -> Option<String> {
@@ -160,6 +165,14 @@ mod tests {
         assert_eq!(
             npm_registry_url("@anthropic-ai/claude-code"),
             "https://registry.npmjs.org/@anthropic-ai%2Fclaude-code"
+        );
+    }
+
+    #[test]
+    fn winget_latest_accepts_source_agreements_for_first_run() {
+        assert!(
+            winget_show_args("Git.Git").contains(&"--accept-source-agreements"),
+            "fresh Windows installs can fail noninteractive winget show until source agreements are accepted"
         );
     }
 }

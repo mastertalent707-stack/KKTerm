@@ -17,7 +17,7 @@ The catalog **ships with the KKTerm release**: the JSON list of supported tools 
 The page has a header and categorized sections:
 
 - **Header.** Title (`installer.title`), subtitle (`installer.subtitle`), a page-level last checked status (`installer.lastChecked`), and two buttons:
-  - `installer.refresh` — re-runs detection for every catalog tool, then queries the latest available version for every detected installed tool and caches the result.
+  - `installer.refresh` — re-runs detection for every catalog tool, then queries the latest available version for every catalog tool whose provider can report one and caches the result.
   - `installer.updateAll` — installs every available update sequentially. Tutorial target: `installer.updateAll`.
 - **Essentials** (`installer.section.essentials`) — recommended Windows setup patterns for Node, Python, and Git. The visible Node entry (`Node (nvm-windows)`) installs nvm-windows, then installs and activates the latest Node LTS release with nvm-windows. The visible Python entry (`Python (uv)`) installs uv, then installs the latest stable Python 3.13 patch release with `uv python install 3.13 --default` and pins Python 3.13 globally with `uv python pin --global 3.13`. Power users who want direct Node.js or CPython installer packages can install those outside Installer Helper.
 - **AI Agents** (`installer.section.aiAgents`) — coding-agent CLIs such as Claude Code CLI, Codex CLI, Gemini CLI, and OpenClaw.
@@ -39,7 +39,7 @@ Detection renders in two phases on Module entry. First, KKTerm loads the local W
 
 Per-provider detection methods:
 
-- **winget** — detection reads a local Add/Remove Programs registry snapshot once per fresh detection sweep and matches catalog aliases (`registryKeys`, `displayNames`, `displayNamePrefixes`) so existing installs can be recognized even when winget would report an `ARP\...` identifier. The snapshot is cached in memory until the next explicit detection call. Fresh results are persisted to the Installer Helper registry cache. Latest-version checks still call winget and use `CREATE_NO_WINDOW` so no `cmd.exe` window flashes on Module entry.
+- **winget** — detection reads a local Add/Remove Programs registry snapshot once per fresh detection sweep and matches catalog aliases (`registryKeys`, `displayNames`, `displayNamePrefixes`) so existing installs can be recognized even when winget would report an `ARP\...` identifier. The snapshot is cached in memory until the next explicit detection call. Fresh results are persisted to the Installer Helper registry cache. Latest-version checks still call winget, accept winget source agreements for first-run Windows machines, and use `CREATE_NO_WINDOW` so no `cmd.exe` window flashes on Module entry.
 - **npm** — `npm ls -g --json --depth=0`. Looks up the package in the top-level `dependencies`.
 - **github-release** — a marker file at `%LOCALAPPDATA%\KKTerm\installer\bin\<tool_id>\.kkterm-installer.json` written at install time. Only installs we performed count as "managed".
 - **windows-feature** — `dism /online /get-featureinfo /featurename:<X>`. Parses the `State :` line.

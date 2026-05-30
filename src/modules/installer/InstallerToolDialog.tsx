@@ -26,11 +26,7 @@ import {
 import { iconUrlForRecipe, FALLBACK_ICON_URL } from "./icons";
 import { InstallerConfirmDialog } from "./InstallerConfirmDialog";
 import { installRecipeAndWait } from "./progress";
-import {
-  GENERAL_STEP_BUCKET,
-  useInstallerStore,
-  type StepStatus,
-} from "./state";
+import { useInstallerStore, type StepStatus } from "./state";
 import type {
   InstallOptions,
   Provider,
@@ -582,11 +578,6 @@ function StepperList({
         {inFlight?.log && inFlight.log.length > 0 ? (
           <pre className="installer-stepper__log" aria-live="polite">
             {inFlight.log.slice(-30).join("\n")}
-          </pre>
-        ) : null}
-        {stepper?.logs[GENERAL_STEP_BUCKET]?.length ? (
-          <pre className="installer-stepper__log" aria-live="polite">
-            {stepper.logs[GENERAL_STEP_BUCKET].slice(-30).join("\n")}
           </pre>
         ) : null}
       </div>
