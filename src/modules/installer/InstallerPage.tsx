@@ -209,6 +209,7 @@ export function InstallerPage({ active }: { active: boolean }) {
       if (r.provider.kind === "githubRelease") {
         return r.provider.layout === "zip" ? sum : sum + 1;
       }
+      if (r.provider.kind === "downloadInstaller") return sum + 1;
       return sum;
     }, 0);
     setUpdateAllConfirm({ items, uacEstimate });
@@ -348,19 +349,43 @@ const INSTALLER_CATEGORY_SECTIONS: Array<{
   },
   {
     titleKey: "installer.section.aiAgents",
-    ids: ["claude-code-cli", "codex-cli", "gemini-cli", "openclaw"],
+    ids: [
+      "claude-code-cli",
+      "codex-cli",
+      "gemini-cli",
+      "openclaw",
+      "codex-desktop",
+      "claude-desktop",
+      "hermes-agent",
+    ],
   },
   {
     titleKey: "installer.section.aiPlatforms",
-    ids: ["ollama", "n8n"],
+    ids: ["ollama", "n8n", "open-webui", "flowise", "langflow"],
   },
   {
     titleKey: "installer.section.development",
-    ids: ["vscode", "cursor", "docker-desktop", "bruno", "wsl"],
+    ids: [
+      "vscode",
+      "cursor",
+      "docker-desktop",
+      "bruno",
+      "wsl",
+      "opencode",
+      "rustup",
+    ],
+  },
+  {
+    titleKey: "installer.section.windowsPowerUser",
+    ids: ["powertoys", "sysinternals-suite", "everything", "ditto"],
+  },
+  {
+    titleKey: "installer.section.remoteAccess",
+    ids: ["tailscale", "rustdesk"],
   },
   {
     titleKey: "installer.section.utilities",
-    ids: ["notepadpp", "ripgrep", "jq", "fzf"],
+    ids: ["notepadpp", "ripgrep", "jq", "fzf", "7zip", "sharex", "excalidraw"],
   },
 ];
 

@@ -136,6 +136,8 @@ pub fn detect_one(recipe: &Recipe) -> DetectedState {
     match &recipe.provider {
         Provider::Winget { .. } => detect_winget(recipe),
         Provider::Npm { pkg } => detect_npm(pkg),
+        Provider::UvPip { .. } => DetectedState::not_installed(),
+        Provider::DownloadInstaller { .. } => detect_installed_software_aliases(recipe),
         Provider::GithubRelease { .. } => detect_github_release_marker(&recipe.id),
         Provider::WindowsFeature { feature, .. } => detect_windows_feature(feature),
         Provider::WslDistro { distro } => detect_wsl_distro(distro),
@@ -333,6 +335,19 @@ fn detect_winget(recipe: &Recipe) -> DetectedState {
     detect_installed_software(recipe, snapshot)
 }
 
+fn detect_installed_software_aliases(recipe: &Recipe) -> DetectedState {
+    let cell = installed_software_snapshot_cell();
+    let mut guard = cell.lock().unwrap();
+    if guard.is_none() {
+        drop(guard);
+        let parsed = load_installed_software_snapshot();
+        *cell.lock().unwrap() = Some(parsed);
+        guard = cell.lock().unwrap();
+    }
+    let snapshot = guard.as_ref().unwrap();
+    detect_installed_software_by_aliases(recipe, snapshot)
+}
+
 fn detect_installed_software(
     recipe: &Recipe,
     snapshot: &InstalledSoftwareSnapshot,
@@ -342,6 +357,19 @@ fn detect_installed_software(
     };
     for entry in &snapshot.entries {
         if installed_entry_matches(id, &recipe.detection, entry) {
+            return DetectedState::installed(entry.display_version.clone())
+                .with_install_location(entry.install_location.clone());
+        }
+    }
+    DetectedState::not_installed()
+}
+
+fn detect_installed_software_by_aliases(
+    recipe: &Recipe,
+    snapshot: &InstalledSoftwareSnapshot,
+) -> DetectedState {
+    for entry in &snapshot.entries {
+        if installed_entry_matches(&recipe.id, &recipe.detection, entry) {
             return DetectedState::installed(entry.display_version.clone())
                 .with_install_location(entry.install_location.clone());
         }

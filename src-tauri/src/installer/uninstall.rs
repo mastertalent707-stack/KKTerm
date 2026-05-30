@@ -9,7 +9,7 @@ use std::sync::Arc;
 use super::detect::github_release_install_dir;
 use super::events::ProgressEvent;
 use super::install::EventSink;
-use super::managed_app::managed_app_install_dir;
+use super::managed_app::{is_managed_app, managed_app_install_dir};
 use super::proc::npm_program;
 use super::schema::{Provider, Recipe};
 
@@ -27,9 +27,17 @@ pub fn uninstall_recipe(
             return uninstall_managed_app(&recipe.id, emit);
         }
     }
+    if is_managed_app(&recipe.id) {
+        return uninstall_managed_app(&recipe.id, emit);
+    }
     match &recipe.provider {
         Provider::Winget { id } => uninstall_winget(&recipe.id, id, cancel, emit),
         Provider::Npm { pkg } => uninstall_npm(&recipe.id, pkg, cancel, emit),
+        Provider::UvPip { package } => uninstall_uv_pip(&recipe.id, package, cancel, emit),
+        Provider::DownloadInstaller { .. } => Err(
+            "this tool uses its vendor desktop installer; uninstall it from Windows Settings"
+                .into(),
+        ),
         Provider::GithubRelease { .. } => uninstall_github_release(&recipe.id, emit),
         Provider::WindowsFeature { feature, .. } => {
             uninstall_windows_feature(&recipe.id, feature, cancel, emit)
@@ -40,6 +48,31 @@ pub fn uninstall_recipe(
                 .into(),
         ),
     }
+}
+
+fn uninstall_uv_pip(
+    tool_id: &str,
+    package: &str,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<(), String> {
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("uv pip uninstall {package}"),
+    });
+    super::install::run_streamed_with_refreshed_path_public(
+        "uv",
+        &[
+            "pip".into(),
+            "uninstall".into(),
+            "--system".into(),
+            package.into(),
+            "-y".into(),
+        ],
+        tool_id,
+        cancel,
+        emit,
+    )
 }
 
 fn uninstall_managed_app(tool_id: &str, emit: &EventSink) -> Result<(), String> {

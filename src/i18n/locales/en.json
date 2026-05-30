@@ -473,6 +473,8 @@
       "aiAgents": "AI Agents",
       "aiPlatforms": "AI Platforms",
       "development": "Development",
+      "windowsPowerUser": "Windows Power User",
+      "remoteAccess": "Remote Access",
       "utilities": "Utilities"
     },
     "tile": {

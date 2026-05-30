@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-28",
+  "generatedAt": "2026-05-30",
   "recipes": [
     {
       "id": "git",
@@ -214,6 +214,42 @@
       "options": ["version"]
     },
     {
+      "id": "open-webui",
+      "name": "Open WebUI",
+      "descriptionEn": "Self-hosted AI chat platform with local model integrations. Managed as a KKTerm app-local uv/pip environment.",
+      "category": "ai-platform",
+      "icon": "MessagesSquare",
+      "needs": ["uv"],
+      "homepage": "https://openwebui.com/",
+      "releaseNotesUrl": "https://github.com/open-webui/open-webui/releases",
+      "provider": { "kind": "uvPip", "package": "open-webui" },
+      "options": ["version"]
+    },
+    {
+      "id": "flowise",
+      "name": "Flowise",
+      "descriptionEn": "Low-code visual builder for LLM workflows and agent chains. Managed as a KKTerm app-local npm project.",
+      "category": "ai-platform",
+      "icon": "Workflow",
+      "needs": ["node-bundle"],
+      "homepage": "https://flowiseai.com/",
+      "releaseNotesUrl": "https://github.com/FlowiseAI/Flowise/releases",
+      "provider": { "kind": "npm", "pkg": "flowise" },
+      "options": ["version"]
+    },
+    {
+      "id": "langflow",
+      "name": "Langflow",
+      "descriptionEn": "Visual AI application builder for LangChain-style flows. Managed as a KKTerm app-local uv/pip environment.",
+      "category": "ai-platform",
+      "icon": "Cable",
+      "needs": ["uv"],
+      "homepage": "https://www.langflow.org/",
+      "releaseNotesUrl": "https://github.com/langflow-ai/langflow/releases",
+      "provider": { "kind": "uvPip", "package": "langflow" },
+      "options": ["version"]
+    },
+    {
       "id": "bruno",
       "name": "Bruno",
       "descriptionEn": "Open-source API client. Postman alternative with git-friendly request files.",
@@ -260,6 +296,205 @@
       },
       "provider": { "kind": "winget", "id": "junegunn.fzf" },
       "options": ["scope", "version"]
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode",
+      "descriptionEn": "Terminal coding agent that can work with multiple AI providers.",
+      "category": "development",
+      "icon": "Terminal",
+      "homepage": "https://opencode.ai/",
+      "releaseNotesUrl": "https://github.com/sst/opencode/releases",
+      "detection": {
+        "displayNames": ["opencode", "OpenCode"],
+        "displayNamePrefixes": ["OpenCode"]
+      },
+      "provider": { "kind": "winget", "id": "SST.opencode" },
+      "options": ["scope", "version"]
+    },
+    {
+      "id": "rustup",
+      "name": "Rustup",
+      "descriptionEn": "Rust toolchain installer and version manager.",
+      "category": "development",
+      "icon": "Hammer",
+      "homepage": "https://rustup.rs/",
+      "releaseNotesUrl": "https://github.com/rust-lang/rustup/releases",
+      "detection": {
+        "displayNames": ["Rustup: the Rust toolchain installer", "rustup"],
+        "displayNamePrefixes": ["Rustup"]
+      },
+      "provider": { "kind": "winget", "id": "Rustlang.Rustup" },
+      "options": ["scope", "version"]
+    },
+    {
+      "id": "codex-desktop",
+      "name": "Codex Desktop",
+      "descriptionEn": "Desktop app for working with OpenAI Codex coding agents.",
+      "category": "ai-agent",
+      "icon": "Bot",
+      "homepage": "https://openai.com/codex/",
+      "releaseNotesUrl": "https://openai.com/codex/",
+      "detection": {
+        "displayNames": ["Codex"]
+      },
+      "provider": {
+        "kind": "downloadInstaller",
+        "url": "https://get.microsoft.com/installer/download/9PLM9XGG6VKS?cid=website_cta_psi",
+        "fileName": "CodexInstaller.exe"
+      }
+    },
+    {
+      "id": "claude-desktop",
+      "name": "Claude Desktop",
+      "descriptionEn": "Anthropic's desktop app for Claude, including local MCP integrations.",
+      "category": "ai-agent",
+      "icon": "Bot",
+      "homepage": "https://claude.ai/download",
+      "releaseNotesUrl": "https://support.claude.com/en/articles/10065433-install-claude-desktop",
+      "detection": {
+        "displayNames": ["Claude"]
+      },
+      "provider": {
+        "kind": "downloadInstaller",
+        "url": "https://claude.ai/api/desktop/win32/x64/setup/latest/redirect",
+        "fileName": "ClaudeSetup.exe"
+      }
+    },
+    {
+      "id": "hermes-agent",
+      "name": "Hermes AI Agent",
+      "descriptionEn": "Self-learning AI agent framework from Nous Research, installed with uv/pip.",
+      "category": "ai-agent",
+      "icon": "BrainCircuit",
+      "needs": ["uv"],
+      "homepage": "https://github.com/NousResearch/hermes-agent",
+      "releaseNotesUrl": "https://github.com/NousResearch/hermes-agent/releases",
+      "provider": { "kind": "uvPip", "package": "hermes-agent" },
+      "options": ["version"]
+    },
+    {
+      "id": "powertoys",
+      "name": "Microsoft PowerToys",
+      "descriptionEn": "Microsoft's Windows productivity utilities, including launcher, window management, and file tools.",
+      "category": "windows-power-user",
+      "icon": "Sparkles",
+      "homepage": "https://learn.microsoft.com/windows/powertoys/",
+      "releaseNotesUrl": "https://github.com/microsoft/PowerToys/releases",
+      "detection": {
+        "displayNames": ["PowerToys", "Microsoft PowerToys"]
+      },
+      "provider": { "kind": "winget", "id": "Microsoft.PowerToys" },
+      "options": ["scope", "version"]
+    },
+    {
+      "id": "sysinternals-suite",
+      "name": "Sysinternals Suite",
+      "descriptionEn": "Microsoft Sysinternals troubleshooting and administration utilities.",
+      "category": "windows-power-user",
+      "icon": "BriefcaseMedical",
+      "homepage": "https://learn.microsoft.com/sysinternals/",
+      "detection": {
+        "displayNames": ["Sysinternals Suite"]
+      },
+      "provider": { "kind": "winget", "id": "Microsoft.Sysinternals.Suite" },
+      "options": ["scope", "version"]
+    },
+    {
+      "id": "everything",
+      "name": "Everything Search",
+      "descriptionEn": "Fast local file-name search for Windows.",
+      "category": "windows-power-user",
+      "icon": "Search",
+      "homepage": "https://www.voidtools.com/",
+      "detection": {
+        "displayNames": ["Everything"],
+        "displayNamePrefixes": ["Everything "]
+      },
+      "provider": { "kind": "winget", "id": "voidtools.Everything" },
+      "options": ["scope", "version"]
+    },
+    {
+      "id": "ditto",
+      "name": "Ditto Clipboard Manager",
+      "descriptionEn": "Clipboard history manager for Windows.",
+      "category": "windows-power-user",
+      "icon": "Clipboard",
+      "homepage": "https://ditto-cp.sourceforge.io/",
+      "detection": {
+        "displayNames": ["Ditto"]
+      },
+      "provider": { "kind": "winget", "id": "Ditto.Ditto" },
+      "options": ["scope", "version"]
+    },
+    {
+      "id": "tailscale",
+      "name": "Tailscale",
+      "descriptionEn": "WireGuard-based mesh VPN for private network access.",
+      "category": "remote-access",
+      "icon": "Network",
+      "homepage": "https://tailscale.com/",
+      "detection": {
+        "displayNames": ["Tailscale"]
+      },
+      "provider": { "kind": "winget", "id": "Tailscale.Tailscale" },
+      "options": ["scope", "version"]
+    },
+    {
+      "id": "rustdesk",
+      "name": "RustDesk",
+      "descriptionEn": "Open-source remote desktop client.",
+      "category": "remote-access",
+      "icon": "Monitor",
+      "homepage": "https://rustdesk.com/",
+      "releaseNotesUrl": "https://github.com/rustdesk/rustdesk/releases",
+      "provider": {
+        "kind": "githubRelease",
+        "repo": "rustdesk/rustdesk",
+        "assetPattern": "*x86_64.msi",
+        "layout": "msi"
+      },
+      "options": ["version"]
+    },
+    {
+      "id": "7zip",
+      "name": "7-Zip",
+      "descriptionEn": "File archiver with broad compression-format support.",
+      "category": "tools",
+      "icon": "Archive",
+      "homepage": "https://www.7-zip.org/",
+      "detection": {
+        "displayNames": ["7-Zip"],
+        "displayNamePrefixes": ["7-Zip "]
+      },
+      "provider": { "kind": "winget", "id": "7zip.7zip" },
+      "options": ["scope", "version"]
+    },
+    {
+      "id": "sharex",
+      "name": "ShareX",
+      "descriptionEn": "Screenshot, screen recording, and upload workflow utility.",
+      "category": "tools",
+      "icon": "Camera",
+      "homepage": "https://getsharex.com/",
+      "releaseNotesUrl": "https://github.com/ShareX/ShareX/releases",
+      "detection": {
+        "displayNames": ["ShareX"]
+      },
+      "provider": { "kind": "winget", "id": "ShareX.ShareX" },
+      "options": ["scope", "version"]
+    },
+    {
+      "id": "excalidraw",
+      "name": "Excalidraw",
+      "descriptionEn": "Whiteboard sketching app hosted from a KKTerm app-local React project.",
+      "category": "tools",
+      "icon": "PenTool",
+      "needs": ["node-bundle"],
+      "homepage": "https://excalidraw.com/",
+      "releaseNotesUrl": "https://github.com/excalidraw/excalidraw/releases",
+      "provider": { "kind": "npm", "pkg": "@excalidraw/excalidraw" },
+      "options": ["version"]
     },
     {
       "id": "openclaw",

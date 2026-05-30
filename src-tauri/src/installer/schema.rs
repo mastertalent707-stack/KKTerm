@@ -124,6 +124,17 @@ pub enum Provider {
         /// e.g. "@anthropic-ai/claude-code".
         pkg: String,
     },
+    UvPip {
+        /// e.g. "open-webui".
+        package: String,
+    },
+    DownloadInstaller {
+        /// Canonical vendor URL for a desktop installer.
+        url: String,
+        /// Stable local filename used for the temp download.
+        #[serde(rename = "fileName")]
+        file_name: String,
+    },
     GithubRelease {
         /// "owner/repo".
         repo: String,
@@ -468,6 +479,90 @@ mod tests {
         assert!(matches!(
             &recipe.provider,
             Provider::Npm { pkg } if pkg == "openclaw"
+        ));
+    }
+
+    #[test]
+    fn shipped_ai_platforms_include_managed_uv_pip_apps() {
+        let json = include_str!("../../../installer/catalog.v1.json");
+        let catalog: Catalog =
+            serde_json::from_str(json).expect("shipped catalog JSON should parse");
+
+        for (id, package) in [
+            ("open-webui", "open-webui"),
+            ("langflow", "langflow"),
+            ("hermes-agent", "hermes-agent"),
+        ] {
+            let recipe = catalog
+                .recipes
+                .iter()
+                .find(|recipe| recipe.id == id)
+                .unwrap_or_else(|| panic!("catalog should include {id}"));
+
+            assert!(matches!(
+                &recipe.provider,
+                Provider::UvPip { package: pkg } if pkg == package
+            ));
+            assert!(recipe.needs.contains(&"uv".to_string()));
+        }
+    }
+
+    #[test]
+    fn shipped_catalog_includes_requested_new_sections() {
+        let json = include_str!("../../../installer/catalog.v1.json");
+        let catalog: Catalog =
+            serde_json::from_str(json).expect("shipped catalog JSON should parse");
+        let ids: HashSet<&str> = catalog
+            .recipes
+            .iter()
+            .map(|recipe| recipe.id.as_str())
+            .collect();
+
+        for id in [
+            "opencode",
+            "rustup",
+            "codex-desktop",
+            "claude-desktop",
+            "hermes-agent",
+            "flowise",
+            "powertoys",
+            "sysinternals-suite",
+            "everything",
+            "ditto",
+            "tailscale",
+            "rustdesk",
+            "7zip",
+            "sharex",
+            "excalidraw",
+        ] {
+            assert!(ids.contains(id), "catalog should include {id}");
+        }
+    }
+
+    #[test]
+    fn shipped_desktop_agent_apps_use_vendor_downloads() {
+        let json = include_str!("../../../installer/catalog.v1.json");
+        let catalog: Catalog =
+            serde_json::from_str(json).expect("shipped catalog JSON should parse");
+
+        let codex = catalog
+            .recipes
+            .iter()
+            .find(|recipe| recipe.id == "codex-desktop")
+            .expect("catalog should include Codex Desktop");
+        assert!(matches!(
+            &codex.provider,
+            Provider::DownloadInstaller { url, .. } if url.starts_with("https://get.microsoft.com/installer/download/")
+        ));
+
+        let claude = catalog
+            .recipes
+            .iter()
+            .find(|recipe| recipe.id == "claude-desktop")
+            .expect("catalog should include Claude Desktop");
+        assert!(matches!(
+            &claude.provider,
+            Provider::DownloadInstaller { url, .. } if url == "https://claude.ai/api/desktop/win32/x64/setup/latest/redirect"
         ));
     }
 

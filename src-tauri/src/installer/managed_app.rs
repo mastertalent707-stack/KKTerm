@@ -11,7 +11,10 @@ pub struct ManagedAppMarker {
 }
 
 pub fn is_managed_app(tool_id: &str) -> bool {
-    matches!(tool_id, "n8n" | "ollama")
+    matches!(
+        tool_id,
+        "n8n" | "ollama" | "flowise" | "open-webui" | "langflow" | "hermes-agent" | "excalidraw"
+    )
 }
 
 pub fn managed_app_install_dir(tool_id: &str) -> PathBuf {
@@ -35,4 +38,26 @@ fn managed_apps_root() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."));
     base.join("KKTerm").join("installer").join("apps")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn requested_local_server_apps_are_managed() {
+        for tool_id in [
+            "n8n",
+            "flowise",
+            "open-webui",
+            "langflow",
+            "hermes-agent",
+            "excalidraw",
+        ] {
+            assert!(
+                is_managed_app(tool_id),
+                "{tool_id} should use app-local storage"
+            );
+        }
+    }
 }

@@ -10,6 +10,8 @@ pub fn latest_version(recipe: &Recipe) -> Option<String> {
     match &recipe.provider {
         Provider::Winget { id } => winget_latest(id),
         Provider::Npm { pkg } => npm_latest(pkg),
+        Provider::UvPip { package } => pypi_latest(package),
+        Provider::DownloadInstaller { .. } => None,
         Provider::GithubRelease { repo, .. } => github_latest(repo),
         Provider::WindowsFeature { .. } => None,
         Provider::WslDistro { .. } => None,
@@ -91,6 +93,26 @@ fn npm_registry_url(pkg: &str) -> String {
         "https://registry.npmjs.org/{}",
         encode_npm_package_name(pkg)
     )
+}
+
+fn pypi_latest(package: &str) -> Option<String> {
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("KKTerm-Installer/1")
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .ok()?;
+    let url = format!("https://pypi.org/pypi/{package}/json");
+    let json: serde_json::Value = client
+        .get(url)
+        .send()
+        .and_then(|r| r.error_for_status())
+        .and_then(|r| r.json())
+        .ok()?;
+    json.get("info")
+        .and_then(|info| info.get("version"))
+        .and_then(|v| v.as_str())
+        .filter(|v| !v.trim().is_empty())
+        .map(|s| s.to_string())
 }
 
 fn encode_npm_package_name(pkg: &str) -> String {

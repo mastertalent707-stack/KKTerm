@@ -895,6 +895,10 @@ function providerSummary(provider: Provider): string {
       return `winget · ${provider.id}`;
     case "npm":
       return `npm · ${provider.pkg}`;
+    case "uvPip":
+      return `uv pip · ${provider.package}`;
+    case "downloadInstaller":
+      return `download · ${provider.fileName}`;
     case "githubRelease":
       return `GitHub release · ${provider.repo}`;
     case "windowsFeature":
@@ -912,6 +916,10 @@ function deriveProviderUrl(provider: Provider): string | null {
       return `https://github.com/${provider.repo}/releases`;
     case "npm":
       return `https://www.npmjs.com/package/${encodeURIComponent(provider.pkg)}`;
+    case "uvPip":
+      return `https://pypi.org/project/${encodeURIComponent(provider.package)}/`;
+    case "downloadInstaller":
+      return provider.url;
     case "winget":
       return `https://winstall.app/apps/${encodeURIComponent(provider.id)}`;
     default:
@@ -925,6 +933,14 @@ function webUiAffordanceForRecipe(recipe: Recipe): { url: string } | null {
       return { url: "http://localhost:5678" };
     case "ollama":
       return { url: "http://localhost:11434" };
+    case "flowise":
+      return { url: "http://localhost:3000" };
+    case "open-webui":
+      return { url: "http://localhost:8080" };
+    case "langflow":
+      return { url: "http://localhost:7860" };
+    case "excalidraw":
+      return { url: "http://localhost:3021" };
     default:
       return null;
   }

@@ -490,6 +490,73 @@ fn web_ui_affordance(tool_id: &str) -> Option<WebUiAffordance> {
             )],
             url: "http://localhost:11434",
         }),
+        "flowise" => Some(WebUiAffordance {
+            program: npm_program().into(),
+            args: vec![
+                "exec".into(),
+                "--prefix".into(),
+                managed_app_install_dir("flowise")
+                    .to_string_lossy()
+                    .into_owned(),
+                "--".into(),
+                "flowise".into(),
+                "start".into(),
+            ],
+            env: vec![],
+            url: "http://localhost:3000",
+        }),
+        "open-webui" => Some(WebUiAffordance {
+            program: managed_uv_pip_script("open-webui", "open-webui"),
+            args: vec![
+                "serve".into(),
+                "--host".into(),
+                "127.0.0.1".into(),
+                "--port".into(),
+                "8080".into(),
+            ],
+            env: vec![(
+                "DATA_DIR",
+                managed_app_data_dir("open-webui")
+                    .to_string_lossy()
+                    .into_owned(),
+            )],
+            url: "http://localhost:8080",
+        }),
+        "langflow" => Some(WebUiAffordance {
+            program: managed_uv_pip_script("langflow", "langflow"),
+            args: vec![
+                "run".into(),
+                "--host".into(),
+                "127.0.0.1".into(),
+                "--port".into(),
+                "7860".into(),
+            ],
+            env: vec![(
+                "LANGFLOW_CONFIG_DIR",
+                managed_app_data_dir("langflow")
+                    .to_string_lossy()
+                    .into_owned(),
+            )],
+            url: "http://localhost:7860",
+        }),
+        "excalidraw" => Some(WebUiAffordance {
+            program: npm_program().into(),
+            args: vec![
+                "exec".into(),
+                "--prefix".into(),
+                managed_app_install_dir("excalidraw")
+                    .to_string_lossy()
+                    .into_owned(),
+                "--".into(),
+                "vite".into(),
+                "--host".into(),
+                "127.0.0.1".into(),
+                "--port".into(),
+                "3021".into(),
+            ],
+            env: vec![],
+            url: "http://localhost:3021",
+        }),
         _ => None,
     }
 }
@@ -746,6 +813,16 @@ fn managed_ollama_program() -> String {
     "ollama".into()
 }
 
+fn managed_uv_pip_script(tool_id: &str, script: &str) -> String {
+    let venv = managed_app_install_dir(tool_id).join(".venv");
+    let local_exe = if cfg!(target_os = "windows") {
+        venv.join("Scripts").join(format!("{script}.exe"))
+    } else {
+        venv.join("bin").join(script)
+    };
+    local_exe.to_string_lossy().into_owned()
+}
+
 fn unix_now_secs() -> i64 {
     SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -856,6 +933,27 @@ mod tests {
         assert!(affordance.env.iter().any(|(key, value)| {
             *key == "N8N_USER_FOLDER" && value.ends_with(r"installer\apps\n8n\data")
         }));
+    }
+
+    #[test]
+    fn requested_managed_web_apps_expose_local_web_ui_affordances() {
+        let cases = [
+            ("flowise", "http://localhost:3000", "flowise"),
+            ("open-webui", "http://localhost:8080", "open-webui"),
+            ("langflow", "http://localhost:7860", "langflow"),
+            ("excalidraw", "http://localhost:3021", "vite"),
+        ];
+
+        for (tool_id, url, command_name) in cases {
+            let affordance =
+                web_ui_affordance(tool_id).unwrap_or_else(|| panic!("{tool_id} should run"));
+            assert_eq!(affordance.url, url);
+            assert!(
+                affordance.program.contains(command_name)
+                    || affordance.args.iter().any(|arg| arg == command_name),
+                "{tool_id} should run {command_name}"
+            );
+        }
     }
 
     #[test]

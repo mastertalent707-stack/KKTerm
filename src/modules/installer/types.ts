@@ -4,6 +4,8 @@
 export type ProviderKind =
   | "winget"
   | "npm"
+  | "uvPip"
+  | "downloadInstaller"
   | "githubRelease"
   | "windowsFeature"
   | "wslDistro"
@@ -22,6 +24,8 @@ export interface Detection {
 export type Provider =
   | { kind: "winget"; id: string }
   | { kind: "npm"; pkg: string }
+  | { kind: "uvPip"; package: string }
+  | { kind: "downloadInstaller"; url: string; fileName: string }
   | {
       kind: "githubRelease";
       repo: string;

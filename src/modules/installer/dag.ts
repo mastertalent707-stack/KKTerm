@@ -145,6 +145,10 @@ function estimateUacPromptsFor(
       return recipe.provider.layout === "zip" ? 0 : 1;
     case "npm":
       return 0;
+    case "uvPip":
+      return 0;
+    case "downloadInstaller":
+      return 1;
     case "bundle":
       // The plan walker doesn't recurse into bundle.steps because step
       // recipes are independent catalog entries already in the plan via

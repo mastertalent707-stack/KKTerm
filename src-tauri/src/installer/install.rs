@@ -40,9 +40,19 @@ pub fn install_recipe(
     cancel: Arc<AtomicBool>,
     emit: &EventSink,
 ) -> Result<Option<String>, String> {
-    if recipe.id == "n8n" {
+    if recipe.id == "n8n" || recipe.id == "flowise" {
         if let Provider::Npm { pkg } = &recipe.provider {
-            return install_managed_n8n(&recipe.id, pkg, options, cancel, emit);
+            return install_managed_npm_app(&recipe.id, pkg, options, cancel, emit);
+        }
+    }
+    if recipe.id == "excalidraw" {
+        if let Provider::Npm { pkg } = &recipe.provider {
+            return install_managed_excalidraw(&recipe.id, pkg, options, cancel, emit);
+        }
+    }
+    if recipe.id == "open-webui" || recipe.id == "langflow" || recipe.id == "hermes-agent" {
+        if let Provider::UvPip { package } = &recipe.provider {
+            return install_managed_uv_pip_app(&recipe.id, package, options, cancel, emit);
         }
     }
     if recipe.id == "ollama" {
@@ -54,6 +64,10 @@ pub fn install_recipe(
     match &recipe.provider {
         Provider::Winget { id } => install_winget(&recipe.id, id, &options, cancel, emit),
         Provider::Npm { pkg } => install_npm(&recipe.id, pkg, &options, cancel, emit),
+        Provider::UvPip { package } => install_uv_pip(&recipe.id, package, &options, cancel, emit),
+        Provider::DownloadInstaller { url, file_name } => {
+            install_download_installer(&recipe.id, url, file_name, cancel, emit)
+        }
         Provider::GithubRelease {
             repo,
             asset_pattern,
@@ -78,7 +92,7 @@ pub fn install_recipe(
     }
 }
 
-fn install_managed_n8n(
+fn install_managed_npm_app(
     tool_id: &str,
     pkg: &str,
     options: &InstallOptions,
@@ -97,12 +111,44 @@ fn install_managed_n8n(
         )
         .map_err(|e| e.to_string())?;
     }
-    let args = managed_npm_install_args(pkg, options);
+    let args = managed_npm_install_args(tool_id, &[managed_npm_spec(pkg, options)]);
     emit(ProgressEvent::Step {
         tool_id: tool_id.into(),
         message: format!("npm install --prefix {}", install_dir.display()),
     });
     run_streamed_with_refreshed_path_public(npm_program(), &args, tool_id, cancel, emit)?;
+    let version = detect_managed_npm_version(pkg, &install_dir);
+    write_managed_app_marker(tool_id, version.clone())?;
+    Ok(version)
+}
+
+fn install_managed_excalidraw(
+    tool_id: &str,
+    pkg: &str,
+    options: &InstallOptions,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<Option<String>, String> {
+    let install_dir = managed_app_install_dir(tool_id);
+    std::fs::create_dir_all(install_dir.join("src")).map_err(|e| e.to_string())?;
+    write_excalidraw_host_files(&install_dir)?;
+    let specs = vec![
+        "react@latest".to_string(),
+        "react-dom@latest".to_string(),
+        managed_npm_spec(pkg, options),
+        "vite@latest".to_string(),
+    ];
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("npm install --prefix {}", install_dir.display()),
+    });
+    run_streamed_with_refreshed_path_public(
+        npm_program(),
+        &managed_npm_install_args(tool_id, &specs),
+        tool_id,
+        cancel,
+        emit,
+    )?;
     let version = detect_managed_npm_version(pkg, &install_dir);
     write_managed_app_marker(tool_id, version.clone())?;
     Ok(version)
@@ -129,20 +175,229 @@ fn install_managed_ollama(
     Ok(version)
 }
 
-fn managed_npm_install_args(pkg: &str, options: &InstallOptions) -> Vec<String> {
-    let spec = if let Some(v) = options.version.as_deref().filter(|s| !s.is_empty()) {
+fn managed_npm_spec(pkg: &str, options: &InstallOptions) -> String {
+    if let Some(v) = options.version.as_deref().filter(|s| !s.is_empty()) {
         format!("{pkg}@{v}")
     } else {
         format!("{pkg}@latest")
-    };
-    vec![
+    }
+}
+
+fn managed_npm_install_args(tool_id: &str, specs: &[String]) -> Vec<String> {
+    let mut args = vec![
         "install".into(),
         "--prefix".into(),
-        managed_app_install_dir("n8n")
+        managed_app_install_dir(tool_id)
             .to_string_lossy()
             .into_owned(),
-        spec,
-    ]
+    ];
+    args.extend(specs.iter().cloned());
+    args
+}
+
+fn write_excalidraw_host_files(install_dir: &PathBuf) -> Result<(), String> {
+    let package_json = install_dir.join("package.json");
+    if !package_json.exists() {
+        std::fs::write(
+            &package_json,
+            "{\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"start\": \"vite --host 127.0.0.1 --port 3021\"\n  },\n  \"dependencies\": {}\n}\n",
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    std::fs::write(
+        install_dir.join("index.html"),
+        "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>Excalidraw</title>\n  </head>\n  <body>\n    <div id=\"root\"></div>\n    <script type=\"module\" src=\"/src/main.jsx\"></script>\n  </body>\n</html>\n",
+    )
+    .map_err(|e| e.to_string())?;
+    std::fs::write(
+        install_dir.join("src").join("main.jsx"),
+        "import React from 'react';\nimport { createRoot } from 'react-dom/client';\nimport { Excalidraw } from '@excalidraw/excalidraw';\nimport '@excalidraw/excalidraw/index.css';\n\ncreateRoot(document.getElementById('root')).render(\n  <React.StrictMode>\n    <div style={{ height: '100vh', width: '100vw' }}>\n      <Excalidraw />\n    </div>\n  </React.StrictMode>,\n);\n",
+    )
+    .map_err(|e| e.to_string())
+}
+
+fn managed_uv_pip_python(tool_id: &str) -> PathBuf {
+    let venv = managed_app_install_dir(tool_id).join(".venv");
+    if cfg!(target_os = "windows") {
+        venv.join("Scripts").join("python.exe")
+    } else {
+        venv.join("bin").join("python")
+    }
+}
+
+fn install_managed_uv_pip_app(
+    tool_id: &str,
+    package: &str,
+    options: &InstallOptions,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<Option<String>, String> {
+    std::fs::create_dir_all(managed_app_install_dir(tool_id)).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(managed_app_data_dir(tool_id)).map_err(|e| e.to_string())?;
+    let venv_dir = managed_app_install_dir(tool_id).join(".venv");
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("uv venv {}", venv_dir.display()),
+    });
+    run_streamed_with_refreshed_path_public(
+        "uv",
+        &["venv".into(), venv_dir.to_string_lossy().into_owned()],
+        tool_id,
+        cancel.clone(),
+        emit,
+    )?;
+    let version = install_uv_pip_into_python(
+        tool_id,
+        package,
+        &managed_uv_pip_python(tool_id).to_string_lossy(),
+        options,
+        cancel,
+        emit,
+    )?;
+    write_managed_app_marker(tool_id, version.clone())?;
+    Ok(version)
+}
+
+fn install_uv_pip(
+    tool_id: &str,
+    package: &str,
+    options: &InstallOptions,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<Option<String>, String> {
+    install_uv_pip_into_python(tool_id, package, "python", options, cancel, emit)
+}
+
+fn install_uv_pip_into_python(
+    tool_id: &str,
+    package: &str,
+    python: &str,
+    options: &InstallOptions,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<Option<String>, String> {
+    let spec = if let Some(v) = options.version.as_deref().filter(|s| !s.is_empty()) {
+        format!("{package}=={v}")
+    } else {
+        package.to_string()
+    };
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("uv pip install {spec}"),
+    });
+    run_streamed_with_refreshed_path_public(
+        "uv",
+        &[
+            "pip".into(),
+            "install".into(),
+            "--python".into(),
+            python.into(),
+            spec,
+        ],
+        tool_id,
+        cancel,
+        emit,
+    )?;
+    Ok(detect_uv_pip_version(package, python))
+}
+
+fn install_download_installer(
+    tool_id: &str,
+    url: &str,
+    file_name: &str,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<Option<String>, String> {
+    let download_dir = std::env::temp_dir().join("kkterm-installer-downloads");
+    std::fs::create_dir_all(&download_dir).map_err(|e| e.to_string())?;
+    let download_path = download_dir.join(sanitize_download_file_name(file_name));
+
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("Downloading {url}"),
+    });
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("KKTerm-Installer/1")
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .map_err(|e| e.to_string())?;
+    download_with_progress(&client, url, &download_path, tool_id, &cancel, emit)?;
+    if cancel.load(Ordering::Relaxed) {
+        return Err("cancelled".into());
+    }
+
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("Launching {}", download_path.display()),
+    });
+    run_downloaded_installer(&download_path, tool_id, cancel, emit)?;
+    Ok(None)
+}
+
+fn sanitize_download_file_name(file_name: &str) -> String {
+    let sanitized: String = file_name
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '_') {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    if sanitized.is_empty() {
+        "installer.exe".into()
+    } else {
+        sanitized
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn run_downloaded_installer(
+    download_path: &PathBuf,
+    tool_id: &str,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<(), String> {
+    let script = format!(
+        "$p = Start-Process -FilePath {} -Wait -PassThru; exit $p.ExitCode",
+        powershell_single_quote(&download_path.to_string_lossy())
+    );
+    run_streamed_public(
+        "powershell",
+        &[
+            "-NoProfile".into(),
+            "-ExecutionPolicy".into(),
+            "Bypass".into(),
+            "-Command".into(),
+            script,
+        ],
+        tool_id,
+        cancel,
+        emit,
+    )
+}
+
+#[cfg(not(target_os = "windows"))]
+fn run_downloaded_installer(
+    download_path: &PathBuf,
+    tool_id: &str,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<(), String> {
+    run_streamed_public(
+        download_path
+            .to_str()
+            .ok_or("invalid downloaded installer path")?,
+        &[],
+        tool_id,
+        cancel,
+        emit,
+    )
+}
+
+fn powershell_single_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
 }
 
 #[cfg(test)]
@@ -211,6 +466,22 @@ fn detect_managed_npm_version(pkg: &str, install_dir: &PathBuf) -> Option<String
         .and_then(|entry| entry.get("version"))
         .and_then(|version| version.as_str())
         .map(|value| value.to_string())
+}
+
+fn detect_uv_pip_version(package: &str, python: &str) -> Option<String> {
+    let output = no_window(Command::new("uv").args(["pip", "show", "--python", python, package]))
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for line in stdout.lines() {
+        if let Some(version) = line.trim().strip_prefix("Version:") {
+            return Some(version.trim().to_string());
+        }
+    }
+    None
 }
 
 fn detect_program_version(program: &str, args: &[&str]) -> Option<String> {
@@ -302,7 +573,10 @@ fn winget_links_dir() -> Option<PathBuf> {
 }
 
 fn winget_links_dir_from_local_app_data(local_app_data: PathBuf) -> PathBuf {
-    local_app_data.join("Microsoft").join("WinGet").join("Links")
+    local_app_data
+        .join("Microsoft")
+        .join("WinGet")
+        .join("Links")
 }
 
 // ---- npm ---------------------------------------------------------------
@@ -1175,7 +1449,8 @@ mod tests {
 
     #[test]
     fn winget_links_dir_uses_local_app_data() {
-        let dir = winget_links_dir_from_local_app_data(PathBuf::from(r"C:\Users\Ryan\AppData\Local"));
+        let dir =
+            winget_links_dir_from_local_app_data(PathBuf::from(r"C:\Users\Ryan\AppData\Local"));
 
         assert_eq!(
             dir,
@@ -1185,13 +1460,14 @@ mod tests {
 
     #[test]
     fn n8n_managed_install_uses_project_prefix_without_global_flag() {
-        let args = managed_npm_install_args(
+        let spec = managed_npm_spec(
             "n8n",
             &InstallOptions {
                 version: Some("1.2.3".into()),
                 ..InstallOptions::default()
             },
         );
+        let args = managed_npm_install_args("n8n", &[spec]);
 
         assert_eq!(args[0], "install");
         assert!(args.contains(&"--prefix".to_string()));
