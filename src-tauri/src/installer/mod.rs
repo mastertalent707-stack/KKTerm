@@ -11,6 +11,7 @@ pub mod detect;
 pub mod events;
 pub mod install;
 pub mod latest_version;
+pub mod managed_app;
 pub mod options;
 pub mod proc;
 pub mod schema;

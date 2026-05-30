@@ -9,6 +9,7 @@ use std::sync::Arc;
 use super::detect::github_release_install_dir;
 use super::events::ProgressEvent;
 use super::install::EventSink;
+use super::managed_app::managed_app_install_dir;
 use super::proc::npm_program;
 use super::schema::{Provider, Recipe};
 
@@ -17,6 +18,15 @@ pub fn uninstall_recipe(
     cancel: Arc<AtomicBool>,
     emit: &EventSink,
 ) -> Result<(), String> {
+    if recipe.id == "n8n" {
+        return uninstall_managed_app(&recipe.id, emit);
+    }
+    if recipe.id == "ollama" {
+        if let Provider::Winget { id } = &recipe.provider {
+            uninstall_winget(&recipe.id, id, cancel, emit)?;
+            return uninstall_managed_app(&recipe.id, emit);
+        }
+    }
     match &recipe.provider {
         Provider::Winget { id } => uninstall_winget(&recipe.id, id, cancel, emit),
         Provider::Npm { pkg } => uninstall_npm(&recipe.id, pkg, cancel, emit),
@@ -24,11 +34,24 @@ pub fn uninstall_recipe(
         Provider::WindowsFeature { feature, .. } => {
             uninstall_windows_feature(&recipe.id, feature, cancel, emit)
         }
+        Provider::WslDistro { distro } => uninstall_wsl_distro(&recipe.id, distro, cancel, emit),
         Provider::Bundle { .. } => Err(
             "bundles must be expanded into step recipes before uninstall_recipe; see commands.rs"
                 .into(),
         ),
     }
+}
+
+fn uninstall_managed_app(tool_id: &str, emit: &EventSink) -> Result<(), String> {
+    let dir = managed_app_install_dir(tool_id);
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("Removing {}", dir.display()),
+    });
+    if dir.exists() {
+        std::fs::remove_dir_all(&dir).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 fn uninstall_winget(
@@ -108,6 +131,25 @@ fn uninstall_windows_feature(
             "/norestart".into(),
             "/english".into(),
         ],
+        tool_id,
+        cancel,
+        emit,
+    )
+}
+
+fn uninstall_wsl_distro(
+    tool_id: &str,
+    distro: &str,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<(), String> {
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("wsl --unregister {distro}"),
+    });
+    super::install::run_streamed_public(
+        "wsl",
+        &["--unregister".into(), distro.into()],
         tool_id,
         cancel,
         emit,

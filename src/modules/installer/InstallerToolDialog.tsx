@@ -20,6 +20,7 @@ import {
 import { useWorkspaceStore } from "../../store";
 import {
   findInstalledDependents,
+  isWslFeature,
   recipeNeedsWsl,
   resolveInstallPlan,
 } from "./dag";
@@ -114,6 +115,7 @@ function InstalledInfoBody({ recipe }: { recipe: Recipe }) {
   const latest = toolState?.latestVersionSeen ?? null;
   const hasUpdate = latest && version && latest !== version;
   const webUi = webUiAffordanceForRecipe(recipe);
+  const service = serviceAffordanceForRecipe(recipe);
 
   async function handleTogglePin() {
     if (!isTauriRuntime()) return;
@@ -179,6 +181,28 @@ function InstalledInfoBody({ recipe }: { recipe: Recipe }) {
     });
   }
 
+  async function handleInstallService() {
+    if (!service || !isTauriRuntime()) return;
+    try {
+      await invokeCommand("installer_install_service", { toolId: recipe.id });
+      showStatusBarNotice(t("installer.status.serviceInstalled"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      showStatusBarNotice(message, { tone: "error" });
+    }
+  }
+
+  async function handleRemoveService() {
+    if (!service || !isTauriRuntime()) return;
+    try {
+      await invokeCommand("installer_remove_service", { toolId: recipe.id });
+      showStatusBarNotice(t("installer.status.serviceRemoved"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      showStatusBarNotice(message, { tone: "error" });
+    }
+  }
+
   return (
     <>
       <header className="installer-tool-dialog__header">
@@ -240,6 +264,11 @@ function InstalledInfoBody({ recipe }: { recipe: Recipe }) {
               <ExternalLink href={webUi.url} />
             </Row>
           ) : null}
+          {service ? (
+            <Row label={t("installer.dialog.windowsService")}>
+              <code>{service.name}</code>
+            </Row>
+          ) : null}
         </dl>
         <label className="installer-tool-dialog__pin">
           <input
@@ -273,6 +302,24 @@ function InstalledInfoBody({ recipe }: { recipe: Recipe }) {
               onClick={handleOpenWebUi}
             >
               {t("installer.actions.openWebUi")}
+            </button>
+          </>
+        ) : null}
+        {service ? (
+          <>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void handleInstallService()}
+            >
+              {t("installer.actions.installService")}
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void handleRemoveService()}
+            >
+              {t("installer.actions.removeService")}
             </button>
           </>
         ) : null}
@@ -393,6 +440,9 @@ function NotInstalledInfoBody({ recipe }: { recipe: Recipe }) {
           queuedRecipe.id === recipe.id ? options : {},
         );
         if (terminalEvent.kind !== "completed") {
+          break;
+        }
+        if (isWslFeature(queuedRecipe) && queuedRecipe.id !== recipe.id) {
           break;
         }
       } catch {
@@ -849,6 +899,8 @@ function providerSummary(provider: Provider): string {
       return `GitHub release · ${provider.repo}`;
     case "windowsFeature":
       return `Windows feature · ${provider.feature}`;
+    case "wslDistro":
+      return `WSL distro · ${provider.distro}`;
     case "bundle":
       return `bundle · ${provider.steps.length} step(s)`;
   }
@@ -871,6 +923,19 @@ function webUiAffordanceForRecipe(recipe: Recipe): { url: string } | null {
   switch (recipe.id) {
     case "n8n":
       return { url: "http://localhost:5678" };
+    case "ollama":
+      return { url: "http://localhost:11434" };
+    default:
+      return null;
+  }
+}
+
+function serviceAffordanceForRecipe(recipe: Recipe): { name: string } | null {
+  switch (recipe.id) {
+    case "n8n":
+      return { name: "KKTerm-n8n" };
+    case "ollama":
+      return { name: "KKTerm-Ollama" };
     default:
       return null;
   }

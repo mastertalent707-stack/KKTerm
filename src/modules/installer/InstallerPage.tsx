@@ -201,6 +201,7 @@ export function InstallerPage({ active }: { active: boolean }) {
     // a small inline scan.
     const uacEstimate = updateAllRecipes.reduce((sum, r) => {
       if (r.provider.kind === "windowsFeature") return sum + 1;
+      if (r.provider.kind === "wslDistro") return sum;
       if (r.provider.kind === "winget") {
         const id = r.provider.id.toLowerCase();
         return id.includes("docker.dockerdesktop") ? sum + 1 : sum;

@@ -117,6 +117,24 @@
       }
     },
     {
+      "id": "wsl-ubuntu",
+      "name": "Ubuntu (WSL)",
+      "descriptionEn": "Installs the Ubuntu Linux distribution into WSL without launching first-run setup.",
+      "category": "infra",
+      "icon": "Terminal",
+      "needs": ["wsl"],
+      "provider": { "kind": "wslDistro", "distro": "Ubuntu" }
+    },
+    {
+      "id": "wsl-debian",
+      "name": "Debian (WSL)",
+      "descriptionEn": "Installs the Debian Linux distribution into WSL without launching first-run setup.",
+      "category": "infra",
+      "icon": "Terminal",
+      "needs": ["wsl"],
+      "provider": { "kind": "wslDistro", "distro": "Debian" }
+    },
+    {
       "id": "docker-desktop",
       "name": "Docker Desktop",
       "descriptionEn": "Docker Desktop for Windows. Uses the WSL2 backend.",
@@ -133,7 +151,7 @@
       "id": "nssm",
       "name": "NSSM",
       "descriptionEn": "The Non-Sucking Service Manager — wrap any program as a Windows service.",
-      "category": "infra",
+      "category": "tools",
       "icon": "Wrench",
       "detection": {
         "displayNames": ["NSSM"],
@@ -175,22 +193,23 @@
     {
       "id": "ollama",
       "name": "Ollama",
-      "descriptionEn": "Run local large language models on your machine.",
+      "descriptionEn": "Run local large language models on your machine. Managed under KKTerm app-local storage.",
       "category": "ai",
       "icon": "Cpu",
+      "needs": ["nssm"],
       "detection": {
         "displayNames": ["Ollama"]
       },
       "provider": { "kind": "winget", "id": "Ollama.Ollama" },
-      "options": ["scope", "version"]
+      "options": ["version"]
     },
     {
       "id": "n8n",
       "name": "n8n",
-      "descriptionEn": "Workflow automation tool — self-hosted Zapier alternative. Installed as a global npm package.",
+      "descriptionEn": "Workflow automation tool — self-hosted Zapier alternative. Managed as a KKTerm app-local npm project.",
       "category": "automation",
       "icon": "Workflow",
-      "needs": ["node-bundle"],
+      "needs": ["node-bundle", "nssm"],
       "provider": { "kind": "npm", "pkg": "n8n" },
       "options": ["version"]
     },

@@ -9,7 +9,7 @@
 // The flow is intentionally not transactional — partial installs are owned
 // by the underlying installer (ADR 0007 §"Execution constraints").
 
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -22,10 +22,12 @@ use std::time::{Instant, SystemTime};
 /// genuinely quiet for 30–90s during MSIX staging.
 const HEARTBEAT_INTERVAL_SECS: u64 = 10;
 
-use super::detect::{
-    github_release_install_dir, github_release_marker_path, GithubReleaseMarker,
-};
+use super::detect::{github_release_install_dir, github_release_marker_path, GithubReleaseMarker};
 use super::events::ProgressEvent;
+use super::managed_app::{
+    managed_app_binary_dir, managed_app_data_dir, managed_app_install_dir, managed_app_marker_path,
+    ManagedAppMarker,
+};
 use super::options::InstallOptions;
 use super::proc::{no_window, npm_program};
 use super::schema::{GithubReleaseLayout, Provider, Recipe, RecipeOption};
@@ -38,6 +40,16 @@ pub fn install_recipe(
     cancel: Arc<AtomicBool>,
     emit: &EventSink,
 ) -> Result<Option<String>, String> {
+    if recipe.id == "n8n" {
+        if let Provider::Npm { pkg } = &recipe.provider {
+            return install_managed_n8n(&recipe.id, pkg, options, cancel, emit);
+        }
+    }
+    if recipe.id == "ollama" {
+        if let Provider::Winget { id } = &recipe.provider {
+            return install_managed_ollama(&recipe.id, id, options, cancel, emit);
+        }
+    }
     let options = effective_install_options(recipe, options);
     match &recipe.provider {
         Provider::Winget { id } => install_winget(&recipe.id, id, &options, cancel, emit),
@@ -58,11 +70,159 @@ pub fn install_recipe(
         Provider::WindowsFeature { feature, .. } => {
             install_windows_feature(&recipe.id, feature, cancel, emit)
         }
+        Provider::WslDistro { distro } => install_wsl_distro(&recipe.id, distro, cancel, emit),
         Provider::Bundle { .. } => Err(
             "bundles must be expanded into step recipes before install_recipe; see commands.rs"
                 .into(),
         ),
     }
+}
+
+fn install_managed_n8n(
+    tool_id: &str,
+    pkg: &str,
+    options: &InstallOptions,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<Option<String>, String> {
+    let install_dir = managed_app_install_dir(tool_id);
+    let data_dir = managed_app_data_dir(tool_id);
+    std::fs::create_dir_all(&install_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
+    let package_json = install_dir.join("package.json");
+    if !package_json.exists() {
+        std::fs::write(
+            &package_json,
+            "{\n  \"private\": true,\n  \"dependencies\": {}\n}\n",
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    let args = managed_npm_install_args(pkg, options);
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("npm install --prefix {}", install_dir.display()),
+    });
+    run_streamed_with_refreshed_path_public(npm_program(), &args, tool_id, cancel, emit)?;
+    let version = detect_managed_npm_version(pkg, &install_dir);
+    write_managed_app_marker(tool_id, version.clone())?;
+    Ok(version)
+}
+
+fn install_managed_ollama(
+    tool_id: &str,
+    winget_id: &str,
+    options: &InstallOptions,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<Option<String>, String> {
+    std::fs::create_dir_all(managed_app_binary_dir(tool_id)).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(managed_app_data_dir(tool_id).join("models"))
+        .map_err(|e| e.to_string())?;
+    let args = managed_ollama_winget_args_for(winget_id, options);
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("winget install --id {winget_id} --location"),
+    });
+    run_streamed("winget", &args, tool_id, cancel, emit)?;
+    let version = detect_program_version("ollama", &["--version"]);
+    write_managed_app_marker(tool_id, version.clone())?;
+    Ok(version)
+}
+
+fn managed_npm_install_args(pkg: &str, options: &InstallOptions) -> Vec<String> {
+    let spec = if let Some(v) = options.version.as_deref().filter(|s| !s.is_empty()) {
+        format!("{pkg}@{v}")
+    } else {
+        format!("{pkg}@latest")
+    };
+    vec![
+        "install".into(),
+        "--prefix".into(),
+        managed_app_install_dir("n8n")
+            .to_string_lossy()
+            .into_owned(),
+        spec,
+    ]
+}
+
+#[cfg(test)]
+fn managed_ollama_winget_args(options: &InstallOptions) -> Vec<String> {
+    managed_ollama_winget_args_for("Ollama.Ollama", options)
+}
+
+fn managed_ollama_winget_args_for(winget_id: &str, options: &InstallOptions) -> Vec<String> {
+    let mut args: Vec<String> = vec![
+        "install".into(),
+        "--id".into(),
+        winget_id.into(),
+        "--exact".into(),
+        "--silent".into(),
+        "--accept-package-agreements".into(),
+        "--accept-source-agreements".into(),
+        "--disable-interactivity".into(),
+        "--source".into(),
+        "winget".into(),
+        "--scope".into(),
+        "user".into(),
+        "--location".into(),
+        managed_app_binary_dir("ollama")
+            .to_string_lossy()
+            .into_owned(),
+    ];
+    if let Some(version) = options.version.as_deref() {
+        if !version.is_empty() {
+            args.push("--version".into());
+            args.push(version.into());
+        }
+    }
+    args
+}
+
+fn write_managed_app_marker(tool_id: &str, version: Option<String>) -> Result<(), String> {
+    let marker = ManagedAppMarker {
+        tool_id: tool_id.into(),
+        version,
+        installed_at: SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0),
+    };
+    if let Some(parent) = managed_app_marker_path(tool_id).parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let json = serde_json::to_vec_pretty(&marker).map_err(|e| e.to_string())?;
+    std::fs::write(managed_app_marker_path(tool_id), json).map_err(|e| e.to_string())
+}
+
+fn detect_managed_npm_version(pkg: &str, install_dir: &PathBuf) -> Option<String> {
+    let output = no_window(Command::new(npm_program()).args([
+        "ls",
+        "--prefix",
+        install_dir.to_string_lossy().as_ref(),
+        "--json",
+        "--depth=0",
+    ]))
+    .output()
+    .ok()?;
+    let parsed: serde_json::Value = serde_json::from_slice(&output.stdout).ok()?;
+    parsed
+        .get("dependencies")
+        .and_then(|deps| deps.get(pkg))
+        .and_then(|entry| entry.get("version"))
+        .and_then(|version| version.as_str())
+        .map(|value| value.to_string())
+}
+
+fn detect_program_version(program: &str, args: &[&str]) -> Option<String> {
+    let output = no_window(Command::new(program).args(args)).output().ok()?;
+    let text = String::from_utf8_lossy(&output.stdout);
+    parse_first_semver(&text)
+}
+
+fn parse_first_semver(text: &str) -> Option<String> {
+    text.split(|c: char| !(c.is_ascii_alphanumeric() || c == '.' || c == '-'))
+        .find(|part| part.chars().next().is_some_and(|c| c.is_ascii_digit()))
+        .map(|part| part.to_string())
 }
 
 fn effective_install_options(recipe: &Recipe, options: &InstallOptions) -> InstallOptions {
@@ -120,10 +280,29 @@ fn install_winget(
         }
     }
     run_streamed("winget", &args, tool_id, cancel, emit)?;
+    if winget_tool_should_add_links_to_path(tool_id) {
+        if let Some(dir) = winget_links_dir() {
+            add_to_user_path(&dir, tool_id, emit);
+        }
+    }
     // We don't try to parse winget's silent stdout for the installed version;
     // a subsequent detect_one() reads the local installed-software inventory.
     // Returning None lets the caller decide whether to re-detect.
     Ok(None)
+}
+
+fn winget_tool_should_add_links_to_path(tool_id: &str) -> bool {
+    matches!(tool_id, "nssm" | "ripgrep" | "jq" | "fzf")
+}
+
+fn winget_links_dir() -> Option<PathBuf> {
+    std::env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .map(winget_links_dir_from_local_app_data)
+}
+
+fn winget_links_dir_from_local_app_data(local_app_data: PathBuf) -> PathBuf {
+    local_app_data.join("Microsoft").join("WinGet").join("Links")
 }
 
 // ---- npm ---------------------------------------------------------------
@@ -199,9 +378,7 @@ fn install_github_release(
                     .unwrap_or(false)
             })
         })
-        .ok_or_else(|| {
-            format!("no release asset matched pattern `{asset_pattern}` in {repo}")
-        })?;
+        .ok_or_else(|| format!("no release asset matched pattern `{asset_pattern}` in {repo}"))?;
 
     let asset_name = asset
         .get("name")
@@ -375,10 +552,12 @@ fn add_to_user_path(dir: &PathBuf, tool_id: &str, emit: &EventSink) {
         r#"$cur = [Environment]::GetEnvironmentVariable('Path','User'); if ($cur -notlike '*{0}*') {{ [Environment]::SetEnvironmentVariable('Path', ($cur + ';{0}').Trim(';'), 'User') }}"#,
         dir_str.replace('\'', "''")
     );
-    let result = no_window(
-        Command::new("powershell")
-            .args(["-NoProfile", "-NonInteractive", "-Command", &script]),
-    )
+    let result = no_window(Command::new("powershell").args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        &script,
+    ]))
     .output();
     match result {
         Ok(o) if o.status.success() => emit(ProgressEvent::Stdout {
@@ -444,6 +623,16 @@ fn install_windows_feature(
     cancel: Arc<AtomicBool>,
     emit: &EventSink,
 ) -> Result<Option<String>, String> {
+    if is_wsl_feature(feature) {
+        let args = wsl_base_install_args();
+        emit(ProgressEvent::Step {
+            tool_id: tool_id.into(),
+            message: format!("wsl {}", args.join(" ")),
+        });
+        run_streamed("wsl", &args, tool_id, cancel, emit)?;
+        return Ok(None);
+    }
+
     emit(ProgressEvent::Step {
         tool_id: tool_id.into(),
         message: format!("dism /online /enable-feature /featurename:{feature}"),
@@ -462,6 +651,38 @@ fn install_windows_feature(
         emit,
     )?;
     Ok(None)
+}
+
+fn install_wsl_distro(
+    tool_id: &str,
+    distro: &str,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<Option<String>, String> {
+    let args = wsl_distro_install_args(distro);
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("wsl {}", args.join(" ")),
+    });
+    run_streamed("wsl", &args, tool_id, cancel, emit)?;
+    Ok(None)
+}
+
+fn wsl_base_install_args() -> Vec<String> {
+    vec!["--install".into(), "--no-distribution".into()]
+}
+
+fn wsl_distro_install_args(distro: &str) -> Vec<String> {
+    vec![
+        "--install".into(),
+        "--distribution".into(),
+        distro.into(),
+        "--no-launch".into(),
+    ]
+}
+
+fn is_wsl_feature(feature: &str) -> bool {
+    feature.eq_ignore_ascii_case("Microsoft-Windows-Subsystem-Linux")
 }
 
 // ---- streaming child-process runner ------------------------------------
@@ -488,6 +709,10 @@ pub fn run_streamed_with_refreshed_path_public(
     emit: &EventSink,
 ) -> Result<(), String> {
     run_streamed_with_path(program, args, tool_id, cancel, emit, refreshed_path())
+}
+
+pub fn refreshed_path_public() -> Option<String> {
+    refreshed_path()
 }
 
 fn run_streamed(
@@ -536,7 +761,8 @@ fn run_streamed_with_path(
 
     let started_at = Instant::now();
     let mut last_output_at = Instant::now();
-    let mut next_heartbeat_at = started_at + std::time::Duration::from_secs(HEARTBEAT_INTERVAL_SECS);
+    let mut next_heartbeat_at =
+        started_at + std::time::Duration::from_secs(HEARTBEAT_INTERVAL_SECS);
 
     loop {
         let mut got_line = false;
@@ -588,9 +814,7 @@ fn run_streamed_with_path(
                     emit(ProgressEvent::Stdout {
                         tool_id: tool_id.into(),
                         step_id: None,
-                        line: format!(
-                            "[installer] `{program}` exited 0 after {elapsed}s"
-                        ),
+                        line: format!("[installer] `{program}` exited 0 after {elapsed}s"),
                     });
                     return Ok(());
                 }
@@ -598,9 +822,7 @@ fn run_streamed_with_path(
                 emit(ProgressEvent::Stderr {
                     tool_id: tool_id.into(),
                     step_id: None,
-                    line: format!(
-                        "[installer] `{program}` exited {code} after {elapsed}s"
-                    ),
+                    line: format!("[installer] `{program}` exited {code} after {elapsed}s"),
                 });
                 return Err(format!("`{program}` exited with status {code}"));
             }
@@ -652,7 +874,10 @@ fn merge_path_values(current: Option<&str>, persisted: Option<&str>) -> String {
             if trimmed.is_empty() {
                 continue;
             }
-            if !parts.iter().any(|existing| existing.eq_ignore_ascii_case(trimmed)) {
+            if !parts
+                .iter()
+                .any(|existing| existing.eq_ignore_ascii_case(trimmed))
+            {
                 parts.push(trimmed.to_string());
             }
         }
@@ -663,6 +888,7 @@ fn merge_path_values(current: Option<&str>, persisted: Option<&str>) -> String {
 struct StreamLine {
     is_stdout: bool,
     line: String,
+    is_transient: bool,
 }
 
 fn forward_stream<R: Read + Send + 'static>(
@@ -673,27 +899,66 @@ fn forward_stream<R: Read + Send + 'static>(
     let Some(stream) = stream else { return None };
     Some(std::thread::spawn(move || {
         let mut reader = BufReader::new(stream);
-        let mut line = String::new();
-        while let Ok(n) = reader.read_line(&mut line) {
-            if n == 0 {
-                break;
+        let mut buf = Vec::new();
+        let mut byte = [0_u8; 1];
+        loop {
+            match reader.read(&mut byte) {
+                Ok(0) => {
+                    let _ = send_stream_chunk(&tx, is_stdout, &mut buf, false);
+                    break;
+                }
+                Ok(_) => match byte[0] {
+                    b'\r' => {
+                        if !send_stream_chunk(&tx, is_stdout, &mut buf, true) {
+                            break;
+                        }
+                    }
+                    b'\n' => {
+                        if !send_stream_chunk(&tx, is_stdout, &mut buf, false) {
+                            break;
+                        }
+                    }
+                    b => buf.push(b),
+                },
+                Err(_) => break,
             }
-            let trimmed = line.trim_end_matches(['\r', '\n']).to_string();
-            if tx
-                .send(StreamLine {
-                    is_stdout,
-                    line: trimmed,
-                })
-                .is_err()
-            {
-                break;
-            }
-            line.clear();
         }
     }))
 }
 
+fn send_stream_chunk(
+    tx: &mpsc::Sender<StreamLine>,
+    is_stdout: bool,
+    buf: &mut Vec<u8>,
+    is_transient: bool,
+) -> bool {
+    if buf.is_empty() {
+        return true;
+    }
+    let line = String::from_utf8_lossy(buf).trim().to_string();
+    buf.clear();
+    if line.is_empty() {
+        return true;
+    }
+    tx.send(StreamLine {
+        is_stdout,
+        line,
+        is_transient,
+    })
+    .is_ok()
+}
+
 fn emit_stream_line(tool_id: &str, emit: &EventSink, line: StreamLine) {
+    if let Some(ratio) = parse_cli_progress_ratio(&line.line) {
+        emit(ProgressEvent::Progress {
+            tool_id: tool_id.into(),
+            step_id: None,
+            ratio,
+        });
+    }
+    if line.is_transient {
+        return;
+    }
     if line.is_stdout {
         emit(ProgressEvent::Stdout {
             tool_id: tool_id.into(),
@@ -709,6 +974,90 @@ fn emit_stream_line(tool_id: &str, emit: &EventSink, line: StreamLine) {
     }
 }
 
+fn parse_cli_progress_ratio(line: &str) -> Option<f32> {
+    parse_percent_progress(line).or_else(|| parse_size_fraction_progress(line))
+}
+
+fn parse_percent_progress(line: &str) -> Option<f32> {
+    let mut candidate = None;
+    let chars: Vec<char> = line.chars().collect();
+    for index in 0..chars.len() {
+        if chars[index] != '%' {
+            continue;
+        }
+        let mut start = index;
+        while start > 0 {
+            let prev = chars[start - 1];
+            if prev.is_ascii_digit() || prev == '.' {
+                start -= 1;
+            } else {
+                break;
+            }
+        }
+        let text: String = chars[start..index].iter().collect();
+        if let Ok(value) = text.parse::<f32>() {
+            if (0.0..=100.0).contains(&value) {
+                candidate = Some((value / 100.0).clamp(0.0, 1.0));
+            }
+        }
+    }
+    candidate
+}
+
+fn parse_size_fraction_progress(line: &str) -> Option<f32> {
+    let tokens: Vec<&str> = line.split_whitespace().collect();
+    for start in 0..tokens.len() {
+        let Some((left, consumed_left)) = parse_size_quantity(&tokens, start) else {
+            continue;
+        };
+        let slash = start + consumed_left;
+        if tokens.get(slash).copied() != Some("/") {
+            continue;
+        }
+        let Some((right, _)) = parse_size_quantity(&tokens, slash + 1) else {
+            continue;
+        };
+        if right > 0.0 && left >= 0.0 {
+            return Some(((left / right) as f32).clamp(0.0, 1.0));
+        }
+    }
+    None
+}
+
+fn parse_size_quantity(tokens: &[&str], start: usize) -> Option<(f64, usize)> {
+    let token = tokens.get(start)?;
+    if let Some(value) = parse_number(token) {
+        let unit = tokens.get(start + 1)?;
+        return size_unit_multiplier(unit).map(|multiplier| (value * multiplier, 2));
+    }
+
+    let split = token
+        .char_indices()
+        .find(|(_, ch)| !ch.is_ascii_digit() && *ch != '.' && *ch != ',')
+        .map(|(index, _)| index)?;
+    let (number, unit) = token.split_at(split);
+    let value = parse_number(number)?;
+    size_unit_multiplier(unit).map(|multiplier| (value * multiplier, 1))
+}
+
+fn parse_number(token: &str) -> Option<f64> {
+    token.replace(',', "").parse::<f64>().ok()
+}
+
+fn size_unit_multiplier(unit: &str) -> Option<f64> {
+    let normalized = unit
+        .trim_matches(|ch: char| !ch.is_ascii_alphanumeric())
+        .to_ascii_lowercase();
+    match normalized.as_str() {
+        "b" | "byte" | "bytes" => Some(1.0),
+        "kb" | "kib" => Some(1024.0),
+        "mb" | "mib" => Some(1024.0 * 1024.0),
+        "gb" | "gib" => Some(1024.0 * 1024.0 * 1024.0),
+        "tb" | "tib" => Some(1024.0 * 1024.0 * 1024.0 * 1024.0),
+        _ => None,
+    }
+}
+
 fn join_stream(handle: Option<JoinHandle<()>>) {
     if let Some(handle) = handle {
         let _ = handle.join();
@@ -721,6 +1070,8 @@ fn _silence_child_unused(_c: &Child) {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
+    use std::sync::Mutex;
 
     #[test]
     fn glob_exact() {
@@ -730,7 +1081,10 @@ mod tests {
 
     #[test]
     fn glob_middle_star() {
-        assert!(glob_match("nssm-*-win.zip", "nssm-2.24-101-g897c7ad-win.zip"));
+        assert!(glob_match(
+            "nssm-*-win.zip",
+            "nssm-2.24-101-g897c7ad-win.zip"
+        ));
         assert!(!glob_match("nssm-*-win.zip", "nssm-2.24-mac.zip"));
     }
 
@@ -805,5 +1159,136 @@ mod tests {
         let effective = effective_install_options(&recipe, &InstallOptions::default());
 
         assert_eq!(effective.scope, None);
+    }
+
+    #[test]
+    fn winget_cli_utilities_request_winget_links_on_path() {
+        for tool_id in ["nssm", "ripgrep", "jq", "fzf"] {
+            assert!(
+                winget_tool_should_add_links_to_path(tool_id),
+                "{tool_id} should add the winget links directory to PATH"
+            );
+        }
+        assert!(!winget_tool_should_add_links_to_path("bruno"));
+        assert!(!winget_tool_should_add_links_to_path("vscode"));
+    }
+
+    #[test]
+    fn winget_links_dir_uses_local_app_data() {
+        let dir = winget_links_dir_from_local_app_data(PathBuf::from(r"C:\Users\Ryan\AppData\Local"));
+
+        assert_eq!(
+            dir,
+            PathBuf::from(r"C:\Users\Ryan\AppData\Local\Microsoft\WinGet\Links")
+        );
+    }
+
+    #[test]
+    fn n8n_managed_install_uses_project_prefix_without_global_flag() {
+        let args = managed_npm_install_args(
+            "n8n",
+            &InstallOptions {
+                version: Some("1.2.3".into()),
+                ..InstallOptions::default()
+            },
+        );
+
+        assert_eq!(args[0], "install");
+        assert!(args.contains(&"--prefix".to_string()));
+        assert!(args.contains(&"n8n@1.2.3".to_string()));
+        assert!(!args.contains(&"-g".to_string()));
+    }
+
+    #[test]
+    fn managed_ollama_install_targets_app_local_location() {
+        let args = managed_ollama_winget_args(&InstallOptions::default());
+
+        assert!(args.contains(&"--location".to_string()));
+        assert!(args
+            .iter()
+            .any(|arg| arg.ends_with(r"installer\apps\ollama\app")));
+    }
+
+    #[test]
+    fn parses_cli_percent_progress() {
+        let ratio = parse_cli_progress_ratio("Downloading package 42%").unwrap();
+
+        assert!((ratio - 0.42).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn parses_cli_size_fraction_progress() {
+        let ratio = parse_cli_progress_ratio("Downloading 2.50 MB / 10.00 MB").unwrap();
+
+        assert!((ratio - 0.25).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn forward_stream_splits_carriage_return_progress_frames() {
+        let (tx, rx) = mpsc::channel();
+        let handle = forward_stream(
+            Some(Cursor::new(
+                b"Downloading 25%\rDownloading 50%\rDone\n".to_vec(),
+            )),
+            tx,
+            true,
+        )
+        .unwrap();
+
+        handle.join().unwrap();
+        let lines: Vec<StreamLine> = rx.try_iter().collect();
+
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[0].line, "Downloading 25%");
+        assert!(lines[0].is_transient);
+        assert_eq!(lines[1].line, "Downloading 50%");
+        assert!(lines[1].is_transient);
+        assert_eq!(lines[2].line, "Done");
+        assert!(!lines[2].is_transient);
+    }
+
+    #[test]
+    fn transient_progress_frames_emit_ratio_without_log_spam() {
+        let events = Arc::new(Mutex::new(Vec::<ProgressEvent>::new()));
+        let captured = events.clone();
+        let sink: EventSink = Box::new(move |event| {
+            captured.lock().unwrap().push(event);
+        });
+
+        emit_stream_line(
+            "ollama",
+            &sink,
+            StreamLine {
+                is_stdout: true,
+                line: "Downloading 2 MB / 4 MB".into(),
+                is_transient: true,
+            },
+        );
+
+        let events = events.lock().unwrap();
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            ProgressEvent::Progress { tool_id, ratio, .. } => {
+                assert_eq!(tool_id, "ollama");
+                assert!((*ratio - 0.5).abs() < f32::EPSILON);
+            }
+            other => panic!("expected progress event, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn wsl_base_install_uses_modern_no_distribution_command() {
+        assert_eq!(
+            wsl_base_install_args(),
+            vec!["--install", "--no-distribution"]
+        );
+    }
+
+    #[test]
+    fn wsl_distro_install_uses_no_launch_distribution_command() {
+        assert_eq!(
+            wsl_distro_install_args("Ubuntu"),
+            vec!["--install", "--distribution", "Ubuntu", "--no-launch"]
+        );
     }
 }

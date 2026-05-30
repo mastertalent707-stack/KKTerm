@@ -141,6 +141,10 @@ pub enum Provider {
         #[serde(default)]
         reboot: bool,
     },
+    WslDistro {
+        /// Distribution name accepted by `wsl --install --distribution`.
+        distro: String,
+    },
     Bundle {
         /// Ordered recipe ids. Already-installed steps are skipped.
         steps: Vec<String>,
@@ -246,8 +250,11 @@ impl Catalog {
             Gray,
             Black,
         }
-        let mut color: HashMap<&str, Color> =
-            self.recipes.iter().map(|r| (r.id.as_str(), Color::White)).collect();
+        let mut color: HashMap<&str, Color> = self
+            .recipes
+            .iter()
+            .map(|r| (r.id.as_str(), Color::White))
+            .collect();
         let recipes_by_id: HashMap<&str, &Recipe> =
             self.recipes.iter().map(|r| (r.id.as_str(), r)).collect();
 
@@ -260,8 +267,7 @@ impl Catalog {
             match color.get(node).copied().unwrap_or(Color::White) {
                 Color::Black => return Ok(()),
                 Color::Gray => {
-                    let cycle_start =
-                        stack.iter().position(|n| *n == node).unwrap_or(0);
+                    let cycle_start = stack.iter().position(|n| *n == node).unwrap_or(0);
                     let mut path: Vec<String> =
                         stack[cycle_start..].iter().map(|s| s.to_string()).collect();
                     path.push(node.to_string());
@@ -346,12 +352,12 @@ mod tests {
         let catalog = Catalog {
             schema_version: 1,
             generated_at: None,
-            recipes: vec![
-                mk_winget("a", "A", "X"),
-                mk_winget("a", "A2", "Y"),
-            ],
+            recipes: vec![mk_winget("a", "A", "X"), mk_winget("a", "A2", "Y")],
         };
-        assert!(matches!(catalog.validate(), Err(SchemaError::DuplicateId(_))));
+        assert!(matches!(
+            catalog.validate(),
+            Err(SchemaError::DuplicateId(_))
+        ));
     }
 
     #[test]
@@ -455,7 +461,10 @@ mod tests {
             .expect("catalog should include OpenClaw");
 
         assert_eq!(recipe.name, "OpenClaw");
-        assert_eq!(recipe.homepage.as_deref(), Some("https://github.com/openclaw/openclaw"));
+        assert_eq!(
+            recipe.homepage.as_deref(),
+            Some("https://github.com/openclaw/openclaw")
+        );
         assert!(matches!(
             &recipe.provider,
             Provider::Npm { pkg } if pkg == "openclaw"

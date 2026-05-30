@@ -10,6 +10,7 @@ use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 
+use super::managed_app::{is_managed_app, managed_app_install_dir, managed_app_marker_path};
 use super::proc::{no_window, npm_program};
 use super::schema::{Catalog, Detection, GithubReleaseLayout, Provider, Recipe};
 
@@ -22,11 +23,8 @@ pub struct DetectedState {
     /// installed. Renders as "Partially installed (N/M)".
     pub partial_count: Option<(u32, u32)>,
     /// Best-effort install directory for installed tools, surfaced in the
-    /// installed-tool info dialog. Currently populated for github-release
-    /// recipes (we own the install dir under %LOCALAPPDATA%) and left as
-    /// None elsewhere — winget/npm/dism install paths are not uniformly
-    /// recoverable from their detection output, and the dialog hides the
-    /// row when this is None.
+    /// installed-tool info dialog. Populated for install types KKTerm owns
+    /// under %LOCALAPPDATA%, such as github-release tools and managed apps.
     pub install_location: Option<String>,
     /// Extra runtime version for manager-backed bundles. For Node/Python
     /// bundles, `installed_version` remains the manager version used for
@@ -132,13 +130,37 @@ pub fn detect_bundle_from_states(
 }
 
 pub fn detect_one(recipe: &Recipe) -> DetectedState {
+    if is_managed_app(&recipe.id) {
+        return detect_managed_app_marker(&recipe.id);
+    }
     match &recipe.provider {
         Provider::Winget { .. } => detect_winget(recipe),
         Provider::Npm { pkg } => detect_npm(pkg),
         Provider::GithubRelease { .. } => detect_github_release_marker(&recipe.id),
         Provider::WindowsFeature { feature, .. } => detect_windows_feature(feature),
+        Provider::WslDistro { distro } => detect_wsl_distro(distro),
         Provider::Bundle { .. } => DetectedState::not_installed(),
     }
+}
+
+fn detect_managed_app_marker(tool_id: &str) -> DetectedState {
+    let marker = managed_app_marker_path(tool_id);
+    let Ok(text) = std::fs::read_to_string(&marker) else {
+        return DetectedState::not_installed();
+    };
+    let version = serde_json::from_str::<serde_json::Value>(&text)
+        .ok()
+        .and_then(|value| {
+            value
+                .get("version")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+        });
+    DetectedState::installed(version).with_install_location(Some(
+        managed_app_install_dir(tool_id)
+            .to_string_lossy()
+            .into_owned(),
+    ))
 }
 
 fn bundle_detected_state(
@@ -229,7 +251,10 @@ fn detect_uv_python_313_version() -> Option<String> {
 }
 
 fn command_version(program: &str, args: &[&str]) -> Option<String> {
-    let output = no_window(&mut Command::new(program)).args(args).output().ok()?;
+    let output = no_window(&mut Command::new(program))
+        .args(args)
+        .output()
+        .ok()?;
     if !output.status.success() {
         return None;
     }
@@ -650,6 +675,37 @@ fn detect_windows_feature(feature: &str) -> DetectedState {
     DetectedState::not_installed()
 }
 
+fn detect_wsl_distro(distro: &str) -> DetectedState {
+    let output = match no_window(&mut Command::new("wsl"))
+        .args(["--list", "--quiet"])
+        .output()
+    {
+        Ok(o) => o,
+        Err(_) => return DetectedState::not_installed(),
+    };
+    if !output.status.success() {
+        return DetectedState::not_installed();
+    }
+    if parse_wsl_distro_list(&output.stdout)
+        .iter()
+        .any(|name| name.eq_ignore_ascii_case(distro))
+    {
+        DetectedState::installed(None)
+    } else {
+        DetectedState::not_installed()
+    }
+}
+
+fn parse_wsl_distro_list(bytes: &[u8]) -> Vec<String> {
+    String::from_utf8_lossy(bytes)
+        .replace('\0', "")
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(ToOwned::to_owned)
+        .collect()
+}
+
 // Marker file shape used by install.rs.
 #[derive(Debug, Clone, Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -742,6 +798,13 @@ mod tests {
         assert!(state.installed);
         assert_eq!(state.installed_version.as_deref(), Some("1.0.0"));
         assert_eq!(state.runtime_version.as_deref(), Some("3.13.5"));
+    }
+
+    #[test]
+    fn managed_app_marker_reports_app_local_install_location() {
+        let location = managed_app_install_dir("n8n");
+
+        assert!(location.ends_with(r"installer\apps\n8n"));
     }
 
     #[test]

@@ -139,6 +139,8 @@ function estimateUacPromptsFor(
     }
     case "windowsFeature":
       return 1;
+    case "wslDistro":
+      return 0;
     case "githubRelease":
       return recipe.provider.layout === "zip" ? 0 : 1;
     case "npm":

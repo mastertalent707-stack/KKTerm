@@ -1920,6 +1920,14 @@ type CommandMap = {
     args: { toolId: string };
     result: void;
   };
+  installer_install_service: {
+    args: { toolId: string };
+    result: void;
+  };
+  installer_remove_service: {
+    args: { toolId: string };
+    result: void;
+  };
   installer_get_state: {
     args: undefined;
     result: import("../modules/installer/types").ToolState[];

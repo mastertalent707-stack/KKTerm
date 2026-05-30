@@ -12,6 +12,7 @@ pub fn latest_version(recipe: &Recipe) -> Option<String> {
         Provider::Npm { pkg } => npm_latest(pkg),
         Provider::GithubRelease { repo, .. } => github_latest(repo),
         Provider::WindowsFeature { .. } => None,
+        Provider::WslDistro { .. } => None,
         Provider::Bundle { .. } => None,
     }
 }
@@ -86,21 +87,19 @@ fn npm_latest_from_registry_document(json: &str) -> Option<String> {
 }
 
 fn npm_registry_url(pkg: &str) -> String {
-    format!("https://registry.npmjs.org/{}", encode_npm_package_name(pkg))
+    format!(
+        "https://registry.npmjs.org/{}",
+        encode_npm_package_name(pkg)
+    )
 }
 
 fn encode_npm_package_name(pkg: &str) -> String {
     let mut encoded = String::with_capacity(pkg.len());
     for byte in pkg.bytes() {
         match byte {
-            b'A'..=b'Z'
-            | b'a'..=b'z'
-            | b'0'..=b'9'
-            | b'-'
-            | b'_'
-            | b'.'
-            | b'~'
-            | b'@' => encoded.push(byte as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'@' => {
+                encoded.push(byte as char)
+            }
             _ => {
                 encoded.push('%');
                 encoded.push_str(&format!("{byte:02X}"));

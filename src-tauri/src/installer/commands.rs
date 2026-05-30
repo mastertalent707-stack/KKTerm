@@ -21,7 +21,9 @@ use super::detect::{
 use super::events::{ProgressEvent, PROGRESS_EVENT};
 use super::install::{install_recipe, EventSink};
 use super::latest_version::latest_version_in_catalog;
+use super::managed_app::{managed_app_data_dir, managed_app_install_dir};
 use super::options::InstallOptions;
+use super::proc::npm_program;
 use super::schema::{Catalog, Provider, Recipe};
 use super::state as st;
 use super::uninstall::uninstall_recipe;
@@ -365,6 +367,26 @@ pub fn installer_run_web_ui(tool_id: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn installer_install_service(tool_id: String) -> Result<(), String> {
+    let service = service_affordance(&tool_id)
+        .ok_or_else(|| format!("tool `{tool_id}` does not expose a managed service helper"))?;
+    run_elevated_cmd_script(
+        &service_install_script(&service),
+        &format!("install service {}", service.service_name),
+    )
+}
+
+#[tauri::command]
+pub fn installer_remove_service(tool_id: String) -> Result<(), String> {
+    let service = service_affordance(&tool_id)
+        .ok_or_else(|| format!("tool `{tool_id}` does not expose a managed service helper"))?;
+    run_elevated_cmd_script(
+        &service_remove_script(&service.service_name),
+        &format!("remove service {}", service.service_name),
+    )
+}
+
+#[tauri::command]
 pub fn installer_redetect(
     runtime: State<'_, InstallerRuntime>,
     tool_id: String,
@@ -420,30 +442,234 @@ fn emit_terminal(
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct WebUiAffordance {
-    program: &'static str,
-    args: Vec<&'static str>,
+    program: String,
+    args: Vec<String>,
+    env: Vec<(&'static str, String)>,
     url: &'static str,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ManagedServiceAffordance {
+    service_name: String,
+    display_name: String,
+    program: String,
+    args: Vec<String>,
+    env: Vec<(&'static str, String)>,
+    working_dir: String,
 }
 
 fn web_ui_affordance(tool_id: &str) -> Option<WebUiAffordance> {
     match tool_id {
         "n8n" => Some(WebUiAffordance {
-            program: "n8n",
-            args: vec!["start"],
+            program: npm_program().into(),
+            args: vec![
+                "exec".into(),
+                "--prefix".into(),
+                managed_app_install_dir("n8n")
+                    .to_string_lossy()
+                    .into_owned(),
+                "--".into(),
+                "n8n".into(),
+                "start".into(),
+            ],
+            env: vec![(
+                "N8N_USER_FOLDER",
+                managed_app_data_dir("n8n").to_string_lossy().into_owned(),
+            )],
             url: "http://localhost:5678",
+        }),
+        "ollama" => Some(WebUiAffordance {
+            program: managed_ollama_program(),
+            args: vec!["serve".into()],
+            env: vec![(
+                "OLLAMA_MODELS",
+                managed_app_data_dir("ollama")
+                    .join("models")
+                    .to_string_lossy()
+                    .into_owned(),
+            )],
+            url: "http://localhost:11434",
         }),
         _ => None,
     }
 }
 
+fn service_affordance(tool_id: &str) -> Option<ManagedServiceAffordance> {
+    match tool_id {
+        "n8n" => Some(ManagedServiceAffordance {
+            service_name: "KKTerm-n8n".into(),
+            display_name: "KKTerm n8n".into(),
+            program: npm_program().into(),
+            args: vec![
+                "exec".into(),
+                "--prefix".into(),
+                managed_app_install_dir("n8n")
+                    .to_string_lossy()
+                    .into_owned(),
+                "--".into(),
+                "n8n".into(),
+                "start".into(),
+            ],
+            env: vec![(
+                "N8N_USER_FOLDER",
+                managed_app_data_dir("n8n").to_string_lossy().into_owned(),
+            )],
+            working_dir: managed_app_install_dir("n8n")
+                .to_string_lossy()
+                .into_owned(),
+        }),
+        "ollama" => Some(ManagedServiceAffordance {
+            service_name: "KKTerm-Ollama".into(),
+            display_name: "KKTerm Ollama".into(),
+            program: managed_ollama_program(),
+            args: vec!["serve".into()],
+            env: vec![(
+                "OLLAMA_MODELS",
+                managed_app_data_dir("ollama")
+                    .join("models")
+                    .to_string_lossy()
+                    .into_owned(),
+            )],
+            working_dir: managed_app_install_dir("ollama")
+                .to_string_lossy()
+                .into_owned(),
+        }),
+        _ => None,
+    }
+}
+
+fn service_install_script(service: &ManagedServiceAffordance) -> String {
+    let service_name = quote_cmd_always(&service.service_name);
+    let mut install_line = format!(
+        "nssm install {} {}",
+        service_name,
+        quote_cmd_arg(&service.program)
+    );
+    for arg in &service.args {
+        install_line.push(' ');
+        install_line.push_str(&quote_cmd_arg(arg));
+    }
+
+    let mut lines = vec![
+        "@echo off".to_string(),
+        "setlocal".to_string(),
+        "where nssm >nul 2>nul".to_string(),
+        "if errorlevel 1 (".to_string(),
+        "  echo NSSM is required. Install NSSM from KKTerm Installer Helper first.".to_string(),
+        "  exit /b 2".to_string(),
+        ")".to_string(),
+        format!("nssm stop {} >nul 2>nul", service_name),
+        format!("nssm remove {} confirm >nul 2>nul", service_name),
+        install_line,
+        format!(
+            "nssm set {} DisplayName {}",
+            service_name,
+            quote_cmd_arg(&service.display_name)
+        ),
+        format!(
+            "nssm set {} AppDirectory {}",
+            service_name,
+            quote_cmd_arg(&service.working_dir)
+        ),
+    ];
+    if !service.env.is_empty() {
+        let env_values = service
+            .env
+            .iter()
+            .map(|(key, value)| quote_cmd_arg(&format!("{key}={value}")))
+            .collect::<Vec<_>>()
+            .join(" ");
+        lines.push(format!(
+            "nssm set {} AppEnvironmentExtra {}",
+            service_name, env_values
+        ));
+    }
+    lines.push(format!(
+        "nssm set {} Start SERVICE_AUTO_START",
+        service_name
+    ));
+    lines.push(format!("nssm start {}", service_name));
+    lines.join("\r\n")
+}
+
+fn service_remove_script(service_name: &str) -> String {
+    let service_name = quote_cmd_always(service_name);
+    [
+        "@echo off".to_string(),
+        "setlocal".to_string(),
+        "where nssm >nul 2>nul".to_string(),
+        "if errorlevel 1 (".to_string(),
+        "  echo NSSM is required. Install NSSM from KKTerm Installer Helper first.".to_string(),
+        "  exit /b 2".to_string(),
+        ")".to_string(),
+        format!("nssm stop {} >nul 2>nul", service_name),
+        format!("nssm remove {} confirm", service_name),
+    ]
+    .join("\r\n")
+}
+
+#[cfg(target_os = "windows")]
+fn run_elevated_cmd_script(script: &str, label: &str) -> Result<(), String> {
+    let script_path = std::env::temp_dir().join(format!(
+        "kkterm-installer-service-{}-{}.cmd",
+        sanitize_filename(label),
+        unix_now_secs()
+    ));
+    std::fs::write(&script_path, script).map_err(|error| error.to_string())?;
+    let script_arg = ps_single_quote(&script_path.to_string_lossy());
+    let command = format!(
+        "$p = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/C', {script_arg}) -Verb RunAs -Wait -PassThru; exit $p.ExitCode"
+    );
+    let mut powershell = Command::new("powershell");
+    powershell.args([
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        &command,
+    ]);
+    if let Some(path) = super::install::refreshed_path_public() {
+        powershell.env("PATH", path);
+    }
+    let status = powershell
+        .status()
+        .map_err(|error| format!("failed to start elevated service helper: {error}"))?;
+    let _ = std::fs::remove_file(&script_path);
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("service helper exited with status {status}"))
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn run_elevated_cmd_script(_script: &str, _label: &str) -> Result<(), String> {
+    Err("Windows service helpers are only available on Windows".into())
+}
+
+fn sanitize_filename(value: &str) -> String {
+    value
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_') {
+                ch
+            } else {
+                '-'
+            }
+        })
+        .collect()
+}
+
+fn ps_single_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
+
 #[cfg(target_os = "windows")]
 fn spawn_web_ui_affordance(affordance: &WebUiAffordance) -> Result<(), String> {
-    let command_line = std::iter::once(affordance.program)
-        .chain(affordance.args.iter().copied())
-        .collect::<Vec<_>>()
-        .join(" ");
+    let command_line = web_ui_command_line(affordance);
     Command::new("cmd")
         .args(["/C", "start", "KKTerm web tool", "cmd", "/K", &command_line])
+        .envs(affordance.env.iter().map(|(key, value)| (*key, value)))
         .spawn()
         .map_err(|error| format!("failed to run `{command_line}`: {error}"))?;
     Ok(())
@@ -451,19 +677,73 @@ fn spawn_web_ui_affordance(affordance: &WebUiAffordance) -> Result<(), String> {
 
 #[cfg(not(target_os = "windows"))]
 fn spawn_web_ui_affordance(affordance: &WebUiAffordance) -> Result<(), String> {
-    Command::new(affordance.program)
+    Command::new(&affordance.program)
         .args(&affordance.args)
+        .envs(affordance.env.iter().map(|(key, value)| (*key, value)))
         .spawn()
         .map_err(|error| {
             format!(
                 "failed to run `{}`: {error}",
-                std::iter::once(affordance.program)
-                    .chain(affordance.args.iter().copied())
+                std::iter::once(affordance.program.clone())
+                    .chain(affordance.args.iter().cloned())
                     .collect::<Vec<_>>()
                     .join(" ")
             )
         })?;
     Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn web_ui_command_line(affordance: &WebUiAffordance) -> String {
+    std::iter::once(affordance.program.as_str())
+        .chain(affordance.args.iter().map(String::as_str))
+        .map(quote_cmd_arg)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn quote_cmd_arg(arg: &str) -> String {
+    if arg.is_empty()
+        || arg.chars().any(|ch| {
+            ch.is_whitespace()
+                || matches!(
+                    ch,
+                    '&' | '('
+                        | ')'
+                        | '['
+                        | ']'
+                        | '{'
+                        | '}'
+                        | '^'
+                        | '='
+                        | ';'
+                        | '!'
+                        | '\''
+                        | '+'
+                        | ','
+                        | '`'
+                        | '~'
+                )
+        })
+    {
+        format!("\"{}\"", arg.replace('"', "\"\""))
+    } else {
+        arg.to_string()
+    }
+}
+
+fn quote_cmd_always(arg: &str) -> String {
+    format!("\"{}\"", arg.replace('"', "\"\""))
+}
+
+fn managed_ollama_program() -> String {
+    let local_exe = managed_app_install_dir("ollama")
+        .join("app")
+        .join("ollama.exe");
+    if local_exe.exists() {
+        return local_exe.to_string_lossy().into_owned();
+    }
+    "ollama".into()
 }
 
 fn unix_now_secs() -> i64 {
@@ -529,10 +809,7 @@ fn run_bundle_install(
 
 fn bundle_followup_install_commands(bundle_id: &str) -> Vec<(&'static str, Vec<&'static str>)> {
     match bundle_id {
-        "node-bundle" => vec![
-            ("nvm", vec!["install", "lts"]),
-            ("nvm", vec!["use", "lts"]),
-        ],
+        "node-bundle" => vec![("nvm", vec!["install", "lts"]), ("nvm", vec!["use", "lts"])],
         "python-bundle" => vec![
             ("uv", vec!["python", "install", "3.13", "--default"]),
             ("uv", vec!["python", "pin", "--global", "3.13"]),
@@ -551,10 +828,7 @@ mod tests {
 
         assert_eq!(
             commands,
-            vec![
-                ("nvm", vec!["install", "lts"]),
-                ("nvm", vec!["use", "lts"]),
-            ]
+            vec![("nvm", vec!["install", "lts"]), ("nvm", vec!["use", "lts"]),]
         );
     }
 
@@ -576,13 +850,92 @@ mod tests {
         let affordance = web_ui_affordance("n8n").expect("n8n should expose a web UI");
 
         assert_eq!(affordance.url, "http://localhost:5678");
-        assert_eq!(affordance.program, "n8n");
-        assert_eq!(affordance.args, vec!["start"]);
+        assert_eq!(affordance.program, "npm.cmd");
+        assert!(affordance.args.iter().any(|arg| arg == "--prefix"));
+        assert!(affordance.args.iter().any(|arg| arg == "n8n"));
+        assert!(affordance.env.iter().any(|(key, value)| {
+            *key == "N8N_USER_FOLDER" && value.ends_with(r"installer\apps\n8n\data")
+        }));
+    }
+
+    #[test]
+    fn ollama_web_ui_affordance_runs_server_with_app_local_models() {
+        let affordance = web_ui_affordance("ollama").expect("Ollama should expose a local server");
+
+        assert_eq!(affordance.url, "http://localhost:11434");
+        assert_eq!(affordance.args, vec!["serve"]);
+        assert!(affordance.env.iter().any(|(key, value)| {
+            *key == "OLLAMA_MODELS" && value.ends_with(r"installer\apps\ollama\data\models")
+        }));
+    }
+
+    #[test]
+    fn web_ui_command_line_quotes_windows_paths_with_spaces() {
+        let affordance = WebUiAffordance {
+            program:
+                r"C:\Users\Ryan User\AppData\Local\KKTerm\installer\apps\ollama\app\ollama.exe"
+                    .into(),
+            args: vec!["serve".into()],
+            env: vec![],
+            url: "http://localhost:11434",
+        };
+
+        assert_eq!(
+            web_ui_command_line(&affordance),
+            r#""C:\Users\Ryan User\AppData\Local\KKTerm\installer\apps\ollama\app\ollama.exe" serve"#
+        );
     }
 
     #[test]
     fn unknown_tools_do_not_get_web_ui_affordances() {
         assert!(web_ui_affordance("git").is_none());
+    }
+
+    #[test]
+    fn n8n_service_affordance_uses_managed_app_command_and_data_dir() {
+        let service =
+            service_affordance("n8n").expect("n8n should expose a Windows service helper");
+
+        assert_eq!(service.service_name, "KKTerm-n8n");
+        assert_eq!(service.display_name, "KKTerm n8n");
+        assert_eq!(service.program, "npm.cmd");
+        assert!(service.args.iter().any(|arg| arg == "--prefix"));
+        assert!(service.args.iter().any(|arg| arg == "n8n"));
+        assert!(service.env.iter().any(|(key, value)| {
+            *key == "N8N_USER_FOLDER" && value.ends_with(r"installer\apps\n8n\data")
+        }));
+    }
+
+    #[test]
+    fn ollama_service_affordance_uses_app_local_models_dir() {
+        let service =
+            service_affordance("ollama").expect("Ollama should expose a Windows service helper");
+
+        assert_eq!(service.service_name, "KKTerm-Ollama");
+        assert_eq!(service.args, vec!["serve"]);
+        assert!(service.env.iter().any(|(key, value)| {
+            *key == "OLLAMA_MODELS" && value.ends_with(r"installer\apps\ollama\data\models")
+        }));
+    }
+
+    #[test]
+    fn service_install_script_uses_nssm_and_quoted_command() {
+        let service = ManagedServiceAffordance {
+            service_name: "KKTerm-Test".into(),
+            display_name: "KKTerm Test".into(),
+            program: r"C:\Program Files\Test App\app.exe".into(),
+            args: vec!["serve".into()],
+            env: vec![("TEST_HOME", r"C:\Users\Ryan User\AppData\Local\Test".into())],
+            working_dir: r"C:\Users\Ryan User\AppData\Local\Test".into(),
+        };
+        let script = service_install_script(&service);
+
+        assert!(script
+            .contains(r#"nssm install "KKTerm-Test" "C:\Program Files\Test App\app.exe" serve"#));
+        assert!(script.contains(
+            r#"nssm set "KKTerm-Test" AppDirectory "C:\Users\Ryan User\AppData\Local\Test""#
+        ));
+        assert!(script.contains(r#"nssm set "KKTerm-Test" AppEnvironmentExtra "TEST_HOME=C:\Users\Ryan User\AppData\Local\Test""#));
     }
 }
 

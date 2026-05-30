@@ -488,6 +488,8 @@
       "uninstall": "Uninstall",
       "run": "Run",
       "openWebUi": "Open web UI",
+      "installService": "Install service",
+      "removeService": "Remove service",
       "cancel": "Cancel"
     },
     "options": {
@@ -507,6 +509,8 @@
       "completed": "Done",
       "failed": "Failed: {{message}}",
       "cancelled": "Cancelled",
+      "serviceInstalled": "Windows service helper completed.",
+      "serviceRemoved": "Windows service removal completed.",
       "partial": "Partially installed ({{installed}}/{{total}})",
       "noVersion": "(version unknown)",
       "notInstalled": "Not installed",
@@ -541,6 +545,7 @@
       "homepage": "Website",
       "releaseNotes": "Release notes",
       "webUi": "Web UI",
+      "windowsService": "Windows service",
       "prerequisites": "Prerequisites",
       "prereqInstalled": "Installed",
       "prereqMissing": "Missing",

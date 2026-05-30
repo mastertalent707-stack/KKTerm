@@ -6,6 +6,7 @@ export type ProviderKind =
   | "npm"
   | "githubRelease"
   | "windowsFeature"
+  | "wslDistro"
   | "bundle";
 
 export type GithubReleaseLayout = "zip" | "exeInstaller" | "msi";
@@ -28,6 +29,7 @@ export type Provider =
       layout: GithubReleaseLayout;
     }
   | { kind: "windowsFeature"; feature: string; reboot?: boolean }
+  | { kind: "wslDistro"; distro: string }
   | { kind: "bundle"; steps: string[] };
 
 export interface Recipe {
@@ -70,8 +72,8 @@ export interface DetectedState {
   installed: boolean;
   installedVersion: string | null;
   partialCount: [number, number] | null;
-  /// Best-effort install directory. Populated for github-release recipes
-  /// (we own the install dir); null elsewhere. UI hides the row when null.
+  /// Best-effort install directory. Populated for app-local installs KKTerm
+  /// owns, such as github-release recipes and managed server apps.
   installLocation?: string | null;
   /// Extra runtime version for manager-backed bundles. For Node/Python
   /// bundles, installedVersion remains nvm/uv for update comparisons while
