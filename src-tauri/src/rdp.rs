@@ -372,6 +372,13 @@ mod platform {
         y: f64,
         width: f64,
         height: f64,
+        // When set, re-issue the remote desktop resize even if the cached
+        // desktop size/scale already matches. Used by the post-connect settle
+        // passes: the ActiveX control often ignores the first resize, so we
+        // re-apply it (while keeping the control on-screen) once the session
+        // is interactive, instead of relying on a manual pane nudge.
+        #[serde(default)]
+        force: bool,
     }
 
     #[derive(Deserialize)]
@@ -506,6 +513,7 @@ mod platform {
                     request.y,
                     request.width,
                     request.height,
+                    request.force,
                 )
             })
         }
@@ -1761,6 +1769,7 @@ mod platform {
         y: f64,
         width: f64,
         height: f64,
+        force: bool,
     ) -> Result<(), String> {
         let rect = show_rdp(
             session.hwnd,
@@ -1778,7 +1787,7 @@ mod platform {
             session
                 .resolution_mode
                 .display_settings(width, height, rect.2, rect.3, scale_factor);
-        let _ = sync_remote_desktop_size(session, display_settings, false);
+        let _ = sync_remote_desktop_size(session, display_settings, force);
         Ok(())
     }
 
@@ -2435,6 +2444,8 @@ mod platform {
         pub y: f64,
         pub width: f64,
         pub height: f64,
+        #[serde(default)]
+        pub force: bool,
     }
 
     #[derive(Deserialize)]

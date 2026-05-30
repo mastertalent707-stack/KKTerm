@@ -600,6 +600,11 @@ export interface UpdateRdpBoundsRequest {
   y: number;
   width: number;
   height: number;
+  /**
+   * Re-apply the remote desktop resize even when the cached size already
+   * matches. Used by the post-connect settle passes; defaults to false.
+   */
+  force?: boolean;
 }
 
 export interface SetRdpVisibilityRequest {
