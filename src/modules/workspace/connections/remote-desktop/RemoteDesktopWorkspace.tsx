@@ -514,6 +514,8 @@ export function RemoteDesktopWorkspace({
   // becomes displayable. The first resize commonly lands before the session is
   // interactive enough to honor it (especially the host DPI scale factor), so
   // we re-issue it a couple of times instead of waiting for a manual nudge.
+  // This goes through update_rdp_bounds (which keeps the control on-screen) with
+  // force=true, rather than sync_rdp_display_size (which stages it off-screen).
   const scheduleRdpDisplaySettle = () => {
     if (displaySettleTimerRef.current !== null) {
       return;
@@ -525,6 +527,8 @@ export function RemoteDesktopWorkspace({
       if (
         !sessionStartedRef.current ||
         !sessionId ||
+        !displayReadyRef.current ||
+        !rdpVisibleRef.current ||
         !visibilityRef.current.isActive ||
         visibilityRef.current.suppressed
       ) {
@@ -534,24 +538,20 @@ export function RemoteDesktopWorkspace({
       if (!bounds) {
         return;
       }
-      void invokeCommand("sync_rdp_display_size", {
-        request: { sessionId, ...bounds },
+      lastBoundsRef.current = bounds;
+      void invokeCommand("update_rdp_bounds", {
+        request: { sessionId, ...bounds, force: true },
       })
-        .then((result) => {
-          if (sessionIdRef.current !== result.sessionId) {
-            return;
-          }
-          if (result.displaySynced) {
-            lastBoundsRef.current = bounds;
-          }
-        })
         .catch(() => {
           // Settle passes are best-effort; the ResizeObserver path still
           // re-syncs on any subsequent real bounds change.
         })
         .finally(() => {
           displaySettlePassesRef.current += 1;
-          if (displaySettlePassesRef.current < RDP_DISPLAY_SETTLE_PASSES) {
+          if (
+            displaySettlePassesRef.current < RDP_DISPLAY_SETTLE_PASSES &&
+            sessionStartedRef.current
+          ) {
             displaySettleTimerRef.current = window.setTimeout(
               run,
               RDP_DISPLAY_SETTLE_INTERVAL_MS,
