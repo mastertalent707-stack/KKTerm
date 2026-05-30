@@ -3,13 +3,19 @@
 
 use std::process::Command;
 
+use serde_json::json;
+
 use super::proc::no_window;
 use super::schema::{Catalog, Provider, Recipe};
 
 pub type LatestVersionResult = Result<Option<String>, String>;
 
 pub fn latest_version(recipe: &Recipe) -> LatestVersionResult {
-    match &recipe.provider {
+    crate::logging::installer_helper_debug(
+        "latest.one.start",
+        &json!({ "toolId": recipe.id, "provider": provider_kind(&recipe.provider) }),
+    );
+    let result = match &recipe.provider {
         Provider::Winget { id } => winget_latest(id),
         Provider::Npm { pkg } => npm_latest(pkg),
         Provider::UvPip { package } => pypi_latest(package),
@@ -18,10 +24,25 @@ pub fn latest_version(recipe: &Recipe) -> LatestVersionResult {
         Provider::WindowsFeature { .. } => Ok(None),
         Provider::WslDistro { .. } => Ok(None),
         Provider::Bundle { .. } => Ok(None),
+    };
+    match &result {
+        Ok(latest) => crate::logging::installer_helper_debug(
+            "latest.one.ok",
+            &json!({ "toolId": recipe.id, "provider": provider_kind(&recipe.provider), "latestVersion": latest }),
+        ),
+        Err(error) => crate::logging::installer_helper_debug(
+            "latest.one.error",
+            &json!({ "toolId": recipe.id, "provider": provider_kind(&recipe.provider), "error": error }),
+        ),
     }
+    result
 }
 
 pub fn latest_version_in_catalog(recipe: &Recipe, catalog: &Catalog) -> LatestVersionResult {
+    crate::logging::installer_helper_debug(
+        "latest.catalog.start",
+        &json!({ "toolId": recipe.id, "provider": provider_kind(&recipe.provider) }),
+    );
     if let Provider::Bundle { steps } = &recipe.provider {
         if steps.len() == 1 {
             let child = catalog
@@ -34,6 +55,19 @@ pub fn latest_version_in_catalog(recipe: &Recipe, catalog: &Catalog) -> LatestVe
         return Ok(None);
     }
     latest_version(recipe)
+}
+
+fn provider_kind(provider: &Provider) -> &'static str {
+    match provider {
+        Provider::Winget { .. } => "winget",
+        Provider::Npm { .. } => "npm",
+        Provider::UvPip { .. } => "uvPip",
+        Provider::DownloadInstaller { .. } => "downloadInstaller",
+        Provider::GithubRelease { .. } => "githubRelease",
+        Provider::WindowsFeature { .. } => "windowsFeature",
+        Provider::WslDistro { .. } => "wslDistro",
+        Provider::Bundle { .. } => "bundle",
+    }
 }
 
 fn winget_latest(id: &str) -> LatestVersionResult {

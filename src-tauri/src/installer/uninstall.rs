@@ -3,8 +3,10 @@
 // Reverse-DAG safety (refusing to uninstall a tool that has installed
 // dependents) is enforced at the command layer, not here.
 
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+
+use serde_json::json;
 
 use super::detect::github_release_install_dir;
 use super::events::ProgressEvent;
@@ -18,18 +20,42 @@ pub fn uninstall_recipe(
     cancel: Arc<AtomicBool>,
     emit: &EventSink,
 ) -> Result<(), String> {
-    if recipe.id == "n8n" {
-        return uninstall_managed_app(&recipe.id, emit);
-    }
-    if recipe.id == "ollama" {
+    crate::logging::installer_helper_debug(
+        "uninstall.recipe.start",
+        &json!({ "toolId": recipe.id, "provider": provider_kind(&recipe.provider) }),
+    );
+    let result = if recipe.id == "n8n" {
+        uninstall_managed_app(&recipe.id, emit)
+    } else if recipe.id == "ollama" {
         if let Provider::Winget { id } = &recipe.provider {
-            uninstall_winget(&recipe.id, id, cancel, emit)?;
-            return uninstall_managed_app(&recipe.id, emit);
+            uninstall_winget(&recipe.id, id, cancel, emit)
+                .and_then(|_| uninstall_managed_app(&recipe.id, emit))
+        } else {
+            uninstall_recipe_by_provider(recipe, cancel, emit)
         }
+    } else if is_managed_app(&recipe.id) {
+        uninstall_managed_app(&recipe.id, emit)
+    } else {
+        uninstall_recipe_by_provider(recipe, cancel, emit)
+    };
+    match &result {
+        Ok(()) => crate::logging::installer_helper_debug(
+            "uninstall.recipe.ok",
+            &json!({ "toolId": recipe.id }),
+        ),
+        Err(error) => crate::logging::installer_helper_debug(
+            "uninstall.recipe.error",
+            &json!({ "toolId": recipe.id, "error": error }),
+        ),
     }
-    if is_managed_app(&recipe.id) {
-        return uninstall_managed_app(&recipe.id, emit);
-    }
+    result
+}
+
+fn uninstall_recipe_by_provider(
+    recipe: &Recipe,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<(), String> {
     match &recipe.provider {
         Provider::Winget { id } => uninstall_winget(&recipe.id, id, cancel, emit),
         Provider::Npm { pkg } => uninstall_npm(&recipe.id, pkg, cancel, emit),
@@ -47,6 +73,19 @@ pub fn uninstall_recipe(
             "bundles must be expanded into step recipes before uninstall_recipe; see commands.rs"
                 .into(),
         ),
+    }
+}
+
+fn provider_kind(provider: &Provider) -> &'static str {
+    match provider {
+        Provider::Winget { .. } => "winget",
+        Provider::Npm { .. } => "npm",
+        Provider::UvPip { .. } => "uvPip",
+        Provider::DownloadInstaller { .. } => "downloadInstaller",
+        Provider::GithubRelease { .. } => "githubRelease",
+        Provider::WindowsFeature { .. } => "windowsFeature",
+        Provider::WslDistro { .. } => "wslDistro",
+        Provider::Bundle { .. } => "bundle",
     }
 }
 

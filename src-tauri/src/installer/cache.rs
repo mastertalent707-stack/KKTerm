@@ -2,20 +2,33 @@ use std::collections::HashMap;
 
 use super::detect::DetectedState;
 use super::schema::Catalog;
+use serde_json::json;
 
 const CACHE_SCHEMA_VERSION: u32 = 1;
 
 pub fn load_detection_cache(catalog: &Catalog) -> HashMap<String, DetectedState> {
+    crate::logging::installer_helper_debug(
+        "cache.load.start",
+        &json!({ "recipeCount": catalog.recipes.len() }),
+    );
     let mut out = HashMap::new();
     for recipe in &catalog.recipes {
         if let Some(state) = read_cached_state(&recipe.id) {
             out.insert(recipe.id.clone(), state);
         }
     }
+    crate::logging::installer_helper_debug(
+        "cache.load.ok",
+        &json!({ "hitCount": out.len(), "recipeCount": catalog.recipes.len() }),
+    );
     out
 }
 
 pub fn write_cached_state(tool_id: &str, state: &DetectedState) {
+    crate::logging::installer_helper_debug(
+        "cache.write",
+        &json!({ "toolId": tool_id, "state": state }),
+    );
     write_cached_state_platform(tool_id, state);
 }
 
@@ -33,11 +46,11 @@ mod windows_cache {
 
     use windows_sys::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_MORE_DATA, ERROR_SUCCESS};
     use windows_sys::Win32::System::Registry::{
-        RegCloseKey, RegCreateKeyExW, RegOpenKeyExW, RegQueryValueExW, RegSetValueExW, HKEY,
-        HKEY_CURRENT_USER, KEY_QUERY_VALUE, KEY_SET_VALUE, REG_SZ,
+        HKEY, HKEY_CURRENT_USER, KEY_QUERY_VALUE, KEY_SET_VALUE, REG_SZ, RegCloseKey,
+        RegCreateKeyExW, RegOpenKeyExW, RegQueryValueExW, RegSetValueExW,
     };
 
-    use super::{CachedDetectedState, DetectedState, CACHE_SCHEMA_VERSION};
+    use super::{CACHE_SCHEMA_VERSION, CachedDetectedState, DetectedState};
 
     const CACHE_SUBKEY: &str = r"Software\Ryan Tsai\KKTerm\InstallerDetectionCache";
 

@@ -8,6 +8,7 @@
 // (ADR 0007).
 
 use super::schema::Catalog;
+use serde_json::json;
 
 /// The catalog JSON, embedded at compile time. The `shipped_catalog_
 /// parses_and_validates` test in `schema.rs` already exercises this
@@ -38,10 +39,18 @@ impl std::error::Error for CatalogError {}
 /// re-parse on every command invocation. `InstallerRuntime::catalog` is
 /// where that cache lives.
 pub fn load_bundled_catalog() -> Result<Catalog, CatalogError> {
-    let catalog: Catalog = serde_json::from_str(CATALOG_JSON)
-        .map_err(|e| CatalogError::Parse(e.to_string()))?;
+    crate::logging::installer_helper_debug(
+        "catalog.load.start",
+        &json!({ "bytes": CATALOG_JSON.len() }),
+    );
+    let catalog: Catalog =
+        serde_json::from_str(CATALOG_JSON).map_err(|e| CatalogError::Parse(e.to_string()))?;
     catalog
         .validate()
         .map_err(|e| CatalogError::SchemaInvalid(e.to_string()))?;
+    crate::logging::installer_helper_debug(
+        "catalog.load.ok",
+        &json!({ "recipeCount": catalog.recipes.len() }),
+    );
     Ok(catalog)
 }

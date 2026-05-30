@@ -1,4 +1,3 @@
-#[cfg(debug_assertions)]
 mod debug_impl {
     use std::{
         fs::{self, OpenOptions},
@@ -41,6 +40,9 @@ mod debug_impl {
     }
 
     pub fn start() {
+        if !heartbeat_enabled() {
+            return;
+        }
         if STARTED.swap(true, Ordering::Relaxed) {
             return;
         }
@@ -49,6 +51,10 @@ mod debug_impl {
         thread::spawn(move || {
             let mut sequence = 0_u64;
             loop {
+                if !heartbeat_enabled() {
+                    STARTED.store(false, Ordering::Relaxed);
+                    break;
+                }
                 sequence = sequence.saturating_add(1);
                 write_heartbeat_line(sequence, start);
                 thread::sleep(Duration::from_secs(2));
@@ -57,6 +63,9 @@ mod debug_impl {
     }
 
     pub fn record_frontend_heartbeat(heartbeat: FrontendHeartbeat) {
+        if !heartbeat_enabled() {
+            return;
+        }
         let start = *START.get_or_init(Instant::now);
         FRONTEND_HEARTBEAT_MS.store(elapsed_ms(start), Ordering::Relaxed);
         if let Ok(mut guard) = frontend_state().lock() {
@@ -65,6 +74,9 @@ mod debug_impl {
     }
 
     pub fn record_window_event(event: impl Into<String>) {
+        if !heartbeat_enabled() {
+            return;
+        }
         let runtime_ms = elapsed_ms(*START.get_or_init(Instant::now));
         if let Ok(mut guard) = native_state().lock() {
             guard.last_window_event = Some(event.into());
@@ -73,6 +85,9 @@ mod debug_impl {
     }
 
     pub fn record_tray_event(event: impl Into<String>) {
+        if !heartbeat_enabled() {
+            return;
+        }
         let runtime_ms = elapsed_ms(*START.get_or_init(Instant::now));
         if let Ok(mut guard) = native_state().lock() {
             guard.last_tray_event = Some(event.into());
@@ -210,34 +225,39 @@ mod debug_impl {
     fn elapsed_ms(start: Instant) -> u64 {
         u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX)
     }
+
+    fn heartbeat_enabled() -> bool {
+        heartbeat_enabled_for(
+            cfg!(debug_assertions),
+            logging::advanced_debugging_enabled(),
+        )
+    }
+
+    fn heartbeat_enabled_for(debug_assertions: bool, advanced_debugging_enabled: bool) -> bool {
+        debug_assertions || advanced_debugging_enabled
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn heartbeat_follows_debug_or_advanced_debugging_rule() {
+            let expected = cfg!(debug_assertions) || logging::advanced_debugging_enabled();
+
+            assert_eq!(heartbeat_enabled(), expected);
+        }
+
+        #[test]
+        fn heartbeat_is_disabled_in_release_without_advanced_debugging() {
+            assert!(!heartbeat_enabled_for(false, false));
+            assert!(heartbeat_enabled_for(false, true));
+            assert!(heartbeat_enabled_for(true, false));
+            assert!(heartbeat_enabled_for(true, true));
+        }
+    }
 }
 
-#[cfg(debug_assertions)]
 pub(crate) use debug_impl::{
     FrontendHeartbeat, record_frontend_heartbeat, record_tray_event, record_window_event, start,
 };
-
-#[cfg(not(debug_assertions))]
-pub(crate) fn start() {}
-
-#[cfg(not(debug_assertions))]
-#[derive(Clone, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct FrontendHeartbeat {
-    pub document_has_focus: bool,
-    pub visibility_state: String,
-    pub raf_age_ms: Option<u64>,
-    pub pointer_age_ms: Option<u64>,
-    pub key_age_ms: Option<u64>,
-    pub window_focus_age_ms: Option<u64>,
-    pub window_blur_age_ms: Option<u64>,
-}
-
-#[cfg(not(debug_assertions))]
-pub(crate) fn record_frontend_heartbeat(_: FrontendHeartbeat) {}
-
-#[cfg(not(debug_assertions))]
-pub(crate) fn record_window_event(_: impl Into<String>) {}
-
-#[cfg(not(debug_assertions))]
-pub(crate) fn record_tray_event(_: impl Into<String>) {}

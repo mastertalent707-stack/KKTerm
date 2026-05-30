@@ -2,11 +2,11 @@ use std::{
     fs::{self, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
-    sync::atomic::{AtomicBool, Ordering},
     sync::OnceLock,
+    sync::atomic::{AtomicBool, Ordering},
 };
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 static LOG_STATUS: OnceLock<String> = OnceLock::new();
 static LOG_PATH: OnceLock<PathBuf> = OnceLock::new();
@@ -65,6 +65,22 @@ pub fn mcp_debug(event: &str, payload: &Value) {
     }
 }
 
+pub fn installer_helper_debug(event: &str, payload: &Value) {
+    if !sensitive_debug_log_enabled(cfg!(debug_assertions), advanced_debugging_enabled()) {
+        return;
+    }
+    let Some(log_path) = LOG_PATH
+        .get()
+        .map(|path| installer_helper_debug_log_path_for(path))
+    else {
+        return;
+    };
+    let line = format_debug_log_entry(event, payload);
+    if let Err(error) = append_debug_line(&log_path, &line) {
+        eprintln!("failed to write Installer Helper debug log: {error}");
+    }
+}
+
 pub fn set_advanced_debugging_enabled(enabled: bool) {
     let was_enabled = ADVANCED_DEBUGGING_ENABLED.swap(enabled, Ordering::Relaxed);
     if enabled && !was_enabled {
@@ -107,6 +123,7 @@ fn write_advanced_debugging_enabled_markers() {
     let log_paths = [
         ai_assistant_debug_log_path_for(runtime_log_path),
         mcp_debug_log_path_for(runtime_log_path),
+        installer_helper_debug_log_path_for(runtime_log_path),
     ];
     for log_path in log_paths {
         if let Err(error) = append_debug_line(&log_path, &line) {
@@ -127,6 +144,13 @@ fn mcp_debug_log_path_for(runtime_log_path: &Path) -> PathBuf {
         .parent()
         .unwrap_or_else(|| Path::new("."))
         .join("mcp.debug.log")
+}
+
+fn installer_helper_debug_log_path_for(runtime_log_path: &Path) -> PathBuf {
+    runtime_log_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("installer.helper.debug.log")
 }
 
 fn format_ai_assistant_debug_log_entry(event: &str, payload: &Value) -> String {
@@ -178,6 +202,16 @@ mod tests {
     }
 
     #[test]
+    fn installer_helper_debug_log_path_uses_runtime_log_directory() {
+        let path = installer_helper_debug_log_path_for(Path::new("logs/kkterm.log"));
+
+        assert_eq!(
+            path,
+            PathBuf::from("logs").join("installer.helper.debug.log")
+        );
+    }
+
+    #[test]
     fn ai_assistant_debug_log_entry_is_json_line_with_raw_payload() {
         let line = format_ai_assistant_debug_log_entry(
             "tool.request",
@@ -201,9 +235,11 @@ mod tests {
             parsed["payload"]["arguments"]["body"]["source"],
             "const chart = new uPlot(opts, data, root);"
         );
-        assert!(parsed["timestamp"]
-            .as_str()
-            .is_some_and(|value| !value.is_empty()));
+        assert!(
+            parsed["timestamp"]
+                .as_str()
+                .is_some_and(|value| !value.is_empty())
+        );
     }
 
     #[test]

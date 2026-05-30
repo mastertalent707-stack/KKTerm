@@ -10,16 +10,17 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
+use serde_json::json;
 use tauri::{AppHandle, Emitter, State};
 
 use super::cache::{load_detection_cache, write_cached_state};
 use super::catalog::load_bundled_catalog;
 use super::detect::{
-    detect_all, detect_bundle_from_states, detect_one, detect_one_in_catalog,
-    invalidate_installed_software_snapshot, refresh_installed_software_snapshot, DetectedState,
+    DetectedState, detect_all, detect_bundle_from_states, detect_one, detect_one_in_catalog,
+    invalidate_installed_software_snapshot, refresh_installed_software_snapshot,
 };
-use super::events::{ProgressEvent, PROGRESS_EVENT};
-use super::install::{install_recipe, EventSink};
+use super::events::{PROGRESS_EVENT, ProgressEvent};
+use super::install::{EventSink, install_recipe};
 use super::latest_version::latest_version_in_catalog;
 use super::managed_app::{managed_app_data_dir, managed_app_install_dir};
 use super::options::InstallOptions;
@@ -64,6 +65,19 @@ fn find_recipe<'a>(catalog: &'a Catalog, id: &str) -> Option<&'a Recipe> {
     catalog.recipes.iter().find(|r| r.id == id)
 }
 
+fn provider_kind(provider: &Provider) -> &'static str {
+    match provider {
+        Provider::Winget { .. } => "winget",
+        Provider::Npm { .. } => "npm",
+        Provider::UvPip { .. } => "uvPip",
+        Provider::DownloadInstaller { .. } => "downloadInstaller",
+        Provider::GithubRelease { .. } => "githubRelease",
+        Provider::WindowsFeature { .. } => "windowsFeature",
+        Provider::WslDistro { .. } => "wslDistro",
+        Provider::Bundle { .. } => "bundle",
+    }
+}
+
 /// Load the bundled catalog. The `_force_refresh` arg is retained for
 /// frontend API compatibility but has no effect — the catalog is embedded
 /// at compile time, so "refresh" is the same as "the build that's running".
@@ -72,8 +86,16 @@ pub fn installer_load_catalog(
     runtime: State<'_, InstallerRuntime>,
     _force_refresh: Option<bool>,
 ) -> Result<Catalog, String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_load_catalog.start",
+        &json!({ "forceRefresh": _force_refresh }),
+    );
     let catalog = load_bundled_catalog().map_err(|e| e.to_string())?;
     *runtime.catalog.lock().unwrap() = Some(catalog.clone());
+    crate::logging::installer_helper_debug(
+        "command.installer_load_catalog.ok",
+        &json!({ "recipeCount": catalog.recipes.len() }),
+    );
     Ok(catalog)
 }
 
@@ -81,6 +103,7 @@ pub fn installer_load_catalog(
 pub fn installer_detect_all(
     runtime: State<'_, InstallerRuntime>,
 ) -> Result<HashMap<String, DetectedState>, String> {
+    crate::logging::installer_helper_debug("command.installer_detect_all.start", &json!({}));
     let catalog = runtime
         .catalog
         .lock()
@@ -96,6 +119,10 @@ pub fn installer_detect_all(
             (tool_id, state)
         })
         .collect();
+    crate::logging::installer_helper_debug(
+        "command.installer_detect_all.ok",
+        &json!({ "resultCount": detected.len() }),
+    );
     Ok(detected)
 }
 
@@ -103,13 +130,22 @@ pub fn installer_detect_all(
 pub fn installer_load_detection_cache(
     runtime: State<'_, InstallerRuntime>,
 ) -> Result<HashMap<String, DetectedState>, String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_load_detection_cache.start",
+        &json!({}),
+    );
     let catalog = runtime
         .catalog
         .lock()
         .unwrap()
         .clone()
         .ok_or("catalog not loaded yet — call installer_load_catalog first")?;
-    Ok(load_detection_cache(&catalog))
+    let cache = load_detection_cache(&catalog);
+    crate::logging::installer_helper_debug(
+        "command.installer_load_detection_cache.ok",
+        &json!({ "hitCount": cache.len() }),
+    );
+    Ok(cache)
 }
 
 #[tauri::command]
@@ -117,6 +153,10 @@ pub fn installer_detect_all_streaming(
     app: AppHandle,
     runtime: State<'_, InstallerRuntime>,
 ) -> Result<(), String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_detect_all_streaming.start",
+        &json!({}),
+    );
     let catalog = runtime
         .catalog
         .lock()
@@ -124,6 +164,10 @@ pub fn installer_detect_all_streaming(
         .clone()
         .ok_or("catalog not loaded yet — call installer_load_catalog first")?;
     std::thread::spawn(move || {
+        crate::logging::installer_helper_debug(
+            "detect.streaming.worker.start",
+            &json!({ "recipeCount": catalog.recipes.len() }),
+        );
         let emit = make_emit_sink(app);
         let tool_ids: Vec<String> = catalog.recipes.iter().map(|r| r.id.clone()).collect();
         emit(ProgressEvent::DetectStarted { tool_ids });
@@ -146,24 +190,26 @@ pub fn installer_detect_all_streaming(
                 let work = &work;
                 let detected = &detected;
                 let emit = &emit;
-                scope.spawn(move || loop {
-                    let recipe = {
-                        let mut q = work.lock().unwrap();
-                        match q.pop() {
-                            Some(recipe) => recipe,
-                            None => return,
-                        }
-                    };
-                    let state = detect_one(&recipe).with_last_checked_at(Some(unix_now_secs()));
-                    write_cached_state(&recipe.id, &state);
-                    detected
-                        .lock()
-                        .unwrap()
-                        .insert(recipe.id.clone(), state.clone());
-                    emit(ProgressEvent::DetectResult {
-                        tool_id: recipe.id,
-                        state,
-                    });
+                scope.spawn(move || {
+                    loop {
+                        let recipe = {
+                            let mut q = work.lock().unwrap();
+                            match q.pop() {
+                                Some(recipe) => recipe,
+                                None => return,
+                            }
+                        };
+                        let state = detect_one(&recipe).with_last_checked_at(Some(unix_now_secs()));
+                        write_cached_state(&recipe.id, &state);
+                        detected
+                            .lock()
+                            .unwrap()
+                            .insert(recipe.id.clone(), state.clone());
+                        emit(ProgressEvent::DetectResult {
+                            tool_id: recipe.id,
+                            state,
+                        });
+                    }
                 });
             }
         });
@@ -182,6 +228,7 @@ pub fn installer_detect_all_streaming(
             }
         }
         emit(ProgressEvent::DetectFinished);
+        crate::logging::installer_helper_debug("detect.streaming.worker.ok", &json!({}));
     });
     Ok(())
 }
@@ -210,6 +257,10 @@ pub fn installer_check_latest_versions(
     runtime: State<'_, InstallerRuntime>,
     tool_ids: Vec<String>,
 ) -> Result<(), String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_check_latest_versions.start",
+        &json!({ "toolIds": &tool_ids }),
+    );
     let catalog = runtime
         .catalog
         .lock()
@@ -236,44 +287,66 @@ pub fn installer_check_latest_versions(
         for _ in 0..CHECK_UPDATES_PARALLELISM {
             let cancel = cancel.clone();
             let work = &work;
-            scope.spawn(move || loop {
-                if cancel.load(Ordering::Relaxed) {
-                    return;
-                }
-                let tool_id = {
-                    let mut q = work.lock().unwrap();
-                    match q.pop() {
-                        Some(id) => id,
-                        None => return,
+            scope.spawn(move || {
+                loop {
+                    if cancel.load(Ordering::Relaxed) {
+                        return;
                     }
-                };
-                let (latest, error) = match find_recipe(catalog_ref, &tool_id) {
-                    Some(recipe) => match latest_version_in_catalog(recipe, catalog_ref) {
-                        Ok(latest) => (latest, None),
-                        Err(error) => (None, Some(error)),
-                    },
-                    None => (None, Some("unknown tool id".to_string())),
-                };
-                if error.is_none() {
-                    let _ =
-                        st::record_latest_version(storage_ref, &tool_id, latest.as_deref(), now);
+                    let tool_id = {
+                        let mut q = work.lock().unwrap();
+                        match q.pop() {
+                            Some(id) => id,
+                            None => return,
+                        }
+                    };
+                    let (latest, error) = match find_recipe(catalog_ref, &tool_id) {
+                        Some(recipe) => match latest_version_in_catalog(recipe, catalog_ref) {
+                            Ok(latest) => (latest, None),
+                            Err(error) => (None, Some(error)),
+                        },
+                        None => (None, Some("unknown tool id".to_string())),
+                    };
+                    if error.is_none() {
+                        let _ = st::record_latest_version(
+                            storage_ref,
+                            &tool_id,
+                            latest.as_deref(),
+                            now,
+                        );
+                    }
+                    crate::logging::installer_helper_debug(
+                        "latest.check.result",
+                        &json!({ "toolId": &tool_id, "latestVersion": &latest, "error": &error }),
+                    );
+                    emit_ref(ProgressEvent::CheckResult {
+                        tool_id,
+                        latest_version: latest,
+                        error,
+                    });
                 }
-                emit_ref(ProgressEvent::CheckResult {
-                    tool_id,
-                    latest_version: latest,
-                    error,
-                });
             });
         }
     });
 
     emit(ProgressEvent::CheckFinished);
+    crate::logging::installer_helper_debug(
+        "command.installer_check_latest_versions.ok",
+        &json!({}),
+    );
     Ok(())
 }
 
 #[tauri::command]
 pub fn installer_get_state(storage: State<'_, Storage>) -> Result<Vec<st::ToolState>, String> {
-    st::list_all(&storage)
+    crate::logging::installer_helper_debug("command.installer_get_state.start", &json!({}));
+    let state = st::list_all(&storage);
+    if let Ok(rows) = &state {
+        crate::logging::installer_helper_debug(
+            "command.installer_get_state.ok",
+            &json!({ "rowCount": rows.len() }),
+        );
+    }
+    state
 }
 
 #[tauri::command]
@@ -282,6 +355,10 @@ pub fn installer_set_pinned(
     tool_id: String,
     pinned: bool,
 ) -> Result<(), String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_set_pinned.start",
+        &json!({ "toolId": &tool_id, "pinned": pinned }),
+    );
     st::set_pinned(&storage, &tool_id, pinned)
 }
 
@@ -292,6 +369,10 @@ pub fn installer_install_recipe(
     tool_id: String,
     options: Option<InstallOptions>,
 ) -> Result<(), String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_install_recipe.start",
+        &json!({ "toolId": &tool_id, "options": &options }),
+    );
     let catalog = runtime
         .catalog
         .lock()
@@ -307,6 +388,10 @@ pub fn installer_install_recipe(
     let options = options.unwrap_or_default();
 
     std::thread::spawn(move || {
+        crate::logging::installer_helper_debug(
+            "install.worker.start",
+            &json!({ "toolId": &tool_id, "provider": provider_kind(&recipe.provider) }),
+        );
         let emit: EventSink = make_emit_sink(app_clone.clone());
         let result = if let Provider::Bundle { steps } = &recipe.provider {
             run_bundle_install(
@@ -321,6 +406,10 @@ pub fn installer_install_recipe(
         } else {
             install_recipe(&recipe, &options, cancel.clone(), &emit)
         };
+        crate::logging::installer_helper_debug(
+            "install.worker.finished",
+            &json!({ "toolId": &tool_id, "result": &result }),
+        );
         emit_terminal(&emit, &tool_id, &result, cancel);
     });
     Ok(())
@@ -332,6 +421,10 @@ pub fn installer_uninstall_recipe(
     runtime: State<'_, InstallerRuntime>,
     tool_id: String,
 ) -> Result<(), String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_uninstall_recipe.start",
+        &json!({ "toolId": &tool_id }),
+    );
     let catalog = runtime
         .catalog
         .lock()
@@ -345,12 +438,20 @@ pub fn installer_uninstall_recipe(
     runtime.reset_cancel(&tool_id);
 
     std::thread::spawn(move || {
+        crate::logging::installer_helper_debug(
+            "uninstall.worker.start",
+            &json!({ "toolId": &tool_id, "provider": provider_kind(&recipe.provider) }),
+        );
         let emit: EventSink = make_emit_sink(app.clone());
         let result = if let Provider::Bundle { steps } = &recipe.provider {
             run_bundle_uninstall(&catalog, &recipe.id, steps, cancel.clone(), &emit)
         } else {
             uninstall_recipe(&recipe, cancel.clone(), &emit).map(|_| None)
         };
+        crate::logging::installer_helper_debug(
+            "uninstall.worker.finished",
+            &json!({ "toolId": &tool_id, "result": &result }),
+        );
         emit_terminal(&emit, &tool_id, &result, cancel);
     });
     Ok(())
@@ -361,12 +462,20 @@ pub fn installer_cancel(
     runtime: State<'_, InstallerRuntime>,
     tool_id: String,
 ) -> Result<(), String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_cancel",
+        &json!({ "toolId": &tool_id }),
+    );
     runtime.raise_cancel(&tool_id);
     Ok(())
 }
 
 #[tauri::command]
 pub fn installer_run_web_ui(tool_id: String) -> Result<(), String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_run_web_ui.start",
+        &json!({ "toolId": &tool_id }),
+    );
     let affordance = web_ui_affordance(&tool_id)
         .ok_or_else(|| format!("tool `{tool_id}` does not expose a managed web UI"))?;
     spawn_web_ui_affordance(&affordance)
@@ -374,6 +483,10 @@ pub fn installer_run_web_ui(tool_id: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn installer_install_service(tool_id: String) -> Result<(), String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_install_service.start",
+        &json!({ "toolId": &tool_id }),
+    );
     let service = service_affordance(&tool_id)
         .ok_or_else(|| format!("tool `{tool_id}` does not expose a managed service helper"))?;
     run_elevated_cmd_script(
@@ -384,6 +497,10 @@ pub fn installer_install_service(tool_id: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn installer_remove_service(tool_id: String) -> Result<(), String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_remove_service.start",
+        &json!({ "toolId": &tool_id }),
+    );
     let service = service_affordance(&tool_id)
         .ok_or_else(|| format!("tool `{tool_id}` does not expose a managed service helper"))?;
     run_elevated_cmd_script(
@@ -397,6 +514,10 @@ pub fn installer_redetect(
     runtime: State<'_, InstallerRuntime>,
     tool_id: String,
 ) -> Result<DetectedState, String> {
+    crate::logging::installer_helper_debug(
+        "command.installer_redetect.start",
+        &json!({ "toolId": &tool_id }),
+    );
     let catalog = runtime
         .catalog
         .lock()
@@ -412,6 +533,10 @@ pub fn installer_redetect(
     invalidate_installed_software_snapshot();
     let state = detect_one_in_catalog(recipe, &catalog).with_last_checked_at(Some(unix_now_secs()));
     write_cached_state(&tool_id, &state);
+    crate::logging::installer_helper_debug(
+        "command.installer_redetect.ok",
+        &json!({ "toolId": &tool_id, "state": &state }),
+    );
     Ok(state)
 }
 
@@ -419,6 +544,7 @@ pub fn installer_redetect(
 
 fn make_emit_sink(app: AppHandle) -> EventSink {
     Box::new(move |event: ProgressEvent| {
+        crate::logging::installer_helper_debug("event.emit", &json!({ "event": &event }));
         let _ = app.emit(PROGRESS_EVENT, event);
     })
 }
@@ -1076,8 +1202,11 @@ mod tests {
         };
         let script = service_install_script(&service);
 
-        assert!(script
-            .contains(r#"nssm install "KKTerm-Test" "C:\Program Files\Test App\app.exe" serve"#));
+        assert!(
+            script.contains(
+                r#"nssm install "KKTerm-Test" "C:\Program Files\Test App\app.exe" serve"#
+            )
+        );
         assert!(script.contains(
             r#"nssm set "KKTerm-Test" AppDirectory "C:\Users\Ryan User\AppData\Local\Test""#
         ));

@@ -13,20 +13,22 @@ use std::io::{BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 use std::thread::JoinHandle;
 use std::time::{Instant, SystemTime};
+
+use serde_json::json;
 
 /// How often to emit a "still running" heartbeat to the frontend while a
 /// child process is alive but silent. Set conservatively — winget can be
 /// genuinely quiet for 30–90s during MSIX staging.
 const HEARTBEAT_INTERVAL_SECS: u64 = 10;
 
-use super::detect::{github_release_install_dir, github_release_marker_path, GithubReleaseMarker};
+use super::detect::{GithubReleaseMarker, github_release_install_dir, github_release_marker_path};
 use super::events::ProgressEvent;
 use super::managed_app::{
-    managed_app_binary_dir, managed_app_data_dir, managed_app_install_dir, managed_app_marker_path,
-    ManagedAppMarker,
+    ManagedAppMarker, managed_app_binary_dir, managed_app_data_dir, managed_app_install_dir,
+    managed_app_marker_path,
 };
 use super::options::InstallOptions;
 use super::proc::{no_window, npm_program};
@@ -40,26 +42,60 @@ pub fn install_recipe(
     cancel: Arc<AtomicBool>,
     emit: &EventSink,
 ) -> Result<Option<String>, String> {
-    if recipe.id == "n8n" || recipe.id == "flowise" {
+    crate::logging::installer_helper_debug(
+        "install.recipe.start",
+        &json!({
+            "toolId": recipe.id,
+            "provider": provider_kind(&recipe.provider),
+            "options": options,
+        }),
+    );
+    let result = if recipe.id == "n8n" || recipe.id == "flowise" {
         if let Provider::Npm { pkg } = &recipe.provider {
-            return install_managed_npm_app(&recipe.id, pkg, options, cancel, emit);
+            install_managed_npm_app(&recipe.id, pkg, options, cancel, emit)
+        } else {
+            install_recipe_by_provider(recipe, options, cancel, emit)
         }
-    }
-    if recipe.id == "excalidraw" {
+    } else if recipe.id == "excalidraw" {
         if let Provider::Npm { pkg } = &recipe.provider {
-            return install_managed_excalidraw(&recipe.id, pkg, options, cancel, emit);
+            install_managed_excalidraw(&recipe.id, pkg, options, cancel, emit)
+        } else {
+            install_recipe_by_provider(recipe, options, cancel, emit)
         }
-    }
-    if recipe.id == "open-webui" || recipe.id == "langflow" || recipe.id == "hermes-agent" {
+    } else if recipe.id == "open-webui" || recipe.id == "langflow" || recipe.id == "hermes-agent" {
         if let Provider::UvPip { package } = &recipe.provider {
-            return install_managed_uv_pip_app(&recipe.id, package, options, cancel, emit);
+            install_managed_uv_pip_app(&recipe.id, package, options, cancel, emit)
+        } else {
+            install_recipe_by_provider(recipe, options, cancel, emit)
         }
-    }
-    if recipe.id == "ollama" {
+    } else if recipe.id == "ollama" {
         if let Provider::Winget { id } = &recipe.provider {
-            return install_managed_ollama(&recipe.id, id, options, cancel, emit);
+            install_managed_ollama(&recipe.id, id, options, cancel, emit)
+        } else {
+            install_recipe_by_provider(recipe, options, cancel, emit)
         }
+    } else {
+        install_recipe_by_provider(recipe, options, cancel, emit)
+    };
+    match &result {
+        Ok(version) => crate::logging::installer_helper_debug(
+            "install.recipe.ok",
+            &json!({ "toolId": recipe.id, "installedVersion": version }),
+        ),
+        Err(error) => crate::logging::installer_helper_debug(
+            "install.recipe.error",
+            &json!({ "toolId": recipe.id, "error": error }),
+        ),
     }
+    result
+}
+
+fn install_recipe_by_provider(
+    recipe: &Recipe,
+    options: &InstallOptions,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<Option<String>, String> {
     let options = effective_install_options(recipe, options);
     match &recipe.provider {
         Provider::Winget { id } => install_winget(&recipe.id, id, &options, cancel, emit),
@@ -89,6 +125,19 @@ pub fn install_recipe(
             "bundles must be expanded into step recipes before install_recipe; see commands.rs"
                 .into(),
         ),
+    }
+}
+
+fn provider_kind(provider: &Provider) -> &'static str {
+    match provider {
+        Provider::Winget { .. } => "winget",
+        Provider::Npm { .. } => "npm",
+        Provider::UvPip { .. } => "uvPip",
+        Provider::DownloadInstaller { .. } => "downloadInstaller",
+        Provider::GithubRelease { .. } => "githubRelease",
+        Provider::WindowsFeature { .. } => "windowsFeature",
+        Provider::WslDistro { .. } => "wslDistro",
+        Provider::Bundle { .. } => "bundle",
     }
 }
 
@@ -761,6 +810,10 @@ fn download_with_progress(
     cancel: &Arc<AtomicBool>,
     emit: &EventSink,
 ) -> Result<(), String> {
+    crate::logging::installer_helper_debug(
+        "download.start",
+        &json!({ "toolId": tool_id, "url": url, "dest": dest }),
+    );
     let mut resp = client
         .get(url)
         .send()
@@ -791,12 +844,21 @@ fn download_with_progress(
             }
         }
     }
+    crate::logging::installer_helper_debug(
+        "download.ok",
+        &json!({ "toolId": tool_id, "dest": dest, "bytes": downloaded, "totalBytes": total }),
+    );
     Ok(())
 }
 
 fn extract_zip(zip_path: &PathBuf, dest: &PathBuf) -> Result<(), String> {
+    crate::logging::installer_helper_debug(
+        "archive.extract.start",
+        &json!({ "zipPath": zip_path, "dest": dest }),
+    );
     let file = std::fs::File::open(zip_path).map_err(|e| e.to_string())?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
+    let entry_count = archive.len();
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
         let Some(rel) = entry.enclosed_name() else {
@@ -813,6 +875,10 @@ fn extract_zip(zip_path: &PathBuf, dest: &PathBuf) -> Result<(), String> {
             std::io::copy(&mut entry, &mut out).map_err(|e| e.to_string())?;
         }
     }
+    crate::logging::installer_helper_debug(
+        "archive.extract.ok",
+        &json!({ "zipPath": zip_path, "dest": dest, "entryCount": entry_count }),
+    );
     Ok(())
 }
 
@@ -1007,6 +1073,16 @@ fn run_streamed_with_path(
     emit: &EventSink,
     path_override: Option<String>,
 ) -> Result<(), String> {
+    let started_at_log = Instant::now();
+    crate::logging::installer_helper_debug(
+        "process.spawn.start",
+        &json!({
+            "toolId": tool_id,
+            "program": program,
+            "args": args,
+            "pathOverride": path_override.as_ref().map(|path| !path.trim().is_empty()).unwrap_or(false),
+        }),
+    );
     // Surface the exact command we're about to run. Stalls show up as a
     // long stretch with no further lines after this one — the heartbeat
     // below makes the silence visible instead of looking frozen.
@@ -1026,9 +1102,13 @@ fn run_streamed_with_path(
         command.env("PATH", path);
     }
 
-    let mut child = no_window(&mut command)
-        .spawn()
-        .map_err(|e| format!("failed to spawn `{program}`: {e}"))?;
+    let mut child = no_window(&mut command).spawn().map_err(|e| {
+        crate::logging::installer_helper_debug(
+            "process.spawn.error",
+            &json!({ "toolId": tool_id, "program": program, "error": e.to_string() }),
+        );
+        format!("failed to spawn `{program}`: {e}")
+    })?;
     let (tx, rx) = mpsc::channel::<StreamLine>();
     let stdout_thread = forward_stream(child.stdout.take(), tx.clone(), true);
     let stderr_thread = forward_stream(child.stderr.take(), tx, false);
@@ -1055,6 +1135,14 @@ fn run_streamed_with_path(
             while let Ok(line) = rx.try_recv() {
                 emit_stream_line(tool_id, emit, line);
             }
+            crate::logging::installer_helper_debug(
+                "process.cancelled",
+                &json!({
+                    "toolId": tool_id,
+                    "program": program,
+                    "elapsedMs": started_at_log.elapsed().as_millis(),
+                }),
+            );
             return Err("cancelled".into());
         }
         // Heartbeat: if the child is still alive and we've been silent for
@@ -1090,6 +1178,15 @@ fn run_streamed_with_path(
                         step_id: None,
                         line: format!("[installer] `{program}` exited 0 after {elapsed}s"),
                     });
+                    crate::logging::installer_helper_debug(
+                        "process.exit.ok",
+                        &json!({
+                            "toolId": tool_id,
+                            "program": program,
+                            "elapsedMs": started_at_log.elapsed().as_millis(),
+                            "code": status.code(),
+                        }),
+                    );
                     return Ok(());
                 }
                 let code = status.code().unwrap_or(-1);
@@ -1098,6 +1195,15 @@ fn run_streamed_with_path(
                     step_id: None,
                     line: format!("[installer] `{program}` exited {code} after {elapsed}s"),
                 });
+                crate::logging::installer_helper_debug(
+                    "process.exit.error",
+                    &json!({
+                        "toolId": tool_id,
+                        "program": program,
+                        "elapsedMs": started_at_log.elapsed().as_millis(),
+                        "code": code,
+                    }),
+                );
                 return Err(format!("`{program}` exited with status {code}"));
             }
             Ok(None) => match rx.recv_timeout(std::time::Duration::from_millis(100)) {
@@ -1108,7 +1214,13 @@ fn run_streamed_with_path(
                 Err(mpsc::RecvTimeoutError::Timeout) => {}
                 Err(mpsc::RecvTimeoutError::Disconnected) => {}
             },
-            Err(e) => return Err(format!("wait on `{program}` failed: {e}")),
+            Err(e) => {
+                crate::logging::installer_helper_debug(
+                    "process.wait.error",
+                    &json!({ "toolId": tool_id, "program": program, "error": e.to_string() }),
+                );
+                return Err(format!("wait on `{program}` failed: {e}"));
+            }
         }
     }
 }
@@ -1223,6 +1335,18 @@ fn send_stream_chunk(
 }
 
 fn emit_stream_line(tool_id: &str, emit: &EventSink, line: StreamLine) {
+    crate::logging::installer_helper_debug(
+        if line.is_stdout {
+            "process.stdout"
+        } else {
+            "process.stderr"
+        },
+        &json!({
+            "toolId": tool_id,
+            "line": line.line,
+            "transient": line.is_transient,
+        }),
+    );
     if let Some(ratio) = parse_cli_progress_ratio(&line.line) {
         emit(ProgressEvent::Progress {
             tool_id: tool_id.into(),
@@ -1480,9 +1604,10 @@ mod tests {
         let args = managed_ollama_winget_args(&InstallOptions::default());
 
         assert!(args.contains(&"--location".to_string()));
-        assert!(args
-            .iter()
-            .any(|arg| arg.ends_with(r"installer\apps\ollama\app")));
+        assert!(
+            args.iter()
+                .any(|arg| arg.ends_with(r"installer\apps\ollama\app"))
+        );
     }
 
     #[test]

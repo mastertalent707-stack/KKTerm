@@ -9,6 +9,7 @@ use std::process::Command;
 use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 use super::managed_app::{is_managed_app, managed_app_install_dir, managed_app_marker_path};
 use super::proc::{no_window, npm_program};
@@ -72,6 +73,10 @@ impl DetectedState {
 /// Winget-provider recipes share one local Add/Remove Programs registry
 /// snapshot instead of spawning `winget list`.
 pub fn detect_all(catalog: &Catalog) -> HashMap<String, DetectedState> {
+    crate::logging::installer_helper_debug(
+        "detect.all.start",
+        &json!({ "recipeCount": catalog.recipes.len() }),
+    );
     let mut out: HashMap<String, DetectedState> = HashMap::new();
     // Detect leaves first so bundles can compose their result.
     let mut bundles: Vec<&Recipe> = Vec::new();
@@ -94,10 +99,15 @@ pub fn detect_all(catalog: &Catalog) -> HashMap<String, DetectedState> {
             out.insert(bundle.id.clone(), state);
         }
     }
+    crate::logging::installer_helper_debug("detect.all.ok", &json!({ "resultCount": out.len() }));
     out
 }
 
 pub fn detect_one_in_catalog(recipe: &Recipe, catalog: &Catalog) -> DetectedState {
+    crate::logging::installer_helper_debug(
+        "detect.one_in_catalog.start",
+        &json!({ "toolId": recipe.id, "provider": provider_kind(&recipe.provider) }),
+    );
     if let Provider::Bundle { steps } = &recipe.provider {
         let recipes_by_id: HashMap<&str, &Recipe> =
             catalog.recipes.iter().map(|r| (r.id.as_str(), r)).collect();
@@ -106,9 +116,19 @@ pub fn detect_one_in_catalog(recipe: &Recipe, catalog: &Catalog) -> DetectedStat
             .filter_map(|step| recipes_by_id.get(step.as_str()).map(|r| detect_one(r)))
             .collect();
         let child_refs: Vec<&DetectedState> = child_states.iter().collect();
-        return bundle_detected_state(&recipe.id, &child_refs, steps.len() as u32);
+        let state = bundle_detected_state(&recipe.id, &child_refs, steps.len() as u32);
+        crate::logging::installer_helper_debug(
+            "detect.one_in_catalog.ok",
+            &json!({ "toolId": recipe.id, "state": state }),
+        );
+        return state;
     }
-    detect_one(recipe)
+    let state = detect_one(recipe);
+    crate::logging::installer_helper_debug(
+        "detect.one_in_catalog.ok",
+        &json!({ "toolId": recipe.id, "state": state }),
+    );
+    state
 }
 
 pub fn detect_bundle_from_states(
@@ -130,18 +150,41 @@ pub fn detect_bundle_from_states(
 }
 
 pub fn detect_one(recipe: &Recipe) -> DetectedState {
-    if is_managed_app(&recipe.id) {
-        return detect_managed_app_marker(&recipe.id);
-    }
-    match &recipe.provider {
-        Provider::Winget { .. } => detect_winget(recipe),
-        Provider::Npm { pkg } => detect_npm(pkg),
-        Provider::UvPip { .. } => DetectedState::not_installed(),
-        Provider::DownloadInstaller { .. } => detect_installed_software_aliases(recipe),
-        Provider::GithubRelease { .. } => detect_github_release_marker(&recipe.id),
-        Provider::WindowsFeature { feature, .. } => detect_windows_feature(feature),
-        Provider::WslDistro { distro } => detect_wsl_distro(distro),
-        Provider::Bundle { .. } => DetectedState::not_installed(),
+    crate::logging::installer_helper_debug(
+        "detect.one.start",
+        &json!({ "toolId": recipe.id, "provider": provider_kind(&recipe.provider) }),
+    );
+    let state = if is_managed_app(&recipe.id) {
+        detect_managed_app_marker(&recipe.id)
+    } else {
+        match &recipe.provider {
+            Provider::Winget { .. } => detect_winget(recipe),
+            Provider::Npm { pkg } => detect_npm(pkg),
+            Provider::UvPip { .. } => DetectedState::not_installed(),
+            Provider::DownloadInstaller { .. } => detect_installed_software_aliases(recipe),
+            Provider::GithubRelease { .. } => detect_github_release_marker(&recipe.id),
+            Provider::WindowsFeature { feature, .. } => detect_windows_feature(feature),
+            Provider::WslDistro { distro } => detect_wsl_distro(distro),
+            Provider::Bundle { .. } => DetectedState::not_installed(),
+        }
+    };
+    crate::logging::installer_helper_debug(
+        "detect.one.ok",
+        &json!({ "toolId": recipe.id, "provider": provider_kind(&recipe.provider), "state": state }),
+    );
+    state
+}
+
+fn provider_kind(provider: &Provider) -> &'static str {
+    match provider {
+        Provider::Winget { .. } => "winget",
+        Provider::Npm { .. } => "npm",
+        Provider::UvPip { .. } => "uvPip",
+        Provider::DownloadInstaller { .. } => "downloadInstaller",
+        Provider::GithubRelease { .. } => "githubRelease",
+        Provider::WindowsFeature { .. } => "windowsFeature",
+        Provider::WslDistro { .. } => "wslDistro",
+        Provider::Bundle { .. } => "bundle",
     }
 }
 
@@ -308,8 +351,17 @@ fn installed_software_snapshot_cell() -> &'static std::sync::Mutex<Option<Instal
 /// Called by `detect_all` before iterating recipes. Later callers reuse the
 /// cached snapshot unless they explicitly clear it.
 pub fn refresh_installed_software_snapshot() {
+    crate::logging::installer_helper_debug(
+        "detect.installed_software_snapshot.refresh.start",
+        &json!({}),
+    );
     let parsed = load_installed_software_snapshot();
+    let entry_count = parsed.entries.len();
     *installed_software_snapshot_cell().lock().unwrap() = Some(parsed);
+    crate::logging::installer_helper_debug(
+        "detect.installed_software_snapshot.refresh.ok",
+        &json!({ "entryCount": entry_count }),
+    );
 }
 
 #[cfg(target_os = "windows")]
@@ -416,6 +468,10 @@ fn normalize_detection_value(value: &str) -> String {
 /// paths in commands.rs so an install that just landed is visible.
 pub fn invalidate_installed_software_snapshot() {
     *installed_software_snapshot_cell().lock().unwrap() = None;
+    crate::logging::installer_helper_debug(
+        "detect.installed_software_snapshot.invalidated",
+        &json!({}),
+    );
 }
 
 #[cfg(target_os = "windows")]
@@ -425,8 +481,8 @@ mod windows_installed_software {
 
     use windows_sys::Win32::Foundation::{ERROR_NO_MORE_ITEMS, ERROR_SUCCESS};
     use windows_sys::Win32::System::Registry::{
-        RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_CURRENT_USER,
-        HKEY_LOCAL_MACHINE, KEY_READ, REG_EXPAND_SZ, REG_SZ,
+        HKEY, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, REG_EXPAND_SZ, REG_SZ, RegCloseKey,
+        RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW,
     };
 
     use super::{InstalledSoftwareEntry, InstalledSoftwareSnapshot};

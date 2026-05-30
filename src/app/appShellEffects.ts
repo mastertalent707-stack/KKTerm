@@ -17,6 +17,10 @@ export function useFrontendLaunchTimestamp() {
 }
 
 export function useDebugFrontendHeartbeat() {
+  const advancedDebuggingEnabled = useWorkspaceStore(
+    (state) => state.generalSettings.advancedDebuggingEnabled,
+  );
+
   useEffect(() => {
     if (!isTauriRuntime()) {
       return;
@@ -63,7 +67,7 @@ export function useDebugFrontendHeartbeat() {
     };
 
     void invokeCommand("is_debug_build").then((debugBuild) => {
-      if (disposed || !debugBuild) {
+      if (disposed || (!debugBuild && !advancedDebuggingEnabled)) {
         return;
       }
       animationFrameId = window.requestAnimationFrame(recordAnimationFrame);
@@ -90,7 +94,7 @@ export function useDebugFrontendHeartbeat() {
       window.removeEventListener("focus", recordFocus);
       window.removeEventListener("blur", recordBlur);
     };
-  }, []);
+  }, [advancedDebuggingEnabled]);
 }
 
 export function useHostUsagePolling() {

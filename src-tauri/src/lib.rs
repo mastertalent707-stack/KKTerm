@@ -682,6 +682,7 @@ fn update_general_settings(
     auto_start::sync_auto_start_with_windows(request.auto_start_with_windows())?;
     let saved = storage.update_general_settings(request)?;
     logging::set_advanced_debugging_enabled(saved.advanced_debugging_enabled());
+    debug_heartbeat::start();
     tray_state.set_minimize_to_tray(saved.minimize_to_tray());
     if let Err(error) = power.set_enabled(saved.dont_sleep_enabled()) {
         eprintln!("failed to apply saved Don't Sleep setting: {error}");
@@ -747,6 +748,7 @@ fn import_settings_database(
     let snapshot = storage.import_database_zip(path.into())?;
     let general_settings = storage.general_settings()?;
     logging::set_advanced_debugging_enabled(general_settings.advanced_debugging_enabled());
+    debug_heartbeat::start();
     tray_state.set_minimize_to_tray(general_settings.minimize_to_tray());
     if let Err(error) = power.set_enabled(general_settings.dont_sleep_enabled()) {
         eprintln!("failed to apply imported Don't Sleep setting: {error}");
@@ -2493,6 +2495,7 @@ pub fn run() {
             let general_settings = storage.general_settings().map_err(setup_error)?;
             let ai_provider_settings = storage.ai_provider_settings().map_err(setup_error)?;
             logging::set_advanced_debugging_enabled(general_settings.advanced_debugging_enabled());
+            debug_heartbeat::start();
             let main_window_settings = storage.main_window_settings().map_err(setup_error)?;
             if let Err(error) = storage.backup_if_enabled_for_startup() {
                 eprintln!("failed to create automatic database backup at startup: {error}");
