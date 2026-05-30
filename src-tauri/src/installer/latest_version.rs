@@ -57,20 +57,52 @@ fn winget_latest(id: &str) -> Option<String> {
 }
 
 fn npm_latest(pkg: &str) -> Option<String> {
-    let output = no_window(&mut Command::new("npm"))
-        .args(["view", pkg, "version"])
-        .output()
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("KKTerm-Installer/1")
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
         .ok()?;
-    if !output.status.success() {
-        return None;
+    let body = client
+        .get(npm_registry_url(pkg))
+        .send()
+        .and_then(|r| r.error_for_status())
+        .and_then(|r| r.text())
+        .ok()?;
+    npm_latest_from_registry_document(&body)
+}
+
+fn npm_latest_from_registry_document(json: &str) -> Option<String> {
+    let json: serde_json::Value = serde_json::from_str(json).ok()?;
+    json.get("dist-tags")
+        .and_then(|tags| tags.get("latest"))
+        .and_then(|v| v.as_str())
+        .filter(|v| !v.trim().is_empty())
+        .map(|s| s.to_string())
+}
+
+fn npm_registry_url(pkg: &str) -> String {
+    format!("https://registry.npmjs.org/{}", encode_npm_package_name(pkg))
+}
+
+fn encode_npm_package_name(pkg: &str) -> String {
+    let mut encoded = String::with_capacity(pkg.len());
+    for byte in pkg.bytes() {
+        match byte {
+            b'A'..=b'Z'
+            | b'a'..=b'z'
+            | b'0'..=b'9'
+            | b'-'
+            | b'_'
+            | b'.'
+            | b'~'
+            | b'@' => encoded.push(byte as char),
+            _ => {
+                encoded.push('%');
+                encoded.push_str(&format!("{byte:02X}"));
+            }
+        }
     }
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let v = stdout.trim();
-    if v.is_empty() {
-        None
-    } else {
-        Some(v.to_string())
-    }
+    encoded
 }
 
 fn github_latest(repo: &str) -> Option<String> {
@@ -89,4 +121,45 @@ fn github_latest(repo: &str) -> Option<String> {
     json.get("tag_name")
         .and_then(|v| v.as_str())
         .map(|s| s.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn npm_registry_document_returns_dist_tag_latest() {
+        let json = r#"{
+            "name": "@openai/codex",
+            "dist-tags": {
+                "latest": "0.42.0",
+                "beta": "0.43.0-beta.1"
+            }
+        }"#;
+
+        assert_eq!(
+            npm_latest_from_registry_document(json),
+            Some("0.42.0".to_string())
+        );
+    }
+
+    #[test]
+    fn npm_registry_document_without_latest_is_unknown() {
+        let json = r#"{
+            "name": "example",
+            "dist-tags": {
+                "beta": "1.0.0-beta.1"
+            }
+        }"#;
+
+        assert_eq!(npm_latest_from_registry_document(json), None);
+    }
+
+    #[test]
+    fn npm_registry_url_percent_encodes_scoped_package_slash() {
+        assert_eq!(
+            npm_registry_url("@anthropic-ai/claude-code"),
+            "https://registry.npmjs.org/@anthropic-ai%2Fclaude-code"
+        );
+    }
 }

@@ -27,6 +27,7 @@ use super::detect::{
 };
 use super::events::ProgressEvent;
 use super::options::InstallOptions;
+use super::proc::no_window;
 use super::schema::{GithubReleaseLayout, Provider, Recipe};
 
 pub type EventSink = Box<dyn Fn(ProgressEvent) + Send + Sync>;
@@ -362,9 +363,11 @@ fn add_to_user_path(dir: &PathBuf, tool_id: &str, emit: &EventSink) {
         r#"$cur = [Environment]::GetEnvironmentVariable('Path','User'); if ($cur -notlike '*{0}*') {{ [Environment]::SetEnvironmentVariable('Path', ($cur + ';{0}').Trim(';'), 'User') }}"#,
         dir_str.replace('\'', "''")
     );
-    let result = Command::new("powershell")
-        .args(["-NoProfile", "-NonInteractive", "-Command", &script])
-        .output();
+    let result = no_window(
+        Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &script]),
+    )
+    .output();
     match result {
         Ok(o) if o.status.success() => emit(ProgressEvent::Stdout {
             tool_id: tool_id.into(),
@@ -478,13 +481,15 @@ fn run_streamed(
         line: format!("$ {program} {}", args.join(" ")),
     });
 
-    let mut child = Command::new(program)
-        .args(args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .stdin(Stdio::null())
-        .spawn()
-        .map_err(|e| format!("failed to spawn `{program}`: {e}"))?;
+    let mut child = no_window(
+        Command::new(program)
+            .args(args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .stdin(Stdio::null()),
+    )
+    .spawn()
+    .map_err(|e| format!("failed to spawn `{program}`: {e}"))?;
     let (tx, rx) = mpsc::channel::<StreamLine>();
     let stdout_thread = forward_stream(child.stdout.take(), tx.clone(), true);
     let stderr_thread = forward_stream(child.stderr.take(), tx, false);

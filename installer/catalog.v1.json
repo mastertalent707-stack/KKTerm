@@ -245,16 +245,13 @@
     {
       "id": "openclaw",
       "name": "OpenClaw",
-      "descriptionEn": "Open-source reimplementation of the 1997 game Captain Claw.",
-      "category": "games",
-      "icon": "Gamepad2",
-      "provider": {
-        "kind": "githubRelease",
-        "repo": "pjasicek/OpenClaw",
-        "assetPattern": "OpenClaw-*-win*.zip",
-        "layout": "zip"
-      },
-      "options": ["location", "addToPath"]
+      "descriptionEn": "Open-source AI coding agent CLI.",
+      "category": "ai-agent",
+      "icon": "Cloud",
+      "homepage": "https://github.com/openclaw/openclaw",
+      "releaseNotesUrl": "https://github.com/openclaw/openclaw/releases",
+      "provider": { "kind": "npm", "pkg": "openclaw" },
+      "options": ["version"]
     }
   ]
 }

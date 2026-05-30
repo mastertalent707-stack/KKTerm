@@ -5,7 +5,7 @@
 //     load toolState. If hasInitialScanned is false, kick off detect_all and
 //     mark scanned. Subsequent visits use the in-memory cache.
 //   * "Refresh" button: re-run detection, then check latest versions for
-//     every currently-installed tool.
+//     every catalog tool.
 //   * Unmount: keep the in-memory store; do NOT reset detected state (so
 //     visiting the Module again is instant).
 
@@ -161,12 +161,10 @@ export function InstallerPage({ active }: { active: boolean }) {
       setDetected(nextDetected);
       const states = await invokeCommand("installer_get_state");
       setToolStates(states);
-      const installedIds = catalog.recipes
-        .filter((r) => nextDetected[r.id]?.installed)
-        .map((r) => r.id);
-      if (installedIds.length > 0) {
+      const toolIds = catalog.recipes.map((r) => r.id);
+      if (toolIds.length > 0) {
         await invokeCommand("installer_check_latest_versions", {
-          toolIds: installedIds,
+          toolIds,
         });
       }
       setScanning(false);

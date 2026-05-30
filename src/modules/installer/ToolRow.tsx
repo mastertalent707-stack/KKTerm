@@ -136,21 +136,26 @@ export function ToolRow({ recipe }: { recipe: Recipe }) {
             </dl>
           )}
           <div className="installer-tile__meta">
-            {isInstalled ? (
-              <span className="installer-tile__badge">
-                {t("installer.section.installed")}
-              </span>
-            ) : null}
-            <button
-              type="button"
-              className={`installer-tile__action ${isInstalled ? "danger" : "primary"}`}
-              onClick={handleActionClick}
+            <span
+              className={`installer-tile__badge ${
+                isInstalled ? "installer-tile__badge--installed" : "installer-tile__badge--missing"
+              }`}
+              data-alone={isInstalled ? "true" : "false"}
             >
               {isInstalled
-                ? t("installer.actions.uninstall")
-                : t("installer.actions.install")}
-            </button>
+                ? t("installer.section.installed")
+                : t("installer.status.notInstalled")}
+            </span>
           </div>
+          {!isInstalled ? (
+            <button
+              type="button"
+              className="installer-tile__action primary"
+              onClick={handleActionClick}
+            >
+              {t("installer.actions.install")}
+            </button>
+          ) : null}
         </div>
       </div>
     </article>

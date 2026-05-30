@@ -109,7 +109,7 @@
    tile spans the full row width so its detail body has room. */
 .installer-section__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, 150px);
   gap: 0.65rem;
   align-items: stretch;
 }
@@ -118,6 +118,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  width: 150px;
+  height: 10.65rem;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
@@ -139,6 +141,7 @@
 }
 
 .installer-tile__head {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -147,7 +150,7 @@
   padding: 0.65rem 0.55rem 1.65rem;
   user-select: none;
   text-align: center;
-  min-height: 8.4rem;
+  height: 100%;
 }
 
 .installer-tile:hover .installer-tile__head {
@@ -223,6 +226,7 @@
   font-weight: 500;
   font-size: 0.8rem;
   line-height: 1.2;
+  min-height: 1.92rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -244,21 +248,18 @@
 
 .installer-tile__versions {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
+  display: grid;
+  grid-template-columns: 3.65rem minmax(0, 1fr);
+  gap: 0.05rem 0.25rem;
   margin: 0;
   color: var(--text-muted);
   font-size: 0.68rem;
   line-height: 1.2;
+  text-align: left;
 }
 
 .installer-tile__versions div {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  justify-content: center;
-  gap: 0.25rem;
-  min-width: 0;
+  display: contents;
 }
 
 .installer-tile__versions dt {
@@ -271,24 +272,42 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: left;
 }
 
 .installer-tile__meta {
+  position: absolute;
+  bottom: 0.45rem;
+  left: 0.45rem;
+  right: 0.45rem;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-end;
+  justify-content: flex-start;
   gap: 0.35rem;
   flex-wrap: wrap;
   min-height: 1.65rem;
 }
 
+.installer-tile__meta:has(.installer-tile__badge[data-alone="true"]) {
+  justify-content: center;
+}
+
 .installer-tile__badge {
   padding: 0.15rem 0.4rem;
   border-radius: 999px;
-  background: var(--green-soft);
-  color: var(--green);
   font-size: 0.68rem;
   font-weight: 600;
+  line-height: 1.2;
+}
+
+.installer-tile__badge--installed {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.installer-tile__badge--missing {
+  background: var(--surface-muted);
+  color: var(--text-muted);
 }
 
 .installer-tile__action {
@@ -310,11 +329,6 @@
   border-color: var(--accent);
   background: var(--accent);
   color: white;
-}
-
-.installer-tile__action.danger {
-  border-color: var(--red);
-  color: var(--red);
 }
 
 .installer-tile__action:hover {

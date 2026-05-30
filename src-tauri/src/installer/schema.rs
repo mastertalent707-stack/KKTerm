@@ -444,6 +444,25 @@ mod tests {
     }
 
     #[test]
+    fn shipped_openclaw_entry_targets_ai_agent_package() {
+        let json = include_str!("../../../installer/catalog.v1.json");
+        let catalog: Catalog =
+            serde_json::from_str(json).expect("shipped catalog JSON should parse");
+        let recipe = catalog
+            .recipes
+            .iter()
+            .find(|recipe| recipe.id == "openclaw")
+            .expect("catalog should include OpenClaw");
+
+        assert_eq!(recipe.name, "OpenClaw");
+        assert_eq!(recipe.homepage.as_deref(), Some("https://github.com/openclaw/openclaw"));
+        assert!(matches!(
+            &recipe.provider,
+            Provider::Npm { pkg } if pkg == "openclaw"
+        ));
+    }
+
+    #[test]
     fn bundle_resolves_steps() {
         let leaf_a = mk_winget("nvm", "nvm", "X");
         let leaf_b = mk_winget("node", "Node", "Y");
