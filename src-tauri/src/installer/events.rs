@@ -26,7 +26,7 @@ use super::schema::PlanStep;
 pub const PROGRESS_EVENT: &str = "installer://progress";
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum ProgressEvent {
     /// Declared step list for the upcoming install/uninstall. Emitted once
     /// before any `StepStarted`. UI renders all steps as `pending`.
@@ -118,4 +118,55 @@ pub enum ProgressEvent {
         state: super::detect::DetectedState,
     },
     DetectFinished,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::installer::detect::DetectedState;
+
+    #[test]
+    fn progress_event_fields_are_camel_case_for_frontend() {
+        let event = ProgressEvent::DetectResult {
+            tool_id: "nvm-windows".into(),
+            state: DetectedState::installed(Some("1.2.2".into())),
+        };
+
+        let serialized = serde_json::to_value(event).unwrap();
+
+        assert_eq!(serialized["kind"], "detectResult");
+        assert_eq!(serialized["toolId"], "nvm-windows");
+        assert!(serialized.get("tool_id").is_none());
+        assert_eq!(serialized["state"]["installedVersion"], "1.2.2");
+    }
+
+    #[test]
+    fn progress_event_list_fields_are_camel_case_for_frontend() {
+        let event = ProgressEvent::DetectStarted {
+            tool_ids: vec!["uv".into()],
+        };
+
+        let serialized = serde_json::to_value(event).unwrap();
+
+        assert_eq!(serialized["kind"], "detectStarted");
+        assert_eq!(serialized["toolIds"][0], "uv");
+        assert!(serialized.get("tool_ids").is_none());
+    }
+
+    #[test]
+    fn check_result_fields_are_camel_case_for_frontend() {
+        let event = ProgressEvent::CheckResult {
+            tool_id: "codex-cli".into(),
+            latest_version: Some("0.135.0".into()),
+            error: None,
+        };
+
+        let serialized = serde_json::to_value(event).unwrap();
+
+        assert_eq!(serialized["kind"], "checkResult");
+        assert_eq!(serialized["toolId"], "codex-cli");
+        assert_eq!(serialized["latestVersion"], "0.135.0");
+        assert!(serialized.get("tool_id").is_none());
+        assert!(serialized.get("latest_version").is_none());
+    }
 }
