@@ -6,7 +6,7 @@ function wingetRecipe(id: string, wingetId: string): Recipe {
     id,
     name: id,
     descriptionEn: id,
-    category: "tools",
+    category: "utilities",
     icon: "Package",
     provider: { kind: "winget", id: wingetId },
     options: ["scope"],

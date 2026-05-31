@@ -153,7 +153,7 @@
       "id": "nssm",
       "name": "NSSM",
       "descriptionEn": "The Non-Sucking Service Manager — wrap any program as a Windows service.",
-      "category": "tools",
+      "category": "utilities",
       "icon": "Wrench",
       "detection": {
         "displayNames": ["NSSM"],
@@ -255,7 +255,7 @@
       "id": "bruno",
       "name": "Bruno",
       "descriptionEn": "Open-source API client. Postman alternative with git-friendly request files.",
-      "category": "tools",
+      "category": "utilities",
       "icon": "Boxes",
       "detection": {
         "displayNames": ["Bruno"]
@@ -458,7 +458,7 @@
       "id": "7zip",
       "name": "7-Zip",
       "descriptionEn": "File archiver with broad compression-format support.",
-      "category": "tools",
+      "category": "utilities",
       "icon": "Archive",
       "homepage": "https://www.7-zip.org/",
       "detection": {
@@ -472,7 +472,7 @@
       "id": "sharex",
       "name": "ShareX",
       "descriptionEn": "Screenshot, screen recording, and upload workflow utility.",
-      "category": "tools",
+      "category": "utilities",
       "icon": "Camera",
       "homepage": "https://getsharex.com/",
       "releaseNotesUrl": "https://github.com/ShareX/ShareX/releases",
@@ -486,7 +486,7 @@
       "id": "excalidraw",
       "name": "Excalidraw",
       "descriptionEn": "Whiteboard sketching app hosted from a KKTerm app-local React project.",
-      "category": "tools",
+      "category": "utilities",
       "icon": "PenTool",
       "needs": ["node-bundle"],
       "homepage": "https://excalidraw.com/",

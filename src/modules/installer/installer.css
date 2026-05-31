@@ -418,11 +418,13 @@
   color: var(--text);
 }
 
-.installer-tool-dialog__header {
+.installer-tool-dialog .installer-tool-dialog__header {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.85rem;
   margin: 0 2rem 0.75rem 0;
+  text-align: left;
 }
 
 .installer-tool-dialog__header h2 {

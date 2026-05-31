@@ -407,26 +407,34 @@ fn detect_installed_software(
     let Provider::Winget { id } = &recipe.provider else {
         return DetectedState::not_installed();
     };
-    for entry in &snapshot.entries {
-        if installed_entry_matches(id, &recipe.detection, entry) {
-            return DetectedState::installed(entry.display_version.clone())
-                .with_install_location(entry.install_location.clone());
-        }
-    }
-    DetectedState::not_installed()
+    detect_installed_software_match(id, &recipe.detection, snapshot)
 }
 
 fn detect_installed_software_by_aliases(
     recipe: &Recipe,
     snapshot: &InstalledSoftwareSnapshot,
 ) -> DetectedState {
+    detect_installed_software_match(&recipe.id, &recipe.detection, snapshot)
+}
+
+fn detect_installed_software_match(
+    provider_id: &str,
+    detection: &Detection,
+    snapshot: &InstalledSoftwareSnapshot,
+) -> DetectedState {
+    let mut global_match = None;
     for entry in &snapshot.entries {
-        if installed_entry_matches(&recipe.id, &recipe.detection, entry) {
-            return DetectedState::installed(entry.display_version.clone())
-                .with_install_location(entry.install_location.clone());
+        if !installed_entry_matches(provider_id, detection, entry) {
+            continue;
         }
+        let state = DetectedState::installed(entry.display_version.clone())
+            .with_install_location(entry.install_location.clone());
+        if installed_entry_is_user_scope(entry) {
+            return state;
+        }
+        global_match.get_or_insert(state);
     }
-    DetectedState::not_installed()
+    global_match.unwrap_or_else(DetectedState::not_installed)
 }
 
 fn installed_entry_matches(
@@ -452,11 +460,20 @@ fn installed_entry_matches(
     detection
         .display_names
         .iter()
-        .any(|name| display_name == normalize_detection_value(name))
+        .any(|name| display_name_matches_alias(&display_name, name))
         || detection
             .display_name_prefixes
             .iter()
             .any(|prefix| display_name.starts_with(&normalize_detection_value(prefix)))
+}
+
+fn display_name_matches_alias(display_name: &str, alias: &str) -> bool {
+    let alias = normalize_detection_value(alias);
+    display_name == alias || display_name == format!("{alias} (user)")
+}
+
+fn installed_entry_is_user_scope(entry: &InstalledSoftwareEntry) -> bool {
+    normalize_detection_value(&entry.registry_key).starts_with("arp\\user\\")
 }
 
 fn normalize_detection_value(value: &str) -> String {
@@ -976,7 +993,7 @@ mod tests {
             "Microsoft.VisualStudioCode",
             &["{EA457B21-F73E-494C-ACAB-524FDE069978}_is1"],
             &["Microsoft Visual Studio Code"],
-            &["Microsoft Visual Studio Code"],
+            &[],
         );
         let snapshot = InstalledSoftwareSnapshot {
             entries: vec![InstalledSoftwareEntry {
@@ -996,6 +1013,60 @@ mod tests {
         assert_eq!(
             state.install_location.as_deref(),
             Some("C:\\Users\\ryan\\AppData\\Local\\Programs\\Microsoft VS Code")
+        );
+    }
+
+    #[test]
+    fn installed_software_match_accepts_user_display_name_suffix_for_any_exact_alias() {
+        let recipe = winget_recipe_with_detection("Anysphere.Cursor", &[], &["Cursor"], &[]);
+        let snapshot = InstalledSoftwareSnapshot {
+            entries: vec![InstalledSoftwareEntry {
+                registry_key: "ARP\\User\\X64\\Cursor_is1".into(),
+                display_name: Some("Cursor (User)".into()),
+                display_version: Some("3.6.21".into()),
+                install_location: Some("C:\\Users\\ryan\\AppData\\Local\\Programs\\Cursor".into()),
+            }],
+        };
+
+        let state = detect_installed_software(&recipe, &snapshot);
+
+        assert!(state.installed);
+        assert_eq!(state.installed_version.as_deref(), Some("3.6.21"));
+        assert_eq!(
+            state.install_location.as_deref(),
+            Some("C:\\Users\\ryan\\AppData\\Local\\Programs\\Cursor")
+        );
+    }
+
+    #[test]
+    fn installed_software_match_prefers_user_install_over_global_install() {
+        let recipe = winget_recipe_with_detection("Anysphere.Cursor", &[], &["Cursor"], &[]);
+        let snapshot = InstalledSoftwareSnapshot {
+            entries: vec![
+                InstalledSoftwareEntry {
+                    registry_key: "ARP\\Machine\\X64\\Cursor_is1".into(),
+                    display_name: Some("Cursor".into()),
+                    display_version: Some("3.5.0".into()),
+                    install_location: Some("C:\\Program Files\\Cursor".into()),
+                },
+                InstalledSoftwareEntry {
+                    registry_key: "ARP\\User\\X64\\Cursor_is1".into(),
+                    display_name: Some("Cursor (User)".into()),
+                    display_version: Some("3.6.21".into()),
+                    install_location: Some(
+                        "C:\\Users\\ryan\\AppData\\Local\\Programs\\Cursor".into(),
+                    ),
+                },
+            ],
+        };
+
+        let state = detect_installed_software(&recipe, &snapshot);
+
+        assert!(state.installed);
+        assert_eq!(state.installed_version.as_deref(), Some("3.6.21"));
+        assert_eq!(
+            state.install_location.as_deref(),
+            Some("C:\\Users\\ryan\\AppData\\Local\\Programs\\Cursor")
         );
     }
 
