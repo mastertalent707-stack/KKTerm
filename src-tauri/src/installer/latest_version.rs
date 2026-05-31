@@ -146,7 +146,7 @@ fn latest_winget_manifest_version_from_entries(entries: &[GithubContentEntry]) -
         .iter()
         .filter(|entry| entry.kind == "dir")
         .map(|entry| entry.name.trim())
-        .filter(|name| !name.is_empty() && !name.starts_with('.'))
+        .filter(|name| looks_like_winget_version_value(name))
         .max_by(|a, b| compare_winget_versions(a, b))
         .map(|version| version.to_string())
 }
@@ -161,7 +161,10 @@ fn winget_show_version_from_output(stdout: &str) -> Option<String> {
         if value.is_empty() {
             continue;
         }
-        if label.trim().eq_ignore_ascii_case("version") || looks_like_winget_version_value(value) {
+        if (label.trim().eq_ignore_ascii_case("version")
+            || looks_like_winget_version_value(value))
+            && looks_like_winget_version_value(value)
+        {
             return Some(value.to_string());
         }
     }
@@ -437,6 +440,37 @@ mod tests {
     }
 
     #[test]
+    fn latest_winget_manifest_version_ignores_channel_directories() {
+        let entries = vec![
+            GithubContentEntry {
+                name: "2.54.0".into(),
+                kind: "dir".into(),
+            },
+            GithubContentEntry {
+                name: "PreRelease".into(),
+                kind: "dir".into(),
+            },
+            GithubContentEntry {
+                name: "Insiders".into(),
+                kind: "dir".into(),
+            },
+            GithubContentEntry {
+                name: "Lite".into(),
+                kind: "dir".into(),
+            },
+            GithubContentEntry {
+                name: "Portable".into(),
+                kind: "dir".into(),
+            },
+        ];
+
+        assert_eq!(
+            latest_winget_manifest_version_from_entries(&entries),
+            Some("2.54.0".into())
+        );
+    }
+
+    #[test]
     fn winget_show_version_parses_english_output() {
         let stdout = r#"Found uv [astral-sh.uv]
 Version: 0.11.17
@@ -471,6 +505,18 @@ Terms of Transaction: https://aka.ms/microsoft-store-terms-of-transaction
         let stdout = r#"Terms of Transaction: https://aka.ms/microsoft-store-terms-of-transaction
 Publisher Url: https://github.com/astral-sh/uv/issues
 Homepage: https://github.com/astral-sh/uv
+"#;
+
+        assert_eq!(winget_show_version_from_output(stdout), None);
+    }
+
+    #[test]
+    fn winget_show_version_ignores_unknown_store_version() {
+        let stdout = r#"Found Codex [9PLM9XGG6VKS]
+Version: Unknown
+Publisher: OpenAI
+Installer:
+  Installer Type: msstore
 "#;
 
         assert_eq!(winget_show_version_from_output(stdout), None);
