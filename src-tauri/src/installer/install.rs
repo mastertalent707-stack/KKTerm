@@ -9,11 +9,12 @@
 // The flow is intentionally not transactional — partial installs are owned
 // by the underlying installer (ADR 0007 §"Execution constraints").
 
+use std::collections::BTreeMap;
 use std::io::{BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, mpsc};
+use std::sync::{mpsc, Arc};
 use std::thread::JoinHandle;
 use std::time::{Instant, SystemTime};
 
@@ -24,11 +25,11 @@ use serde_json::json;
 /// genuinely quiet for 30–90s during MSIX staging.
 const HEARTBEAT_INTERVAL_SECS: u64 = 10;
 
-use super::detect::{GithubReleaseMarker, github_release_install_dir, github_release_marker_path};
+use super::detect::{github_release_install_dir, github_release_marker_path, GithubReleaseMarker};
 use super::events::ProgressEvent;
 use super::managed_app::{
-    ManagedAppMarker, managed_app_binary_dir, managed_app_data_dir, managed_app_install_dir,
-    managed_app_marker_path,
+    managed_app_binary_dir, managed_app_data_dir, managed_app_install_dir, managed_app_marker_path,
+    ManagedAppMarker,
 };
 use super::options::InstallOptions;
 use super::proc::{no_window, npm_program};
@@ -612,7 +613,7 @@ fn install_winget(
 }
 
 fn winget_tool_should_add_links_to_path(tool_id: &str) -> bool {
-    matches!(tool_id, "nssm" | "ripgrep" | "jq" | "fzf")
+    matches!(tool_id, "nssm" | "ripgrep" | "jq" | "fzf" | "uv")
 }
 
 fn winget_links_dir() -> Option<PathBuf> {
@@ -1048,7 +1049,14 @@ pub fn run_streamed_with_refreshed_path_public(
     cancel: Arc<AtomicBool>,
     emit: &EventSink,
 ) -> Result<(), String> {
-    run_streamed_with_path(program, args, tool_id, cancel, emit, refreshed_path())
+    run_streamed_with_environment(
+        program,
+        args,
+        tool_id,
+        cancel,
+        emit,
+        refreshed_environment(),
+    )
 }
 
 pub fn refreshed_path_public() -> Option<String> {
@@ -1062,16 +1070,23 @@ fn run_streamed(
     cancel: Arc<AtomicBool>,
     emit: &EventSink,
 ) -> Result<(), String> {
-    run_streamed_with_path(program, args, tool_id, cancel, emit, None)
+    run_streamed_with_environment(
+        program,
+        args,
+        tool_id,
+        cancel,
+        emit,
+        RefreshedEnvironment::default(),
+    )
 }
 
-fn run_streamed_with_path(
+fn run_streamed_with_environment(
     program: &str,
     args: &[String],
     tool_id: &str,
     cancel: Arc<AtomicBool>,
     emit: &EventSink,
-    path_override: Option<String>,
+    environment: RefreshedEnvironment,
 ) -> Result<(), String> {
     let started_at_log = Instant::now();
     crate::logging::installer_helper_debug(
@@ -1080,7 +1095,8 @@ fn run_streamed_with_path(
             "toolId": tool_id,
             "program": program,
             "args": args,
-            "pathOverride": path_override.as_ref().map(|path| !path.trim().is_empty()).unwrap_or(false),
+            "pathOverride": environment.path.as_ref().map(|path| !path.trim().is_empty()).unwrap_or(false),
+            "envOverrideKeys": environment.vars.keys().collect::<Vec<_>>(),
         }),
     );
     // Surface the exact command we're about to run. Stalls show up as a
@@ -1098,7 +1114,10 @@ fn run_streamed_with_path(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .stdin(Stdio::null());
-    if let Some(path) = path_override.filter(|path| !path.trim().is_empty()) {
+    for (name, value) in environment.vars {
+        command.env(name, value);
+    }
+    if let Some(path) = environment.path.filter(|path| !path.trim().is_empty()) {
         command.env("PATH", path);
     }
 
@@ -1225,9 +1244,26 @@ fn run_streamed_with_path(
     }
 }
 
+#[derive(Default)]
+struct RefreshedEnvironment {
+    path: Option<String>,
+    vars: BTreeMap<String, String>,
+}
+
+fn refreshed_environment() -> RefreshedEnvironment {
+    #[cfg(target_os = "windows")]
+    {
+        refreshed_windows_environment()
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        RefreshedEnvironment::default()
+    }
+}
+
 #[cfg(target_os = "windows")]
-fn refreshed_path() -> Option<String> {
-    let script = r#"$machine = [Environment]::GetEnvironmentVariable('Path','Machine'); $user = [Environment]::GetEnvironmentVariable('Path','User'); (($machine, $user) -join ';')"#;
+fn refreshed_windows_environment() -> RefreshedEnvironment {
+    let script = r#"$names = @('Path','NVM_HOME','NVM_SYMLINK'); foreach ($name in $names) { $machine = [Environment]::GetEnvironmentVariable($name,'Machine'); $user = [Environment]::GetEnvironmentVariable($name,'User'); if ($machine) { "Machine`t$name`t$machine" }; if ($user) { "User`t$name`t$user" } }"#;
     let output = no_window(
         Command::new("powershell")
             .args(["-NoProfile", "-NonInteractive", "-Command", script])
@@ -1236,25 +1272,107 @@ fn refreshed_path() -> Option<String> {
             .stdin(Stdio::null()),
     )
     .output()
-    .ok()?;
+    .ok();
+    let Some(output) = output else {
+        return RefreshedEnvironment::default();
+    };
     if !output.status.success() {
-        return None;
+        return RefreshedEnvironment::default();
     }
-    let persisted = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    Some(merge_path_values(
+    let (persisted_path, vars) =
+        parse_persisted_environment(&String::from_utf8_lossy(&output.stdout));
+    let path_extras = refreshed_path_extras(&vars);
+    let path = merge_path_values(
         std::env::var("PATH").ok().as_deref(),
-        Some(&persisted),
-    ))
+        Some(&persisted_path),
+        path_extras.iter().map(|path| Some(path.as_str())),
+    );
+    RefreshedEnvironment {
+        path: Some(path),
+        vars,
+    }
 }
 
-#[cfg(not(target_os = "windows"))]
 fn refreshed_path() -> Option<String> {
-    None
+    refreshed_environment().path
 }
 
-fn merge_path_values(current: Option<&str>, persisted: Option<&str>) -> String {
+fn parse_persisted_environment(output: &str) -> (String, BTreeMap<String, String>) {
+    let mut machine_path: Option<String> = None;
+    let mut user_path: Option<String> = None;
+    let mut vars = BTreeMap::new();
+    for line in output.lines() {
+        let mut parts = line.splitn(3, '\t');
+        let Some(scope) = parts.next() else { continue };
+        let Some(name) = parts.next() else { continue };
+        let Some(value) = parts.next() else { continue };
+        if value.trim().is_empty() {
+            continue;
+        }
+        if name.eq_ignore_ascii_case("Path") {
+            if scope.eq_ignore_ascii_case("Machine") {
+                machine_path = Some(value.to_string());
+            } else if scope.eq_ignore_ascii_case("User") {
+                user_path = Some(value.to_string());
+            }
+            continue;
+        }
+        // User-scoped values intentionally win over machine-scoped values,
+        // matching Windows' effective environment merge for the same name.
+        vars.insert(name.to_ascii_uppercase(), value.to_string());
+    }
+    let path = ([machine_path, user_path]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>())
+    .join(";");
+    (path, vars)
+}
+
+fn refreshed_path_extras(vars: &BTreeMap<String, String>) -> Vec<String> {
+    let mut extras = Vec::new();
+    for name in ["NVM_HOME", "NVM_SYMLINK"] {
+        if let Some(value) = vars.get(name).filter(|value| !value.trim().is_empty()) {
+            extras.push(value.clone());
+        }
+    }
+    if let Some(dir) = winget_links_dir().filter(|dir| dir.is_dir()) {
+        extras.push(dir.to_string_lossy().to_string());
+    }
+    for dir in git_cmd_path_candidates()
+        .into_iter()
+        .filter(|dir| dir.is_dir())
+    {
+        extras.push(dir.to_string_lossy().to_string());
+    }
+    extras
+}
+
+fn git_cmd_path_candidates() -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(program_files) = std::env::var_os("ProgramFiles").map(PathBuf::from) {
+        candidates.push(program_files.join("Git").join("cmd"));
+    }
+    if let Some(program_files_x86) = std::env::var_os("ProgramFiles(x86)").map(PathBuf::from) {
+        candidates.push(program_files_x86.join("Git").join("cmd"));
+    }
+    if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA").map(PathBuf::from) {
+        candidates.push(local_app_data.join("Programs").join("Git").join("cmd"));
+    }
+    candidates
+}
+
+fn merge_path_values<'a>(
+    current: Option<&'a str>,
+    persisted: Option<&'a str>,
+    extras: impl IntoIterator<Item = Option<&'a str>>,
+) -> String {
     let mut parts: Vec<String> = Vec::new();
-    for value in [current, persisted].into_iter().flatten() {
+    for value in [current, persisted]
+        .into_iter()
+        .chain(extras.into_iter())
+        .flatten()
+    {
         for part in value.split(';') {
             let trimmed = part.trim();
             if trimmed.is_empty() {
@@ -1502,11 +1620,41 @@ mod tests {
         let merged = merge_path_values(
             Some(r"C:\Windows;C:\Tools"),
             Some(r"c:\tools;C:\Users\Ryan\AppData\Local\Microsoft\WinGet\Links"),
+            std::iter::empty::<Option<&str>>(),
         );
 
         assert_eq!(
             merged,
             r"C:\Windows;C:\Tools;C:\Users\Ryan\AppData\Local\Microsoft\WinGet\Links"
+        );
+    }
+
+    #[test]
+    fn merge_path_values_appends_fresh_nvm_directories() {
+        let merged = merge_path_values(
+            Some(r"C:\Windows"),
+            Some(r"C:\Tools"),
+            [
+                Some(r"C:\Users\Ryan\AppData\Local\nvm"),
+                Some(r"C:\nvm4w\nodejs"),
+            ],
+        );
+
+        assert_eq!(
+            merged,
+            r"C:\Windows;C:\Tools;C:\Users\Ryan\AppData\Local\nvm;C:\nvm4w\nodejs"
+        );
+    }
+
+    #[test]
+    fn parse_persisted_environment_prefers_user_values() {
+        let (_, vars) = parse_persisted_environment(
+            "Machine\tNVM_HOME\tC:\\ProgramData\\nvm\nUser\tNVM_HOME\tC:\\Users\\Ryan\\AppData\\Local\\nvm\n",
+        );
+
+        assert_eq!(
+            vars.get("NVM_HOME").map(String::as_str),
+            Some(r"C:\Users\Ryan\AppData\Local\nvm")
         );
     }
 
@@ -1561,7 +1709,7 @@ mod tests {
 
     #[test]
     fn winget_cli_utilities_request_winget_links_on_path() {
-        for tool_id in ["nssm", "ripgrep", "jq", "fzf"] {
+        for tool_id in ["nssm", "ripgrep", "jq", "fzf", "uv"] {
             assert!(
                 winget_tool_should_add_links_to_path(tool_id),
                 "{tool_id} should add the winget links directory to PATH"
@@ -1569,6 +1717,7 @@ mod tests {
         }
         assert!(!winget_tool_should_add_links_to_path("bruno"));
         assert!(!winget_tool_should_add_links_to_path("vscode"));
+        assert!(!winget_tool_should_add_links_to_path("git"));
     }
 
     #[test]
@@ -1604,10 +1753,9 @@ mod tests {
         let args = managed_ollama_winget_args(&InstallOptions::default());
 
         assert!(args.contains(&"--location".to_string()));
-        assert!(
-            args.iter()
-                .any(|arg| arg.ends_with(r"installer\apps\ollama\app"))
-        );
+        assert!(args
+            .iter()
+            .any(|arg| arg.ends_with(r"installer\apps\ollama\app")));
     }
 
     #[test]
