@@ -885,16 +885,14 @@ fn ps_single_quote(value: &str) -> String {
 #[cfg(target_os = "windows")]
 fn spawn_web_ui_affordance(affordance: &WebUiAffordance) -> Result<(), String> {
     let command_line = web_ui_command_line(affordance);
-    let script = format!(
-        "start \"KKTerm web tool\" /D {} cmd /K {}",
-        quote_cmd_arg(&affordance.working_dir),
-        command_line
-    );
     let mut command = Command::new("cmd");
     command
-        .args(["/C", &script])
+        .args(["/K", &web_ui_console_script(&command_line)])
         .envs(affordance.env.iter().map(|(key, value)| (*key, value)))
         .current_dir(&affordance.working_dir);
+    use std::os::windows::process::CommandExt;
+    const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
+    command.creation_flags(CREATE_NEW_CONSOLE);
     if let Some(path) = super::install::refreshed_path_public() {
         command.env("PATH", path);
     }
@@ -921,6 +919,11 @@ fn spawn_web_ui_affordance(affordance: &WebUiAffordance) -> Result<(), String> {
             )
         })?;
     Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn web_ui_console_script(command_line: &str) -> String {
+    format!("title KKTerm web tool && {command_line}")
 }
 
 #[cfg(target_os = "windows")]
@@ -1145,6 +1148,21 @@ mod tests {
         assert_eq!(
             web_ui_command_line(&affordance),
             r#""C:\Users\Ryan User\AppData\Local\KKTerm\installer\apps\ollama\app\ollama.exe" serve"#
+        );
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn web_ui_console_script_sets_title_without_start_title_ambiguity() {
+        let script = web_ui_console_script(r#""npm.cmd" exec -- "vite""#);
+
+        assert_eq!(
+            script,
+            r#"title KKTerm web tool && "npm.cmd" exec -- "vite""#
+        );
+        assert!(
+            !script.starts_with("start "),
+            "Run should not depend on cmd start parsing a quoted title"
         );
     }
 
