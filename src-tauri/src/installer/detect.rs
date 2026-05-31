@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Output};
 use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
@@ -281,10 +281,7 @@ fn detect_node_version() -> Option<String> {
 }
 
 fn detect_uv_python_313_version() -> Option<String> {
-    let output = no_window(&mut Command::new("uv"))
-        .args(["python", "find", "3.13"])
-        .output()
-        .ok()?;
+    let output = command_output_with_refreshed_path("uv", &["python", "find", "3.13"])?;
     if !output.status.success() {
         return None;
     }
@@ -296,10 +293,7 @@ fn detect_uv_python_313_version() -> Option<String> {
 }
 
 fn command_version(program: &str, args: &[&str]) -> Option<String> {
-    let output = no_window(&mut Command::new(program))
-        .args(args)
-        .output()
-        .ok()?;
+    let output = command_output_with_refreshed_path(program, args)?;
     if !output.status.success() {
         return None;
     }
@@ -317,6 +311,31 @@ fn parse_version_line(text: &str) -> Option<String> {
                 .trim_start_matches('v')
                 .to_string()
         })
+}
+
+fn command_output_with_refreshed_path(program: &str, args: &[&str]) -> Option<Output> {
+    command_output_with_path_fallback(program, args, super::install::refreshed_path_public)
+}
+
+fn command_output_with_path_fallback(
+    program: &str,
+    args: &[&str],
+    refreshed_path: impl FnOnce() -> Option<String>,
+) -> Option<Output> {
+    command_output_with_path(program, args, None).or_else(|| {
+        refreshed_path()
+            .filter(|path| !path.trim().is_empty())
+            .and_then(|path| command_output_with_path(program, args, Some(path)))
+    })
+}
+
+fn command_output_with_path(program: &str, args: &[&str], path: Option<String>) -> Option<Output> {
+    let mut command = Command::new(program);
+    command.args(args);
+    if let Some(path) = path {
+        command.env("PATH", path);
+    }
+    no_window(&mut command).output().ok()
 }
 
 // ---- Windows installed software / winget -------------------------------
@@ -674,12 +693,12 @@ mod windows_installed_software {
 // ---- npm ---------------------------------------------------------------
 
 fn detect_npm(pkg: &str) -> DetectedState {
-    let output = match no_window(&mut Command::new(npm_program()))
-        .args(["ls", "-g", "--json", "--depth=0"])
-        .output()
-    {
-        Ok(o) => o,
-        Err(_) => return DetectedState::not_installed(),
+    let output = match command_output_with_refreshed_path(
+        npm_program(),
+        &["ls", "-g", "--json", "--depth=0"],
+    ) {
+        Some(o) => o,
+        None => return DetectedState::not_installed(),
     };
     // npm ls returns non-zero on extraneous packages; trust stdout JSON.
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -918,6 +937,49 @@ mod tests {
         assert_eq!(
             parse_version_line("Python 3.13.5\n").as_deref(),
             Some("3.13.5")
+        );
+    }
+
+    #[test]
+    fn command_output_falls_back_to_refreshed_path() {
+        let unique = format!("kkterm-detect-path-fallback-{}", std::process::id());
+        let temp_dir = std::env::temp_dir().join(&unique);
+        std::fs::create_dir_all(&temp_dir).unwrap();
+
+        #[cfg(target_os = "windows")]
+        let (program, script_path, script) = (
+            format!("{unique}.cmd"),
+            temp_dir.join(format!("{unique}.cmd")),
+            "@echo off\r\necho v24.11.1\r\n".to_string(),
+        );
+        #[cfg(not(target_os = "windows"))]
+        let (program, script_path, script) = (
+            unique.clone(),
+            temp_dir.join(&unique),
+            "#!/bin/sh\necho v24.11.1\n".to_string(),
+        );
+
+        std::fs::write(&script_path, script).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut permissions = std::fs::metadata(&script_path).unwrap().permissions();
+            permissions.set_mode(0o755);
+            std::fs::set_permissions(&script_path, permissions).unwrap();
+        }
+
+        let output = command_output_with_path_fallback(&program, &[], || {
+            Some(temp_dir.to_string_lossy().into_owned())
+        })
+        .expect("fallback PATH should resolve the test command");
+
+        let _ = std::fs::remove_file(&script_path);
+        let _ = std::fs::remove_dir(&temp_dir);
+
+        assert!(output.status.success());
+        assert_eq!(
+            parse_version_line(&String::from_utf8_lossy(&output.stdout)).as_deref(),
+            Some("24.11.1")
         );
     }
 

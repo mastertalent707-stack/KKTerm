@@ -50,6 +50,8 @@ Per-provider detection methods:
 - **wsl-distro** — `wsl --list --quiet`. Matches the distro name declared in the catalog.
 - **bundle** — installed iff every step's detection is installed; otherwise the row shows `installer.status.partial` with an `installed/total` count. One-step bundles inherit the child version.
 
+Runtime command probes such as `node --version`, `uv python find 3.13`, and global npm package detection retry with the refreshed persisted Windows PATH when the current KKTerm process cannot resolve the command. This lets a fresh nvm-windows, uv, or npm install re-detect correctly from `installer.refresh` without requiring a KKTerm restart.
+
 ## Install flow
 
 1. The user clicks `installer.actions.install` on a row.
