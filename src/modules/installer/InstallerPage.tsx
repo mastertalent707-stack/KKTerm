@@ -3,7 +3,8 @@
 // Lifecycle:
 //   * Mount: load catalog (uses 1h disk cache), subscribe to progress events,
 //     load toolState. If hasInitialScanned is false, kick off detect_all and
-//     mark scanned. Subsequent visits use the in-memory cache.
+//     check latest versions in the background. Subsequent visits use the
+//     in-memory cache.
 //   * "Refresh" button: re-run detection, then check latest versions for
 //     every catalog tool.
 //   * Unmount: keep the in-memory store; do NOT reset detected state (so
@@ -135,6 +136,14 @@ export function InstallerPage({ active }: { active: boolean }) {
           setDetected(cached);
         }
         await invokeCommand("installer_detect_all_streaming");
+        const states = await invokeCommand("installer_get_state");
+        setToolStates(states);
+        const toolIds = catalog.recipes.map((r) => r.id);
+        if (toolIds.length > 0) {
+          await invokeCommand("installer_check_latest_versions", {
+            toolIds,
+          });
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         showStatusBarNotice(message, { tone: "error" });
@@ -150,6 +159,7 @@ export function InstallerPage({ active }: { active: boolean }) {
     scanning,
     setDetected,
     setScanning,
+    setToolStates,
     showStatusBarNotice,
   ]);
 
@@ -189,6 +199,7 @@ export function InstallerPage({ active }: { active: boolean }) {
       ? formatHeaderTimestamp(lastCheckedAt)
       : t("installer.status.neverChecked"),
   });
+  const checkInProgress = scanning || checking;
 
   function openUpdateAllConfirm() {
     if (!catalog || updateAllRecipes.length === 0) return;
@@ -248,8 +259,19 @@ export function InstallerPage({ active }: { active: boolean }) {
           <p className="installer-page__subtitle">{t("installer.subtitle")}</p>
         </div>
         <div className="installer-page__actions">
-          <span className="installer-page__last-checked">
-            {lastCheckedText}
+          <span
+            className={`installer-page__last-checked ${
+              checkInProgress ? "installer-page__last-checked--busy" : ""
+            }`}
+          >
+            {checkInProgress ? (
+              <>
+                <span className="installer-page__spinner" aria-hidden="true" />
+                {t("installer.checkingForUpdates")}
+              </>
+            ) : (
+              lastCheckedText
+            )}
           </span>
           <button
             type="button"
@@ -257,7 +279,7 @@ export function InstallerPage({ active }: { active: boolean }) {
             onClick={() => void handleRefresh()}
             disabled={scanning || checking || !catalog}
           >
-            {scanning || checking
+            {checkInProgress
               ? t("installer.checkingDots")
               : t("installer.refresh")}
           </button>
@@ -275,8 +297,6 @@ export function InstallerPage({ active }: { active: boolean }) {
 
       {!catalog ? (
         <div className="installer-empty">{t("installer.empty.loading")}</div>
-      ) : scanning && !hasInitialScanned ? (
-        <div className="installer-empty">{t("installer.status.scanning")}</div>
       ) : (
         <div className="installer-page__sections">
           {sections.categories.map((section) => (

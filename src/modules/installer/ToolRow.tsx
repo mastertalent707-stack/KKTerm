@@ -17,6 +17,8 @@ export function ToolRow({ recipe }: { recipe: Recipe }) {
   const inFlight = useInstallerStore((s) => s.inFlight[recipe.id]);
   const lastStatus = useInstallerStore((s) => s.lastStatus[recipe.id]);
   const latestError = useInstallerStore((s) => s.checkError[recipe.id]);
+  const scanning = useInstallerStore((s) => s.scanning);
+  const checking = useInstallerStore((s) => s.checking);
   const openInfoDialog = useInstallerStore((s) => s.openInfoDialog);
   const openStepperDialog = useInstallerStore((s) => s.openStepperDialog);
 
@@ -31,6 +33,7 @@ export function ToolRow({ recipe }: { recipe: Recipe }) {
     latestSeen !== installedVersion,
   );
   const busy = !!inFlight;
+  const retrieving = !busy && (scanning || checking);
 
   const statusTone:
     | "installed"
@@ -69,14 +72,21 @@ export function ToolRow({ recipe }: { recipe: Recipe }) {
   const installedVersionText = isInstalled
     ? (installedVersion ?? t("installer.status.noVersion"))
     : t("installer.status.notInstalled");
-  const latestVersionText = latestError ?? latestSeen ?? t("installer.status.noVersion");
+  const latestVersionText = retrieving
+    ? t("installer.status.retrieving")
+    : latestError ?? latestSeen ?? t("installer.status.noVersion");
+  const installedDisplayText = retrieving
+    ? t("installer.status.retrieving")
+    : installedVersionText;
   const runtimeVersionLabel =
     recipe.id === "node-bundle"
       ? t("installer.tile.node")
       : recipe.id === "python-bundle"
         ? t("installer.tile.python")
         : null;
-  const runtimeVersionText = detected?.runtimeVersion ?? t("installer.status.noVersion");
+  const runtimeVersionText = retrieving
+    ? t("installer.status.retrieving")
+    : detected?.runtimeVersion ?? t("installer.status.noVersion");
 
   return (
     <article
@@ -137,20 +147,20 @@ export function ToolRow({ recipe }: { recipe: Recipe }) {
                 <dt>{t("installer.tile.latest")}</dt>
                 <dd
                   className={
-                    latestError
+                    !retrieving && latestError
                       ? "installer-tile__version--error"
-                      : hasUpdate
+                      : !retrieving && hasUpdate
                         ? "installer-tile__version--update"
                         : undefined
                   }
-                  title={latestError ?? latestVersionText}
+                  title={retrieving ? latestVersionText : latestError ?? latestVersionText}
                 >
                   {latestVersionText}
                 </dd>
               </div>
               <div>
                 <dt>{t("installer.tile.installed")}</dt>
-                <dd>{installedVersionText}</dd>
+                <dd>{installedDisplayText}</dd>
               </div>
               {runtimeVersionLabel ? (
                 <div>
@@ -177,6 +187,7 @@ export function ToolRow({ recipe }: { recipe: Recipe }) {
               type="button"
               className="installer-tile__action primary"
               onClick={handleActionClick}
+              disabled={retrieving}
             >
               {hasUpdate
                 ? t("installer.actions.update")

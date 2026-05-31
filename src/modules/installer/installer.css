@@ -52,6 +52,25 @@
   white-space: nowrap;
 }
 
+.installer-page__last-checked--busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.installer-page__spinner {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: installer-spin 0.8s linear infinite;
+}
+
+@keyframes installer-spin {
+  to { transform: rotate(360deg); }
+}
+
 .installer-button {
   padding: 0.4rem 0.85rem;
   border-radius: 6px;
@@ -383,6 +402,12 @@
 
 .installer-tile__action:hover {
   filter: brightness(1.04);
+}
+
+.installer-tile__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
 }
 
 /* ---------- InstallerToolDialog ---------- */

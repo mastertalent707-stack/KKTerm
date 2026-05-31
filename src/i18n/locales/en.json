@@ -464,6 +464,7 @@
     "railLabel": "Installer Helper",
     "refresh": "Refresh",
     "checkUpdates": "Check for updates",
+    "checkingForUpdates": "Checking for updates",
     "updateAll": "Update all",
     "section": {
       "installed": "Installed",
@@ -522,6 +523,7 @@
       "partial": "Partially installed ({{installed}}/{{total}})",
       "noVersion": "(version unknown)",
       "notInstalled": "Not installed",
+      "retrieving": "Retrieving...",
       "neverChecked": "Never"
     },
     "empty": {
