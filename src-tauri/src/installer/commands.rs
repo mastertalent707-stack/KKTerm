@@ -6,6 +6,7 @@
 
 use std::collections::HashMap;
 use std::net::{SocketAddr, TcpStream};
+use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -881,11 +882,12 @@ fn service_affordance(tool_id: &str) -> Option<ManagedServiceAffordance> {
 
 fn service_install_script(service: &ManagedServiceAffordance) -> String {
     let service_name = quote_cmd_always(&service.service_name);
-    let mut install_line = format!(
-        "nssm install {} {}",
-        service_name,
-        quote_cmd_arg(&service.program)
-    );
+    let (program_setup_lines, service_program) =
+        service_program_for_install_script(&service.program);
+    let log_dir = service_log_dir(service);
+    let stdout_log = service_log_path(service, "stdout");
+    let stderr_log = service_log_path(service, "stderr");
+    let mut install_line = format!("nssm install {} {}", service_name, service_program);
     for arg in &service.args {
         install_line.push(' ');
         install_line.push_str(&quote_cmd_arg(arg));
@@ -899,6 +901,14 @@ fn service_install_script(service: &ManagedServiceAffordance) -> String {
         "  echo NSSM is required. Install NSSM from KKTerm Installer Helper first.".to_string(),
         "  exit /b 2".to_string(),
         ")".to_string(),
+    ];
+    lines.extend(program_setup_lines);
+    lines.extend([
+        format!(
+            "if not exist {} mkdir {}",
+            quote_cmd_arg(&log_dir),
+            quote_cmd_arg(&log_dir)
+        ),
         format!("nssm stop {} >nul 2>nul", service_name),
         format!("nssm remove {} confirm >nul 2>nul", service_name),
         install_line,
@@ -912,7 +922,17 @@ fn service_install_script(service: &ManagedServiceAffordance) -> String {
             service_name,
             quote_cmd_arg(&service.working_dir)
         ),
-    ];
+        format!(
+            "nssm set {} AppStdout {}",
+            service_name,
+            quote_cmd_arg(&stdout_log)
+        ),
+        format!(
+            "nssm set {} AppStderr {}",
+            service_name,
+            quote_cmd_arg(&stderr_log)
+        ),
+    ]);
     if !service.env.is_empty() {
         let env_values = service
             .env
@@ -931,6 +951,41 @@ fn service_install_script(service: &ManagedServiceAffordance) -> String {
     ));
     lines.push(format!("nssm set {} AppExit Default Exit", service_name));
     lines.join("\r\n")
+}
+
+fn service_log_dir(service: &ManagedServiceAffordance) -> String {
+    Path::new(&service.working_dir)
+        .join("logs")
+        .to_string_lossy()
+        .into_owned()
+}
+
+fn service_log_path(service: &ManagedServiceAffordance, stream: &str) -> String {
+    Path::new(&service_log_dir(service))
+        .join(format!("{}.{}.log", service.service_name, stream))
+        .to_string_lossy()
+        .into_owned()
+}
+
+fn service_program_for_install_script(program: &str) -> (Vec<String>, String) {
+    if cfg!(target_os = "windows") && program.eq_ignore_ascii_case(npm_program()) {
+        return (
+            vec![
+                "set \"KKTERM_SERVICE_APP=\"".to_string(),
+                format!(
+                    "for %%I in ({}) do set \"KKTERM_SERVICE_APP=%%~$PATH:I\"",
+                    npm_program()
+                ),
+                "if not defined KKTERM_SERVICE_APP (".to_string(),
+                "  echo npm.cmd is required. Install Node.js from KKTerm Installer Helper first."
+                    .to_string(),
+                "  exit /b 2".to_string(),
+                ")".to_string(),
+            ],
+            "\"%KKTERM_SERVICE_APP%\"".to_string(),
+        );
+    }
+    (Vec::new(), quote_cmd_arg(program))
 }
 
 fn service_remove_script(service_name: &str) -> String {
@@ -1482,7 +1537,36 @@ mod tests {
         assert!(script.contains(
             r#"nssm set "KKTerm-Test" AppDirectory "C:\Users\Ryan User\AppData\Local\Test""#
         ));
+        assert!(script.contains(
+            r#"if not exist "C:\Users\Ryan User\AppData\Local\Test\logs" mkdir "C:\Users\Ryan User\AppData\Local\Test\logs""#
+        ));
+        assert!(script.contains(
+            r#"nssm set "KKTerm-Test" AppStdout "C:\Users\Ryan User\AppData\Local\Test\logs\KKTerm-Test.stdout.log""#
+        ));
+        assert!(script.contains(
+            r#"nssm set "KKTerm-Test" AppStderr "C:\Users\Ryan User\AppData\Local\Test\logs\KKTerm-Test.stderr.log""#
+        ));
         assert!(script.contains(r#"nssm set "KKTerm-Test" AppEnvironmentExtra "TEST_HOME=C:\Users\Ryan User\AppData\Local\Test""#));
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn service_install_script_resolves_npm_cmd_before_registering_service() {
+        let service = ManagedServiceAffordance {
+            service_name: "KKTerm-Test".into(),
+            display_name: "KKTerm Test".into(),
+            program: npm_program().into(),
+            args: vec!["exec".into(), "--".into(), "vite".into()],
+            env: vec![],
+            working_dir: r"C:\Users\Ryan User\AppData\Local\Test".into(),
+        };
+        let script = service_install_script(&service);
+
+        assert!(script.contains(r#"for %%I in (npm.cmd) do set "KKTERM_SERVICE_APP=%%~$PATH:I""#));
+        assert!(
+            script.contains(r#"nssm install "KKTerm-Test" "%KKTERM_SERVICE_APP%" exec -- vite"#)
+        );
+        assert!(!script.contains(r#"nssm install "KKTerm-Test" npm.cmd"#));
     }
 
     #[test]
