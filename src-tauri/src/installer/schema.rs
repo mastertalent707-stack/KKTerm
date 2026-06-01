@@ -544,6 +544,7 @@ mod tests {
             "rustdesk",
             "7zip",
             "sharex",
+            "ffmpeg",
             "excalidraw",
         ] {
             assert!(ids.contains(id), "catalog should include {id}");

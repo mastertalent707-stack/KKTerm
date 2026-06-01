@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-30",
+  "generatedAt": "2026-06-01",
   "recipes": [
     {
       "id": "git",
@@ -539,6 +539,22 @@
       "provider": { "kind": "winget", "id": "ShareX.ShareX" },
       "downloadProvider": { "kind": "downloadInstaller", "url": "https://github.com/ShareX/ShareX/releases/download/v20.2.0/ShareX-20.2.0-setup-x64.exe", "fileName": "ShareX-20.2.0-setup-x64.exe" },
       "options": ["provider", "scope", "version"]
+    },
+    {
+      "id": "ffmpeg",
+      "name": "FFmpeg",
+      "descriptionEn": "Command-line multimedia toolkit for converting, recording, streaming, and inspecting audio/video files.",
+      "category": "utilities",
+      "icon": "Film",
+      "needs": ["winget"],
+      "homepage": "https://ffmpeg.org/",
+      "releaseNotesUrl": "https://ffmpeg.org/download.html",
+      "detection": {
+        "displayNames": ["FFmpeg"],
+        "displayNamePrefixes": ["FFmpeg "]
+      },
+      "provider": { "kind": "winget", "id": "Gyan.FFmpeg" },
+      "options": ["scope", "version"]
     },
     {
       "id": "excalidraw",

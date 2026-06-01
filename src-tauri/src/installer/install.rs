@@ -637,7 +637,7 @@ fn install_winget(
 }
 
 fn winget_tool_should_add_links_to_path(tool_id: &str) -> bool {
-    matches!(tool_id, "nssm" | "ripgrep" | "jq" | "fzf" | "uv")
+    matches!(tool_id, "nssm" | "ripgrep" | "jq" | "fzf" | "uv" | "ffmpeg")
 }
 
 fn winget_links_dir() -> Option<PathBuf> {
@@ -1734,7 +1734,7 @@ mod tests {
 
     #[test]
     fn winget_cli_utilities_request_winget_links_on_path() {
-        for tool_id in ["nssm", "ripgrep", "jq", "fzf", "uv"] {
+        for tool_id in ["nssm", "ripgrep", "jq", "fzf", "uv", "ffmpeg"] {
             assert!(
                 winget_tool_should_add_links_to_path(tool_id),
                 "{tool_id} should add the winget links directory to PATH"

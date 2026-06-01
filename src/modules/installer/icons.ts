@@ -81,6 +81,7 @@ const RECIPE_ICON_URLS: Record<string, string> = {
   rustdesk,
   "7zip": sevenZip,
   sharex,
+  ffmpeg: defaultIcon,
   excalidraw,
   openclaw,
 };
