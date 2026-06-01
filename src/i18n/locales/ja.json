@@ -1038,6 +1038,7 @@
     "dynamicBackgrounds": {
       "aurora": "オーロラ",
       "confetti": "紙吹雪",
+      "particleCursor": "Particle Cursor",
       "embers": "残り火",
       "lava": "ラバランプ",
       "matrix": "マトリックス",

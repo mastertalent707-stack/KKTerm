@@ -1038,6 +1038,7 @@
     "dynamicBackgrounds": {
       "aurora": "Aurora",
       "confetti": "Confete",
+      "particleCursor": "Particle Cursor",
       "embers": "Brasas",
       "lava": "Lâmpada de lava",
       "matrix": "Matrix",

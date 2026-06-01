@@ -1038,6 +1038,7 @@
     "dynamicBackgrounds": {
       "aurora": "极光",
       "confetti": "五彩纸屑",
+      "particleCursor": "Particle Cursor",
       "embers": "余烬",
       "lava": "熔岩灯",
       "matrix": "矩阵",

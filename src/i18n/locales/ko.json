@@ -1038,6 +1038,7 @@
     "dynamicBackgrounds": {
       "aurora": "오로라",
       "confetti": "컨페티",
+      "particleCursor": "Particle Cursor",
       "embers": "불씨",
       "lava": "라바 램프",
       "matrix": "매트릭스",
