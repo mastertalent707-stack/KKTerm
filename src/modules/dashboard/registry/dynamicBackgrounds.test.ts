@@ -10,6 +10,7 @@ const expectedIds = [
   "clouds",
   "ocean",
   "raindrops",
+  "rainywindow",
   "snow",
   "sakura",
   "fireflies",

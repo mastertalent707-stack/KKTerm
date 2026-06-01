@@ -407,6 +407,301 @@ function RaindropsBg() {
   return <canvas ref={ref} className="dw-dynamic-bg-canvas" />;
 }
 
+interface RainyWindowMist {
+  x: number;
+  y: number;
+  r: number;
+  ph: number;
+  decay?: number;
+}
+
+interface RainyWindowStud {
+  x: number;
+  y: number;
+  r: number;
+}
+
+interface RainyWindowSlide {
+  x: number;
+  y: number;
+  r: number;
+  v: number;
+  wob: number;
+  wait: number;
+  moving: boolean;
+}
+
+interface RainyWindowState extends CanvasAnimLifecycle {
+  sharp?: HTMLCanvasElement;
+  fog?: HTMLCanvasElement;
+  reveal?: HTMLCanvasElement;
+  revealCtx?: CanvasRenderingContext2D;
+  mist?: RainyWindowMist[];
+  studs?: RainyWindowStud[];
+  slides?: RainyWindowSlide[];
+  last?: number;
+  canvasWidth?: number;
+  canvasHeight?: number;
+}
+
+function RainyWindowBg() {
+  function createSlide(width: number, height: number, seed: boolean): RainyWindowSlide {
+    const r = 5 + Math.random() * 11;
+    return {
+      x: Math.random() * width,
+      y: seed ? Math.random() * height : -10 - Math.random() * 40,
+      r,
+      v: 0,
+      wob: Math.random() * Math.PI * 2,
+      wait: Math.random() * 0.8,
+      moving: false,
+    };
+  }
+
+  const draw: CanvasDraw<RainyWindowState> = (ctx, width, height, time, state) => {
+    state.onResize = (nextWidth, nextHeight) => {
+      const sharp = document.createElement("canvas");
+      sharp.width = nextWidth;
+      sharp.height = nextHeight;
+      const sharpCtx = sharp.getContext("2d");
+      if (!sharpCtx) return;
+
+      const cityGradient = sharpCtx.createLinearGradient(0, 0, 0, nextHeight);
+      cityGradient.addColorStop(0, "#0a1320");
+      cityGradient.addColorStop(0.5, "#0c1a2a");
+      cityGradient.addColorStop(1, "#0f2436");
+      sharpCtx.fillStyle = cityGradient;
+      sharpCtx.fillRect(0, 0, nextWidth, nextHeight);
+
+      const lightHues = [38, 38, 32, 196, 200, 320];
+      const lightCount = Math.floor((nextWidth * nextHeight) / 11000);
+      sharpCtx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < lightCount; i += 1) {
+        const lx = Math.random() * nextWidth;
+        const ly = nextHeight * (0.22 + Math.pow(Math.random(), 0.7) * 0.78);
+        const r = 6 + Math.random() * 46;
+        const hue = lightHues[Math.floor(Math.random() * lightHues.length)];
+        const alpha = 0.18 + Math.random() * 0.4;
+        const glow = sharpCtx.createRadialGradient(lx, ly, 0, lx, ly, r);
+        glow.addColorStop(0, `hsla(${hue},85%,70%,${alpha})`);
+        glow.addColorStop(0.4, `hsla(${hue},85%,60%,${alpha * 0.45})`);
+        glow.addColorStop(1, `hsla(${hue},85%,55%,0)`);
+        sharpCtx.fillStyle = glow;
+        sharpCtx.beginPath();
+        sharpCtx.arc(lx, ly, r, 0, Math.PI * 2);
+        sharpCtx.fill();
+      }
+      for (let i = 0; i < 6; i += 1) {
+        const ly = nextHeight * (0.7 + Math.random() * 0.28);
+        const lx = Math.random() * nextWidth;
+        const len = 60 + Math.random() * 180;
+        const hue = Math.random() < 0.5 ? 35 : 200;
+        const streak = sharpCtx.createLinearGradient(lx, ly, lx + len, ly);
+        streak.addColorStop(0, `hsla(${hue},90%,65%,0)`);
+        streak.addColorStop(0.5, `hsla(${hue},90%,68%,0.5)`);
+        streak.addColorStop(1, `hsla(${hue},90%,65%,0)`);
+        sharpCtx.fillStyle = streak;
+        sharpCtx.fillRect(lx, ly - 1.5, len, 3);
+      }
+      sharpCtx.globalCompositeOperation = "source-over";
+
+      const fog = document.createElement("canvas");
+      fog.width = nextWidth;
+      fog.height = nextHeight;
+      const fogCtx = fog.getContext("2d");
+      if (!fogCtx) return;
+      fogCtx.filter = "blur(14px) brightness(0.62)";
+      fogCtx.drawImage(sharp, 0, 0);
+      fogCtx.filter = "none";
+      fogCtx.fillStyle = "rgba(150,170,195,0.16)";
+      fogCtx.fillRect(0, 0, nextWidth, nextHeight);
+
+      const reveal = document.createElement("canvas");
+      reveal.width = nextWidth;
+      reveal.height = nextHeight;
+      const revealCtx = reveal.getContext("2d");
+      if (!revealCtx) return;
+
+      const mistCount = Math.max(120, Math.min(360, Math.floor((nextWidth * nextHeight) / 5200)));
+      const studCount = Math.max(26, Math.min(80, Math.floor((nextWidth * nextHeight) / 26000)));
+      const slideCount = Math.max(10, Math.min(30, Math.floor(nextWidth / 90)));
+      state.sharp = sharp;
+      state.fog = fog;
+      state.reveal = reveal;
+      state.revealCtx = revealCtx;
+      state.mist = Array.from({ length: mistCount }, () => ({
+        x: Math.random() * nextWidth,
+        y: Math.random() * nextHeight,
+        r: 0.8 + Math.random() * 2.6,
+        ph: Math.random() * Math.PI * 2,
+      }));
+      state.studs = Array.from({ length: studCount }, () => ({
+        x: Math.random() * nextWidth,
+        y: Math.random() * nextHeight,
+        r: 3 + Math.random() * 6,
+      }));
+      state.slides = Array.from({ length: slideCount }, () => createSlide(nextWidth, nextHeight, true));
+      state.canvasWidth = nextWidth;
+      state.canvasHeight = nextHeight;
+      state.last = time;
+    };
+
+    if (
+      !state.fog
+      || !state.sharp
+      || !state.reveal
+      || !state.revealCtx
+      || !state.mist
+      || !state.studs
+      || !state.slides
+      || !state.canvasWidth
+      || !state.canvasHeight
+    ) {
+      return;
+    }
+
+    const dt = Math.min(0.05, time - (state.last ?? time));
+    state.last = time;
+    const canvasWidth = state.canvasWidth;
+    const canvasHeight = state.canvasHeight;
+    const revealCtx = state.revealCtx;
+
+    function lensDrop(x: number, y: number, r: number, magnification: number) {
+      if (!state.sharp) return;
+      const shadow = ctx.createRadialGradient(x + r * 0.25, y + r * 0.4, 0, x + r * 0.25, y + r * 0.4, r * 1.5);
+      shadow.addColorStop(0, "rgba(0,0,0,0.32)");
+      shadow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = shadow;
+      ctx.beginPath();
+      ctx.arc(x + r * 0.25, y + r * 0.4, r * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.clip();
+      const sampleRadius = r / magnification;
+      ctx.drawImage(
+        state.sharp,
+        x - sampleRadius,
+        y - sampleRadius + r * 0.22,
+        sampleRadius * 2,
+        sampleRadius * 2,
+        x - r,
+        y - r,
+        r * 2,
+        r * 2,
+      );
+      ctx.fillStyle = "rgba(190,210,235,0.10)";
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      const bottomLight = ctx.createLinearGradient(0, y, 0, y + r);
+      bottomLight.addColorStop(0, "rgba(210,225,245,0)");
+      bottomLight.addColorStop(1, "rgba(210,225,245,0.22)");
+      ctx.fillStyle = bottomLight;
+      ctx.fillRect(x - r, y, r * 2, r);
+      ctx.restore();
+
+      ctx.lineWidth = Math.max(0.6, r * 0.1);
+      ctx.strokeStyle = "rgba(8,14,22,0.45)";
+      ctx.beginPath();
+      ctx.arc(x, y, r - ctx.lineWidth * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.beginPath();
+      ctx.arc(x - r * 0.34, y - r * 0.38, Math.max(0.7, r * 0.16), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.beginPath();
+      ctx.arc(x + r * 0.2, y + r * 0.18, Math.max(0.5, r * 0.1), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "#0a1320";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(state.fog, 0, 0, canvasWidth, canvasHeight);
+
+    revealCtx.globalCompositeOperation = "destination-out";
+    revealCtx.fillStyle = `rgba(0,0,0,${Math.min(1, 0.35 * dt)})`;
+    revealCtx.fillRect(0, 0, canvasWidth, canvasHeight);
+    revealCtx.globalCompositeOperation = "source-over";
+
+    for (const drop of state.slides) {
+      if (!drop.moving) {
+        drop.wait -= dt;
+        if (drop.wait <= 0 || drop.r > 9) drop.moving = true;
+      } else {
+        drop.v += (40 + drop.r * 16) * dt;
+        drop.v = Math.min(drop.v, 60 + drop.r * 26);
+        const nextY = drop.y + drop.v * dt;
+        const nextX = drop.x + Math.sin(time * 1.3 + drop.wob) * 6 * dt;
+
+        revealCtx.save();
+        revealCtx.beginPath();
+        revealCtx.moveTo(drop.x, drop.y);
+        revealCtx.lineTo(nextX, nextY);
+        revealCtx.lineWidth = drop.r * 1.5;
+        revealCtx.lineCap = "round";
+        revealCtx.strokeStyle = "#000";
+        revealCtx.stroke();
+        revealCtx.globalCompositeOperation = "source-in";
+        revealCtx.drawImage(state.sharp, 0, 0, canvasWidth, canvasHeight);
+        revealCtx.restore();
+
+        if (Math.random() < dt * 22) {
+          state.mist.push({
+            x: drop.x + (Math.random() - 0.5) * drop.r * 1.4,
+            y: drop.y - Math.random() * drop.r,
+            r: 0.8 + Math.random() * 1.8,
+            ph: Math.random() * Math.PI * 2,
+            decay: 1,
+          });
+          if (state.mist.length > 600) state.mist.shift();
+        }
+
+        drop.x = nextX;
+        drop.y = nextY;
+        if (Math.random() < dt * 1.1 && drop.r < 9) {
+          drop.moving = false;
+          drop.v = 0;
+          drop.wait = 0.2 + Math.random() * 0.7;
+        }
+        if (drop.y - drop.r > canvasHeight) Object.assign(drop, createSlide(canvasWidth, canvasHeight, false));
+      }
+    }
+
+    ctx.drawImage(state.reveal, 0, 0, canvasWidth, canvasHeight);
+    for (const stud of state.studs) lensDrop(stud.x, stud.y, stud.r, 1.45);
+
+    for (let i = state.mist.length - 1; i >= 0; i -= 1) {
+      const mist = state.mist[i];
+      if (mist.decay !== undefined) {
+        mist.decay -= dt * 0.25;
+        if (mist.decay <= 0) {
+          state.mist.splice(i, 1);
+          continue;
+        }
+      }
+      const decay = mist.decay ?? 1;
+      const alpha = (0.22 + 0.12 * Math.sin(time * 0.6 + mist.ph)) * decay;
+      const glow = ctx.createRadialGradient(mist.x - mist.r * 0.3, mist.y - mist.r * 0.3, 0, mist.x, mist.y, mist.r);
+      glow.addColorStop(0, `rgba(220,232,248,${alpha + 0.18})`);
+      glow.addColorStop(1, "rgba(150,175,205,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(mist.x, mist.y, mist.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${0.5 * decay})`;
+      ctx.beginPath();
+      ctx.arc(mist.x - mist.r * 0.35, mist.y - mist.r * 0.35, Math.max(0.4, mist.r * 0.28), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (const drop of state.slides) lensDrop(drop.x, drop.y, drop.r, 1.6);
+  };
+  const ref = useCanvasAnim(draw);
+  return <canvas ref={ref} className="dw-dynamic-bg-canvas" style={{ background: "#0a1320" }} />;
+}
+
 interface MatrixState extends CanvasAnimLifecycle {
   fs?: number;
   cols?: number;
@@ -2382,6 +2677,7 @@ const DYNAMIC_BACKGROUND_COMPONENTS = {
   clouds: CloudsBg,
   ocean: OceanBg,
   raindrops: RaindropsBg,
+  rainywindow: RainyWindowBg,
   snow: SnowBg,
   sakura: SakuraBg,
   fireflies: FirefliesBg,
@@ -2413,6 +2709,7 @@ export const DYNAMIC_BACKGROUNDS: readonly {
   { id: "clouds", labelKey: "dashboard.dynamicBackgrounds.clouds", mood: "calm" },
   { id: "ocean", labelKey: "dashboard.dynamicBackgrounds.ocean", mood: "calm" },
   { id: "raindrops", labelKey: "dashboard.dynamicBackgrounds.raindrops", mood: "calm" },
+  { id: "rainywindow", labelKey: "dashboard.dynamicBackgrounds.rainyWindow", mood: "calm" },
   { id: "snow", labelKey: "dashboard.dynamicBackgrounds.snow", mood: "calm" },
   { id: "sakura", labelKey: "dashboard.dynamicBackgrounds.sakura", mood: "calm" },
   { id: "fireflies", labelKey: "dashboard.dynamicBackgrounds.fireflies", mood: "calm" },

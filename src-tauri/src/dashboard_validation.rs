@@ -134,6 +134,7 @@ pub const DYNAMIC_BACKGROUND_IDS: &[&str] = &[
     "clouds",
     "ocean",
     "raindrops",
+    "rainywindow",
     "snow",
     "sakura",
     "fireflies",
@@ -1369,6 +1370,11 @@ mod tests {
             validate_dashboard_tab_color("neon-explosion"),
             Err(ValidationError::InvalidBackground),
         );
+    }
+
+    #[test]
+    fn dynamic_background_accepts_rainy_window() {
+        assert!(validate_dynamic_background("rainywindow").is_ok());
     }
 
     #[test]
