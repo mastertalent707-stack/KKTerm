@@ -24,7 +24,7 @@ use super::detect::{
 };
 use super::events::{PROGRESS_EVENT, ProgressEvent};
 use super::install::{EventSink, install_recipe};
-use super::latest_version::latest_version_in_catalog;
+use super::latest_version::{installer_latest_is_newer, latest_version_in_catalog};
 use super::managed_app::{managed_app_data_dir, managed_app_install_dir};
 use super::options::InstallOptions;
 use super::proc::{no_window, npm_program};
@@ -1497,12 +1497,26 @@ fn run_bundle_install(
             .ok_or_else(|| format!("bundle step `{step_id}` not found"))?;
         let detected = detect_one(step_recipe);
         if detected.installed {
+            let latest = latest_version_in_catalog(step_recipe, catalog)
+                .ok()
+                .flatten();
+            if !installed_bundle_step_has_update(&detected, latest.as_deref()) {
+                emit(ProgressEvent::Stdout {
+                    tool_id: bundle_id.into(),
+                    step_id: None,
+                    line: format!("Step `{step_id}` already installed, skipping"),
+                });
+                continue;
+            }
             emit(ProgressEvent::Stdout {
                 tool_id: bundle_id.into(),
                 step_id: None,
-                line: format!("Step `{step_id}` already installed, skipping"),
+                line: format!(
+                    "Step `{step_id}` update available ({} → {}), installing",
+                    detected.installed_version.as_deref().unwrap_or("unknown"),
+                    latest.as_deref().unwrap_or("unknown")
+                ),
             });
-            continue;
         }
         emit(ProgressEvent::Step {
             tool_id: bundle_id.into(),
@@ -1528,6 +1542,19 @@ fn run_bundle_install(
         )?;
     }
     Ok(None)
+}
+
+fn installed_bundle_step_has_update(
+    detected: &DetectedState,
+    latest_version: Option<&str>,
+) -> bool {
+    let Some(installed_version) = detected.installed_version.as_deref() else {
+        return false;
+    };
+    let Some(latest_version) = latest_version else {
+        return false;
+    };
+    installer_latest_is_newer(latest_version, installed_version)
 }
 
 fn bundle_followup_install_commands(bundle_id: &str) -> Vec<(&'static str, Vec<&'static str>)> {
@@ -1566,6 +1593,28 @@ mod tests {
                 ("uv", vec!["python", "pin", "--global", "3.13"]),
             ]
         );
+    }
+
+    #[test]
+    fn installed_bundle_step_installs_when_latest_is_newer() {
+        let detected = DetectedState::installed(Some("0.11.15".into()));
+
+        assert!(installed_bundle_step_has_update(&detected, Some("0.11.17")));
+    }
+
+    #[test]
+    fn installed_bundle_step_skips_when_latest_is_equal_or_unknown() {
+        let detected = DetectedState::installed(Some("0.11.17".into()));
+
+        assert!(!installed_bundle_step_has_update(
+            &detected,
+            Some("0.11.17")
+        ));
+        assert!(!installed_bundle_step_has_update(
+            &detected,
+            Some("0.11.17.0")
+        ));
+        assert!(!installed_bundle_step_has_update(&detected, None));
     }
 
     #[test]

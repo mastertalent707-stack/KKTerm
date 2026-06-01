@@ -9,6 +9,7 @@ import type { MouseEvent } from "react";
 import { iconUrlForRecipe, FALLBACK_ICON_URL } from "./icons";
 import { useInstallerStore } from "./state";
 import type { Recipe } from "./types";
+import { isInstallerUpdateAvailable } from "./versionCompare";
 
 export function ToolRow({ recipe }: { recipe: Recipe }) {
   const { t } = useTranslation();
@@ -26,12 +27,8 @@ export function ToolRow({ recipe }: { recipe: Recipe }) {
   const installedVersion = detected?.installedVersion;
   const partial = detected?.partialCount;
   const latestSeen = toolState?.latestVersionSeen;
-  const hasUpdate = Boolean(
-    isInstalled &&
-    latestSeen &&
-    installedVersion &&
-    latestSeen !== installedVersion,
-  );
+  const hasUpdate =
+    isInstalled && isInstallerUpdateAvailable(latestSeen, installedVersion);
   const busy = !!inFlight;
   const retrieving = !busy && (scanning || checking);
 

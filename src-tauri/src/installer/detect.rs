@@ -1190,4 +1190,46 @@ mod tests {
         assert!(state.installed);
         assert_eq!(state.installed_version.as_deref(), Some("1.2.2"));
     }
+
+    #[test]
+    fn opencode_cli_detection_ignores_desktop_app_registry_entry() {
+        let catalog = crate::installer::catalog::load_bundled_catalog().unwrap();
+        let recipe = catalog
+            .recipes
+            .iter()
+            .find(|recipe| recipe.id == "opencode")
+            .expect("catalog should include OpenCode CLI");
+        let snapshot = InstalledSoftwareSnapshot {
+            entries: vec![
+                InstalledSoftwareEntry {
+                    registry_key: "ARP\\User\\X64\\d074f30d-5f88-5885-b075-be1348cc7676".into(),
+                    display_name: Some("OpenCode 1.15.12".into()),
+                    display_version: Some("1.15.12".into()),
+                    install_location: None,
+                },
+                InstalledSoftwareEntry {
+                    registry_key:
+                        "ARP\\User\\X64\\SST.opencode_Microsoft.Winget.Source_8wekyb3d8bbwe"
+                            .into(),
+                    display_name: Some("opencode".into()),
+                    display_version: Some("1.15.13".into()),
+                    install_location: Some(
+                        "C:\\Users\\ryan\\AppData\\Local\\Microsoft\\WinGet\\Packages\\SST.opencode_Microsoft.Winget.Source_8wekyb3d8bbwe"
+                            .into(),
+                    ),
+                },
+            ],
+        };
+
+        let state = detect_installed_software(recipe, &snapshot);
+
+        assert!(state.installed);
+        assert_eq!(state.installed_version.as_deref(), Some("1.15.13"));
+        assert_eq!(
+            state.install_location.as_deref(),
+            Some(
+                "C:\\Users\\ryan\\AppData\\Local\\Microsoft\\WinGet\\Packages\\SST.opencode_Microsoft.Winget.Source_8wekyb3d8bbwe"
+            )
+        );
+    }
 }

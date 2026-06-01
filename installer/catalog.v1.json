@@ -321,8 +321,7 @@
       "homepage": "https://opencode.ai/",
       "releaseNotesUrl": "https://github.com/sst/opencode/releases",
       "detection": {
-        "displayNames": ["opencode", "OpenCode"],
-        "displayNamePrefixes": ["OpenCode"]
+        "displayNames": ["opencode"]
       },
       "provider": { "kind": "winget", "id": "SST.opencode" },
       "options": ["scope", "version"]

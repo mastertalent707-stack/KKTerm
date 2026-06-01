@@ -211,6 +211,10 @@ fn compare_winget_versions(a: &str, b: &str) -> std::cmp::Ordering {
     }
 }
 
+pub(crate) fn installer_latest_is_newer(latest: &str, installed: &str) -> bool {
+    compare_winget_versions(latest, installed).is_gt()
+}
+
 fn compare_winget_version_part(a: &str, b: &str) -> std::cmp::Ordering {
     match (a.parse::<u64>(), b.parse::<u64>()) {
         (Ok(a), Ok(b)) => a.cmp(&b),

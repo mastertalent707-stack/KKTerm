@@ -31,6 +31,7 @@ import { installRecipeAndWait } from "./progress";
 import { ToggleSwitch } from "../settings/ToggleSwitch";
 import { useInstallerStore, type StepStatus } from "./state";
 import { notifyConnectionTreeInvalidated } from "../workspace/connections/connectionSidebarState";
+import { isInstallerUpdateAvailable } from "./versionCompare";
 import type {
   InstallOptions,
   ManagedWebUiStatus,
@@ -119,7 +120,7 @@ function InstalledInfoBody({ recipe }: { recipe: Recipe }) {
     recipe.descriptionLocales?.[i18n.language] ?? recipe.descriptionEn;
   const version = detected?.installedVersion ?? null;
   const latest = toolState?.latestVersionSeen ?? null;
-  const hasUpdate = latest && version && latest !== version;
+  const hasUpdate = isInstallerUpdateAvailable(latest, version);
   const webUi = webUiAffordanceForRecipe(recipe);
   const service = serviceAffordanceForRecipe(recipe);
   const terminalLaunch = terminalLaunchAffordanceForRecipe(recipe);

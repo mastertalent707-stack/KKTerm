@@ -28,6 +28,7 @@ import {
 } from "./types";
 import { installRecipeAndWait } from "./progress";
 import { ToolRow } from "./ToolRow";
+import { isInstallerUpdateAvailable } from "./versionCompare";
 import "./installer.css";
 
 export function InstallerPage({ active }: { active: boolean }) {
@@ -427,11 +428,7 @@ function groupRecipes(
     }
     if (det.installed) {
       const latest = toolState[recipe.id]?.latestVersionSeen;
-      if (
-        latest &&
-        det.installedVersion &&
-        latest !== det.installedVersion
-      ) {
+      if (isInstallerUpdateAvailable(latest, det.installedVersion)) {
         updates.push(recipe);
       }
     }
