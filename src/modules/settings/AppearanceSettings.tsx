@@ -64,6 +64,7 @@ const COLOR_SCHEME_OPTIONS: { value: ColorScheme; labelKey: string }[] = [
   { value: "blue-see", labelKey: "settings.schemeBlueSee" },
   { value: "confetti", labelKey: "settings.schemeConfetti" },
   { value: "bubble-tea", labelKey: "settings.schemeBubbleTea" },
+  { value: "semiconductor", labelKey: "settings.schemeSemiconductor" },
 ];
 
 type SchemePreviewColor = { color: string; labelKey: string };
@@ -167,6 +168,15 @@ const SCHEME_PREVIEW_COLORS: Record<ColorScheme, SchemePreviewColor[]> = {
     { color: "#6b8e4e", labelKey: "settings.green" },
     { color: "#3b2216", labelKey: "settings.navToolbar" },
     { color: "#f5e6d0", labelKey: "settings.toolbarText" },
+  ],
+  semiconductor: [
+    { color: "#f4f4f4", labelKey: "settings.appBg" },
+    { color: "#ffffff", labelKey: "settings.surface" },
+    { color: "#111111", labelKey: "settings.text" },
+    { color: "#e60012", labelKey: "settings.accent" },
+    { color: "#147a3f", labelKey: "settings.green" },
+    { color: "#111111", labelKey: "settings.navToolbar" },
+    { color: "#ffffff", labelKey: "settings.toolbarText" },
   ],
 };
 

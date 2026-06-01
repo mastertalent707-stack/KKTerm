@@ -337,7 +337,8 @@ export type ColorScheme =
   | "green-kuai-kuai"
   | "blue-see"
   | "confetti"
-  | "bubble-tea";
+  | "bubble-tea"
+  | "semiconductor";
 
 export interface AppearanceSettings {
   appFontFamily: string;
