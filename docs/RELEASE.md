@@ -11,7 +11,7 @@ KKTerm is local-first by default.
 - Terminal contents are not logged by default.
 - Durable Connection metadata is stored in local SQLite.
 - Secrets such as passwords, passphrases, and AI API keys are stored in the OS keychain.
-- Update checks are currently disabled while release signing is deferred. When re-enabled, update checks contact GitHub Releases updater metadata only. This is separate from telemetry: KKTerm does not send analytics, crash reports, terminal contents, Connection data, or secrets as part of update checking.
+- Update checks are enabled by default and contact GitHub Releases metadata only. This is separate from telemetry: KKTerm does not send analytics, crash reports, terminal contents, Connection data, or secrets as part of update checking. When a newer non-draft, non-prerelease release is available, KKTerm prompts the user; it does not install anything without an explicit click.
 
 ## Diagnostics Bundle Flow
 
@@ -54,7 +54,9 @@ The script runs the Tauri NSIS bundle target, copies the generated setup executa
 
 The installer uses a current-user install mode by default, creates KKTerm Start Menu entries, and downloads the WebView2 bootstrapper only if the target machine needs WebView2 during install.
 
-TODO: Restore Windows Authenticode signing and the Tauri updater signing flow before enabling public update checks. The Tauri updater signature validates self-update artifacts and is distinct from Windows Authenticode signing, which validates publisher identity to Windows.
+Startup and manual update checks use GitHub Releases. If the release includes the matching Windows installer asset and its `.sha256` checksum, the update dialog offers `settings.updateDownloadAndInstall` ("Download and Install"). That action downloads the installer to KKTerm's app cache, verifies the SHA-256 checksum published with the release, starts a detached handoff helper, and exits KKTerm before the NSIS installer launches so the installed files can be replaced. The fallback `settings.updateOpenDownloadPage` action remains available for manual downloads.
+
+TODO: Restore Windows Authenticode signing and the Tauri updater signing flow before treating self-update as fully signed. The current `settings.updateDownloadAndInstall` flow verifies the release checksum over HTTPS/GitHub Releases but does not yet validate a Tauri updater signature or Windows publisher identity. The Tauri updater signature validates self-update artifacts and is distinct from Windows Authenticode signing, which validates publisher identity to Windows.
 
 Smoke test the installer artifact with:
 
@@ -100,5 +102,5 @@ GitHub Actions uses the same script through the manual **Release** workflow. Sto
 - Screenshot capture is available from terminal Pane toolbars and non-terminal workspace top toolbars. Region and Entire Window/Panel captures can be copied to the system clipboard or attached transiently to the AI Assistant through explicit user action.
 - RDP uses the Windows ActiveX host and VNC uses a canvas-rendered `vnc-rs` framebuffer path; advanced VNC options, richer clipboard handling, sync, and team sharing remain deferred.
 - AI command assistance and app tool use are bounded by assistant tool settings. Prompt mode is the default and blocks mutating tools with a permission-required result; Allow All is an explicit setting that lets enabled tools execute automatically. The Assistant can use typed tools for Dashboard changes, saved Connection management, and active Session interaction, but it should not be treated as an unattended autonomous operator.
-- Settings exposes General, Appearance, Dashboard, Workspace, Installer Helper, Credentials/MCP, AI Assistant, SSH, Terminal, URL, RDP, VNC, and About sections. SSH config import, editable keybindings, and packaged-app self-update controls are not yet exposed.
+- Settings exposes General, Appearance, Dashboard, Workspace, Installer Helper, Credentials/MCP, AI Assistant, SSH, Terminal, URL, RDP, VNC, and About sections. SSH config import and editable keybindings are not yet exposed.
 - Diagnostics bundles are folders, not compressed archives.

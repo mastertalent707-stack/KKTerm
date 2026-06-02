@@ -1,5 +1,6 @@
 mod ai;
 mod ai_coding_usage;
+mod app_updates;
 mod app_launcher;
 mod app_tray;
 mod assistant_skills;
@@ -2729,6 +2730,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app_bootstrap,
             is_debug_build,
+            app_updates::get_app_update_target_triple,
+            app_updates::download_and_install_app_update,
             debug_frontend_heartbeat,
             show_native_tooltip,
             hide_native_tooltip,

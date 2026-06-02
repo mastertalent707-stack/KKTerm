@@ -17,7 +17,7 @@ async function importTypeScriptModule(path) {
 }
 
 test("startup update check only runs once when enabled in the Tauri runtime", async () => {
-  const { shouldRunStartupUpdateCheck } = await importTypeScriptModule(
+  const { shouldRunStartupUpdateCheck, selectInstallerAssets } = await importTypeScriptModule(
     new URL("../src/lib/appUpdatesModel.ts", import.meta.url),
   );
 
@@ -55,3 +55,50 @@ test("startup update check only runs once when enabled in the Tauri runtime", as
   );
 });
 
+test("installer asset selection requires matching installer and checksum assets", async () => {
+  const { selectInstallerAssets } = await importTypeScriptModule(
+    new URL("../src/lib/appUpdatesModel.ts", import.meta.url),
+  );
+
+  const assets = [
+    {
+      name: "kkterm-0.1.54-windows-x64-setup.exe",
+      browser_download_url: "https://github.com/ryantsai/KKTerm/releases/download/v0.1.54/kkterm-0.1.54-windows-x64-setup.exe",
+    },
+    {
+      name: "kkterm-0.1.54-windows-x64-setup.exe.sha256",
+      browser_download_url: "https://github.com/ryantsai/KKTerm/releases/download/v0.1.54/kkterm-0.1.54-windows-x64-setup.exe.sha256",
+    },
+    {
+      name: "kkterm-0.1.54-windows-arm64-setup.exe",
+      browser_download_url: "https://github.com/ryantsai/KKTerm/releases/download/v0.1.54/kkterm-0.1.54-windows-arm64-setup.exe",
+    },
+  ];
+
+  assert.deepEqual(selectInstallerAssets(assets, "windows-x64"), {
+    assetName: "kkterm-0.1.54-windows-x64-setup.exe",
+    downloadUrl: "https://github.com/ryantsai/KKTerm/releases/download/v0.1.54/kkterm-0.1.54-windows-x64-setup.exe",
+    checksumUrl: "https://github.com/ryantsai/KKTerm/releases/download/v0.1.54/kkterm-0.1.54-windows-x64-setup.exe.sha256",
+  });
+  assert.equal(selectInstallerAssets(assets, "windows-arm64"), null);
+});
+
+test("app update install command is exposed across the frontend and backend boundary", async () => {
+  const [tauriSource, libSource, promptSource, localeSource, releaseDoc, manualSource] =
+    await Promise.all([
+      readFile(new URL("../src/lib/tauri.ts", import.meta.url), "utf8"),
+      readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8"),
+      readFile(new URL("../src/app/AppUpdatePrompt.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../src/i18n/locales/en.json", import.meta.url), "utf8"),
+      readFile(new URL("../docs/RELEASE.md", import.meta.url), "utf8"),
+      readFile(new URL("../docs/manual/15-settings.md", import.meta.url), "utf8"),
+    ]);
+  const locale = JSON.parse(localeSource);
+
+  assert.match(tauriSource, /download_and_install_app_update/);
+  assert.match(libSource, /download_and_install_app_update/);
+  assert.match(promptSource, /settings\.updateDownloadAndInstall/);
+  assert.equal(locale.settings.updateDownloadAndInstall, "Download and Install");
+  assert.match(releaseDoc, /Download and Install/);
+  assert.match(manualSource, /settings\.updateDownloadAndInstall/);
+});

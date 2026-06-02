@@ -1,5 +1,6 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { invokeCommand, isTauriRuntime, openExternalUrl } from "./tauri";
+import { selectInstallerAssets, type AppUpdateAsset, type AppUpdateInstallerAssets } from "./appUpdatesModel";
 
 let debugBuildPromise: Promise<boolean> | null = null;
 
@@ -21,6 +22,7 @@ export type AppUpdate = {
   version: string;
   body: string;
   htmlUrl: string;
+  installer: AppUpdateInstallerAssets | null;
 };
 
 function normalizeTag(tag: string) {
@@ -59,6 +61,7 @@ type GitHubRelease = {
   html_url?: string;
   draft?: boolean;
   prerelease?: boolean;
+  assets?: AppUpdateAsset[];
 };
 
 export async function checkForAppUpdate(): Promise<AppUpdate | null> {
@@ -94,14 +97,31 @@ export async function checkForAppUpdate(): Promise<AppUpdate | null> {
     return null;
   }
 
+  const targetTriple = await invokeCommand("get_app_update_target_triple");
+
   return {
     currentVersion,
     version: latestVersion,
     body: (release.body ?? "").trim(),
     htmlUrl: release.html_url ?? RELEASES_PAGE_URL,
+    installer: selectInstallerAssets(release.assets, targetTriple),
   };
 }
 
 export async function openReleaseDownloadPage(update: AppUpdate) {
   await openExternalUrl(update.htmlUrl);
+}
+
+export async function downloadAndInstallAppUpdate(update: AppUpdate) {
+  if (!update.installer) {
+    throw new Error("No installer asset is available for this device.");
+  }
+  await invokeCommand("download_and_install_app_update", {
+    request: {
+      version: update.version,
+      assetName: update.installer.assetName,
+      downloadUrl: update.installer.downloadUrl,
+      checksumUrl: update.installer.checksumUrl,
+    },
+  });
 }

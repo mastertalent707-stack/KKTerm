@@ -429,6 +429,13 @@ export interface AssistantSkillSummary {
   invalidReason?: string | null;
 }
 
+export interface DownloadAndInstallAppUpdateRequest {
+  version: string;
+  assetName: string;
+  downloadUrl: string;
+  checksumUrl: string;
+}
+
   export interface AgentRunRequest {
     prompt: string;
     contextLabel: string;
@@ -755,6 +762,14 @@ type CommandMap = {
   is_debug_build: {
     args: undefined;
     result: boolean;
+  };
+  get_app_update_target_triple: {
+    args: undefined;
+    result: "windows-x64" | "windows-arm64";
+  };
+  download_and_install_app_update: {
+    args: { request: DownloadAndInstallAppUpdateRequest };
+    result: void;
   };
   debug_frontend_heartbeat: {
     args: {

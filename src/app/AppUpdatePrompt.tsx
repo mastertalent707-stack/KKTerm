@@ -1,10 +1,11 @@
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import { ExternalLink, X } from "lucide-react";
+import { Download, ExternalLink, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   checkForAppUpdate,
+  downloadAndInstallAppUpdate,
   isDebugBuild,
   openReleaseDownloadPage,
   type AppUpdate,
@@ -28,6 +29,7 @@ export function AppUpdatePrompt({
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const [update, setUpdate] = useState<AppUpdate | null>(null);
   const [checking, setChecking] = useState(false);
+  const [installing, setInstalling] = useState(false);
   const startupCheckedRef = useRef(false);
 
   async function runUpdateCheck(source: "startup" | "manual") {
@@ -135,6 +137,24 @@ export function AppUpdatePrompt({
     }
   }
 
+  async function handleDownloadAndInstall() {
+    if (!update || installing) {
+      return;
+    }
+
+    setInstalling(true);
+    showStatusBarNotice(t("settings.updateDownloadStarting"));
+    try {
+      await downloadAndInstallAppUpdate(update);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      showStatusBarNotice(t("settings.updateDownloadFailed", { message }), {
+        tone: "error",
+      });
+      setInstalling(false);
+    }
+  }
+
   if (!update) {
     return null;
   }
@@ -177,7 +197,7 @@ export function AppUpdatePrompt({
         ) : null}
         <div className="dialog-actions">
           <button
-            className="approve-button"
+            className="toolbar-button"
             onClick={() => {
               void openReleaseDownloadPage(update);
               setUpdate(null);
@@ -187,8 +207,22 @@ export function AppUpdatePrompt({
             <ExternalLink size={15} />
             {t("settings.updateOpenDownloadPage")}
           </button>
+          {update.installer ? (
+            <button
+              className="approve-button"
+              disabled={installing}
+              onClick={() => void handleDownloadAndInstall()}
+              type="button"
+            >
+              <Download size={15} />
+              {installing
+                ? t("settings.updateDownloading")
+                : t("settings.updateDownloadAndInstall")}
+            </button>
+          ) : null}
           <button
             className="toolbar-button"
+            disabled={installing}
             onClick={() => setUpdate(null)}
             type="button"
           >
