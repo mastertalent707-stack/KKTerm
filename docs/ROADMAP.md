@@ -135,17 +135,15 @@ For operational measurement records see `docs/PERFORMANCE.md`. For packaging and
 ### AI & Automation Expansion
 
 - [ ] AI Assistant composer context attachments for files/photos, screenshots, and terminal buffer snippets from the `+` menu.
-- [ ] Installable extension authoring through the AI Assistant (approval-gated before install/run).
 - [ ] Expanded AI orchestration: import Connection entries from multiple formats, monitor Connections, rename/reorganize layouts, optionally relay interactions through Telegram/WhatsApp/LINE integrations.
 - [ ] AI reference to previous session text buffers via RAG/agentic search.
 - [ ] Voice input for AI Assistant with local model support.
-- [ ] MCP (Model Context Protocol) server support for external agent integration.
+- [x] MCP (Model Context Protocol) server support for external agent integration.
 
 ### Dashboard & Modules
 
 - [ ] Redesign legacy widget bodies (hash, subnet, quick tools, maintenance report) to take full advantage of the new preset chrome.
 - [ ] Native data widgets: Clock, Weather, CPU, Memory, Recent Hosts, Session Activity, Today's Brief.
-- [ ] User-facing "Create AI Created Widget" dialog so authoring is not AI-only.
 - [ ] Built-in Connections widget and URL widget with configurable auto-reload intervals.
 
 ### Extension Platform
