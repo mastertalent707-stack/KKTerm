@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { DialogPortal } from "./DialogPortal";
 
 export function ConfirmDialog({
   cancelLabel,
@@ -20,6 +21,7 @@ export function ConfirmDialog({
   const { t } = useTranslation();
 
   return (
+    <DialogPortal>
     <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
       <div
         aria-label={title}
@@ -47,5 +49,6 @@ export function ConfirmDialog({
         </div>
       </div>
     </div>
+    </DialogPortal>
   );
 }

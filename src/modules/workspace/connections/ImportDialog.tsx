@@ -18,6 +18,7 @@ import {
   type ScanProgressEvent,
   type ScanResultEntry,
 } from "../../../lib/tauri";
+import { DialogPortal } from "../../../app/DialogPortal";
 import { defaultPortForConnectionType, uniqueRuntimeId } from "./utils";
 import { flattenFolders } from "./treeUtils";
 import type {
@@ -64,6 +65,7 @@ export function ImportDialog({ tree, sshSettings, onClose, onImported }: ImportD
   const [error, setError] = useState("");
 
   return (
+    <DialogPortal>
     <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
       <div className="connection-dialog import-dialog">
         <header className="connection-dialog-header compact">
@@ -139,6 +141,7 @@ export function ImportDialog({ tree, sshSettings, onClose, onImported }: ImportD
         ) : null}
       </div>
     </div>
+    </DialogPortal>
   );
 }
 

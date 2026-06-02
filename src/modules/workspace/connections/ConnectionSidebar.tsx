@@ -33,6 +33,7 @@ import { showNativeContextMenu, type NativeContextMenuItem } from "../../../lib/
 import { confirmNativeDialog, invokeCommand, isTauriRuntime, selectAppLauncherFolder, selectKeyFile, type TmuxSession } from "../../../lib/tauri";
 import { connectionTree } from "../../../app-defaults";
 import { DeleteConfirmationDialog } from "../../../app/DeleteConfirmationDialog";
+import { DialogPortal } from "../../../app/DialogPortal";
 import { pushTrayMenu } from "../../../app/trayMenu";
 import { CHILD_CONNECTION_CLOSED_EVENT, appendTmuxSessionId, useWorkspaceStore } from "../../../store";
 import type { Connection, ConnectionFolder, ConnectionStatus, ConnectionTree, ConnectionType, CreateConnectionRequest, RdpSettings, SplitDirection, SshSettings, StoredCredentialSummary, UpdateConnectionRequest, VncSettings, WorkspaceChildConnection, WorkspacePane, WorkspaceTab } from "../../../types";
@@ -2353,6 +2354,7 @@ function ChildConnectionPropertiesDialog({
   }
 
   return (
+    <DialogPortal>
     <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
       <form className="connection-dialog child-connection-properties-dialog" onSubmit={handleSubmit}>
         <header className="connection-dialog-header compact">
@@ -2409,6 +2411,7 @@ function ChildConnectionPropertiesDialog({
         </div>
       </form>
     </div>
+    </DialogPortal>
   );
 }
 
@@ -3500,6 +3503,7 @@ function ConnectionDialog({
   }
 
   return (
+    <DialogPortal>
     <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
       <form
         className={usesTwoColumnOptions ? "connection-dialog connection-dialog-wide" : "connection-dialog"}
@@ -3621,6 +3625,7 @@ function ConnectionDialog({
         />
       ) : null}
     </div>
+    </DialogPortal>
   );
 }
 
@@ -3656,6 +3661,7 @@ function ConnectionSshKeyEmailDialog({
   }
 
   return (
+    <DialogPortal>
     <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
       <form
         aria-label={t("settings.sshKeyEmailDialogTitle")}
@@ -3695,6 +3701,7 @@ function ConnectionSshKeyEmailDialog({
         </div>
       </form>
     </div>
+    </DialogPortal>
   );
 }
 
@@ -3764,6 +3771,7 @@ function TransferSshPublicKeyDialog({
   }
 
   return (
+    <DialogPortal>
     <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
       <form className="connection-dialog ssh-public-key-dialog" onSubmit={handleSubmit}>
         <header className="connection-dialog-header compact">
@@ -3809,6 +3817,7 @@ function TransferSshPublicKeyDialog({
         </div>
       </form>
     </div>
+    </DialogPortal>
   );
 }
 

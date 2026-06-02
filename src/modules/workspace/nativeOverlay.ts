@@ -2,6 +2,7 @@ const NATIVE_BLOCKING_OVERLAY_SELECTOR = [
   ".sftp-context-menu",
   ".sftp-properties-popover",
   ".screenshot-region-overlay",
+  ".assistant-image-preview-backdrop",
   ".transfer-conflict-backdrop",
   ".connection-dialog-backdrop",
   ".app-launcher-dialog-backdrop",

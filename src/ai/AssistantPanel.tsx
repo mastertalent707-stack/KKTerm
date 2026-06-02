@@ -3604,39 +3604,42 @@ function AssistantMessageView({
           {isUserMessageExpanded ? t("ai.showLess") : t("ai.more")}
         </button>
       ) : null}
-      {previewImage ? (
-        <div
-          className="assistant-image-preview-backdrop"
-          onClick={() => setPreviewImage(null)}
-          role="presentation"
-        >
-          <div
-            aria-label={t("ai.imagePreviewTitle", { label: previewImage.sourceLabel })}
-            className="assistant-image-preview-dialog"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-          >
-            <header>
-              <div>
-                <strong>{previewImage.sourceLabel}</strong>
-                <small>
-                  {previewImage.width} x {previewImage.height}
-                </small>
-              </div>
-              <button
-                aria-label={t("ai.close")}
-                className="assistant-toolbar-button"
-                onClick={() => setPreviewImage(null)}
-                title={t("ai.close")}
-                type="button"
+      {previewImage
+        ? createPortal(
+            <div
+              className="assistant-image-preview-backdrop"
+              onClick={() => setPreviewImage(null)}
+              role="presentation"
+            >
+              <div
+                aria-label={t("ai.imagePreviewTitle", { label: previewImage.sourceLabel })}
+                className="assistant-image-preview-dialog"
+                onClick={(event) => event.stopPropagation()}
+                role="dialog"
               >
-                <X size={15} />
-              </button>
-            </header>
-            <img alt={previewImage.sourceLabel} src={previewImage.imageDataUrl} />
-          </div>
-        </div>
-      ) : null}
+                <header>
+                  <div>
+                    <strong>{previewImage.sourceLabel}</strong>
+                    <small>
+                      {previewImage.width} x {previewImage.height}
+                    </small>
+                  </div>
+                  <button
+                    aria-label={t("ai.close")}
+                    className="assistant-toolbar-button"
+                    onClick={() => setPreviewImage(null)}
+                    title={t("ai.close")}
+                    type="button"
+                  >
+                    <X size={15} />
+                  </button>
+                </header>
+                <img alt={previewImage.sourceLabel} src={previewImage.imageDataUrl} />
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </article>
   );
 }

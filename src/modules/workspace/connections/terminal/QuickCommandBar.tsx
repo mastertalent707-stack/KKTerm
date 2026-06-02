@@ -4,6 +4,7 @@ import type { ComponentType, CSSProperties, FormEvent, PointerEvent as ReactPoin
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "../../../../app/ConfirmDialog";
+import { DialogPortal } from "../../../../app/DialogPortal";
 import { invokeCommand, isTauriRuntime } from "../../../../lib/tauri";
 import { ToggleSwitch } from "../../../settings/ToggleSwitch";
 import { useWorkspaceStore } from "../../../../store";
@@ -281,6 +282,7 @@ function QuickCommandManagerDialog({
   }
 
   return (
+    <DialogPortal>
     <div className="dialog-backdrop connection-dialog-backdrop quick-command-dialog-backdrop" role="presentation">
       <div className="connection-dialog quick-command-dialog quick-command-manager-dialog" role="dialog" aria-modal="true" aria-label={t("terminal.quickCommandsManage")}>
         <header className="connection-dialog-header compact">
@@ -385,6 +387,7 @@ function QuickCommandManagerDialog({
         />
       ) : null}
     </div>
+    </DialogPortal>
   );
 }
 
@@ -499,6 +502,7 @@ function CustomCommandDialog({
   }
 
   return (
+    <DialogPortal>
     <div className="dialog-backdrop connection-dialog-backdrop quick-command-subdialog-backdrop" role="presentation">
       <div className="connection-dialog quick-command-dialog quick-command-custom-dialog" role="dialog" aria-modal="true" aria-label={t("terminal.quickCommandsCustomCommand")}>
         <header className="connection-dialog-header compact">
@@ -653,6 +657,7 @@ function CustomCommandDialog({
         </form>
       </div>
     </div>
+    </DialogPortal>
   );
 }
 
@@ -729,6 +734,7 @@ function PresetLibraryDialog({
   }
 
   return (
+    <DialogPortal>
     <div className="dialog-backdrop connection-dialog-backdrop quick-command-subdialog-backdrop" role="presentation">
       <div className="connection-dialog quick-command-dialog quick-command-preset-dialog" role="dialog" aria-modal="true" aria-label={t("terminal.quickCommandsLibrary")}>
         <header className="connection-dialog-header compact">
@@ -808,5 +814,6 @@ function PresetLibraryDialog({
         </section>
       </div>
     </div>
+    </DialogPortal>
   );
 }
