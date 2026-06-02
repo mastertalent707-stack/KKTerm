@@ -18,7 +18,7 @@ const pkg = JSON.parse(
 
 test("arm64 package script targets the aarch64-pc-windows-msvc triple", () => {
   assert.match(script, /\$CargoTarget\s*=\s*"aarch64-pc-windows-msvc"/);
-  assert.match(script, /build --bundles=nsis --target \$CargoTarget/);
+  assert.match(script, /build --bundles nsis "--target=\$CargoTarget"/);
 });
 
 test("arm64 package script emits an arm64-named installer and checksum", () => {

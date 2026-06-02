@@ -1,13 +1,15 @@
 //! ICMP ping with TCP fallback. Platform-gated backend:
-//! - Windows: winping crate (IcmpSendEcho2 — same API as ping.exe, no raw sockets,
-//!   no elevation required). AV mitigation #1.
+//! - Windows x86/x64: winping crate (IcmpSendEcho2 — same API as ping.exe, no
+//!   raw sockets, no elevation required). AV mitigation #1.
+//! - Windows ARM64: direct IP Helper IcmpSendEcho backend for IPv4, avoiding
+//!   winping's x64-only winapi fork.
 //! - Unix: surge-ping (raw sockets; users typically have CAP_NET_RAW or root).
 //!
 //! Both paths fall through to TCP-connect on `fallback_tcp_port` if ICMP returns
 //! a permission/EPERM error on the very first packet.
 
-use crate::net::NetError;
 use crate::net::scan::tcp_check;
+use crate::net::NetError;
 use serde::Serialize;
 use std::net::IpAddr;
 use std::time::Duration;
@@ -98,7 +100,10 @@ enum IcmpOutcome {
     OtherError(String),
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(all(
+    target_os = "windows",
+    any(target_arch = "x86", target_arch = "x86_64")
+))]
 mod backend {
     use super::{IcmpOutcome, PingOptions};
     use std::net::IpAddr;
@@ -130,12 +135,85 @@ mod backend {
     }
 }
 
+#[cfg(all(
+    target_os = "windows",
+    not(any(target_arch = "x86", target_arch = "x86_64"))
+))]
+mod backend {
+    use super::{IcmpOutcome, PingOptions};
+    use std::mem::size_of;
+    use std::net::IpAddr;
+    use tokio::task;
+    use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
+    use windows_sys::Win32::NetworkManagement::IpHelper::{
+        IcmpCloseHandle, IcmpCreateFile, IcmpSendEcho, ICMP_ECHO_REPLY, IP_OPTION_INFORMATION,
+        IP_REQ_TIMED_OUT, IP_SUCCESS,
+    };
+
+    pub async fn ping_one(ip: IpAddr, opts: &PingOptions) -> IcmpOutcome {
+        let IpAddr::V4(ipv4) = ip else {
+            return IcmpOutcome::PermissionDenied(
+                "Windows ARM64 ICMP backend supports IPv4 only; using TCP fallback".to_string(),
+            );
+        };
+        let opts = opts.clone();
+
+        match task::spawn_blocking(move || ping_ipv4(ipv4.octets(), &opts)).await {
+            Ok(outcome) => outcome,
+            Err(err) => IcmpOutcome::OtherError(format!("ICMP worker failed: {err}")),
+        }
+    }
+
+    fn ping_ipv4(octets: [u8; 4], opts: &PingOptions) -> IcmpOutcome {
+        unsafe {
+            let handle = IcmpCreateFile();
+            if handle == INVALID_HANDLE_VALUE {
+                return IcmpOutcome::OtherError("IcmpCreateFile failed".to_string());
+            }
+
+            let mut payload = vec![0u8; opts.size];
+            let mut reply = vec![0u8; size_of::<ICMP_ECHO_REPLY>() + payload.len() + 8];
+            let request_options = IP_OPTION_INFORMATION {
+                Ttl: opts.ttl,
+                ..Default::default()
+            };
+            let destination = u32::from_ne_bytes(octets);
+            let sent = IcmpSendEcho(
+                handle,
+                destination,
+                payload.as_mut_ptr().cast(),
+                payload.len().min(u16::MAX as usize) as u16,
+                &request_options,
+                reply.as_mut_ptr().cast(),
+                reply.len().min(u32::MAX as usize) as u32,
+                opts.timeout_ms.min(u32::MAX as u64) as u32,
+            );
+            let _ = IcmpCloseHandle(handle);
+
+            if sent == 0 {
+                return IcmpOutcome::Timeout;
+            }
+
+            let echo = &*(reply.as_ptr() as *const ICMP_ECHO_REPLY);
+            match echo.Status {
+                IP_SUCCESS => IcmpOutcome::Ok {
+                    rtt_ms: echo.RoundTripTime as u128,
+                    ttl: Some(echo.Options.Ttl),
+                    from_ip: Some(std::net::Ipv4Addr::from(echo.Address.to_ne_bytes()).to_string()),
+                },
+                IP_REQ_TIMED_OUT => IcmpOutcome::Timeout,
+                status => IcmpOutcome::OtherError(format!("IcmpSendEcho status {status}")),
+            }
+        }
+    }
+}
+
 #[cfg(not(target_os = "windows"))]
 mod backend {
     use super::{IcmpOutcome, PingOptions};
     use std::net::IpAddr;
     use std::time::Duration;
-    use surge_ping::{Client, Config, ICMP, IcmpPacket, PingIdentifier, PingSequence};
+    use surge_ping::{Client, Config, IcmpPacket, PingIdentifier, PingSequence, ICMP};
 
     pub async fn ping_one(ip: IpAddr, opts: &PingOptions) -> IcmpOutcome {
         let icmp_kind = match ip {
