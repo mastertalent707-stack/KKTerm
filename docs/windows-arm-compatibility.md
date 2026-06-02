@@ -44,14 +44,16 @@ assets next to the x64 artifacts.
 | Piece | Why it's needed | winget id |
 | --- | --- | --- |
 | Rust target `aarch64-pc-windows-msvc` | compile the app + `kkterm-cli` sidecar for ARM64 | `rustup target add` |
-| MSVC **C++ ARM64 build tools** | linker/CRT for the ARM64 target | `Microsoft.VisualStudio.2022.BuildTools` + component `…VC.Tools.ARM64` |
+| MSVC **C++ ARM64 build tools** | linker/CRT for the ARM64 target | `Microsoft.VisualStudio.BuildTools` + component `…VC.Tools.ARM64` |
+| **C++ Clang Compiler for Windows** | compiles ARM64 assembly used by `ring` / `aws-lc-sys` | VS component `…VC.Llvm.Clang` |
 | **CMake** | builds `aws-lc-sys` (rustls' default crypto provider, via `reqwest`/`lettre`) for ARM64 | `Kitware.CMake` |
 | **NASM** | `aws-lc-sys` assembly build dependency | `NASM.NASM` |
 | Node.js + npm | frontend build (`beforeBuildCommand`) | `OpenJS.NodeJS.LTS` |
 
 The MSVC ARM64 component install is best-effort; if winget can't add it
 non-interactively, run the Visual Studio Installer and add
-**"MSVC v143 - VS 2022 C++ ARM64 build tools"**.
+**"MSVC Build Tools for ARM64/ARM64EC (Latest)"** and
+**"C++ Clang Compiler for Windows"**.
 
 Cross-building from an x64 host is supported (the script passes
 `--target aarch64-pc-windows-msvc`); building on an ARM64 host works too.
@@ -71,7 +73,7 @@ All of these use OS-provided APIs that exist natively on ARM64 Windows:
 | RDP | MS RDP ActiveX `mstscax.dll` via COM/`LoadLibrary` | ✅ native (control ships ARM64) |
 | Screenshots | GDI BitBlt/DIB | ✅ native |
 | Keychain | Windows Credential Manager | ✅ native |
-| Ping / net tools | `winping` (IcmpSendEcho2 / IP Helper) | ✅ native |
+| Ping / net tools | IP Helper (`winping` on x86/x64, direct `IcmpSendEcho` backend on ARM64) | ✅ native |
 | Tray / single-instance / auto-start | Win32 + registry | ✅ native |
 | Title-bar / rounded corners | DWM | ✅ native |
 | WebView2 | Evergreen runtime, `downloadBootstrapper` | ✅ auto-selects ARM64 |
