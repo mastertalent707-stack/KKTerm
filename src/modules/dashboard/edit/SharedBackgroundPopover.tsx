@@ -117,7 +117,7 @@ export function SharedBackgroundPopover({
 
   return (
     <div ref={ref} className={["dw-bg-popover", className].filter(Boolean).join(" ")}>
-      <header className="dw-bg-popover-head">{t(titleKey)}</header>
+      <div className="dw-bg-popover-head">{t(titleKey)}</div>
 
       <div className="dw-bg-seg">
         <button className={mode === "default" ? "active" : ""} onClick={applyDefault} type="button">
