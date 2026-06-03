@@ -289,8 +289,8 @@
   font-weight: 400;
 }
 
-.rail-button:hover .rail-tooltip,
-.rail-button:focus-visible .rail-tooltip {
+.rail-button:hover .rail-tooltip:not(.native-suppressed),
+.rail-button:focus-visible .rail-tooltip:not(.native-suppressed) {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
   transition-delay: 650ms;

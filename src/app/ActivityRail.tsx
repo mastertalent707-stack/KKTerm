@@ -12,6 +12,7 @@ import {
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { loadStoredChildConnections } from "../modules/workspace/connections/childConnections";
 import { ConnectionIcon } from "../modules/workspace/connections/ConnectionIcon";
 import { flattenConnections } from "../modules/workspace/connections/treeUtils";
 import { ariaPressed } from "../lib/aria";
@@ -98,6 +99,9 @@ export function ActivityRail({
   const setGeneralSettings = useWorkspaceStore((state) => state.setGeneralSettings);
   const activateTab = useWorkspaceStore((state) => state.activateTab);
   const openConnection = useWorkspaceStore((state) => state.openConnection);
+  const openChildConnectionLayout = useWorkspaceStore(
+    (state) => state.openChildConnectionLayout,
+  );
   const storedDontSleepEnabled = useWorkspaceStore(
     (state) => state.generalSettings.dontSleepEnabled,
   );
@@ -230,6 +234,15 @@ export function ActivityRail({
 
   function handleRailConnectionClick(item: ConnectedRailItem) {
     onNavigate("workspace");
+    if (generalSettings.hideTopTabButtons) {
+      const childConnections = loadStoredChildConnections().filter(
+        (child) => child.parentConnectionId === item.connection.id,
+      );
+      if (childConnections.length > 0) {
+        openChildConnectionLayout(item.connection, childConnections);
+        return;
+      }
+    }
     if (item.tabId) {
       activateTab(item.tabId);
       return;

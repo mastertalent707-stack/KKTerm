@@ -12,7 +12,11 @@ import { TelnetConnectionFields } from "./connection-dialog/TelnetConnectionFiel
 import { UrlConnectionFields } from "./connection-dialog/UrlConnectionFields";
 import { VncConnectionFields, VncConnectionOptions } from "./connection-dialog/VncConnectionFields";
 import { ImportDialog } from "./ImportDialog";
-import { syncChildConnectionsFromTabs } from "./childConnections";
+import {
+  loadStoredChildConnections,
+  persistStoredChildConnections,
+  syncChildConnectionsFromTabs,
+} from "./childConnections";
 import {
   resolveDefaultTerminalAppearance,
   supportsTerminalAppearanceDefaults,
@@ -122,50 +126,10 @@ type ConnectionDialogRequest = CreateConnectionRequest & {
   urlPassword?: string;
 };
 
-const CHILD_CONNECTIONS_STORAGE_KEY = "kkterm.workspace.childConnections.v1";
-
 type ChildConnectionPropertiesState = {
   child: WorkspaceChildConnection;
   connection: Connection;
 };
-
-function loadStoredChildConnections(): WorkspaceChildConnection[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(CHILD_CONNECTIONS_STORAGE_KEY) ?? "[]") as unknown;
-    return Array.isArray(parsed) ? parsed.filter(isStoredChildConnection) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistStoredChildConnections(children: WorkspaceChildConnection[]) {
-  if (typeof window === "undefined") {
-    return;
-  }
-  try {
-    window.localStorage.setItem(CHILD_CONNECTIONS_STORAGE_KEY, JSON.stringify(children));
-  } catch {
-    // Storage can be unavailable or full; keep runtime state working.
-  }
-}
-
-function isStoredChildConnection(value: unknown): value is WorkspaceChildConnection {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const child = value as Partial<WorkspaceChildConnection>;
-  return (
-    typeof child.id === "string" &&
-    child.id.trim().length > 0 &&
-    typeof child.parentConnectionId === "string" &&
-    child.parentConnectionId.trim().length > 0 &&
-    typeof child.name === "string" &&
-    child.name.trim().length > 0
-  );
-}
 
 export function ConnectionSidebar({
   onExternalOpenConnection,

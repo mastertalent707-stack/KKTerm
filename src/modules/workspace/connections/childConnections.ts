@@ -1,6 +1,46 @@
 import type { DashboardBackground } from "../../dashboard/types";
 import type { WorkspaceChildConnection, WorkspacePane, WorkspaceTab } from "../../../types";
 
+export const CHILD_CONNECTIONS_STORAGE_KEY = "kkterm.workspace.childConnections.v1";
+
+export function loadStoredChildConnections(): WorkspaceChildConnection[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(CHILD_CONNECTIONS_STORAGE_KEY) ?? "[]") as unknown;
+    return Array.isArray(parsed) ? parsed.filter(isStoredChildConnection) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function persistStoredChildConnections(children: WorkspaceChildConnection[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(CHILD_CONNECTIONS_STORAGE_KEY, JSON.stringify(children));
+  } catch {
+    // Storage can be unavailable or full; keep runtime state working.
+  }
+}
+
+function isStoredChildConnection(value: unknown): value is WorkspaceChildConnection {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const child = value as Partial<WorkspaceChildConnection>;
+  return (
+    typeof child.id === "string" &&
+    child.id.trim().length > 0 &&
+    typeof child.parentConnectionId === "string" &&
+    child.parentConnectionId.trim().length > 0 &&
+    typeof child.name === "string" &&
+    child.name.trim().length > 0
+  );
+}
+
 function isTerminalWorkspacePane(pane: WorkspacePane): pane is WorkspacePane & { cwd: string } {
   return pane.kind === undefined || pane.kind === "terminal";
 }
