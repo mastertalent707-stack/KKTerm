@@ -59,10 +59,35 @@ Module namespaces in this build:
 - **Bridge descriptor file:** `%APPDATA%\com.kkterm.app\mcp-bridge.json`.
   Written when KKTerm.exe starts with the bridge enabled, removed on the
   next start before a new descriptor is written. Stale files cause clients
-  to fail with `app_not_running`.
+  to fail with `app_not_running`. On Windows, KKTerm uses `whoami` to resolve
+  the current user SID, then `icacls` to remove inherited ACLs and grant only
+  that SID full control before publishing the descriptor; if that hardening
+  fails, the bridge does not start.
 - **Auth:** the first framed line `kkterm-cli` sends on the pipe is the
   bearer token from the descriptor file. KKTerm.exe responds with
   `{"ok":true}` on success and closes the connection on mismatch.
+
+### Windows descriptor ACL implementation note
+
+The current implementation intentionally uses Windows command-line tools for
+the descriptor ACL step: `whoami /user /fo csv /nh` provides the current
+process user SID, and `icacls <path> /inheritance:r /grant:r *<SID>:(F)`
+replaces inherited grants with full control for that SID only. `icacls.exe`
+and `whoami.exe` are present on supported Windows installations, this keeps
+the Rust code small, and the hardening runs once at bridge startup rather
+than on a hot path. The bridge fails closed and deletes the descriptor if
+these tools cannot be run or return an error.
+
+A direct Win32 API implementation was considered for this hardening. It would
+avoid spawning `whoami` and `icacls`, but it requires enabling additional
+Windows security bindings such as `Win32_Security` and
+`Win32_Security_Authorization` and writing careful `unsafe` code around APIs
+such as `OpenProcessToken`, `GetTokenInformation`, `ConvertSidToStringSidW`,
+`ConvertStringSecurityDescriptorToSecurityDescriptorW`, `SetFileSecurityW`,
+`CloseHandle`, and `LocalFree`. If the command-line approach proves unreliable
+in a supported Windows environment, revisit the direct Win32 path with focused
+Windows runtime testing for handle cleanup, DACL protection, non-ASCII paths,
+and domain/local account SID behavior.
 
 ## Tool safety model
 
