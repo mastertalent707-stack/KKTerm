@@ -887,6 +887,7 @@ interface WorkspaceState {
     metadata: { title?: string; subtitle?: string; url?: string },
   ) => void;
   refreshOpenConnectionMetadata: (connection: Connection) => void;
+  updateOpenConnectionTerminalAppearance: (connectionId: string, appearance: Pick<Connection, "terminalOpacity" | "terminalBackground">) => void;
   markConnectionSessionStarted: (connectionId: string) => void;
   markConnectionSessionEnded: (connectionId: string) => void;
   closeAllTabs: () => void;
@@ -2254,6 +2255,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       tabs: state.tabs.map((tab) => refreshTabConnectionMetadata(tab, connection)),
     }));
   },
+  updateOpenConnectionTerminalAppearance: (connectionId, appearance) => {
+    set((state) => ({
+      tabs: state.tabs.map((tab) => updateTabTerminalAppearance(tab, connectionId, appearance)),
+    }));
+  },
   markConnectionSessionStarted: (connectionId) => {
     set((state) => ({
       activeSessionCounts: {
@@ -2280,6 +2286,30 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
   },
 }));
+
+
+function updateTabTerminalAppearance(
+  tab: WorkspaceTab,
+  connectionId: string,
+  appearance: Pick<Connection, "terminalOpacity" | "terminalBackground">,
+): WorkspaceTab {
+  const apply = (connection: Connection): Connection => ({ ...connection, ...appearance });
+  const tabConnectionMatches = tab.connection?.id === connectionId;
+  const panes = tab.panes.map((pane) => (
+    pane.connection?.id === connectionId
+      ? { ...pane, connection: apply(pane.connection) }
+      : pane
+  ));
+  const panesChanged = panes.some((pane, index) => pane !== tab.panes[index]);
+  if (!tabConnectionMatches && !panesChanged) {
+    return tab;
+  }
+  return {
+    ...tab,
+    connection: tabConnectionMatches && tab.connection ? apply(tab.connection) : tab.connection,
+    panes,
+  };
+}
 
 function refreshTabConnectionMetadata(tab: WorkspaceTab, connection: Connection): WorkspaceTab {
   const tabConnectionMatches = tab.connection?.id === connection.id;
