@@ -17,6 +17,10 @@
 </p>
 
 <p align="center">
+  <strong><a href="https://github.com/ryantsai/KKTerm/releases/latest">최신 Windows 설치 프로그램(.exe) 다운로드</a></strong>
+</p>
+
+<p align="center">
   <a href="https://github.com/ryantsai/KKTerm/stargazers">
     <img src="https://img.shields.io/github/stars/ryantsai/KKTerm?style=for-the-badge&logo=github&color=ffd33d" alt="GitHub stars" />
   </a>
