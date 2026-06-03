@@ -24,6 +24,10 @@
   gap: 10px;
 }
 
+.terminal-workspace-has-background .terminal-pane {
+  background: transparent;
+}
+
 .terminal-workspace-embedded-only {
   grid-template-rows: minmax(0, 1fr);
 }
@@ -583,6 +587,8 @@
 }
 
 .quick-command-bar {
+  position: relative;
+  z-index: 1;
   display: flex;
   gap: 8px;
   align-items: center;
@@ -1664,7 +1670,7 @@
 
 .terminal-connection-background {
   position: absolute;
-  inset: 14px;
+  inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;

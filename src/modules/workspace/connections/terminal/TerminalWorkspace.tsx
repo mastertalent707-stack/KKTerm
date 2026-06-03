@@ -218,6 +218,7 @@ export function TerminalWorkspace({
         isSingleEmbeddedPane ? "terminal-workspace-embedded-only" : "",
         maximizedPaneId ? "terminal-workspace-pane-maximized" : "",
         quickCommandBarVisible ? "quick-command-bar-visible" : "",
+        workspaceTerminalBackground ? "terminal-workspace-has-background" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -1204,6 +1205,7 @@ function TerminalPaneView({
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const { t } = useTranslation();
   const terminalOpacity = pane.connection?.terminalOpacity ?? 95;
+  const terminalTransparency = 100 - terminalOpacity;
   const terminalBackground = usePaneTerminalBackgrounds
     ? (pane.terminalBackground ?? pane.connection?.terminalBackground ?? null)
     : (pane.connection?.terminalBackground ?? null);
@@ -1773,7 +1775,7 @@ function TerminalPaneView({
   }
 
   function handleOpacityChange(value: string) {
-    void saveTerminalAppearance(Number(value));
+    void saveTerminalAppearance(100 - Number(value));
   }
 
   function handleBackgroundChange(nextBackground: typeof terminalBackground) {
@@ -2183,7 +2185,7 @@ function TerminalPaneView({
                   </button>
                   <div className="terminal-menu terminal-menu-submenu-panel terminal-opacity-panel" role="menu">
                     <label className="terminal-opacity-control">
-                      <span>{t("terminal.opacityValue", { value: terminalOpacity })}</span>
+                      <span>{t("terminal.opacityValue", { value: terminalTransparency })}</span>
                       <input
                         aria-label={t("terminal.opacity")}
                         max={100}
@@ -2191,7 +2193,7 @@ function TerminalPaneView({
                         onChange={(event) => handleOpacityChange(event.currentTarget.value)}
                         step={1}
                         type="range"
-                        value={terminalOpacity}
+                        value={terminalTransparency}
                       />
                     </label>
                   </div>

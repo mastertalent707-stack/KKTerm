@@ -42,6 +42,10 @@ const terminalManual = await readFile(
   new URL("../docs/manual/05-terminal.md", import.meta.url),
   "utf8",
 );
+const terminalCss = await readFile(
+  new URL("../src/modules/workspace/connections/terminal/terminal.css", import.meta.url),
+  "utf8",
+);
 
 test("Workspace settings exposes split terminal background scope defaulted off", () => {
   assert.match(typesSource, /separateSplitTerminalBackgrounds:\s*boolean/);
@@ -59,9 +63,20 @@ test("terminal background paints once at workspace scope unless split pane backg
     terminalWorkspace,
     /<TerminalBackgroundLayer\s+active=\{isActive\}\s+background=\{workspaceTerminalBackground\}/,
   );
+  assert.match(terminalWorkspace, /terminal-workspace-has-background/);
   assert.match(
     terminalWorkspace,
     /background=\{usePaneTerminalBackgrounds \? terminalBackground : null\}/,
+  );
+  assert.match(
+    terminalCss,
+    /\.terminal-connection-background\s*\{[\s\S]*inset:\s*0;/,
+    "shared terminal backgrounds must fill the full workspace surface",
+  );
+  assert.match(
+    terminalCss,
+    /\.quick-command-bar\s*\{[\s\S]*z-index:\s*1;/,
+    "the quick command bar must remain above shared terminal backgrounds",
   );
 });
 
