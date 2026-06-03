@@ -12,6 +12,7 @@ import { TelnetConnectionFields } from "./connection-dialog/TelnetConnectionFiel
 import { UrlConnectionFields } from "./connection-dialog/UrlConnectionFields";
 import { VncConnectionFields, VncConnectionOptions } from "./connection-dialog/VncConnectionFields";
 import { ImportDialog } from "./ImportDialog";
+import { syncChildConnectionsFromTabs } from "./childConnections";
 import { quickConnectRecentLabel } from "./quickConnectMenuModel";
 import {
   CONNECTION_TAB_CONTEXT_MENU_EVENT,
@@ -36,7 +37,7 @@ import { DeleteConfirmationDialog } from "../../../app/DeleteConfirmationDialog"
 import { DialogPortal } from "../../../app/DialogPortal";
 import { pushTrayMenu } from "../../../app/trayMenu";
 import { CHILD_CONNECTION_CLOSED_EVENT, appendTmuxSessionId, useWorkspaceStore } from "../../../store";
-import type { Connection, ConnectionFolder, ConnectionStatus, ConnectionTree, ConnectionType, CreateConnectionRequest, RdpSettings, SplitDirection, SshSettings, StoredCredentialSummary, UpdateConnectionRequest, VncSettings, WorkspaceChildConnection, WorkspacePane, WorkspaceTab } from "../../../types";
+import type { Connection, ConnectionFolder, ConnectionStatus, ConnectionTree, ConnectionType, CreateConnectionRequest, RdpSettings, SplitDirection, SshSettings, StoredCredentialSummary, UpdateConnectionRequest, VncSettings, WorkspaceChildConnection, WorkspaceTab } from "../../../types";
 
 type DraggedTreeItem =
   | { kind: "folder"; folderId: string }
@@ -160,10 +161,6 @@ function isStoredChildConnection(value: unknown): value is WorkspaceChildConnect
     typeof child.name === "string" &&
     child.name.trim().length > 0
   );
-}
-
-function isTerminalWorkspacePane(pane: WorkspacePane): pane is WorkspacePane & { cwd: string } {
-  return pane.kind === undefined || pane.kind === "terminal";
 }
 
 export function ConnectionSidebar({
@@ -293,26 +290,7 @@ export function ConnectionSidebar({
     if (!showChildTabsInTree) {
       return;
     }
-    setChildConnections((current) => {
-      let changed = false;
-      const cwdByChildId = new Map<string, string>();
-      for (const tab of tabs) {
-        for (const pane of tab.panes) {
-          if (pane.childConnectionId && isTerminalWorkspacePane(pane) && pane.cwd.trim()) {
-            cwdByChildId.set(pane.childConnectionId, pane.cwd.trim());
-          }
-        }
-      }
-      const next = current.map((child) => {
-        const cwd = cwdByChildId.get(child.id);
-        if (!cwd || child.cwd === cwd) {
-          return child;
-        }
-        changed = true;
-        return { ...child, cwd };
-      });
-      return changed ? next : current;
-    });
+    setChildConnections((current) => syncChildConnectionsFromTabs(current, tabs));
   }, [showChildTabsInTree, tabs]);
 
   useEffect(() => {

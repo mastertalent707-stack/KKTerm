@@ -574,6 +574,7 @@ function buildPaneForConnection(
   options?: {
     childConnectionId?: string;
     cwd?: string;
+    terminalBackground?: TerminalPane["terminalBackground"];
     title?: string;
     toolbarTitle?: string;
     tmuxSessionId?: string;
@@ -615,6 +616,7 @@ function buildPaneForConnection(
     cwd: options?.cwd?.trim() || inheritedTerminalCwdForConnection(connection, focusedPane),
     buffer: "",
     connection,
+    terminalBackground: options?.terminalBackground,
     tmuxSessionId: options?.tmuxSessionId ?? appendTmuxSessionId(connection),
   };
 }
@@ -818,6 +820,7 @@ interface WorkspaceState {
       cwd?: string;
       iconBackgroundColor?: string | null;
       iconDataUrl?: string | null;
+      terminalBackground?: TerminalPane["terminalBackground"];
       title?: string;
       toolbarTitle?: string;
       tmuxSessionId?: string;
@@ -1144,6 +1147,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const pane = buildPaneForConnection(paneConnection, undefined, {
       childConnectionId: options?.childConnectionId,
       cwd: options?.cwd,
+      terminalBackground: options?.terminalBackground,
       title: options?.tmuxSessionId ?? options?.title,
       toolbarTitle: options?.toolbarTitle,
       tmuxSessionId: options?.tmuxSessionId,
@@ -1190,6 +1194,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       cwd: child.cwd,
       iconBackgroundColor: child.iconBackgroundColor,
       iconDataUrl: child.iconDataUrl,
+      terminalBackground: child.terminalBackground,
       title: child.name,
       toolbarTitle: child.name,
       tmuxSessionId: child.tmuxSessionId,
@@ -1261,6 +1266,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         const pane = buildPaneForConnection(childConnection, undefined, {
           childConnectionId: child.id,
           cwd: child.cwd,
+          terminalBackground: child.terminalBackground,
           title: child.tmuxSessionId ?? child.name,
           toolbarTitle: child.name,
           tmuxSessionId: child.tmuxSessionId,

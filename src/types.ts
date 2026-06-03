@@ -571,6 +571,7 @@ export interface WorkspaceChildConnection {
   name: string;
   tmuxSessionId?: string;
   cwd?: string;
+  terminalBackground?: DashboardBackground | null;
   iconDataUrl?: string | null;
   iconBackgroundColor?: string | null;
 }
