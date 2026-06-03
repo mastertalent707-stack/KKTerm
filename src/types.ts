@@ -1,4 +1,4 @@
-import type { AccentName, IconName, WidgetLayoutEnforcement } from "./modules/dashboard/types";
+import type { AccentName, DashboardBackground, IconName, WidgetLayoutEnforcement } from "./modules/dashboard/types";
 
 export type ConnectionType =
   | "local"
@@ -37,6 +37,8 @@ export interface Connection {
   hasUrlCredential?: boolean;
   iconDataUrl?: string | null;
   iconBackgroundColor?: string | null;
+  terminalOpacity?: number | null;
+  terminalBackground?: DashboardBackground | null;
   rdpOptions?: RdpConnectionOptions;
   vncOptions?: VncConnectionOptions;
   ftpOptions?: FtpConnectionOptions;

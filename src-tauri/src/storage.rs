@@ -14,6 +14,8 @@ use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 const SCHEMA_USER_VERSION: i32 = 18;
 
+const DEFAULT_TERMINAL_OPACITY: u8 = 95;
+
 const CURRENT_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS connection_folders (
     id TEXT PRIMARY KEY,
@@ -48,6 +50,8 @@ CREATE TABLE IF NOT EXISTS connections (
     password_credential_id TEXT REFERENCES connection_password_credentials(id) ON DELETE SET NULL,
     icon_data_url TEXT,
     icon_background_color TEXT,
+    terminal_opacity INTEGER,
+    terminal_background_json TEXT,
     connection_type TEXT NOT NULL CHECK (connection_type IN ('local', 'ssh', 'telnet', 'serial', 'url', 'rdp', 'vnc', 'ftp')),
     status TEXT NOT NULL CHECK (status IN ('connected', 'idle', 'offline')),
     sort_order INTEGER NOT NULL
@@ -823,6 +827,8 @@ pub struct SavedConnection {
     password_credential_id: Option<String>,
     icon_data_url: Option<String>,
     icon_background_color: Option<String>,
+    terminal_opacity: Option<u8>,
+    terminal_background: Option<crate::dashboard_storage::DashboardBackground>,
     #[serde(rename = "type")]
     connection_type: String,
     tags: Vec<String>,
@@ -1879,6 +1885,8 @@ impl Storage {
         ensure_column(&connection, "connections", "ftp_options", "TEXT")?;
         ensure_column(&connection, "connections", "icon_data_url", "TEXT")?;
         ensure_column(&connection, "connections", "icon_background_color", "TEXT")?;
+        ensure_column(&connection, "connections", "terminal_opacity", "INTEGER")?;
+        ensure_column(&connection, "connections", "terminal_background_json", "TEXT")?;
         ensure_column(&connection, "connections", "tab_title", "TEXT")?;
         ensure_column(&connection, "connections", "password_credential_id", "TEXT")?;
         ensure_column(
@@ -2077,6 +2085,8 @@ impl Storage {
             password_credential_id: None,
             icon_data_url: None,
             icon_background_color: None,
+            terminal_opacity: Some(DEFAULT_TERMINAL_OPACITY),
+            terminal_background: None,
             connection_type,
             tags,
             status: "idle".to_string(),
@@ -2314,6 +2324,39 @@ impl Storage {
             .execute(
                 "UPDATE connections SET icon_background_color = ?1 WHERE id = ?2",
                 params![icon_background_color, &connection_id],
+            )
+            .map_err(to_storage_error)?;
+        get_connection_by_id(&connection, &connection_id).map(Some)
+    }
+
+    pub fn update_connection_terminal_appearance(
+        &self,
+        connection_id: String,
+        terminal_opacity: Option<u8>,
+        terminal_background: Option<crate::dashboard_storage::DashboardBackground>,
+    ) -> Result<Option<SavedConnection>, String> {
+        let connection_id = required_field("connection id", connection_id)?;
+        let terminal_opacity = normalize_terminal_opacity(terminal_opacity)?;
+        let terminal_background_json = terminal_background_to_json(&terminal_background)?;
+        let connection = self.lock()?;
+        let current = connection
+            .query_row(
+                "SELECT terminal_opacity, terminal_background_json FROM connections WHERE id = ?1",
+                params![&connection_id],
+                |row| Ok((row.get::<_, Option<i64>>(0)?, row.get::<_, Option<String>>(1)?)),
+            )
+            .optional()
+            .map_err(to_storage_error)?
+            .ok_or_else(|| "connection was not found".to_string())?;
+        if normalize_loaded_terminal_opacity(current.0) == Some(terminal_opacity)
+            && current.1 == terminal_background_json
+        {
+            return Ok(None);
+        }
+        connection
+            .execute(
+                "UPDATE connections SET terminal_opacity = ?1, terminal_background_json = ?2 WHERE id = ?3",
+                params![i64::from(terminal_opacity), terminal_background_json, &connection_id],
             )
             .map_err(to_storage_error)?;
         get_connection_by_id(&connection, &connection_id).map(Some)
@@ -2842,7 +2885,7 @@ impl Storage {
 
         let source = transaction
             .query_row(
-                "SELECT folder_id, name, tab_title, host, username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color
+                "SELECT folder_id, name, tab_title, host, username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json
                  FROM connections
                  WHERE id = ?1",
                 params![source_id],
@@ -2868,6 +2911,8 @@ impl Storage {
                         row.get::<_, String>(17)?,
                         row.get::<_, Option<String>>(18)?,
                         row.get::<_, Option<String>>(19)?,
+                        normalize_loaded_terminal_opacity(row.get::<_, Option<i64>>(20)?),
+                        terminal_background_from_json(row.get::<_, Option<String>>(21)?),
                     ))
                 },
             )
@@ -2895,6 +2940,8 @@ impl Storage {
             connection_type,
             icon_data_url,
             icon_background_color,
+            terminal_opacity,
+            terminal_background,
         ) = source;
         let duplicate_name = request
             .name
@@ -2912,8 +2959,8 @@ impl Storage {
         transaction
             .execute(
                 "INSERT INTO connections (
-                    id, folder_id, name, tab_title, host, username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, status, sort_order
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, 'idle', ?23)",
+                    id, folder_id, name, tab_title, host, username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, status, sort_order
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, 'idle', ?25)",
                 params![
                     duplicate_id,
                     folder_id,
@@ -2937,6 +2984,8 @@ impl Storage {
                     connection_type,
                     icon_data_url,
                     icon_background_color,
+                    terminal_opacity.map(i64::from),
+                    terminal_background_to_json(&terminal_background)?,
                     next_sort_order
                 ],
             )
@@ -3619,7 +3668,7 @@ fn list_connections_for_folder(
     };
     let mut statement = connection
         .prepare(&format!(
-            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, password_credential_id,
+            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
                     url_credentials.username
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
@@ -3881,15 +3930,15 @@ fn get_connection_by_id(
 ) -> Result<SavedConnection, String> {
     let saved_connection = connection
         .query_row(
-            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, password_credential_id,
+            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
                     url_credentials.username
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE connections.id = ?1",
             params![connection_id],
             |row| {
-                let password_credential_id: Option<String> = row.get(24)?;
-                let url_credential_username: Option<String> = row.get(25)?;
+                let password_credential_id: Option<String> = row.get(26)?;
+                let url_credential_username: Option<String> = row.get(27)?;
                 Ok(SavedConnection {
                     id: row.get(0)?,
                     name: row.get(1)?,
@@ -3915,6 +3964,8 @@ fn get_connection_by_id(
                     ftp_options: parse_ftp_connection_options(row.get(21)?)?,
                     icon_data_url: row.get(22)?,
                     icon_background_color: row.get(23)?,
+                    terminal_opacity: normalize_loaded_terminal_opacity(row.get(24)?),
+                    terminal_background: terminal_background_from_json(row.get(25)?),
                     password_credential_id,
                     url_credential_username: url_credential_username.clone(),
                     has_url_credential: url_credential_username.is_some(),
@@ -3934,8 +3985,8 @@ fn get_connection_by_id(
 }
 
 fn saved_connection_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SavedConnection> {
-    let password_credential_id: Option<String> = row.get(24)?;
-    let url_credential_username: Option<String> = row.get(25)?;
+    let password_credential_id: Option<String> = row.get(26)?;
+    let url_credential_username: Option<String> = row.get(27)?;
     Ok(SavedConnection {
         id: row.get(0)?,
         name: row.get(1)?,
@@ -3962,6 +4013,8 @@ fn saved_connection_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SavedC
         password_credential_id,
         icon_data_url: row.get(22)?,
         icon_background_color: row.get(23)?,
+        terminal_opacity: normalize_loaded_terminal_opacity(row.get(24)?),
+        terminal_background: terminal_background_from_json(row.get(25)?),
         url_credential_username: url_credential_username.clone(),
         has_url_credential: url_credential_username.is_some(),
         status: "idle".to_string(),
@@ -4475,6 +4528,45 @@ fn normalize_connection_icon_background_color(
         return Ok(Some(format!("#{color}").to_lowercase()));
     }
     Ok(None)
+}
+
+fn normalize_terminal_opacity(value: Option<u8>) -> Result<u8, String> {
+    let opacity = value.unwrap_or(DEFAULT_TERMINAL_OPACITY);
+    if opacity > 100 {
+        return Err("terminal opacity must be between 0 and 100".to_string());
+    }
+    Ok(opacity)
+}
+
+fn normalize_loaded_terminal_opacity(value: Option<i64>) -> Option<u8> {
+    let opacity = value.unwrap_or(i64::from(DEFAULT_TERMINAL_OPACITY));
+    if (0..=100).contains(&opacity) {
+        Some(opacity as u8)
+    } else {
+        Some(DEFAULT_TERMINAL_OPACITY)
+    }
+}
+
+fn terminal_background_from_json(
+    value: Option<String>,
+) -> Option<crate::dashboard_storage::DashboardBackground> {
+    value.and_then(|json| {
+        serde_json::from_str::<crate::dashboard_storage::DashboardBackground>(&json).ok()
+    })
+}
+
+fn terminal_background_to_json(
+    background: &Option<crate::dashboard_storage::DashboardBackground>,
+) -> Result<Option<String>, String> {
+    match background {
+        None => Ok(None),
+        Some(background) => {
+            background.validate().map_err(|error| format!("{error:?}"))?;
+            serde_json::to_string(background)
+                .map(Some)
+                .map_err(|_| "terminal background is invalid".to_string())
+        }
+    }
 }
 
 fn required_field(field: &str, value: String) -> Result<String, String> {
@@ -5998,6 +6090,48 @@ mod tests {
             .expect("connection icon background is cleared")
             .expect("cleared background returns the updated connection");
         assert!(cleared.icon_background_color.is_none());
+    }
+
+    #[test]
+    fn connection_terminal_appearance_updates_and_persists() {
+        let storage =
+            Storage::open(temp_db_path("connection-terminal-appearance")).expect("storage opens");
+        let created = create_test_ssh_connection(&storage, "Bastion", "bastion.internal", None);
+        assert_eq!(created.terminal_opacity, Some(DEFAULT_TERMINAL_OPACITY));
+        assert!(created.terminal_background.is_none());
+
+        let background = crate::dashboard_storage::DashboardBackground::Preset {
+            preset: "midnight".to_string(),
+        };
+        let updated = storage
+            .update_connection_terminal_appearance(
+                created.id.clone(),
+                Some(82),
+                Some(background.clone()),
+            )
+            .expect("terminal appearance is updated")
+            .expect("changed appearance returns the updated connection");
+
+        assert_eq!(updated.terminal_opacity, Some(82));
+        assert_eq!(updated.terminal_background, Some(background.clone()));
+
+        let tree = storage
+            .list_connection_tree()
+            .expect("connection tree loads");
+        let reloaded = tree
+            .connections
+            .iter()
+            .find(|connection| connection.id == created.id)
+            .expect("connection exists");
+        assert_eq!(reloaded.terminal_opacity, Some(82));
+        assert_eq!(reloaded.terminal_background, Some(background));
+
+        let cleared = storage
+            .update_connection_terminal_appearance(created.id.clone(), Some(95), None)
+            .expect("terminal appearance is cleared")
+            .expect("cleared appearance returns the updated connection");
+        assert_eq!(cleared.terminal_opacity, Some(DEFAULT_TERMINAL_OPACITY));
+        assert!(cleared.terminal_background.is_none());
     }
 
     #[test]

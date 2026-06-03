@@ -59,6 +59,7 @@ import type {
   DashboardLoadState,
   DashboardView,
   DashboardWidgetInstance,
+  DashboardBackground,
   CustomWidgetPatch,
   InstancePatch,
   LayoutEntry,
@@ -837,6 +838,10 @@ type CommandMap = {
   };
   update_connection_tab_title: {
     args: { connectionId: string; tabTitle?: string | null };
+    result: Connection | null;
+  };
+  update_connection_terminal_appearance: {
+    args: { connectionId: string; terminalOpacity?: number | null; terminalBackground?: DashboardBackground | null };
     result: Connection | null;
   };
   delete_connection: {

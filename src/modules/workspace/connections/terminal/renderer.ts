@@ -54,6 +54,7 @@ export interface TerminalRenderer {
   onSelectionChange: (handler: () => void) => IDisposable;
   open: (element: HTMLElement) => void;
   setWheelScrollbackOverride: (enabled: boolean, handler?: (lines: number) => void) => void;
+  setBackgroundOpacity: (opacity: number) => void;
   write: (data: string) => void;
   writeln: (data: string) => void;
   setFontSize: (size: number) => void;
@@ -88,8 +89,8 @@ const SEARCH_OPTIONS: ISearchOptions = {
   },
 };
 
-export function createTerminalRenderer(settings: TerminalSettings): TerminalRenderer {
-  return new XtermTerminalRenderer(settings);
+export function createTerminalRenderer(settings: TerminalSettings, backgroundOpacity = 95): TerminalRenderer {
+  return new XtermTerminalRenderer(settings, backgroundOpacity);
 }
 
 class XtermTerminalRenderer implements TerminalRenderer {
@@ -107,8 +108,8 @@ class XtermTerminalRenderer implements TerminalRenderer {
   private wheelScrollbackHandler: ((lines: number) => void) | null = null;
   private wheelScrollbackOverride = false;
 
-  constructor(settings: TerminalSettings) {
-    this.terminal = new XtermTerminal(terminalOptionsFor(settings));
+  constructor(settings: TerminalSettings, backgroundOpacity: number) {
+    this.terminal = new XtermTerminal(terminalOptionsFor(settings, backgroundOpacity));
     this.terminal.attachCustomWheelEventHandler((event) => this.handleWheelEvent(event));
     this.terminal.loadAddon(this.fitAddon);
     this.terminal.loadAddon(this.searchAddon);
@@ -217,6 +218,13 @@ class XtermTerminalRenderer implements TerminalRenderer {
   setWheelScrollbackOverride(enabled: boolean, handler?: (lines: number) => void) {
     this.wheelScrollbackOverride = enabled;
     this.wheelScrollbackHandler = enabled ? handler ?? null : null;
+  }
+
+  setBackgroundOpacity(opacity: number) {
+    this.terminal.options.theme = {
+      ...this.terminal.options.theme,
+      background: terminalBackgroundColor(opacity),
+    };
   }
 
   open(element: HTMLElement) {
@@ -424,7 +432,13 @@ export function wheelScrollLinesForEvent(event: WheelEvent, rows: number, cellHe
   return Math.sign(event.deltaY) * magnitude;
 }
 
-function terminalOptionsFor(settings: TerminalSettings): ITerminalOptions {
+
+function terminalBackgroundColor(opacity: number) {
+  const alpha = Math.min(Math.max(Math.round(opacity), 0), 100) / 100;
+  return `rgba(12, 18, 25, ${alpha})`;
+}
+
+function terminalOptionsFor(settings: TerminalSettings, backgroundOpacity: number): ITerminalOptions {
   return {
     altClickMovesCursor: false,
     convertEol: false,
@@ -447,7 +461,7 @@ function terminalOptionsFor(settings: TerminalSettings): ITerminalOptions {
     scrollback: clampScrollback(settings.scrollbackLines),
     smoothScrollDuration: 0,
     theme: {
-      background: "#0c1219",
+      background: terminalBackgroundColor(backgroundOpacity),
       foreground: "#d9e2ef",
       cursor: "#d9e2ef",
       selectionBackground: "#305f95",

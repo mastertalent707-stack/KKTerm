@@ -31,6 +31,7 @@ import {
 } from "../../paneRegistry";
 import type { Connection, LayoutNode, SplitDirection, TerminalPane, WorkspacePane, WorkspaceTab } from "../../../../types";
 import { QuickCommandBar } from "./QuickCommandBar";
+import { TerminalBackgroundLayer, TerminalBackgroundPopover } from "./TerminalBackgroundPopover";
 
 type TerminalContextMenuState = {
   x: number;
@@ -1147,6 +1148,7 @@ function TerminalPaneView({
     found: boolean;
   }>({ resultIndex: -1, resultCount: 0, found: true });
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const [backgroundPopoverOpen, setBackgroundPopoverOpen] = useState(false);
   const [selectedTerminalText, setSelectedTerminalText] = useState("");
   const [contextMenu, setContextMenu] = useState<TerminalContextMenuState | null>(null);
   const [multilinePasteConfirmationOpen, setMultilinePasteConfirmationOpen] = useState(false);
@@ -1174,8 +1176,11 @@ function TerminalPaneView({
   );
   const closePane = useWorkspaceStore((state) => state.closePane);
   const updatePaneCwd = useWorkspaceStore((state) => state.updatePaneCwd);
+  const updateOpenConnectionTerminalAppearance = useWorkspaceStore((state) => state.updateOpenConnectionTerminalAppearance);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const { t } = useTranslation();
+  const terminalOpacity = pane.connection?.terminalOpacity ?? 95;
+  const terminalBackground = pane.connection?.terminalBackground ?? null;
 
   useEffect(() => {
     return () => {
@@ -1309,7 +1314,7 @@ function TerminalPaneView({
             allowOsc52Clipboard: sshSettings.allowOsc52Clipboard,
           }
         : terminalSettings;
-    const terminal = createTerminalRenderer(rendererSettings);
+    const terminal = createTerminalRenderer(rendererSettings, terminalOpacity);
     terminalRendererRef.current = terminal;
     const cwdDisposable = terminal.onCwdChange((cwd) => updatePaneCwd(tabId, pane.id, cwd));
     terminal.setWheelScrollbackOverride(Boolean(pane.tmuxSessionId && !tmuxMouseEnabled), handleTmuxWheelScroll);
@@ -1633,6 +1638,10 @@ function TerminalPaneView({
   }, [pane.id, tabId]);
 
   useEffect(() => {
+    terminalRendererRef.current?.setBackgroundOpacity(terminalOpacity);
+  }, [terminalOpacity]);
+
+  useEffect(() => {
     terminalRendererRef.current?.setWheelScrollbackOverride(
       Boolean(pane.tmuxSessionId && !tmuxMouseEnabled),
       handleTmuxWheelScroll,
@@ -1705,6 +1714,45 @@ function TerminalPaneView({
       resultIndex: found ? result.resultIndex : -1,
     }));
   }, [searchOpen, searchTerm]);
+
+  async function saveTerminalAppearance(nextOpacity: number, nextBackground = terminalBackground) {
+    const connection = pane.connection;
+    if (!connection) {
+      return;
+    }
+    const appearance = {
+      terminalOpacity: Math.min(Math.max(Math.round(nextOpacity), 0), 100),
+      terminalBackground: nextBackground,
+    };
+    updateOpenConnectionTerminalAppearance(connection.id, appearance);
+    if (isTransientLocalConnectionId(connection.id)) {
+      return;
+    }
+    try {
+      const updated = await invokeCommand("update_connection_terminal_appearance", {
+        connectionId: connection.id,
+        terminalOpacity: appearance.terminalOpacity,
+        terminalBackground: appearance.terminalBackground,
+      });
+      if (updated) {
+        updateOpenConnectionTerminalAppearance(connection.id, {
+          terminalOpacity: updated.terminalOpacity ?? appearance.terminalOpacity,
+          terminalBackground: updated.terminalBackground ?? null,
+        });
+      }
+    } catch (error) {
+      console.warn("terminal appearance update failed.", error);
+      showStatusBarNotice(t("terminal.appearanceSaveFailed", { message: String(error) }));
+    }
+  }
+
+  function handleOpacityChange(value: string) {
+    void saveTerminalAppearance(Number(value));
+  }
+
+  function handleBackgroundChange(nextBackground: typeof terminalBackground) {
+    void saveTerminalAppearance(terminalOpacity, nextBackground);
+  }
 
   function handleCopyTerminalSelection() {
     const text = terminalRendererRef.current?.getSelection() || selectedTerminalText;
@@ -2099,6 +2147,43 @@ function TerminalPaneView({
                     role="menuitem"
                     type="button"
                   >
+                    <Circle size={13} />
+                    {t("terminal.opacity")}
+                    <ChevronRight size={13} className="terminal-menu-chevron" />
+                  </button>
+                  <div className="terminal-menu terminal-menu-submenu-panel terminal-opacity-panel" role="menu">
+                    <label className="terminal-opacity-control">
+                      <span>{t("terminal.opacityValue", { value: terminalOpacity })}</span>
+                      <input
+                        aria-label={t("terminal.opacity")}
+                        max={100}
+                        min={0}
+                        onChange={(event) => handleOpacityChange(event.currentTarget.value)}
+                        step={1}
+                        type="range"
+                        value={terminalOpacity}
+                      />
+                    </label>
+                  </div>
+                </div>
+                <button
+                  className="terminal-menu-item"
+                  onClick={() => {
+                    setBackgroundPopoverOpen(true);
+                    setActionsMenuOpen(false);
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  <PanelBottom size={13} />
+                  {t("terminal.background")}
+                </button>
+                <div className="terminal-menu-submenu">
+                  <button
+                    className="terminal-menu-item"
+                    role="menuitem"
+                    type="button"
+                  >
                     <Type size={13} />
                     {t("terminal.font")}
                     <ChevronRight size={13} className="terminal-menu-chevron" />
@@ -2192,17 +2277,27 @@ function TerminalPaneView({
         </div>
       ) : null}
       {pane.connection ? (
-        <div
-          className="xterm-host"
-          data-tutorial-id="terminal.surface"
-          onContextMenu={handleTerminalContextMenu}
-          ref={terminalElementRef}
-        />
+        <>
+          <TerminalBackgroundLayer active={isActive} background={terminalBackground} />
+          <div
+            className="xterm-host"
+            data-tutorial-id="terminal.surface"
+            onContextMenu={handleTerminalContextMenu}
+            ref={terminalElementRef}
+          />
+        </>
       ) : (
         <pre>
           <code>{pane.buffer}</code>
         </pre>
       )}
+      {backgroundPopoverOpen ? (
+        <TerminalBackgroundPopover
+          background={terminalBackground}
+          onBackgroundChange={handleBackgroundChange}
+          onClose={() => setBackgroundPopoverOpen(false)}
+        />
+      ) : null}
       {contextMenu ? (
         <TerminalContextMenu
           menu={contextMenu}
@@ -2543,6 +2638,10 @@ function localStartupInputFor(connection: Connection) {
     return "";
   }
   return `${script.replace(/\r?\n/g, "\r")}\r`;
+}
+
+function isTransientLocalConnectionId(connectionId: string) {
+  return /^local-\d+$/u.test(connectionId);
 }
 
 function focusTerminalUnlessExternalInputIsActive(
