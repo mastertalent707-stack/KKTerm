@@ -1,6 +1,7 @@
-import { PanelLeft, PanelRight } from "lucide-react";
+import { Bot, PanelLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { ActivePage } from "./ActivityRail";
 import {
   closeMainWindow,
   getAppVersion,
@@ -103,11 +104,13 @@ function CloseIcon() {
 }
 
 export function TitleBar({
+  activePage,
   aiPanelCollapsed,
   connectionPanelCollapsed,
   onToggleAiPanel,
   onToggleConnectionPanel,
 }: {
+  activePage: ActivePage;
   aiPanelCollapsed: boolean;
   connectionPanelCollapsed: boolean;
   onToggleAiPanel: () => void;
@@ -158,18 +161,20 @@ export function TitleBar({
         </span>
       </div>
       <div className="app-titlebar-controls">
-        <button
-          type="button"
-          className={`app-titlebar-button app-titlebar-panel-button ${
-            connectionPanelCollapsed ? "" : "active"
-          }`}
-          onClick={onToggleConnectionPanel}
-          aria-label={t("app.connections")}
-          aria-pressed={!connectionPanelCollapsed}
-          title={t("app.connections")}
-        >
-          <PanelLeft size={15} strokeWidth={1.8} />
-        </button>
+        {activePage === "workspace" ? (
+          <button
+            type="button"
+            className={`app-titlebar-button app-titlebar-panel-button ${
+              connectionPanelCollapsed ? "" : "active"
+            }`}
+            onClick={onToggleConnectionPanel}
+            aria-label={t("app.connections")}
+            aria-pressed={!connectionPanelCollapsed}
+            title={t("app.connections")}
+          >
+            <PanelLeft size={15} strokeWidth={1.8} />
+          </button>
+        ) : null}
         <button
           type="button"
           className={`app-titlebar-button app-titlebar-panel-button ${
@@ -180,7 +185,7 @@ export function TitleBar({
           aria-pressed={!aiPanelCollapsed}
           title={t("app.aiAssistant")}
         >
-          <PanelRight size={15} strokeWidth={1.8} />
+          <Bot size={15} strokeWidth={1.8} />
         </button>
         <button
           type="button"

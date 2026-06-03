@@ -28,7 +28,7 @@ Non-Workspace pages (Dashboard and Settings) stay inset from the 48 px rail so i
 
 Resizable. Collapsed/expanded state persists across launches. See [03-connections.md](03-connections.md) for the tree itself. When `settings.hideTopTabButtons` is enabled, this panel also becomes the primary Tab navigator by showing Child Connection Tabs under parent Connections.
 
-- Toggle: custom title-bar `app.connections` icon or Workspace icon on the Activity Rail. Double-clicking the panel title row, including the blank space beside `connections.title`, performs the same hide/show action.
+- Toggle: custom title-bar `app.connections` icon while Workspace is active, or Workspace icon on the Activity Rail. Double-clicking the panel title row, including the blank space beside `connections.title`, performs the same hide/show action.
 - Resize handle: `app.resizeConnections`
 
 Tutorial target: `app.connectionsResize`.
@@ -46,7 +46,7 @@ Accessibility label: `workspace.workspaceSurface`. Per-Connection-kind labels us
 Resizable, collapsible. State is app-wide — the same width and collapsed state apply across Workspace, Dashboard, Settings, and all Tabs.
 
 - Title: `ai.title`
-- Toggle: custom title-bar `app.aiAssistant` icon. Double-clicking the panel title row, including the blank space beside `ai.title`, performs the same hide/show action.
+- Toggle: custom title-bar `app.aiAssistant` robot icon. Double-clicking the panel title row, including the blank space beside `ai.title`, performs the same hide/show action.
 - Resize handle: `app.resizeAiAssistant`
 
 Tutorial target: `app.aiAssistantResize`.
@@ -72,4 +72,4 @@ Tutorial targets: `workspace.statusBar`, `workspace.hostUsage`.
 
 Both side panels can be dragged to any width within their minimum/maximum. The drag divider shows a thin blue full-height indicator after the pointer rests on it briefly, using resize handles `app.resizeConnections` and `app.resizeAiAssistant`. Widths persist immediately to settings. There is no "reset layout" affordance inside the chrome itself; resetting layout is a Settings action (`settings.resetLayout`, see [15-settings.md](15-settings.md) §Appearance).
 
-The custom title bar is always enabled. Two panel-toggle icons appear immediately before the window minimize/maximize/close controls. The left-panel icon toggles the Connections panel (`app.connections`), and the right-panel icon toggles the AI Assistant panel (`app.aiAssistant`).
+The custom title bar is always enabled. Panel-toggle icons appear immediately before the window minimize/maximize/close controls. The Connections panel icon (`app.connections`) appears only while Workspace is active. The AI Assistant robot icon (`app.aiAssistant`) appears in every Module and page; when the panel is collapsed, the robot icon becomes muted instead of showing a right-edge collapsed strip.

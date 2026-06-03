@@ -36,6 +36,53 @@ test("custom titlebar is always rendered by the frontend shell", async () => {
   assert.doesNotMatch(appCssSource, /app-root--no-titlebar/);
 });
 
+test("custom titlebar panel buttons match module scope", async () => {
+  const [appSource, titleBarSource] = await Promise.all([
+    readFile(new URL("../src/App.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/TitleBar.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(
+    appSource,
+    /<TitleBar[\s\S]*?activePage=\{activePage\}/,
+    "TitleBar should know the active Module before rendering module-scoped controls",
+  );
+  assert.match(
+    titleBarSource,
+    /activePage === "workspace"/,
+    "the Connections panel titlebar toggle should only render inside Workspace",
+  );
+  assert.match(
+    titleBarSource,
+    /<Bot size=\{15\} strokeWidth=\{1\.8\} \/>/,
+    "the AI Assistant titlebar toggle should use the robot icon",
+  );
+});
+
+test("collapsed AI Assistant strip is hidden when the titlebar toggle is available", async () => {
+  const [appSource, layoutSource, effectsSource] = await Promise.all([
+    readFile(new URL("../src/App.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/workspaceChromeLayout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/appShellEffects.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(
+    appSource,
+    /showCollapsedTab=\{false\}/,
+    "App should hide the right collapsed strip because the custom titlebar can reopen the panel",
+  );
+  assert.match(
+    layoutSource,
+    /collapsed && !showCollapsedTab[\s\S]*?<div[\s\S]*?aria-hidden="true"/,
+    "the hidden collapsed strip should not leave a focusable button behind",
+  );
+  assert.match(
+    effectsSource,
+    /--ai-resize-width", aiPanelLayout\.collapsed \? "0px" : "3px"/,
+    "the AI resize grid column should collapse to zero width with the strip hidden",
+  );
+});
+
 test("main Tauri window starts without native decorations by default", async () => {
   // The main window is created in Rust (so RDP/WebView2 stability browser args
   // can be applied per launch), not declared in tauri.conf.json. Verify the

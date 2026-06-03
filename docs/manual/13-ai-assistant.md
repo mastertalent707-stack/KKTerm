@@ -8,7 +8,7 @@
 
 ## Panel
 
-Right-side resizable, collapsible. Title `ai.title`. Refresh `ai.refresh`. Settings shortcut `ai.settings`. New chat `ai.newChat` (`ai.newAiChat`). The custom title-bar `app.aiAssistant` icon toggles the panel; the resize handle uses `app.resizeAiAssistant`. Empty state `ai.noActiveSession` plus `ai.workspace` indicator. The same panel is available on Workspace, Dashboard, and Settings; on Settings it shows `ai.settingsContextLabel` as the context detail and receives the active Settings section plus visible control keys.
+Right-side resizable, collapsible. Title `ai.title`. Refresh `ai.refresh`. Settings shortcut `ai.settings`. New chat `ai.newChat` (`ai.newAiChat`). The custom title-bar `app.aiAssistant` robot icon toggles the panel in every Module and page; when collapsed, that icon becomes muted and the right-edge collapsed strip is hidden. The resize handle uses `app.resizeAiAssistant` while the panel is expanded. Empty state `ai.noActiveSession` plus `ai.workspace` indicator. The same panel is available on Workspace, Dashboard, and Settings; on Settings it shows `ai.settingsContextLabel` as the context detail and receives the active Settings section plus visible control keys.
 
 ## Chat history
 

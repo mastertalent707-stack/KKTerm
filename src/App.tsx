@@ -195,6 +195,7 @@ function App() {
       data-color-scheme={appearanceSettings.colorScheme}
     >
       <TitleBar
+        activePage={activePage}
         aiPanelCollapsed={aiPanelLayout.collapsed}
         connectionPanelCollapsed={connectionPanelLayout.collapsed}
         onToggleAiPanel={toggleAiPanel}
@@ -244,6 +245,7 @@ function App() {
         side="right"
         collapsed={aiPanelLayout.collapsed}
         collapsedLabel={t("app.aiAssistant")}
+        showCollapsedTab={false}
         onClick={aiPanelLayout.collapsed ? expandAiPanel : undefined}
         onPointerDown={handleAiPanelResize}
       />

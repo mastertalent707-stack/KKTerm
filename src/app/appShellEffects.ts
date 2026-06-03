@@ -216,7 +216,7 @@ export function useAppShellAppearance({
     );
     node.style.setProperty("--connection-resize-width", "3px");
     node.style.setProperty("--ai-panel-width", aiPanelLayout.collapsed ? "0px" : `${aiPanelLayout.width}px`);
-    node.style.setProperty("--ai-resize-width", aiPanelLayout.collapsed ? "34px" : "3px");
+    node.style.setProperty("--ai-resize-width", aiPanelLayout.collapsed ? "0px" : "3px");
     node.style.setProperty("--app-ui-font-family", appearanceSettings.appFontFamily);
     node.setAttribute("data-color-scheme", appearanceSettings.colorScheme);
     document.documentElement.setAttribute("data-color-scheme", appearanceSettings.colorScheme);

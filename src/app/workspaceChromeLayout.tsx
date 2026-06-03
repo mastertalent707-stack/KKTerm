@@ -236,6 +236,7 @@ export function PanelResizeHandle({
   collapsedLabel,
   dataTutorialId,
   onClick,
+  showCollapsedTab = true,
   side,
   onPointerDown,
 }: {
@@ -244,9 +245,21 @@ export function PanelResizeHandle({
   collapsedLabel?: string;
   dataTutorialId?: string;
   onClick?: () => void;
+  showCollapsedTab?: boolean;
   side: "left" | "right";
   onPointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
 }) {
+  const renderCollapsedTab = collapsed && showCollapsedTab;
+
+  if (collapsed && !showCollapsedTab) {
+    return (
+      <div
+        aria-hidden="true"
+        className={`panel-resize-handle panel-resize-handle-${side} panel-resize-handle-collapsed panel-resize-handle-tabless`}
+      />
+    );
+  }
+
   return (
     <button
       aria-label={ariaLabel}
@@ -259,7 +272,7 @@ export function PanelResizeHandle({
       title={ariaLabel}
       type="button"
     >
-      {collapsed ? (
+      {renderCollapsedTab ? (
         <span className="panel-collapsed-tab">
           <span>{collapsedLabel}</span>
           {side === "left" ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
