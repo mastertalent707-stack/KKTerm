@@ -13,6 +13,10 @@ import { UrlConnectionFields } from "./connection-dialog/UrlConnectionFields";
 import { VncConnectionFields, VncConnectionOptions } from "./connection-dialog/VncConnectionFields";
 import { ImportDialog } from "./ImportDialog";
 import { syncChildConnectionsFromTabs } from "./childConnections";
+import {
+  resolveDefaultTerminalAppearance,
+  supportsTerminalAppearanceDefaults,
+} from "./terminalAppearanceDefaults";
 import { quickConnectRecentLabel } from "./quickConnectMenuModel";
 import {
   CONNECTION_TAB_CONTEXT_MENU_EVENT,
@@ -198,6 +202,7 @@ export function ConnectionSidebar({
   const setGeneralSettings = useWorkspaceStore((state) => state.setGeneralSettings);
   const openElevatedLocalTerminal = useWorkspaceStore((state) => state.openElevatedLocalTerminal);
   const sshSettings = useWorkspaceStore((state) => state.sshSettings);
+  const terminalSettings = useWorkspaceStore((state) => state.terminalSettings);
   const rdpSettings = useWorkspaceStore((state) => state.rdpSettings);
   const vncSettings = useWorkspaceStore((state) => state.vncSettings);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
@@ -460,6 +465,9 @@ export function ConnectionSidebar({
 
   async function createChildConnection(connection: Connection) {
     const existing = childConnections.filter((child) => child.parentConnectionId === connection.id);
+    const appearance = supportsTerminalAppearanceDefaults(connection.type)
+      ? resolveDefaultTerminalAppearance(connection.type, sshSettings, terminalSettings)
+      : null;
     const tmuxSessionId =
       connection.type === "ssh" && connection.useTmuxSessions !== false
         ? (await preferredTmuxSessionIdForNewTab(connection)) ?? appendTmuxSessionId(connection)
@@ -475,6 +483,8 @@ export function ConnectionSidebar({
       name,
       tmuxSessionId,
       cwd: connection.type === "local" ? connection.localStartupDirectory?.trim() || "." : "~",
+      terminalOpacity: appearance?.terminalOpacity,
+      terminalBackground: appearance?.terminalBackground,
       iconBackgroundColor: connection.iconBackgroundColor ?? null,
       iconDataUrl: connection.iconDataUrl ?? null,
     };
@@ -490,7 +500,14 @@ export function ConnectionSidebar({
       return;
     }
     const tmuxSessionId = await preferredTmuxSessionIdForNewTab(connection);
-    openConnectionInNewTab(connection, { tmuxSessionId });
+    const appearance = supportsTerminalAppearanceDefaults(connection.type)
+      ? resolveDefaultTerminalAppearance(connection.type, sshSettings, terminalSettings)
+      : null;
+    openConnectionInNewTab(connection, {
+      tmuxSessionId,
+      terminalOpacity: appearance?.terminalOpacity,
+      terminalBackground: appearance?.terminalBackground,
+    });
   }
 
   function handleOpenChildConnection(connection: Connection, child: WorkspaceChildConnection) {
@@ -714,6 +731,7 @@ export function ConnectionSidebar({
 
   function handleQuickLocalShell(option: LocalShellOption) {
     setQuickConnectMenuOpen(false);
+    const appearance = resolveDefaultTerminalAppearance("local", sshSettings, terminalSettings);
     const connection: Connection = {
       id: uniqueRuntimeId("quick"),
       name: option.label,
@@ -721,6 +739,8 @@ export function ConnectionSidebar({
       user: "local",
       type: "local",
       localShell: option.value,
+      terminalOpacity: appearance.terminalOpacity,
+      terminalBackground: appearance.terminalBackground,
       status: "idle",
     };
     openConnection(connection);
@@ -807,11 +827,26 @@ export function ConnectionSidebar({
   async function handleConnectionSubmit(request: ConnectionDialogRequest) {
     setFormError("");
     const { iconDataUrl, iconBackgroundColor, password, passwordCredentialId, urlCredentialUsername, urlPassword, ...connectionRequest } = request;
+    const appearance = supportsTerminalAppearanceDefaults(connectionRequest.type)
+      ? resolveDefaultTerminalAppearance(connectionRequest.type, sshSettings, terminalSettings)
+      : null;
     if (formMode === "save") {
       try {
         let connection = await invokeCommand("create_connection", {
           request: connectionRequest,
         });
+        if (appearance) {
+          const updated = await invokeCommand("update_connection_terminal_appearance", {
+            connectionId: connection.id,
+            terminalOpacity: appearance.terminalOpacity,
+            terminalBackground: appearance.terminalBackground,
+          });
+          connection = updated ?? {
+            ...connection,
+            terminalOpacity: appearance.terminalOpacity,
+            terminalBackground: appearance.terminalBackground,
+          };
+        }
         connection = await saveConnectionIconPresentation(connection, iconDataUrl, iconBackgroundColor);
         if (password) {
           connection = await createConnectionPasswordCredential(connection.id, password);
@@ -859,6 +894,8 @@ export function ConnectionSidebar({
       hasUrlCredential: connectionRequest.type === "url" && Boolean(urlCredentialUsername && urlPassword),
       iconDataUrl,
       iconBackgroundColor,
+      terminalOpacity: appearance?.terminalOpacity,
+      terminalBackground: appearance?.terminalBackground,
       status: "idle",
     };
 

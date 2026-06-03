@@ -314,7 +314,7 @@ flowchart LR
 | **AI 코딩 사용량** | **Claude Code**와 **Codex**의 쿼터 사용량을 추적하는 **Dashboard Widget + 상태 표시줄 인디케이터**: 연결된 계정, 플랜 등급, 5시간 및 주간 윈도우 사용률, 다음 리셋 시각, 인증 상태(`connected` / `expired` / `error`), 레이트 리밋을 의식한 리프레시 정책 |
 | **내장 MCP 서버** | 외부 코딩 에이전트(Claude Code, Codex, Copilot, Antigravity, OpenCode)에 큐레이션된 Workspace 및 Dashboard 도구를 노출하는 stdio MCP 서버(`kkterm-cli`); 인증된 명명 파이프 브리지; 모듈별 `dangerous.*` 네임스페이스가 단일 안전 토글 뒤에서 게이트됨; 해석된 바이너리 경로의 JSON / TOML 스니펫과 `claude mcp add` / `codex mcp add` 명령이 들어 있는 설정 다이얼로그 |
 | **Installer Helper** | 번들된 Windows 개발 도구 카탈로그용 Activity Rail Module: 설치된 도구 감지, 최신 버전 비교, 설치/업데이트/제거, Update all에서 도구 제외, 명령 로그 스트리밍, 지원되는 관리 앱 실행 |
-| **Settings** | 일반, 외관, 자격 증명, AI, SSH, 터미널, URL, RDP, VNC, Dashboard, Installer Helper, 정보; 사용자 정의 UI 폰트; 트레이로 최소화; 절전 방지; 백업/가져오기 |
+| **Settings** | 일반, 외관, 자격 증명, AI, SSH, 터미널, 터미널 배경, URL, RDP, VNC, Dashboard, Installer Helper, 정보; 사용자 정의 UI 폰트; 트레이로 최소화; 절전 방지; 백업/가져오기 |
 | **Localization** | i18next UI, 영어 소스, 동적 로케일 번들: zh-TW, zh-CN, ja, ko, fr, de, es, es-MX, it, pt-BR, th, id, vi |
 
 ### AI 공급자

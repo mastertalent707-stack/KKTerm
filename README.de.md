@@ -311,7 +311,7 @@ Die wichtige Form: persistente gespeicherte Daten (**Connection**) sind getrennt
 | **AI Coding Nutzung** | **Dashboard-Widget + Statusleisten-Anzeige**, die die Quoten-Nutzung von **Claude Code** und **Codex** verfolgen: verbundener Account, Plan-Stufe, Prozentwerte für 5-Stunden- und Wochen-Fenster, nächster Reset-Zeitpunkt, Auth-Status (`connected` / `expired` / `error`), Rate-Limit-bewusste Refresh-Policy |
 | **Eingebauter MCP-Server** | stdio-MCP-Server (`kkterm-cli`), der kuratierte Workspace- und Dashboard-Tools für externe Coding-Agenten (Claude Code, Codex, Copilot, Antigravity, OpenCode) freigibt; authentifizierte Named-Pipe-Brücke; per-Modul-`dangerous.*`-Namespaces hinter einem einzelnen Safety-Toggle; Einstellungs-Dialog mit Ein-Klick-JSON-/-TOML-Snippets und `claude mcp add` / `codex mcp add`-Befehlen |
 | **Installer Helper** | Activity-Rail-Modul für einen gebündelten Windows-Entwicklertool-Katalog: installierte Tools erkennen, neueste Versionen vergleichen, installieren/aktualisieren/deinstallieren, Tools aus Update all herauspinnen, Befehlslogs streamen und unterstützte verwaltete Apps starten |
-| **Settings** | Allgemein, Darstellung, Credentials, KI, SSH, Terminal, URL, RDP, VNC, Dashboard, Installer Helper, Über; benutzerdefinierte UI-Schriften; Minimieren in Tray; Don't Sleep; Backup/Import |
+| **Settings** | Allgemein, Darstellung, Credentials, KI, SSH, Terminal, Terminal-Hintergründe, URL, RDP, VNC, Dashboard, Installer Helper, Über; benutzerdefinierte UI-Schriften; Minimieren in Tray; Don't Sleep; Backup/Import |
 | **Localization** | i18next-UI mit englischer Quelle und dynamischen Locale-Bundles: zh-TW, zh-CN, ja, ko, fr, de, es, es-MX, it, pt-BR, th, id, vi |
 
 ### KI-Provider

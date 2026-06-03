@@ -311,7 +311,7 @@ La struttura che conta: i dati salvati durevoli (**Connection**) sono separati d
 | **Utilizzo AI Coding** | **Widget Dashboard + indicatore in status bar** che tracciano l'utilizzo delle quote di **Claude Code** e **Codex**: account connesso, livello del piano, percentuali finestra 5 ore e settimanale, prossimo reset, stato di auth (`connected` / `expired` / `error`), policy di refresh rate-limit aware |
 | **Server MCP integrato** | Server MCP stdio (`kkterm-cli`) che espone tool curati di Workspace e Dashboard ad agenti di coding esterni (Claude Code, Codex, Copilot, Antigravity, OpenCode); bridge named pipe autenticato; sub-namespace `dangerous.*` per Modulo dietro un singolo toggle di sicurezza; dialog in Settings con snippet JSON / TOML a un clic e comandi `claude mcp add` / `codex mcp add` |
 | **Installer Helper** | Modulo Activity Rail per un catalogo Windows di tool di sviluppo incluso: rileva tool installati, confronta ultime versioni, installa/aggiorna/disinstalla, esclude tool da Update all, mostra log comando in streaming e avvia app gestite supportate |
-| **Settings** | Generale, Aspetto, Credenziali, AI, SSH, Terminal, URL, RDP, VNC, Dashboard, Installer Helper, Info; font UI personalizzati; minimizza nella tray; Don't Sleep; backup/importa |
+| **Settings** | Generale, Aspetto, Credenziali, AI, SSH, Terminal, sfondi terminale, URL, RDP, VNC, Dashboard, Installer Helper, Info; font UI personalizzati; minimizza nella tray; Don't Sleep; backup/importa |
 | **Localizzazione** | UI i18next con sorgente inglese e bundle locale dinamici: zh-TW, zh-CN, ja, ko, fr, de, es, es-MX, it, pt-BR, th, id, vi |
 
 ### Provider AI

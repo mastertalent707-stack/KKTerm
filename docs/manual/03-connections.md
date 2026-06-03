@@ -61,7 +61,7 @@ Icons are rasterized to 16 px PNG bytes via `src/lib/nativeContextMenu.ts`. Do n
 
 A **Child Connection Tab** is a saved Tab entry shown as an italic child row below its parent Connection when `settings.hideTopTabButtons` is enabled. It is a Workspace presentation/reopen record, not a nested durable Connection. The parent Connection still owns host, protocol, credential metadata, and folder placement.
 
-New Tabs opened from a saved Connection become Child Connection Tabs in this mode. They persist across app launches but open lazily: KKTerm starts the live Session only when the user selects the child row. Right-clicking a child row offers `connections.rename` and `connections.properties`; the properties dialog title is `connections.childConnectionProperties` and edits the child Tab name, icon image, and icon background without changing the parent Connection.
+New Tabs opened from a saved Connection become Child Connection Tabs in this mode. They persist across app launches but open lazily: KKTerm starts the live Session only when the user selects the child row. Right-clicking a child row offers `connections.rename` and `connections.properties`; the properties dialog title is `connections.childConnectionProperties` and edits the child Tab name, icon image, and icon background without changing the parent Connection. Terminal transparency and background changes made from the child Pane toolbar are also stored on the Child Connection Tab, not on the parent Connection.
 
 Clicking a parent Connection with Child Connection Tabs opens all of its children together in one split workspace Tab when none of those children are already live. If a child Tab is already open, KKTerm focuses the existing child Tab/Pane instead of reconnecting.
 

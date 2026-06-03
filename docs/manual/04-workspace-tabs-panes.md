@@ -32,7 +32,7 @@ A Child Connection Tab stores Workspace presentation and reopen hints:
 - Optional tmux session id for tmux-enabled SSH.
 - Optional last terminal working directory for non-tmux terminal children.
 
-It does not duplicate the parent Connection's host, protocol, or credential metadata, and it is not a live Session while the app is closed. On app launch, Child Connection Tabs are restored as rows only; selecting a child row starts the actual Session. Tmux-enabled SSH children use the tmux session id as the default Child Connection Tab name and reopen the same tmux session. Non-tmux terminal children pass their last reported working directory back as the startup directory when reopened.
+It does not duplicate the parent Connection's host, protocol, or credential metadata, and it is not a live Session while the app is closed. On app launch, Child Connection Tabs are restored as rows only; selecting a child row starts the actual Session. Tmux-enabled SSH children use the tmux session id as the default Child Connection Tab name and reopen the same tmux session. Non-tmux terminal children pass their last reported working directory back as the startup directory when reopened. Child terminal transparency and background are stored on the Child Connection Tab so relaunching the child row restores its own appearance instead of inheriting the parent Connection's current terminal background.
 
 Right-clicking a Child Connection Tab exposes `connections.rename` and `connections.properties`; the properties dialog `connections.childConnectionProperties` edits the child Tab name, icon image, and icon background. Double-clicking the child row name starts inline rename.
 

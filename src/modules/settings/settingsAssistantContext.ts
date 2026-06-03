@@ -231,6 +231,14 @@ const SETTINGS_SECTIONS: Record<SettingsSectionId, SettingsSectionSummary> = {
         description: "SSH terminal buffer behavior.",
         tutorialTargetId: "settings.sshBufferLines",
       },
+      {
+        key: "settings.defaultTransparency",
+        description: "Default SSH terminal transparency for new SSH Connections and Child Connection Tabs.",
+      },
+      {
+        key: "settings.randomDynamicBackgroundOnCreate",
+        description: "Random dynamic terminal backgrounds for new SSH Connections, new tabs, and Child Connection Tabs.",
+      },
     ],
   },
   "terminal-settings": {
@@ -256,6 +264,14 @@ const SETTINGS_SECTIONS: Record<SettingsSectionId, SettingsSectionSummary> = {
         key: "settings.scrollbackLines",
         description: "Terminal scrollback line count.",
         tutorialTargetId: "settings.scrollbackLines",
+      },
+      {
+        key: "settings.defaultTransparency",
+        description: "Default local terminal transparency for new terminal Connections and Child Connection Tabs.",
+      },
+      {
+        key: "settings.randomDynamicBackgroundOnCreate",
+        description: "Random dynamic terminal backgrounds for new local terminal Connections, new tabs, and Child Connection Tabs.",
       },
     ],
   },

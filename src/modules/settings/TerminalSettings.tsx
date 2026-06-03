@@ -28,6 +28,13 @@ function normalizeTerminalSettingsDraft(settings: TerminalSettingsType, t: TFunc
   ) {
     throw new Error(t("settings.scrollbackRange"));
   }
+  if (
+    !Number.isFinite(settings.defaultTransparency) ||
+    settings.defaultTransparency < 0 ||
+    settings.defaultTransparency > 100
+  ) {
+    throw new Error(t("settings.defaultTransparencyRange"));
+  }
 
   return {
     ...settings,
@@ -35,6 +42,8 @@ function normalizeTerminalSettingsDraft(settings: TerminalSettingsType, t: TFunc
     fontSize: Math.round(settings.fontSize),
     lineHeight: Number(settings.lineHeight.toFixed(2)),
     scrollbackLines: Math.round(settings.scrollbackLines),
+    defaultTransparency: Math.round(settings.defaultTransparency),
+    useRandomDynamicBackground: settings.useRandomDynamicBackground ?? false,
     defaultShell: settings.defaultShell.trim(),
   };
 }
@@ -200,6 +209,38 @@ export function TerminalSettings() {
               value={draft.scrollbackLines}
             />
             <small className="field-hint">{t("settings.scrollbackHint")}</small>
+          </label>
+          <label>
+            <span>{t("settings.defaultTransparency")}</span>
+            <input
+              inputMode="numeric"
+              max={100}
+              min={0}
+              onChange={(event) => {
+                const defaultTransparency = Number(event.currentTarget.value);
+                setDraft((settings) => ({
+                  ...settings,
+                  defaultTransparency,
+                }));
+              }}
+              type="number"
+              value={draft.defaultTransparency}
+            />
+            <small className="field-hint">{t("settings.defaultTransparencyHint")}</small>
+          </label>
+        </div>
+        <div className="settings-toggle-list">
+          <label className="settings-toggle-row">
+            <ToggleSwitch
+              checked={draft.useRandomDynamicBackground}
+              onChange={(checked) =>
+                setDraft((settings) => ({ ...settings, useRandomDynamicBackground: checked }))
+              }
+            />
+            <span>
+              <strong>{t("settings.randomDynamicBackgroundOnCreate")}</strong>
+              <small>{t("settings.randomDynamicBackgroundOnCreateHint")}</small>
+            </span>
           </label>
         </div>
       </fieldset>

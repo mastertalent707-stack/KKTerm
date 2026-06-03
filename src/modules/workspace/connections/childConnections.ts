@@ -33,11 +33,16 @@ export function syncChildConnectionsFromTabs(
     }
 
     const cwd = pane.cwd.trim();
-    const terminalBackground = "terminalBackground" in pane ? pane.terminalBackground : undefined;
+    const terminalOpacity = pane.connection?.terminalOpacity;
+    const terminalBackground =
+      "terminalBackground" in pane && pane.terminalBackground !== undefined
+        ? pane.terminalBackground
+        : pane.connection?.terminalBackground;
     const cwdChanged = Boolean(cwd) && child.cwd !== cwd;
+    const opacityChanged = child.terminalOpacity !== terminalOpacity;
     const backgroundChanged = !backgroundsEqual(child.terminalBackground, terminalBackground);
 
-    if (!cwdChanged && !backgroundChanged) {
+    if (!cwdChanged && !opacityChanged && !backgroundChanged) {
       return child;
     }
 
@@ -45,6 +50,7 @@ export function syncChildConnectionsFromTabs(
     return {
       ...child,
       cwd: cwdChanged ? cwd : child.cwd,
+      terminalOpacity,
       terminalBackground,
     };
   });

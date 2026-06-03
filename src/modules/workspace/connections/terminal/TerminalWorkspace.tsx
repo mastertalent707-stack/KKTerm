@@ -1201,10 +1201,12 @@ function TerminalPaneView({
   const closePane = useWorkspaceStore((state) => state.closePane);
   const updatePaneCwd = useWorkspaceStore((state) => state.updatePaneCwd);
   const updateOpenConnectionTerminalAppearance = useWorkspaceStore((state) => state.updateOpenConnectionTerminalAppearance);
+  const updateOpenTerminalPaneAppearance = useWorkspaceStore((state) => state.updateOpenTerminalPaneAppearance);
   const updateOpenTerminalPaneBackground = useWorkspaceStore((state) => state.updateOpenTerminalPaneBackground);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const { t } = useTranslation();
-  const terminalOpacity = pane.connection?.terminalOpacity ?? 95;
+  const terminalOpacity =
+    pane.connection?.terminalOpacity ?? (100 - terminalSettings.defaultTransparency);
   const terminalTransparency = 100 - terminalOpacity;
   const terminalBackground = usePaneTerminalBackgrounds
     ? (pane.terminalBackground ?? pane.connection?.terminalBackground ?? null)
@@ -1752,6 +1754,10 @@ function TerminalPaneView({
       terminalOpacity: Math.min(Math.max(Math.round(nextOpacity), 0), 100),
       terminalBackground: nextBackground,
     };
+    if (pane.childConnectionId) {
+      updateOpenTerminalPaneAppearance(tabId, pane.id, appearance);
+      return;
+    }
     updateOpenConnectionTerminalAppearance(connection.id, appearance);
     if (isTransientLocalConnectionId(connection.id)) {
       return;
@@ -1779,6 +1785,13 @@ function TerminalPaneView({
   }
 
   function handleBackgroundChange(nextBackground: typeof terminalBackground) {
+    if (pane.childConnectionId) {
+      updateOpenTerminalPaneAppearance(tabId, pane.id, {
+        terminalOpacity,
+        terminalBackground: nextBackground,
+      });
+      return;
+    }
     if (usePaneTerminalBackgrounds) {
       updateOpenTerminalPaneBackground(tabId, pane.id, nextBackground);
       return;

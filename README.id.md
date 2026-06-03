@@ -321,7 +321,7 @@ Bentuk yang penting: data tersimpan yang tahan lama (**Connection**) terpisah da
 | **Penggunaan AI Coding** | **Widget Dashboard + indikator status bar** yang melacak penggunaan kuota **Claude Code** dan **Codex**: akun terhubung, level plan, persen jendela 5 jam dan mingguan, waktu reset berikutnya, status auth (`connected` / `expired` / `error`), policy refresh yang sadar rate-limit |
 | **Server MCP Built-in** | Server MCP stdio (`kkterm-cli`) yang membuka tools Workspace dan Dashboard yang dikurasi ke agen coding eksternal (Claude Code, Codex, Copilot, Antigravity, OpenCode); bridge named pipe ter-authenticate; sub-namespace `dangerous.*` per-Modul di balik satu toggle safety; dialog Settings dengan snippet JSON / TOML satu klik dan command `claude mcp add` / `codex mcp add` |
 | **Installer Helper** | Module Activity Rail untuk katalog tool developer Windows yang dibundel: mendeteksi tool terpasang, membandingkan versi terbaru, install/update/uninstall, mengecualikan tool dari Update all, streaming log command, dan menjalankan managed app yang didukung |
-| **Settings** | Umum, Tampilan, Kredensial, AI, SSH, Terminal, URL, RDP, VNC, Dashboard, Installer Helper, Tentang; font UI kustom; minimize-to-tray; Don't Sleep; backup/import |
+| **Settings** | Umum, Tampilan, Kredensial, AI, SSH, Terminal, latar terminal, URL, RDP, VNC, Dashboard, Installer Helper, Tentang; font UI kustom; minimize-to-tray; Don't Sleep; backup/import |
 | **Lokalisasi** | UI i18next dengan sumber bahasa Inggris dan bundel lokal dinamis: zh-TW, zh-CN, ja, ko, fr, de, es, es-MX, it, pt-BR, th, id, vi |
 
 ### AI Providers

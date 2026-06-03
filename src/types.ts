@@ -326,6 +326,8 @@ export interface TerminalSettings {
   lineHeight: number;
   cursorStyle: TerminalCursorStyle;
   scrollbackLines: number;
+  defaultTransparency: number;
+  useRandomDynamicBackground: boolean;
   copyOnSelect: boolean;
   allowOsc52Clipboard: boolean;
   confirmMultilinePaste: boolean;
@@ -364,6 +366,8 @@ export interface SshSettings {
   defaultKeyPath?: string;
   defaultProxyJump?: string;
   bufferLines: number;
+  defaultTransparency: number;
+  useRandomDynamicBackground: boolean;
   hideCommonPortRedirects: boolean;
   allowOsc52Clipboard: boolean;
 }
@@ -571,6 +575,7 @@ export interface WorkspaceChildConnection {
   name: string;
   tmuxSessionId?: string;
   cwd?: string;
+  terminalOpacity?: number | null;
   terminalBackground?: DashboardBackground | null;
   iconDataUrl?: string | null;
   iconBackgroundColor?: string | null;

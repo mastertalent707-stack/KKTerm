@@ -311,7 +311,7 @@ flowchart LR
 | **AI 編程用量** | **Dashboard Widget + 狀態列指示器**，追蹤 **Claude Code** 與 **Codex** 的配額用量：已連結帳號、方案等級、5 小時與每週視窗百分比、下次 reset 時間、auth 狀態（`connected` / `expired` / `error`）、尊重 rate-limit 的 refresh 策略 |
 | **內建 MCP 伺服器** | stdio MCP 伺服器（`kkterm-cli`），對外部 coding agent（Claude Code、Codex、Copilot、Antigravity、OpenCode）開放精選的 Workspace 與 Dashboard 工具；經認證的 named pipe bridge；各模組的 `dangerous.*` 命名空間統一掛在單一安全切換之後；設定中的對話框提供一鍵 JSON / TOML 片段，以及 `claude mcp add` / `codex mcp add` 指令 |
 | **Installer Helper** | 活動軌道模組，提供打包隨附的 Windows 開發工具目錄：偵測已安裝工具、比對最新版本、安裝/更新/解除安裝、將工具排除於 Update all、串流指令日誌，並啟動支援的受管理 app |
-| **Settings** | General、Appearance、Credentials、AI、SSH、Terminal、URL、RDP、VNC、Dashboard、Installer Helper、About；自訂 UI 字型；minimize-to-tray；Don't Sleep；備份/匯入 |
+| **Settings** | General、Appearance、Credentials、AI、SSH、Terminal、終端機背景、URL、RDP、VNC、Dashboard、Installer Helper、About；自訂 UI 字型；minimize-to-tray；Don't Sleep；備份/匯入 |
 | **Localization** | i18next UI，英文為來源並動態載入 locale bundle：zh-TW、zh-CN、ja、ko、fr、de、es、es-MX、it、pt-BR、th、id、vi |
 
 ### AI Provider

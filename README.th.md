@@ -311,7 +311,7 @@ flowchart LR
 | **การใช้งาน AI Coding** | **Widget Dashboard + ตัวบ่งชี้แถบสถานะ** ที่ติดตามการใช้โควต้าของ **Claude Code** และ **Codex**: บัญชีที่เชื่อมต่อ, ระดับแผน, เปอร์เซ็นต์หน้าต่าง 5 ชั่วโมงและรายสัปดาห์, เวลา reset ครั้งถัดไป, สถานะ auth (`connected` / `expired` / `error`), นโยบาย refresh ที่ตระหนักถึง rate-limit |
 | **MCP Server แบบ Built-in** | stdio MCP server (`kkterm-cli`) ที่เปิดเผย tool Workspace และ Dashboard ที่คัดสรรให้ coding agent ภายนอก (Claude Code, Codex, Copilot, Antigravity, OpenCode); bridge named pipe ที่ authenticate; sub-namespace `dangerous.*` ต่อ Module ถูก gate ด้วย safety toggle เดียว; dialog ใน Settings พร้อม snippet JSON / TOML แบบคลิกเดียวและคำสั่ง `claude mcp add` / `codex mcp add` |
 | **Installer Helper** | Activity Rail Module สำหรับแคตตาล็อกเครื่องมือพัฒนา Windows ที่ bundle มากับแอป: ตรวจจับ tool ที่ติดตั้งแล้ว, เทียบเวอร์ชันล่าสุด, install/update/uninstall, pin tool ออกจาก Update all, stream command log และเปิด managed app ที่รองรับ |
-| **Settings** | General, Appearance, Credentials, AI, SSH, Terminal, URL, RDP, VNC, Dashboard, Installer Helper, About; custom UI font; minimize-to-tray; Don't Sleep; backup/import |
+| **Settings** | General, Appearance, Credentials, AI, SSH, Terminal, พื้นหลังเทอร์มินัล, URL, RDP, VNC, Dashboard, Installer Helper, About; custom UI font; minimize-to-tray; Don't Sleep; backup/import |
 | **Localization** | i18next UI พร้อม English source และ dynamic locale bundle: zh-TW, zh-CN, ja, ko, fr, de, es, es-MX, it, pt-BR, th, id, vi |
 
 ### AI Provider

@@ -14,7 +14,7 @@ use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 const SCHEMA_USER_VERSION: i32 = 18;
 
-const DEFAULT_TERMINAL_OPACITY: u8 = 95;
+const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
 const CURRENT_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS connection_folders (
@@ -336,6 +336,10 @@ pub struct TerminalSettings {
     line_height: f32,
     cursor_style: String,
     scrollback_lines: u32,
+    #[serde(default = "default_terminal_transparency")]
+    default_transparency: u8,
+    #[serde(default)]
+    use_random_dynamic_background: bool,
     copy_on_select: bool,
     #[serde(default = "default_allow_osc52_clipboard")]
     allow_osc52_clipboard: bool,
@@ -426,6 +430,10 @@ pub struct SshSettings {
     default_proxy_jump: Option<String>,
     #[serde(default = "default_ssh_buffer_lines")]
     buffer_lines: u32,
+    #[serde(default = "default_terminal_transparency")]
+    default_transparency: u8,
+    #[serde(default)]
+    use_random_dynamic_background: bool,
     #[serde(default = "default_hide_common_port_redirects")]
     hide_common_port_redirects: bool,
     #[serde(default = "default_allow_osc52_clipboard")]
@@ -4713,6 +4721,8 @@ fn default_terminal_settings() -> TerminalSettings {
         line_height: 1.25,
         cursor_style: "block".to_string(),
         scrollback_lines: 5_000,
+        default_transparency: default_terminal_transparency(),
+        use_random_dynamic_background: false,
         copy_on_select: false,
         allow_osc52_clipboard: default_allow_osc52_clipboard(),
         confirm_multiline_paste: true,
@@ -4744,6 +4754,8 @@ fn default_ssh_settings() -> SshSettings {
         default_key_path: default_ssh_key_path(),
         default_proxy_jump: None,
         buffer_lines: default_ssh_buffer_lines(),
+        default_transparency: default_terminal_transparency(),
+        use_random_dynamic_background: false,
         hide_common_port_redirects: default_hide_common_port_redirects(),
         allow_osc52_clipboard: default_allow_osc52_clipboard(),
     }
@@ -4751,6 +4763,10 @@ fn default_ssh_settings() -> SshSettings {
 
 fn default_ssh_buffer_lines() -> u32 {
     5_000
+}
+
+fn default_terminal_transparency() -> u8 {
+    50
 }
 
 fn default_hide_common_port_redirects() -> bool {
@@ -5145,6 +5161,9 @@ fn validate_terminal_settings(mut settings: TerminalSettings) -> Result<Terminal
     if !(100..=100_000).contains(&settings.scrollback_lines) {
         return Err("terminal scrollback must be between 100 and 100000 lines".to_string());
     }
+    if settings.default_transparency > 100 {
+        return Err("terminal default transparency must be between 0 and 100".to_string());
+    }
 
     Ok(settings)
 }
@@ -5182,6 +5201,9 @@ fn validate_ssh_settings(mut settings: SshSettings) -> Result<SshSettings, Strin
     settings.default_proxy_jump = trim_optional(settings.default_proxy_jump);
     if !(100..=100_000).contains(&settings.buffer_lines) {
         return Err("SSH buffer must be between 100 and 100000 lines".to_string());
+    }
+    if settings.default_transparency > 100 {
+        return Err("SSH default transparency must be between 0 and 100".to_string());
     }
     Ok(settings)
 }
@@ -6130,7 +6152,11 @@ mod tests {
         assert_eq!(reloaded.terminal_background, Some(background));
 
         let cleared = storage
-            .update_connection_terminal_appearance(created.id.clone(), Some(95), None)
+            .update_connection_terminal_appearance(
+                created.id.clone(),
+                Some(DEFAULT_TERMINAL_OPACITY),
+                None,
+            )
             .expect("terminal appearance is cleared")
             .expect("cleared appearance returns the updated connection");
         assert_eq!(cleared.terminal_opacity, Some(DEFAULT_TERMINAL_OPACITY));
@@ -7221,6 +7247,8 @@ mod tests {
             .expect("default terminal settings load");
         assert_eq!(defaults.font_size, 12);
         assert_eq!(defaults.scrollback_lines, 5_000);
+        assert_eq!(defaults.default_transparency, 50);
+        assert!(!defaults.use_random_dynamic_background);
         assert!(defaults.confirm_multiline_paste);
 
         let updated = storage
@@ -7230,6 +7258,8 @@ mod tests {
                 line_height: 1.35,
                 cursor_style: "bar".to_string(),
                 scrollback_lines: 5_000,
+                default_transparency: 35,
+                use_random_dynamic_background: true,
                 copy_on_select: true,
                 allow_osc52_clipboard: true,
                 confirm_multiline_paste: false,
@@ -7238,6 +7268,8 @@ mod tests {
             .expect("terminal settings update");
 
         assert_eq!(updated.cursor_style, "bar");
+        assert_eq!(updated.default_transparency, 35);
+        assert!(updated.use_random_dynamic_background);
         assert!(updated.copy_on_select);
 
         let reloaded = storage
@@ -7293,6 +7325,8 @@ mod tests {
         let defaults = storage.ssh_settings().expect("default SSH settings load");
         assert_eq!(defaults.default_port, 22);
         assert_eq!(defaults.buffer_lines, 5_000);
+        assert_eq!(defaults.default_transparency, 50);
+        assert!(!defaults.use_random_dynamic_background);
         assert!(defaults.hide_common_port_redirects);
         assert!(defaults.allow_osc52_clipboard);
         assert!(defaults.default_key_path.is_some());
@@ -7304,6 +7338,8 @@ mod tests {
                 default_key_path: Some("  C:\\Users\\example\\.ssh\\deploy_ed25519  ".to_string()),
                 default_proxy_jump: Some("  bastion.internal  ".to_string()),
                 buffer_lines: 12_000,
+                default_transparency: 40,
+                use_random_dynamic_background: true,
                 hide_common_port_redirects: false,
                 allow_osc52_clipboard: false,
             })
@@ -7318,6 +7354,8 @@ mod tests {
         let reloaded = storage.ssh_settings().expect("SSH settings reload");
         assert_eq!(reloaded.default_port, 2200);
         assert_eq!(reloaded.buffer_lines, 12_000);
+        assert_eq!(reloaded.default_transparency, 40);
+        assert!(reloaded.use_random_dynamic_background);
         assert!(!reloaded.hide_common_port_redirects);
         assert!(!reloaded.allow_osc52_clipboard);
         assert_eq!(

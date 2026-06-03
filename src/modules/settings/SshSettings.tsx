@@ -14,6 +14,7 @@ function normalizeSshSettingsDraft(settings: SshSettingsType, t: TFunction): Ssh
   const defaultProxyJump = settings.defaultProxyJump?.trim() || undefined;
   const defaultPort = Math.round(settings.defaultPort);
   const bufferLines = Math.round(settings.bufferLines ?? 5000);
+  const defaultTransparency = Math.round(settings.defaultTransparency ?? 50);
 
   if (!defaultUser) {
     throw new Error(t("settings.defaultSshUserRequired"));
@@ -24,6 +25,9 @@ function normalizeSshSettingsDraft(settings: SshSettingsType, t: TFunction): Ssh
   if (!Number.isFinite(bufferLines) || bufferLines < 100 || bufferLines > 100_000) {
     throw new Error(t("settings.sshBufferRange"));
   }
+  if (!Number.isFinite(defaultTransparency) || defaultTransparency < 0 || defaultTransparency > 100) {
+    throw new Error(t("settings.defaultTransparencyRange"));
+  }
 
   return {
     defaultUser,
@@ -31,6 +35,8 @@ function normalizeSshSettingsDraft(settings: SshSettingsType, t: TFunction): Ssh
     defaultKeyPath,
     defaultProxyJump,
     bufferLines,
+    defaultTransparency,
+    useRandomDynamicBackground: settings.useRandomDynamicBackground ?? false,
     hideCommonPortRedirects: settings.hideCommonPortRedirects ?? true,
     allowOsc52Clipboard: settings.allowOsc52Clipboard ?? true,
   };
@@ -269,8 +275,38 @@ export function SshSettings() {
             />
             <small className="field-hint">{t("settings.sshBufferHint")}</small>
           </label>
+          <label>
+            <span>{t("settings.defaultTransparency")}</span>
+            <input
+              inputMode="numeric"
+              max={100}
+              min={0}
+              onChange={(event) => {
+                const defaultTransparency = Number(event.currentTarget.value);
+                setSshDraft((settings) => ({
+                  ...settings,
+                  defaultTransparency,
+                }));
+              }}
+              type="number"
+              value={sshDraft.defaultTransparency}
+            />
+            <small className="field-hint">{t("settings.defaultTransparencyHint")}</small>
+          </label>
         </div>
         <div className="settings-toggle-list">
+          <label className="settings-toggle-row">
+            <ToggleSwitch
+              checked={sshDraft.useRandomDynamicBackground ?? false}
+              onChange={(checked) =>
+                setSshDraft((settings) => ({ ...settings, useRandomDynamicBackground: checked }))
+              }
+            />
+            <span>
+              <strong>{t("settings.randomDynamicBackgroundOnCreate")}</strong>
+              <small>{t("settings.randomDynamicBackgroundOnCreateHint")}</small>
+            </span>
+          </label>
           <label className="settings-toggle-row">
             <ToggleSwitch
               checked={sshDraft.allowOsc52Clipboard ?? true}

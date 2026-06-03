@@ -50,6 +50,7 @@ import type {
 import i18next from "./i18n/config";
 import { invokeCommand } from "./lib/tauri";
 import { elevatedLocalShellAction } from "./modules/workspace/connections/quickConnectMenuModel";
+import { resolveDefaultTerminalAppearance } from "./modules/workspace/connections/terminalAppearanceDefaults";
 import type { LocalShellOption } from "./modules/workspace/connections/utils";
 import { markPanesForRuntimeMove } from "./modules/workspace/paneRegistry";
 
@@ -574,6 +575,7 @@ function buildPaneForConnection(
   options?: {
     childConnectionId?: string;
     cwd?: string;
+    terminalOpacity?: number | null;
     terminalBackground?: TerminalPane["terminalBackground"];
     title?: string;
     toolbarTitle?: string;
@@ -615,7 +617,17 @@ function buildPaneForConnection(
     toolbarTitle: options?.toolbarTitle ?? toolbarTitleForConnection(connection),
     cwd: options?.cwd?.trim() || inheritedTerminalCwdForConnection(connection, focusedPane),
     buffer: "",
-    connection,
+    connection: options?.terminalOpacity !== undefined || options?.terminalBackground !== undefined
+      ? {
+          ...connection,
+          terminalOpacity: options.terminalOpacity !== undefined
+            ? options.terminalOpacity
+            : connection.terminalOpacity,
+          terminalBackground: options.terminalBackground !== undefined
+            ? options.terminalBackground
+            : connection.terminalBackground,
+        }
+      : connection,
     terminalBackground: options?.terminalBackground,
     tmuxSessionId: options?.tmuxSessionId ?? appendTmuxSessionId(connection),
   };
@@ -626,6 +638,12 @@ function connectionForChild(connection: Connection, child: WorkspaceChildConnect
     ...connection,
     iconBackgroundColor: child.iconBackgroundColor ?? connection.iconBackgroundColor,
     iconDataUrl: child.iconDataUrl ?? connection.iconDataUrl,
+    terminalOpacity: child.terminalOpacity !== undefined
+      ? child.terminalOpacity
+      : connection.terminalOpacity,
+    terminalBackground: child.terminalBackground !== undefined
+      ? child.terminalBackground
+      : connection.terminalBackground,
   };
 }
 
@@ -820,6 +838,7 @@ interface WorkspaceState {
       cwd?: string;
       iconBackgroundColor?: string | null;
       iconDataUrl?: string | null;
+      terminalOpacity?: number | null;
       terminalBackground?: TerminalPane["terminalBackground"];
       title?: string;
       toolbarTitle?: string;
@@ -892,6 +911,7 @@ interface WorkspaceState {
   ) => void;
   refreshOpenConnectionMetadata: (connection: Connection) => void;
   updateOpenConnectionTerminalAppearance: (connectionId: string, appearance: Pick<Connection, "terminalOpacity" | "terminalBackground">) => void;
+  updateOpenTerminalPaneAppearance: (tabId: string, paneId: string, appearance: Pick<Connection, "terminalOpacity" | "terminalBackground">) => void;
   updateOpenTerminalPaneBackground: (tabId: string, paneId: string, terminalBackground: TerminalPane["terminalBackground"]) => void;
   markConnectionSessionStarted: (connectionId: string) => void;
   markConnectionSessionEnded: (connectionId: string) => void;
@@ -1137,16 +1157,28 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
 
     const paneConnection =
-      options?.iconDataUrl !== undefined || options?.iconBackgroundColor !== undefined
+      options?.iconDataUrl !== undefined ||
+      options?.iconBackgroundColor !== undefined ||
+      options?.terminalOpacity !== undefined ||
+      options?.terminalBackground !== undefined
         ? {
             ...connection,
             iconBackgroundColor: options.iconBackgroundColor ?? connection.iconBackgroundColor,
             iconDataUrl: options.iconDataUrl ?? connection.iconDataUrl,
+            terminalOpacity:
+              options.terminalOpacity !== undefined
+                ? options.terminalOpacity
+                : connection.terminalOpacity,
+            terminalBackground:
+              options.terminalBackground !== undefined
+                ? options.terminalBackground
+                : connection.terminalBackground,
           }
         : connection;
     const pane = buildPaneForConnection(paneConnection, undefined, {
       childConnectionId: options?.childConnectionId,
       cwd: options?.cwd,
+      terminalOpacity: options?.terminalOpacity,
       terminalBackground: options?.terminalBackground,
       title: options?.tmuxSessionId ?? options?.title,
       toolbarTitle: options?.toolbarTitle,
@@ -1194,6 +1226,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       cwd: child.cwd,
       iconBackgroundColor: child.iconBackgroundColor,
       iconDataUrl: child.iconDataUrl,
+      terminalOpacity: child.terminalOpacity,
       terminalBackground: child.terminalBackground,
       title: child.name,
       toolbarTitle: child.name,
@@ -1266,6 +1299,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         const pane = buildPaneForConnection(childConnection, undefined, {
           childConnectionId: child.id,
           cwd: child.cwd,
+          terminalOpacity: child.terminalOpacity,
           terminalBackground: child.terminalBackground,
           title: child.tmuxSessionId ?? child.name,
           toolbarTitle: child.name,
@@ -1663,13 +1697,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
   openLocalTerminal: (options) => {
     const id = `local-${Date.now()}`;
-    const shell = options?.shell ?? get().terminalSettings.defaultShell;
+    const { sshSettings, terminalSettings } = get();
+    const shell = options?.shell ?? terminalSettings.defaultShell;
+    const appearance = resolveDefaultTerminalAppearance("local", sshSettings, terminalSettings);
     get().openConnection({
       id,
       name: options?.name ?? shell,
       host: "localhost",
       user: "local",
       localShell: shell,
+      terminalOpacity: appearance.terminalOpacity,
+      terminalBackground: appearance.terminalBackground,
       type: "local",
       status: "idle",
     });
@@ -2266,6 +2304,31 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   updateOpenConnectionTerminalAppearance: (connectionId, appearance) => {
     set((state) => ({
       tabs: state.tabs.map((tab) => updateTabTerminalAppearance(tab, connectionId, appearance)),
+    }));
+  },
+  updateOpenTerminalPaneAppearance: (tabId, paneId, appearance) => {
+    set((state) => ({
+      tabs: state.tabs.map((tab) => {
+        if (tab.id !== tabId || tab.kind !== "terminal") {
+          return tab;
+        }
+        let changed = false;
+        const panes = tab.panes.map((pane) => {
+          if (!isTerminalPane(pane) || pane.id !== paneId || !pane.connection) {
+            return pane;
+          }
+          changed = true;
+          return {
+            ...pane,
+            connection: { ...pane.connection, ...appearance },
+            terminalBackground: appearance.terminalBackground,
+          };
+        });
+        if (!changed) {
+          return tab;
+        }
+        return { ...tab, panes };
+      }),
     }));
   },
   updateOpenTerminalPaneBackground: (tabId, paneId, terminalBackground) => {

@@ -66,4 +66,9 @@ test("terminal appearance menu presents transparency while storing opacity", () 
     /void saveTerminalAppearance\(100 - Number\(value\)\);/,
     "the transparency slider must invert the value before saving terminalOpacity",
   );
+  assert.match(
+    terminalWorkspace,
+    /pane\.childConnectionId[\s\S]*updateOpenTerminalPaneAppearance\(tabId,\s*pane\.id,\s*appearance\)/,
+    "Child Connection Tabs should save terminal opacity as child pane appearance instead of rewriting the parent Connection",
+  );
 });

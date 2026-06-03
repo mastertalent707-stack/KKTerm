@@ -311,7 +311,7 @@ Hình dạng quan trọng: dữ liệu lưu trữ bền vững (**Connection**) 
 | **Mức dùng AI Coding** | **Widget Dashboard + chỉ báo status bar** theo dõi mức dùng quota của **Claude Code** và **Codex**: tài khoản đã kết nối, mức gói, phần trăm cửa sổ 5 giờ và tuần, thời gian reset kế tiếp, trạng thái auth (`connected` / `expired` / `error`), policy refresh nhận biết rate-limit |
 | **MCP Server tích hợp** | MCP server stdio (`kkterm-cli`) expose tool Workspace và Dashboard được tuyển chọn cho coding agent bên ngoài (Claude Code, Codex, Copilot, Antigravity, OpenCode); bridge named pipe có xác thực; sub-namespace `dangerous.*` theo Module được gate sau một safety toggle duy nhất; dialog Settings với snippet JSON / TOML một-click và command `claude mcp add` / `codex mcp add` |
 | **Installer Helper** | Activity Rail Module cho catalog công cụ developer Windows được bundling: phát hiện tool đã cài, so sánh version mới nhất, install/update/uninstall, pin tool khỏi Update all, stream command log, và launch managed app được hỗ trợ |
-| **Settings** | General, Appearance, Credentials, AI, SSH, Terminal, URL, RDP, VNC, Dashboard, Installer Helper, About; font UI tùy chỉnh; minimize-to-tray; Don't Sleep; backup/import |
+| **Settings** | General, Appearance, Credentials, AI, SSH, Terminal, nền terminal, URL, RDP, VNC, Dashboard, Installer Helper, About; font UI tùy chỉnh; minimize-to-tray; Don't Sleep; backup/import |
 | **Localization** | UI i18next với nguồn tiếng Anh và bundle locale tải động: zh-TW, zh-CN, ja, ko, fr, de, es, es-MX, it, pt-BR, th, id, vi |
 
 ### AI Providers

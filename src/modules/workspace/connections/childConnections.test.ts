@@ -33,7 +33,7 @@ const tab: WorkspaceTab = {
       toolbarTitle: "Child",
       cwd: "/home/ryan/project",
       buffer: "",
-      connection: parentConnection,
+      connection: { ...parentConnection, terminalOpacity: 42 },
       terminalBackground: { kind: "dynamic", dynamic: "matrix" },
     },
   ],
@@ -49,4 +49,8 @@ if (syncedChild?.cwd !== "/home/ryan/project") {
 
 if (syncedChild.terminalBackground?.kind !== "dynamic" || syncedChild.terminalBackground.dynamic !== "matrix") {
   throw new Error("Open child terminal background should sync into stored child metadata.");
+}
+
+if (syncedChild.terminalOpacity !== 42) {
+  throw new Error("Open child terminal transparency should sync into stored child metadata.");
 }

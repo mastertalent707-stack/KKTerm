@@ -311,7 +311,7 @@ flowchart LR
 | **AI 编程用量** | **Dashboard Widget + 状态栏指示器**，追踪 **Claude Code** 和 **Codex** 的配额使用情况：已连接账号、套餐等级、5 小时和每周窗口百分比、下次重置时间、认证状态（`connected` / `expired` / `error`）、限速友好的刷新策略 |
 | **内置 MCP 服务器** | stdio MCP 服务器（`kkterm-cli`），向外部编程 Agent（Claude Code、Codex、Copilot、Antigravity、OpenCode）暴露精选的 Workspace 和 Dashboard 工具；带认证的命名管道桥接；每个模块的 `dangerous.*` 命名空间由单一安全开关门控；设置中的对话框提供一键 JSON / TOML 片段以及 `claude mcp add` / `codex mcp add` 命令 |
 | **Installer Helper** | 活动轨道模块，提供随应用打包的 Windows 开发工具目录：检测已安装工具、比较最新版本、安装/更新/卸载、将工具排除在 Update all 之外、流式显示命令日志，并启动支持的受管理应用 |
-| **Settings** | 通用、外观、凭据、AI、SSH、终端、URL、RDP、VNC、Dashboard、Installer Helper、关于；自定义 UI 字体；最小化到托盘；阻止休眠；备份/导入 |
+| **Settings** | 通用、外观、凭据、AI、SSH、终端、终端背景、URL、RDP、VNC、Dashboard、Installer Helper、关于；自定义 UI 字体；最小化到托盘；阻止休眠；备份/导入 |
 | **本地化** | 基于 i18next 的 UI，英文为源，动态语言包：zh-TW、zh-CN、ja、ko、fr、de、es、es-MX、it、pt-BR、th、id、vi |
 
 ### AI 提供商

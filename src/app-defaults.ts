@@ -66,6 +66,8 @@ export const defaultTerminalSettings: TerminalSettings = {
   lineHeight: 1.25,
   cursorStyle: "block",
   scrollbackLines: 5000,
+  defaultTransparency: 50,
+  useRandomDynamicBackground: false,
   copyOnSelect: false,
   allowOsc52Clipboard: true,
   confirmMultilinePaste: true,
@@ -84,6 +86,8 @@ export const defaultSshSettings: SshSettings = {
   defaultKeyPath: "",
   defaultProxyJump: "",
   bufferLines: 5000,
+  defaultTransparency: 50,
+  useRandomDynamicBackground: false,
   hideCommonPortRedirects: true,
   allowOsc52Clipboard: true,
 };
