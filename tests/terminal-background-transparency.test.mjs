@@ -40,6 +40,19 @@ test("terminal xterm viewport does not mask connection backgrounds", () => {
   );
 });
 
+test("terminal host paints the terminal surface behind xterm padding", () => {
+  assert.match(
+    terminalCss,
+    /\.xterm-host\s*\{[\s\S]*background:\s*var\(--terminal-surface-background/,
+    "the terminal host should paint behind xterm's padded content area",
+  );
+  assert.match(
+    rendererSource,
+    /hostElement\.style\.setProperty\("--terminal-surface-background",\s*terminalBackgroundColor\(opacity\)\)/,
+    "the host background must follow the same opacity as the xterm theme background",
+  );
+});
+
 test("terminal appearance menu presents transparency while storing opacity", () => {
   assert.match(englishLocale, /"opacity":\s*"Transparency"/);
   assert.match(englishLocale, /"opacityValue":\s*"\{\{value\}\}% transparency"/);

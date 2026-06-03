@@ -103,12 +103,14 @@ class XtermTerminalRenderer implements TerminalRenderer {
   private readonly cwdListeners = new Set<(cwd: string) => void>();
   private readonly osc7Disposable: IDisposable | null = null;
   private readonly terminal: XtermTerminal;
+  private backgroundOpacity: number;
   private webglAddon: WebglAddon | null = null;
   private webglContextLossDisposable: IDisposable | null = null;
   private wheelScrollbackHandler: ((lines: number) => void) | null = null;
   private wheelScrollbackOverride = false;
 
   constructor(settings: TerminalSettings, backgroundOpacity: number) {
+    this.backgroundOpacity = backgroundOpacity;
     this.terminal = new XtermTerminal(terminalOptionsFor(settings, backgroundOpacity));
     this.terminal.attachCustomWheelEventHandler((event) => this.handleWheelEvent(event));
     this.terminal.loadAddon(this.fitAddon);
@@ -221,16 +223,26 @@ class XtermTerminalRenderer implements TerminalRenderer {
   }
 
   setBackgroundOpacity(opacity: number) {
+    this.backgroundOpacity = opacity;
     this.terminal.options.theme = {
       ...this.terminal.options.theme,
       background: terminalBackgroundColor(opacity),
     };
+    this.applyHostBackground(opacity);
   }
 
   open(element: HTMLElement) {
     this.hostElement = element;
+    this.applyHostBackground(this.backgroundOpacity);
     this.terminal.open(element);
     this.tryEnableWebglRenderer();
+  }
+
+  private applyHostBackground(opacity: number) {
+    if (!this.hostElement) {
+      return;
+    }
+    this.hostElement.style.setProperty("--terminal-surface-background", terminalBackgroundColor(opacity));
   }
 
   private tryEnableWebglRenderer() {

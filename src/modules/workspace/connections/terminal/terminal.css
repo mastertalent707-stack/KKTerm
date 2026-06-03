@@ -1607,6 +1607,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  background: var(--terminal-surface-background, rgba(12, 18, 25, 0.95));
 }
 
 .xterm-host .xterm {
