@@ -1,9 +1,11 @@
 use serde::Serialize;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 const VCXSRV_EXE: &str = "vcxsrv.exe";
 const DEFAULT_VCXSRV_ARGS: &str = "-multiwindow -clipboard -wgl";
+static MANAGED_VCXSRV_PID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -42,9 +44,10 @@ pub fn launch_vcxsrv_if_needed(
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000);
     }
-    command
+    let child = command
         .spawn()
         .map_err(|error| format!("failed to launch VcXsrv: {error}"))?;
+    MANAGED_VCXSRV_PID.store(child.id(), Ordering::Relaxed);
 
     Ok(XServerLaunchResult {
         started: true,
@@ -87,6 +90,15 @@ pub fn stop_vcxsrv() -> Result<(), String> {
     }
 }
 
+pub fn stop_managed_vcxsrv_on_exit() -> Result<(), String> {
+    let pid = MANAGED_VCXSRV_PID.swap(0, Ordering::Relaxed);
+    if pid == 0 {
+        return Ok(());
+    }
+
+    stop_vcxsrv_pid(pid)
+}
+
 pub fn is_vcxsrv_running() -> bool {
     #[cfg(target_os = "windows")]
     {
@@ -127,9 +139,10 @@ fn launch_vcxsrv(
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000);
     }
-    command
+    let child = command
         .spawn()
         .map_err(|error| format!("failed to launch VcXsrv: {error}"))?;
+    MANAGED_VCXSRV_PID.store(child.id(), Ordering::Relaxed);
 
     Ok(XServerLaunchResult {
         started: true,
@@ -182,10 +195,39 @@ fn vcxsrv_launch_args(display: u16, extra_args: Option<&str>) -> Vec<String> {
     args
 }
 
+#[cfg(target_os = "windows")]
+fn stop_vcxsrv_pid(pid: u32) -> Result<(), String> {
+    let status = Command::new("taskkill")
+        .args(["/PID", &pid.to_string(), "/T"])
+        .status()
+        .map_err(|error| format!("failed to stop managed VcXsrv: {error}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "failed to stop managed VcXsrv: taskkill exited with status {status}"
+        ))
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn stop_vcxsrv_pid(_pid: u32) -> Result<(), String> {
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::path::PathBuf;
+
+    #[test]
+    fn managed_vcxsrv_cleanup_is_noop_when_kkterm_did_not_launch_it() {
+        MANAGED_VCXSRV_PID.store(0, Ordering::Relaxed);
+
+        stop_managed_vcxsrv_on_exit().expect("cleanup should be a no-op");
+
+        assert_eq!(MANAGED_VCXSRV_PID.load(Ordering::Relaxed), 0);
+    }
 
     #[test]
     fn vcxsrv_default_args_use_local_display_multiwindow_and_clipboard() {

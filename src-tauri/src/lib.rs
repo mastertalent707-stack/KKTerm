@@ -3109,8 +3109,15 @@ pub fn run() {
             watchdog::commands::watchdog_get_report,
             watchdog::commands::watchdog_record_intervention
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running KKTerm");
+        .build(tauri::generate_context!())
+        .expect("error while building KKTerm")
+        .run(|_app, event| {
+            if matches!(event, tauri::RunEvent::Exit) {
+                if let Err(error) = x_server::stop_managed_vcxsrv_on_exit() {
+                    eprintln!("failed to stop managed VcXsrv on exit: {error}");
+                }
+            }
+        });
 }
 
 fn setup_error(message: String) -> Box<dyn std::error::Error> {
