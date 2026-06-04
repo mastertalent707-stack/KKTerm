@@ -702,6 +702,450 @@ function RainyWindowBg() {
   return <canvas ref={ref} className="dw-dynamic-bg-canvas" style={{ background: "#0a1320" }} />;
 }
 
+interface FrostedWindowFlake {
+  x: number;
+  y: number;
+  r: number;
+  vy: number;
+  sway: number;
+  swaySp: number;
+  ph: number;
+  a: number;
+}
+
+interface FrostedWindowSpark {
+  x: number;
+  y: number;
+  r: number;
+  sp: number;
+  ph: number;
+  bt: number;
+}
+
+interface FrostedWindowBead {
+  x: number;
+  y: number;
+  r: number;
+  bt: number;
+  rot: number;
+  twk: number;
+  tph: number;
+  spokes: { a: number; len: number }[];
+}
+
+interface FrostedWindowState extends CanvasAnimLifecycle {
+  sharp?: HTMLCanvasElement;
+  fog?: HTMLCanvasElement;
+  frostLayers?: HTMLCanvasElement[];
+  corner?: HTMLCanvasElement;
+  flakes?: FrostedWindowFlake[];
+  sparks?: FrostedWindowSpark[];
+  beads?: FrostedWindowBead[];
+  frostLayerCount?: number;
+  last?: number;
+  canvasWidth?: number;
+  canvasHeight?: number;
+}
+
+function FrostedWindowBg() {
+  function smoothstep(a: number, b: number, x: number) {
+    const u = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return u * u * (3 - 2 * u);
+  }
+
+  function makeBead(width: number, height: number): FrostedWindowBead {
+    const r = 3 + Math.random() * 6;
+    const edge = Math.random() < 0.6;
+    const x = edge
+      ? (Math.random() < 0.5 ? Math.random() * width * 0.26 : width - Math.random() * width * 0.26)
+      : Math.random() * width;
+    const y = edge
+      ? (Math.random() < 0.45 ? Math.random() * height * 0.24 : height - Math.random() * height * 0.4)
+      : Math.random() * height;
+    const spokes = 6 + Math.floor(Math.random() * 6);
+    const bt = Math.min(1, Math.min(x, width - x, y, height - y) / (Math.min(width, height) * 0.5)) * 0.8
+      + Math.random() * 0.12;
+    return {
+      x,
+      y,
+      r,
+      bt,
+      rot: Math.random() * Math.PI * 2,
+      twk: 0.4 + Math.random() * 1.6,
+      tph: Math.random() * Math.PI * 2,
+      spokes: Array.from({ length: spokes }, (_, index) => ({
+        a: (index / spokes) * Math.PI * 2 + Math.random() * 0.3,
+        len: r * (1.3 + Math.random() * 1.1),
+      })),
+    };
+  }
+
+  const draw: CanvasDraw<FrostedWindowState> = (ctx, _width, _height, time, state) => {
+    state.onResize = (nextWidth, nextHeight) => {
+      const sharp = document.createElement("canvas");
+      sharp.width = nextWidth;
+      sharp.height = nextHeight;
+      const sharpCtx = sharp.getContext("2d");
+      if (!sharpCtx) return;
+
+      const sky = sharpCtx.createLinearGradient(0, 0, 0, nextHeight);
+      sky.addColorStop(0, "#0a1426");
+      sky.addColorStop(0.48, "#13243d");
+      sky.addColorStop(0.74, "#1f3a58");
+      sky.addColorStop(1, "#2b4a6b");
+      sharpCtx.fillStyle = sky;
+      sharpCtx.fillRect(0, 0, nextWidth, nextHeight);
+
+      const moonX = nextWidth * 0.74;
+      const moonY = nextHeight * 0.24;
+      const moonR = Math.min(nextWidth, nextHeight) * 0.05;
+      const halo = sharpCtx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonR * 7);
+      halo.addColorStop(0, "rgba(220,235,255,0.55)");
+      halo.addColorStop(0.18, "rgba(200,222,250,0.22)");
+      halo.addColorStop(1, "rgba(200,222,250,0)");
+      sharpCtx.fillStyle = halo;
+      sharpCtx.beginPath();
+      sharpCtx.arc(moonX, moonY, moonR * 7, 0, Math.PI * 2);
+      sharpCtx.fill();
+      sharpCtx.fillStyle = "rgba(238,248,255,0.94)";
+      sharpCtx.beginPath();
+      sharpCtx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
+      sharpCtx.fill();
+
+      sharpCtx.fillStyle = "#dbe7ff";
+      const starCount = Math.floor((nextWidth * nextHeight) / 26000);
+      for (let i = 0; i < starCount; i += 1) {
+        sharpCtx.globalAlpha = 0.3 + Math.random() * 0.5;
+        sharpCtx.beginPath();
+        sharpCtx.arc(Math.random() * nextWidth, Math.random() * nextHeight * 0.5, 0.2 + Math.random() * 0.9, 0, Math.PI * 2);
+        sharpCtx.fill();
+      }
+      sharpCtx.globalAlpha = 1;
+
+      const horizon = nextHeight * 0.7;
+      sharpCtx.fillStyle = "#0c1a26";
+      let treeX = -10;
+      while (treeX < nextWidth + 20) {
+        const treeW = 14 + Math.random() * 26;
+        const treeH = 26 + Math.random() * 70;
+        const baseY = horizon + Math.random() * 10;
+        sharpCtx.beginPath();
+        sharpCtx.moveTo(treeX, baseY);
+        sharpCtx.lineTo(treeX + treeW / 2, baseY - treeH);
+        sharpCtx.lineTo(treeX + treeW, baseY);
+        sharpCtx.closePath();
+        sharpCtx.fill();
+        treeX += treeW * 0.62;
+      }
+
+      sharpCtx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 7; i += 1) {
+        const lightX = nextWidth * (0.08 + Math.random() * 0.84);
+        const lightY = horizon - 4 + Math.random() * 16;
+        const radius = 5 + Math.random() * 22;
+        const glow = sharpCtx.createRadialGradient(lightX, lightY, 0, lightX, lightY, radius);
+        glow.addColorStop(0, "rgba(255,208,128,0.48)");
+        glow.addColorStop(0.4, "rgba(255,184,82,0.18)");
+        glow.addColorStop(1, "rgba(255,184,82,0)");
+        sharpCtx.fillStyle = glow;
+        sharpCtx.beginPath();
+        sharpCtx.arc(lightX, lightY, radius, 0, Math.PI * 2);
+        sharpCtx.fill();
+      }
+      sharpCtx.globalCompositeOperation = "source-over";
+
+      const ground = sharpCtx.createLinearGradient(0, horizon, 0, nextHeight);
+      ground.addColorStop(0, "#3a587a");
+      ground.addColorStop(0.25, "#5e7c9c");
+      ground.addColorStop(1, "#aebfd4");
+      sharpCtx.fillStyle = ground;
+      sharpCtx.beginPath();
+      sharpCtx.moveTo(0, nextHeight);
+      sharpCtx.lineTo(0, horizon + 14);
+      for (let gx = 0; gx <= nextWidth; gx += nextWidth / 6) {
+        sharpCtx.quadraticCurveTo(gx + nextWidth / 12, horizon + 8 + Math.sin(gx) * 8, gx + nextWidth / 6, horizon + 14);
+      }
+      sharpCtx.lineTo(nextWidth, nextHeight);
+      sharpCtx.closePath();
+      sharpCtx.fill();
+
+      const fog = document.createElement("canvas");
+      fog.width = nextWidth;
+      fog.height = nextHeight;
+      const fogCtx = fog.getContext("2d");
+      if (!fogCtx) return;
+      fogCtx.filter = "blur(3px) brightness(0.86)";
+      fogCtx.drawImage(sharp, 0, 0);
+      fogCtx.filter = "none";
+      fogCtx.fillStyle = "rgba(196,214,238,0.12)";
+      fogCtx.fillRect(0, 0, nextWidth, nextHeight);
+
+      const frostLayerCount = 9;
+      const layerCanvases = Array.from({ length: frostLayerCount }, () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = nextWidth;
+        canvas.height = nextHeight;
+        return canvas;
+      });
+      const layerContexts = layerCanvases.map((canvas) => canvas.getContext("2d"));
+      if (layerContexts.some((layerCtx) => !layerCtx)) return;
+      const typedLayerContexts = layerContexts as CanvasRenderingContext2D[];
+      for (const layerCtx of typedLayerContexts) {
+        layerCtx.lineCap = "round";
+        layerCtx.strokeStyle = "rgba(226,240,255,0.5)";
+        layerCtx.globalCompositeOperation = "lighter";
+      }
+      const layerFor = (progress: number) => typedLayerContexts[Math.max(0, Math.min(frostLayerCount - 1, Math.floor(progress * frostLayerCount)))];
+      const fern = (x: number, y: number, angle: number, length: number, depth: number, birth: number) => {
+        if (depth <= 0 || length < 3) return;
+        const x2 = x + Math.cos(angle) * length;
+        const y2 = y + Math.sin(angle) * length;
+        const fernCtx = layerFor(birth);
+        fernCtx.lineWidth = Math.max(0.35, depth * 0.34);
+        fernCtx.beginPath();
+        fernCtx.moveTo(x, y);
+        fernCtx.lineTo(x2, y2);
+        fernCtx.stroke();
+        const branches = 2 + depth;
+        for (let i = 1; i < branches; i += 1) {
+          const f = i / branches;
+          const branchX = x + Math.cos(angle) * length * f;
+          const branchY = y + Math.sin(angle) * length * f;
+          const spread = 0.55 + Math.random() * 0.35;
+          const childBirth = Math.min(0.999, birth + 0.04 + f * 0.05);
+          fern(branchX, branchY, angle - spread, length * 0.5 * (1 - f * 0.45), depth - 1, childBirth);
+          fern(branchX, branchY, angle + spread, length * 0.5 * (1 - f * 0.45), depth - 1, childBirth);
+        }
+      };
+
+      const seeds = Math.max(40, Math.min(120, Math.floor((2 * (nextWidth + nextHeight)) / 36)));
+      for (let i = 0; i < seeds; i += 1) {
+        let x = 0;
+        let y = 0;
+        let baseAngle = 0;
+        const edge = Math.random();
+        const r = Math.random();
+        const u = r < 0.5 ? Math.pow(r * 2, 1.8) / 2 : 1 - Math.pow((1 - r) * 2, 1.8) / 2;
+        if (edge < 0.25) {
+          x = u * nextWidth;
+          baseAngle = Math.PI / 2;
+        } else if (edge < 0.5) {
+          x = u * nextWidth;
+          y = nextHeight;
+          baseAngle = -Math.PI / 2;
+        } else if (edge < 0.75) {
+          y = u * nextHeight;
+        } else {
+          x = nextWidth;
+          y = u * nextHeight;
+          baseAngle = Math.PI;
+        }
+        fern(x, y, baseAngle + (Math.random() - 0.5) * 1.1, 26 + Math.random() * 74, 4, Math.random() * 0.7);
+      }
+
+      const softenedLayers = layerCanvases.map((layerCanvas) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = nextWidth;
+        canvas.height = nextHeight;
+        const layerCtx = canvas.getContext("2d");
+        if (layerCtx) {
+          layerCtx.filter = "blur(0.6px)";
+          layerCtx.drawImage(layerCanvas, 0, 0);
+        }
+        return canvas;
+      });
+
+      const corner = document.createElement("canvas");
+      corner.width = nextWidth;
+      corner.height = nextHeight;
+      const cornerCtx = corner.getContext("2d");
+      if (!cornerCtx) return;
+      for (const [px, py] of [[0, 0], [nextWidth, 0], [0, nextHeight], [nextWidth, nextHeight]]) {
+        const glow = cornerCtx.createRadialGradient(px, py, 0, px, py, Math.min(nextWidth, nextHeight) * 0.55);
+        glow.addColorStop(0, "rgba(222,236,255,0.5)");
+        glow.addColorStop(0.5, "rgba(210,228,250,0.16)");
+        glow.addColorStop(1, "rgba(210,228,250,0)");
+        cornerCtx.fillStyle = glow;
+        cornerCtx.fillRect(0, 0, nextWidth, nextHeight);
+      }
+      const band = cornerCtx.createLinearGradient(0, 0, 0, nextHeight);
+      band.addColorStop(0, "rgba(225,238,255,0.30)");
+      band.addColorStop(0.12, "rgba(225,238,255,0)");
+      band.addColorStop(0.88, "rgba(225,238,255,0)");
+      band.addColorStop(1, "rgba(232,243,255,0.42)");
+      cornerCtx.fillStyle = band;
+      cornerCtx.fillRect(0, 0, nextWidth, nextHeight);
+
+      state.sharp = sharp;
+      state.fog = fog;
+      state.frostLayers = softenedLayers;
+      state.corner = corner;
+      state.frostLayerCount = frostLayerCount;
+      state.flakes = Array.from({ length: Math.max(90, Math.min(220, Math.floor((nextWidth * nextHeight) / 7000))) }, () => ({
+        x: Math.random() * nextWidth,
+        y: Math.random() * nextHeight,
+        r: 0.8 + Math.random() * 2.6,
+        vy: 12 + Math.random() * 34,
+        sway: 6 + Math.random() * 20,
+        swaySp: 0.4 + Math.random() * 0.8,
+        ph: Math.random() * Math.PI * 2,
+        a: 0.35 + Math.random() * 0.5,
+      }));
+      state.sparks = Array.from({ length: Math.max(50, Math.min(160, Math.floor((nextWidth * nextHeight) / 9000))) }, () => {
+        const edgeBias = Math.random() < 0.7;
+        const x = edgeBias
+          ? (Math.random() < 0.5 ? Math.random() * nextWidth * 0.22 : nextWidth - Math.random() * nextWidth * 0.22)
+          : Math.random() * nextWidth;
+        const y = edgeBias
+          ? (Math.random() < 0.5 ? Math.random() * nextHeight * 0.22 : nextHeight - Math.random() * nextHeight * 0.22)
+          : Math.random() * nextHeight;
+        const bt = Math.min(1, Math.min(x, nextWidth - x, y, nextHeight - y) / (Math.min(nextWidth, nextHeight) * 0.5)) * 0.85;
+        return { x, y, r: 0.6 + Math.random() * 1.6, sp: 1.5 + Math.random() * 3.5, ph: Math.random() * Math.PI * 2, bt };
+      });
+      state.beads = Array.from({ length: Math.max(10, Math.min(34, Math.floor((nextWidth * nextHeight) / 42000))) }, () => makeBead(nextWidth, nextHeight));
+      state.canvasWidth = nextWidth;
+      state.canvasHeight = nextHeight;
+      state.last = time;
+    };
+
+    if (
+      !state.fog
+      || !state.sharp
+      || !state.frostLayers
+      || !state.corner
+      || !state.flakes
+      || !state.sparks
+      || !state.beads
+      || !state.frostLayerCount
+      || !state.canvasWidth
+      || !state.canvasHeight
+    ) {
+      return;
+    }
+
+    const dt = Math.min(0.05, time - (state.last ?? time));
+    state.last = time;
+    const canvasWidth = state.canvasWidth;
+    const canvasHeight = state.canvasHeight;
+    const phase = (time % 30) / 30;
+    const coverage = phase < 0.56 ? smoothstep(0, 0.46, phase) : 1 - smoothstep(0.56, 1, phase);
+
+    const drawIceBead = (x: number, y: number, r: number, magnification: number) => {
+      if (!state.sharp) return;
+      const shadow = ctx.createRadialGradient(x + r * 0.25, y + r * 0.4, 0, x + r * 0.25, y + r * 0.4, r * 1.5);
+      shadow.addColorStop(0, "rgba(0,0,0,0.26)");
+      shadow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = shadow;
+      ctx.beginPath();
+      ctx.arc(x + r * 0.25, y + r * 0.4, r * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.clip();
+      const sampleRadius = r / magnification;
+      ctx.drawImage(state.sharp, x - sampleRadius, y - sampleRadius + r * 0.22, sampleRadius * 2, sampleRadius * 2, x - r, y - r, r * 2, r * 2);
+      ctx.fillStyle = "rgba(206,224,248,0.12)";
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      ctx.restore();
+
+      ctx.lineWidth = Math.max(0.6, r * 0.1);
+      ctx.strokeStyle = "rgba(120,150,185,0.45)";
+      ctx.beginPath();
+      ctx.arc(x, y, r - ctx.lineWidth * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.beginPath();
+      ctx.arc(x - r * 0.34, y - r * 0.38, Math.max(0.7, r * 0.16), 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    ctx.drawImage(state.fog, 0, 0, canvasWidth, canvasHeight);
+    for (const flake of state.flakes) {
+      flake.y += flake.vy * dt;
+      flake.x += Math.sin(time * flake.swaySp + flake.ph) * flake.sway * dt;
+      if (flake.y > canvasHeight + 4) {
+        flake.y = -4;
+        flake.x = Math.random() * canvasWidth;
+      }
+      if (flake.x < -4) flake.x = canvasWidth + 4;
+      else if (flake.x > canvasWidth + 4) flake.x = -4;
+      const glow = ctx.createRadialGradient(flake.x, flake.y, 0, flake.x, flake.y, flake.r * 1.6);
+      glow.addColorStop(0, `rgba(238,246,255,${flake.a})`);
+      glow.addColorStop(1, "rgba(238,246,255,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(flake.x, flake.y, flake.r * 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const front = coverage * state.frostLayerCount;
+    const shimmer = 0.82 + 0.08 * Math.sin(time * 0.4);
+    for (let index = 0; index < state.frostLayers.length; index += 1) {
+      const alpha = Math.max(0, Math.min(1, front - index));
+      if (alpha <= 0.002) continue;
+      ctx.save();
+      ctx.globalAlpha = alpha * shimmer;
+      ctx.drawImage(state.frostLayers[index], 0, 0, canvasWidth, canvasHeight);
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.globalAlpha = coverage;
+    ctx.drawImage(state.corner, 0, 0, canvasWidth, canvasHeight);
+    ctx.restore();
+
+    for (const spark of state.sparks) {
+      const grow = Math.max(0, Math.min(1, (coverage - spark.bt) / 0.1));
+      if (grow <= 0) continue;
+      const flicker = Math.pow(Math.max(0, Math.sin(time * spark.sp + spark.ph)), 6);
+      if (flicker < 0.04) continue;
+      const alpha = flicker * 0.9 * grow;
+      const glow = ctx.createRadialGradient(spark.x, spark.y, 0, spark.x, spark.y, spark.r * 4);
+      glow.addColorStop(0, `rgba(255,255,255,${alpha})`);
+      glow.addColorStop(1, "rgba(220,238,255,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(spark.x, spark.y, spark.r * 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(spark.x - spark.r * 2.4, spark.y);
+      ctx.lineTo(spark.x + spark.r * 2.4, spark.y);
+      ctx.moveTo(spark.x, spark.y - spark.r * 2.4);
+      ctx.lineTo(spark.x, spark.y + spark.r * 2.4);
+      ctx.stroke();
+    }
+
+    for (const bead of state.beads) {
+      const grow = Math.max(0, Math.min(1, (coverage - bead.bt) / 0.12));
+      if (grow <= 0) continue;
+      ctx.save();
+      ctx.globalAlpha = grow;
+      const twinkle = 0.7 + 0.3 * Math.sin(time * bead.twk + bead.tph);
+      ctx.save();
+      ctx.translate(bead.x, bead.y);
+      ctx.rotate(bead.rot);
+      ctx.scale(0.55 + 0.45 * grow, 0.55 + 0.45 * grow);
+      ctx.strokeStyle = `rgba(228,242,255,${0.45 * twinkle})`;
+      ctx.lineCap = "round";
+      for (const spoke of bead.spokes) {
+        ctx.lineWidth = Math.max(0.5, bead.r * 0.12);
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(spoke.a) * bead.r * 0.9, Math.sin(spoke.a) * bead.r * 0.9);
+        ctx.lineTo(Math.cos(spoke.a) * spoke.len, Math.sin(spoke.a) * spoke.len);
+        ctx.stroke();
+      }
+      ctx.restore();
+      drawIceBead(bead.x, bead.y, bead.r, 1.5);
+      ctx.restore();
+    }
+  };
+  const ref = useCanvasAnim(draw);
+  return <canvas ref={ref} className="dw-dynamic-bg-canvas" style={{ background: "#0a1426" }} />;
+}
+
 interface MatrixState extends CanvasAnimLifecycle {
   fs?: number;
   cols?: number;
@@ -1795,6 +2239,415 @@ function BubblesBg() {
   return <canvas ref={ref} className="dw-dynamic-bg-canvas" />;
 }
 
+interface AquariumFishPalette {
+  body: string;
+  belly: string;
+  fin: string;
+  stripe: string | null;
+}
+
+interface AquariumFish {
+  x: number;
+  baseY: number;
+  size: number;
+  vx: number;
+  dir: -1 | 1;
+  pal: AquariumFishPalette;
+  bobAmp: number;
+  bobSp: number;
+  bobPh: number;
+  tailSp: number;
+  tailPh: number;
+  turnAt: number;
+  baseSpeed: number;
+}
+
+interface AquariumPlant {
+  x: number;
+  height: number;
+  color: string;
+  swaySp: number;
+  swayPh: number;
+  blades: {
+    off: number;
+    hs: number;
+    wob: number;
+    wid: number;
+  }[];
+}
+
+interface AquariumBubble {
+  x: number;
+  y: number;
+  r: number;
+  vy: number;
+  sway: number;
+  swaySp: number;
+  ph: number;
+}
+
+interface AquariumParticle {
+  x: number;
+  y: number;
+  r: number;
+  vy: number;
+  sway: number;
+  swaySp: number;
+  ph: number;
+  a: number;
+}
+
+interface AquariumPebble {
+  x: number;
+  y: number;
+  rx: number;
+  ry: number;
+  c: string;
+}
+
+interface AquariumState extends CanvasAnimLifecycle {
+  fish?: AquariumFish[];
+  plants?: AquariumPlant[];
+  bubbles?: AquariumBubble[];
+  particles?: AquariumParticle[];
+  pebbles?: AquariumPebble[];
+  floorY?: number;
+  minY?: number;
+  maxY?: number;
+  last?: number;
+}
+
+function AquariumBg() {
+  const palettes: AquariumFishPalette[] = [
+    { body: "#ff8a3d", belly: "#ffd9b0", fin: "#ff6a14", stripe: "#fff4e6" },
+    { body: "#ffce3a", belly: "#fff0a8", fin: "#f3a200", stripe: null },
+    { body: "#3fb6f0", belly: "#bfe9ff", fin: "#1f8fd6", stripe: "#eaf8ff" },
+    { body: "#f25d8e", belly: "#ffd2e2", fin: "#d6356d", stripe: null },
+    { body: "#9b6ff0", belly: "#ddccff", fin: "#7846d8", stripe: null },
+    { body: "#7fc35a", belly: "#dcf2c4", fin: "#5da33d", stripe: null },
+    { body: "#ef5b5b", belly: "#ffd0cf", fin: "#cf3636", stripe: "#fff0ef" },
+    { body: "#e9eef2", belly: "#ffffff", fin: "#b9c6d0", stripe: "#5b6b78" },
+  ];
+
+  const draw: CanvasDraw<AquariumState> = (ctx, width, height, time, state) => {
+    state.onResize = (nextWidth, nextHeight) => {
+      const floorY = nextHeight * 0.86;
+      const minY = nextHeight * 0.16;
+      const maxY = floorY - 20;
+      const range = maxY - minY;
+      const fishCount = Math.max(5, Math.min(11, Math.floor((nextWidth * nextHeight) / 95000)));
+      state.fish = Array.from({ length: fishCount }, (_, index) => {
+        const dir: -1 | 1 = Math.random() < 0.5 ? -1 : 1;
+        const baseSpeed = 26 + Math.random() * 40;
+        return {
+          x: Math.random() * nextWidth,
+          baseY: minY + Math.random() * range,
+          size: 16 + Math.random() * 26,
+          vx: baseSpeed * dir,
+          dir,
+          pal: palettes[index % palettes.length],
+          bobAmp: 4 + Math.random() * 9,
+          bobSp: 0.5 + Math.random() * 0.8,
+          bobPh: Math.random() * Math.PI * 2,
+          tailSp: 6 + Math.random() * 4,
+          tailPh: Math.random() * Math.PI * 2,
+          turnAt: time + 4 + Math.random() * 8,
+          baseSpeed,
+        };
+      });
+
+      const plantColors = ["#2f7d4f", "#3f9b5c", "#5aa84a", "#2c8b6e", "#46925a"];
+      state.plants = Array.from({ length: Math.max(5, Math.min(14, Math.floor(nextWidth / 130))) }, () => {
+        const blades = 2 + Math.floor(Math.random() * 3);
+        return {
+          x: Math.random() * nextWidth,
+          height: nextHeight * (0.16 + Math.random() * 0.26),
+          color: plantColors[Math.floor(Math.random() * plantColors.length)],
+          swaySp: 0.5 + Math.random() * 0.6,
+          swayPh: Math.random() * Math.PI * 2,
+          blades: Array.from({ length: blades }, () => ({
+            off: (Math.random() - 0.5) * 26,
+            hs: 0.7 + Math.random() * 0.5,
+            wob: 0.6 + Math.random() * 0.5,
+            wid: 4 + Math.random() * 4,
+          })),
+        };
+      });
+
+      state.bubbles = Array.from({ length: Math.max(14, Math.floor((nextWidth * nextHeight) / 42000)) }, () => ({
+        x: Math.random() * nextWidth,
+        y: Math.random() * nextHeight,
+        r: 1.5 + Math.random() * 4.5,
+        vy: 22 + Math.random() * 40,
+        sway: 5 + Math.random() * 12,
+        swaySp: 0.6 + Math.random() * 1,
+        ph: Math.random() * Math.PI * 2,
+      }));
+      state.particles = Array.from({ length: Math.max(26, Math.floor((nextWidth * nextHeight) / 14000)) }, () => ({
+        x: Math.random() * nextWidth,
+        y: Math.random() * nextHeight,
+        r: 0.5 + Math.random() * 1.4,
+        vy: 3 + Math.random() * 8,
+        sway: 3 + Math.random() * 7,
+        swaySp: 0.3 + Math.random() * 0.5,
+        ph: Math.random() * Math.PI * 2,
+        a: 0.1 + Math.random() * 0.25,
+      }));
+
+      const pebbleColors = ["#b9a78a", "#9c8a6e", "#cdbb9c", "#8d7c63", "#d8c6a4", "#7d6f59"];
+      state.pebbles = Array.from({ length: Math.max(40, Math.floor(nextWidth / 6)) }, () => ({
+        x: Math.random() * nextWidth,
+        y: floorY + Math.random() * (nextHeight - floorY),
+        rx: 3 + Math.random() * 7,
+        ry: 2 + Math.random() * 4,
+        c: pebbleColors[Math.floor(Math.random() * pebbleColors.length)],
+      }));
+      state.floorY = floorY;
+      state.minY = minY;
+      state.maxY = maxY;
+      state.last = time;
+    };
+
+    if (
+      !state.fish
+      || !state.plants
+      || !state.bubbles
+      || !state.particles
+      || !state.pebbles
+      || !state.floorY
+      || !state.minY
+      || !state.maxY
+    ) {
+      return;
+    }
+
+    const dt = Math.min(0.05, time - (state.last ?? time));
+    state.last = time;
+    const floorY = state.floorY;
+    const minY = state.minY;
+    const maxY = state.maxY;
+
+    const water = ctx.createLinearGradient(0, 0, 0, height);
+    water.addColorStop(0, "#1d6f86");
+    water.addColorStop(0.32, "#155e7c");
+    water.addColorStop(0.62, "#0d3f5e");
+    water.addColorStop(1, "#07263d");
+    ctx.fillStyle = water;
+    ctx.fillRect(0, 0, width, height);
+
+    const surface = ctx.createLinearGradient(0, 0, 0, height * 0.22);
+    surface.addColorStop(0, "rgba(190,235,255,0.30)");
+    surface.addColorStop(1, "rgba(190,235,255,0)");
+    ctx.fillStyle = surface;
+    ctx.fillRect(0, 0, width, height * 0.22);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    for (let x = 0; x <= width; x += 10) {
+      const y = 5 + Math.sin(x / 46 + time * 1.6) * 2.5 + Math.sin(x / 17 - time * 2.2) * 1.4;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(width, 0);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(220,245,255,0.5)";
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 5; i += 1) {
+      const centerX = (width / 6) * (i + 1) + Math.sin(time * 0.2 + i * 1.7) * 40;
+      const topW = 22 + 14 * Math.sin(time * 0.5 + i);
+      const bottomW = topW * 5;
+      const lean = Math.sin(time * 0.15 + i) * height * 0.12;
+      const alpha = 0.05 + 0.04 * (0.5 + 0.5 * Math.sin(time * 0.6 + i * 2));
+      const ray = ctx.createLinearGradient(centerX, 0, centerX + lean, height * 0.9);
+      ray.addColorStop(0, `rgba(195,238,255,${alpha})`);
+      ray.addColorStop(1, "rgba(195,238,255,0)");
+      ctx.fillStyle = ray;
+      ctx.beginPath();
+      ctx.moveTo(centerX - topW / 2, 0);
+      ctx.lineTo(centerX + topW / 2, 0);
+      ctx.lineTo(centerX + lean + bottomW / 2, height * 0.9);
+      ctx.lineTo(centerX + lean - bottomW / 2, height * 0.9);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    const drawPlant = (plant: AquariumPlant) => {
+      const baseSway = Math.sin(time * plant.swaySp + plant.swayPh);
+      for (const blade of plant.blades) {
+        const baseX = plant.x + blade.off;
+        const topX = baseX + baseSway * 24 * blade.wob;
+        const topY = floorY - plant.height * blade.hs;
+        ctx.beginPath();
+        ctx.moveTo(baseX - blade.wid, floorY);
+        ctx.quadraticCurveTo(baseX + baseSway * 10 * blade.wob, (floorY + topY) / 2, topX, topY);
+        ctx.quadraticCurveTo(baseX + baseSway * 12 * blade.wob + blade.wid * 1.5, (floorY + topY) / 2, baseX + blade.wid, floorY);
+        ctx.closePath();
+        const plantGradient = ctx.createLinearGradient(baseX, floorY, topX, topY);
+        plantGradient.addColorStop(0, "rgba(20,60,40,0.95)");
+        plantGradient.addColorStop(1, plant.color);
+        ctx.fillStyle = plantGradient;
+        ctx.fill();
+      }
+    };
+    for (const plant of state.plants) drawPlant(plant);
+
+    const drawFish = (fish: AquariumFish) => {
+      if (time >= fish.turnAt) {
+        fish.dir = fish.dir === 1 ? -1 : 1;
+        fish.vx = fish.baseSpeed * fish.dir;
+        fish.turnAt = time + 5 + Math.random() * 10;
+      }
+      fish.x += fish.vx * dt;
+      if (fish.x < -fish.size * 3) {
+        fish.dir = 1;
+        fish.vx = fish.baseSpeed;
+        fish.x = -fish.size * 2;
+      } else if (fish.x > width + fish.size * 3) {
+        fish.dir = -1;
+        fish.vx = -fish.baseSpeed;
+        fish.x = width + fish.size * 2;
+      }
+      const y = Math.max(minY, Math.min(maxY, fish.baseY + Math.sin(time * fish.bobSp + fish.bobPh) * fish.bobAmp));
+      const bodyLength = fish.size * 1.8;
+      const bodyHeight = fish.size * 0.78;
+      const tailWag = Math.sin(time * fish.tailSp + fish.tailPh) * fish.size * 0.18;
+
+      ctx.save();
+      ctx.translate(fish.x, y);
+      ctx.scale(fish.dir, 1);
+      ctx.rotate(Math.sin(time * fish.bobSp + fish.bobPh) * 0.04);
+
+      ctx.fillStyle = fish.pal.fin;
+      ctx.beginPath();
+      ctx.moveTo(-bodyLength * 0.52, 0);
+      ctx.lineTo(-bodyLength * 0.9, -bodyHeight * 0.45 + tailWag);
+      ctx.lineTo(-bodyLength * 0.86, bodyHeight * 0.45 + tailWag);
+      ctx.closePath();
+      ctx.fill();
+
+      const bodyGradient = ctx.createLinearGradient(-bodyLength * 0.4, -bodyHeight * 0.45, bodyLength * 0.52, bodyHeight * 0.45);
+      bodyGradient.addColorStop(0, fish.pal.body);
+      bodyGradient.addColorStop(0.72, fish.pal.body);
+      bodyGradient.addColorStop(1, fish.pal.belly);
+      ctx.fillStyle = bodyGradient;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, bodyLength * 0.52, bodyHeight * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = fish.pal.fin;
+      ctx.beginPath();
+      ctx.moveTo(-bodyLength * 0.05, -bodyHeight * 0.45);
+      ctx.quadraticCurveTo(bodyLength * 0.16, -bodyHeight * 0.88, bodyLength * 0.3, -bodyHeight * 0.25);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-bodyLength * 0.05, bodyHeight * 0.45);
+      ctx.quadraticCurveTo(bodyLength * 0.12, bodyHeight * 0.76, bodyLength * 0.28, bodyHeight * 0.24);
+      ctx.closePath();
+      ctx.fill();
+
+      if (fish.pal.stripe) {
+        ctx.strokeStyle = fish.pal.stripe;
+        ctx.lineWidth = Math.max(2, fish.size * 0.16);
+        for (const stripeX of [-bodyLength * 0.2, bodyLength * 0.12]) {
+          ctx.beginPath();
+          ctx.moveTo(stripeX, -bodyHeight * 0.42);
+          ctx.quadraticCurveTo(stripeX + bodyLength * 0.05, 0, stripeX, bodyHeight * 0.42);
+          ctx.stroke();
+        }
+      }
+
+      ctx.fillStyle = "rgba(0,0,0,0.78)";
+      ctx.beginPath();
+      ctx.arc(bodyLength * 0.32, -bodyHeight * 0.12, Math.max(1.4, fish.size * 0.08), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.beginPath();
+      ctx.arc(bodyLength * 0.34, -bodyHeight * 0.14, Math.max(0.5, fish.size * 0.025), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    };
+
+    for (const fish of state.fish) drawFish(fish);
+
+    const sand = ctx.createLinearGradient(0, floorY, 0, height);
+    sand.addColorStop(0, "#bfae89");
+    sand.addColorStop(1, "#7b6c52");
+    ctx.fillStyle = sand;
+    ctx.beginPath();
+    ctx.moveTo(0, height);
+    ctx.lineTo(0, floorY + 12);
+    for (let x = 0; x <= width; x += width / 7) {
+      ctx.quadraticCurveTo(x + width / 14, floorY + 4 + Math.sin(x * 0.01) * 5, x + width / 7, floorY + 12);
+    }
+    ctx.lineTo(width, height);
+    ctx.closePath();
+    ctx.fill();
+
+    for (const pebble of state.pebbles) {
+      ctx.fillStyle = pebble.c;
+      ctx.beginPath();
+      ctx.ellipse(pebble.x, pebble.y, pebble.rx, pebble.ry, Math.sin(pebble.x) * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (const particle of state.particles) {
+      particle.y += particle.vy * dt;
+      particle.x += Math.sin(time * particle.swaySp + particle.ph) * particle.sway * dt;
+      if (particle.y > height + 2) {
+        particle.y = -2;
+        particle.x = Math.random() * width;
+      }
+      ctx.fillStyle = `rgba(220,245,245,${particle.a})`;
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    for (const bubble of state.bubbles) {
+      bubble.y -= bubble.vy * dt;
+      bubble.x += Math.sin(time * bubble.swaySp + bubble.ph) * bubble.sway * dt;
+      if (bubble.y < -bubble.r * 2) {
+        bubble.y = height + bubble.r;
+        bubble.x = Math.random() * width;
+      }
+      const body = ctx.createRadialGradient(bubble.x - bubble.r * 0.3, bubble.y - bubble.r * 0.3, bubble.r * 0.1, bubble.x, bubble.y, bubble.r);
+      body.addColorStop(0, "rgba(220,245,255,0.78)");
+      body.addColorStop(0.6, "rgba(180,225,245,0.24)");
+      body.addColorStop(1, "rgba(140,200,235,0)");
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.arc(bubble.x, bubble.y, bubble.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(220,245,255,0.42)";
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.arc(bubble.x, bubble.y, bubble.r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    const glass = ctx.createLinearGradient(0, 0, width, 0);
+    glass.addColorStop(0, "rgba(255,255,255,0.16)");
+    glass.addColorStop(0.08, "rgba(255,255,255,0)");
+    glass.addColorStop(0.92, "rgba(255,255,255,0)");
+    glass.addColorStop(1, "rgba(255,255,255,0.12)");
+    ctx.fillStyle = glass;
+    ctx.fillRect(0, 0, width, height);
+    const vignette = ctx.createRadialGradient(width * 0.5, height * 0.45, Math.min(width, height) * 0.2, width * 0.5, height * 0.45, Math.max(width, height) * 0.72);
+    vignette.addColorStop(0, "rgba(0,0,0,0)");
+    vignette.addColorStop(1, "rgba(0,10,20,0.36)");
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, width, height);
+  };
+  const ref = useCanvasAnim(draw);
+  return <canvas ref={ref} className="dw-dynamic-bg-canvas" style={{ background: "#0b3f5e" }} />;
+}
+
 interface Taipei101Particle {
   x: number;
   y: number;
@@ -2678,10 +3531,12 @@ const DYNAMIC_BACKGROUND_COMPONENTS = {
   ocean: OceanBg,
   raindrops: RaindropsBg,
   rainywindow: RainyWindowBg,
+  frostedWindow: FrostedWindowBg,
   snow: SnowBg,
   sakura: SakuraBg,
   fireflies: FirefliesBg,
   bubbles: BubblesBg,
+  aquarium: AquariumBg,
   ricefield: RicefieldBg,
   lanterns: LanternsBg,
   starfield: StarfieldBg,
@@ -2710,10 +3565,12 @@ export const DYNAMIC_BACKGROUNDS: readonly {
   { id: "ocean", labelKey: "dashboard.dynamicBackgrounds.ocean", mood: "calm" },
   { id: "raindrops", labelKey: "dashboard.dynamicBackgrounds.raindrops", mood: "calm" },
   { id: "rainywindow", labelKey: "dashboard.dynamicBackgrounds.rainyWindow", mood: "calm" },
+  { id: "frostedWindow", labelKey: "dashboard.dynamicBackgrounds.frostedWindow", mood: "calm" },
   { id: "snow", labelKey: "dashboard.dynamicBackgrounds.snow", mood: "calm" },
   { id: "sakura", labelKey: "dashboard.dynamicBackgrounds.sakura", mood: "calm" },
   { id: "fireflies", labelKey: "dashboard.dynamicBackgrounds.fireflies", mood: "calm" },
   { id: "bubbles", labelKey: "dashboard.dynamicBackgrounds.bubbles", mood: "calm" },
+  { id: "aquarium", labelKey: "dashboard.dynamicBackgrounds.aquarium", mood: "calm" },
   { id: "ricefield", labelKey: "dashboard.dynamicBackgrounds.ricefield", mood: "calm" },
   { id: "lanterns", labelKey: "dashboard.dynamicBackgrounds.lanterns", mood: "calm" },
   { id: "starfield", labelKey: "dashboard.dynamicBackgrounds.starfield", mood: "spacey" },

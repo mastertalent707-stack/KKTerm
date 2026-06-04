@@ -135,10 +135,12 @@ pub const DYNAMIC_BACKGROUND_IDS: &[&str] = &[
     "ocean",
     "raindrops",
     "rainywindow",
+    "frostedWindow",
     "snow",
     "sakura",
     "fireflies",
     "bubbles",
+    "aquarium",
     "ricefield",
     "lanterns",
     "starfield",
@@ -1375,6 +1377,12 @@ mod tests {
     #[test]
     fn dynamic_background_accepts_rainy_window() {
         assert!(validate_dynamic_background("rainywindow").is_ok());
+    }
+
+    #[test]
+    fn dynamic_background_accepts_aquarium_and_frosted_window() {
+        assert!(validate_dynamic_background("aquarium").is_ok());
+        assert!(validate_dynamic_background("frostedWindow").is_ok());
     }
 
     #[test]
