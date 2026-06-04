@@ -12,9 +12,6 @@ export async function pushTrayMenu(
   recentConnections: Connection[],
   labels: {
     dontSleep: string;
-    wallpaper: string;
-    wallpaperSet: string;
-    wallpaperClear: string;
     exit: string;
   },
 ) {
@@ -29,9 +26,6 @@ export async function pushTrayMenu(
           .slice(0, TRAY_RECENT_LIMIT)
           .map((connection) => ({ id: connection.id, label: connection.name })),
         dontSleepLabel: labels.dontSleep,
-        wallpaperLabel: labels.wallpaper,
-        wallpaperSetLabel: labels.wallpaperSet,
-        wallpaperClearLabel: labels.wallpaperClear,
         exitLabel: labels.exit,
       },
     });

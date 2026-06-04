@@ -403,9 +403,6 @@ export interface TrayRecentConnection {
 export interface TrayMenuSnapshot {
   recentConnections: TrayRecentConnection[];
   dontSleepLabel: string;
-  wallpaperLabel: string;
-  wallpaperSetLabel: string;
-  wallpaperClearLabel: string;
   exitLabel: string;
 }
 
@@ -914,14 +911,6 @@ type CommandMap = {
   };
   update_general_settings: {
     args: { request: GeneralSettings };
-    result: GeneralSettings;
-  };
-  set_desktop_wallpaper: {
-    args: { background: DashboardBackground };
-    result: GeneralSettings;
-  };
-  clear_desktop_wallpaper: {
-    args: undefined;
     result: GeneralSettings;
   };
   get_app_launcher_settings: {

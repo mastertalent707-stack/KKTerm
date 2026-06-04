@@ -7,7 +7,6 @@ All notable changes to KKTerm are documented here.
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.57/kkterm-0.1.57-windows-arm64-setup.exe)
 
 ## Highlights
-- Fix wallpaper tray popup hosting and smooth out the wallpaper Connection behavior (no more “why is this popup hosting like that?” moments).
 - Improve SSH “changed host key” handling with a clear warning and an explicit opt-in replacement flow.
 - Better SFTP path input and restore terminal focus after popup interactions.
 
@@ -27,8 +26,6 @@ All notable changes to KKTerm are documented here.
 - Localization documentation: align i18n namespace docs and add Watchdog vocabulary; plus guidelines for context-specific keys and placeholder safety.
 
 ## Fixed
-- Fix tray wallpaper popup hosting by @ryantsai in https://github.com/ryantsai/KKTerm/pull/233 (short SHA: a9b9521).
-- Avoid no-activate parent during wallpaper WebView creation by @ryantsai in https://github.com/ryantsai/KKTerm/pull/234 (short SHA: 3d5335b).
 - Align “changed SSH host key” replacement/rotation expectations in host-key replace tests by @ryantsai in https://github.com/ryantsai/KKTerm/pull/251 (short SHA: 66ce06e).
 
 ## Internal
@@ -79,7 +76,6 @@ All notable changes to KKTerm are documented here.
 
 ## New
 - **Notes widget**: per-instance random rotation, configurable rotation, and multi-page notes with tear animation. by @ryantsai in https://github.com/ryantsai/KKTerm/pull/227  
-- **Background controls (desktop wallpaper)** via tray prototype and codex controls (UI + storage). by @ryantsai in https://github.com/ryantsai/KKTerm/pull/231 and https://github.com/ryantsai/KKTerm/pull/232  
 - **Separate split terminal backgrounds** setting. by @ryantsai in https://github.com/ryantsai/KKTerm/pull/??? (included in v0.1.56 changes via background-related commits)
 
 ## Improved
@@ -97,7 +93,6 @@ All notable changes to KKTerm are documented here.
 - App navigation persistence and workspace layout management improvements. 10b794d  
 - MCP bridge startup behavior docs/implementation updates. 582eacc  
 - Dashboard background popover style/structure updates. 9c84cb7  
-- Debug wallpaper tray prototype implementation. f3e5d2c / 29fb80a  
 - Connection pane folder handling and related tests. 2625e8a / 60df1fc / 2625e8a  
 - Title bar icon + panel toggle behavior updates and related tests. 87b43f0  
 - Background transparency/appearance default setting work (settings + rendering + tests). e328dc7  
@@ -111,7 +106,6 @@ All notable changes to KKTerm are documented here.
 
 ## 新增
 - **Notes 小工具**：每個實例隨機旋轉、可設定旋轉角度、支援多頁筆記與撕裂動畫。by @ryantsai in https://github.com/ryantsai/KKTerm/pull/227  
-- **桌面桌布（desktop wallpaper）控制**：包含 tray 原型與 codex 介面控制（UI + 儲存）。by @ryantsai in https://github.com/ryantsai/KKTerm/pull/231 與 https://github.com/ryantsai/KKTerm/pull/232  
 - **分割終端可分開背景**設定。by @ryantsai in https://github.com/ryantsai/KKTerm/pull/???（v0.1.56 內的背景相關改動一併涵蓋）
 
 ## 改進

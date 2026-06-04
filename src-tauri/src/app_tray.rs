@@ -2,7 +2,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use serde::Deserialize;
-use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager};
 
@@ -13,8 +13,6 @@ const TRAY_ID: &str = "kkterm-main";
 const DONT_SLEEP_ITEM_ID: &str = "kkterm-tray-dont-sleep";
 const EXIT_ITEM_ID: &str = "kkterm-tray-exit";
 const RECENT_ITEM_PREFIX: &str = "kkterm-tray-recent:";
-const WALLPAPER_SET_ITEM_ID: &str = "kkterm-tray-wallpaper-set";
-const WALLPAPER_CLEAR_ITEM_ID: &str = "kkterm-tray-wallpaper-clear";
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,9 +26,6 @@ pub struct TrayRecentConnection {
 pub struct TrayMenuSnapshot {
     pub recent_connections: Vec<TrayRecentConnection>,
     pub dont_sleep_label: String,
-    pub wallpaper_label: String,
-    pub wallpaper_set_label: String,
-    pub wallpaper_clear_label: String,
     pub exit_label: String,
 }
 
@@ -164,34 +159,6 @@ fn build_menu<R: tauri::Runtime>(
     menu.append(&PredefinedMenuItem::separator(app).map_err(|error| error.to_string())?)
         .map_err(|error| error.to_string())?;
 
-    let wallpaper =
-        Submenu::new(app, &snapshot.wallpaper_label, true).map_err(|error| error.to_string())?;
-    let set = MenuItem::with_id(
-        app,
-        WALLPAPER_SET_ITEM_ID,
-        &snapshot.wallpaper_set_label,
-        true,
-        None::<&str>,
-    )
-    .map_err(|error| error.to_string())?;
-    let clear = MenuItem::with_id(
-        app,
-        WALLPAPER_CLEAR_ITEM_ID,
-        &snapshot.wallpaper_clear_label,
-        true,
-        None::<&str>,
-    )
-    .map_err(|error| error.to_string())?;
-    wallpaper.append(&set).map_err(|error| error.to_string())?;
-    wallpaper
-        .append(&clear)
-        .map_err(|error| error.to_string())?;
-    menu.append(&wallpaper)
-        .map_err(|error| error.to_string())?;
-
-    menu.append(&PredefinedMenuItem::separator(app).map_err(|error| error.to_string())?)
-        .map_err(|error| error.to_string())?;
-
     let exit = MenuItem::with_id(app, EXIT_ITEM_ID, &snapshot.exit_label, true, None::<&str>)
         .map_err(|error| error.to_string())?;
     menu.append(&exit).map_err(|error| error.to_string())?;
@@ -212,47 +179,10 @@ fn handle_menu_event<R: tauri::Runtime>(app: &tauri::AppHandle<R>, id: &str) {
         return;
     }
 
-    if id == WALLPAPER_SET_ITEM_ID {
-        if let Err(error) = crate::desktop_wallpaper::open_wallpaper_picker(
-            app,
-            wallpaper_picker_anchor(app),
-        ) {
-            eprintln!("failed to open wallpaper picker: {error}");
-        }
-        return;
-    }
-
-    if id == WALLPAPER_CLEAR_ITEM_ID {
-        if let Err(error) = clear_desktop_wallpaper(app) {
-            eprintln!("failed to clear desktop wallpaper: {error}");
-        }
-        return;
-    }
-
     if let Some(connection_id) = id.strip_prefix(RECENT_ITEM_PREFIX) {
         restore_main_window(app);
         let _ = app.emit("kkterm://tray-open-connection", connection_id.to_string());
     }
-}
-
-fn wallpaper_picker_anchor<R: tauri::Runtime>(
-    app: &tauri::AppHandle<R>,
-) -> Option<crate::desktop_wallpaper::WallpaperPickerAnchor> {
-    app.tray_by_id(TRAY_ID)
-        .and_then(|tray| tray.rect().ok().flatten())
-        .map(crate::desktop_wallpaper::wallpaper_picker_anchor_from_rect)
-}
-
-fn clear_desktop_wallpaper<R: tauri::Runtime>(
-    app: &tauri::AppHandle<R>,
-) -> Result<(), String> {
-    crate::desktop_wallpaper::clear_wallpaper(app)?;
-    let Some(storage) = app.try_state::<crate::storage::Storage>() else {
-        return Ok(());
-    };
-    let saved = storage.update_desktop_wallpaper_enabled(false)?;
-    let _ = app.emit(crate::desktop_wallpaper::WALLPAPER_SETTINGS_EVENT, saved);
-    Ok(())
 }
 
 fn toggle_dont_sleep<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
