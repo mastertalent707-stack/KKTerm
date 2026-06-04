@@ -110,6 +110,8 @@ pub struct TrustSshHostKeyRequest {
     host: String,
     port: Option<u16>,
     public_key: String,
+    #[serde(default)]
+    replace: bool,
 }
 
 #[derive(Serialize)]
@@ -367,9 +369,12 @@ pub fn trust_host_key(
                 .map_err(|error| format!("failed to trust SSH host key: {error}"))?;
         }
         HostKeyTrustStatus::Changed { line } => {
-            return Err(format!(
-                "refusing to replace changed SSH host key at known-hosts line {line}"
-            ));
+            if !request.replace {
+                return Err(format!(
+                    "refusing to replace changed SSH host key at known-hosts line {line}"
+                ));
+            }
+            replace_changed_host_key(&host, port, &key, &known_hosts_path)?;
         }
     }
 
@@ -383,6 +388,39 @@ pub fn trust_host_key(
             .map_err(|error| format!("failed to encode SSH host key: {error}"))?,
         status: "trusted".to_string(),
     })
+}
+
+fn replace_changed_host_key(
+    host: &str,
+    port: u16,
+    key: &russh::keys::ssh_key::PublicKey,
+    known_hosts_path: &PathBuf,
+) -> Result<(), String> {
+    // Drop every stale entry that conflicts with the new key (there can be more
+    // than one, e.g. one per algorithm) before learning the rotated key.
+    while let HostKeyTrustStatus::Changed { line } =
+        host_key_status(host, port, key, known_hosts_path)?
+    {
+        remove_known_hosts_line(known_hosts_path, line)?;
+    }
+    russh::keys::known_hosts::learn_known_hosts_path(host, port, key, known_hosts_path)
+        .map_err(|error| format!("failed to trust SSH host key: {error}"))
+}
+
+fn remove_known_hosts_line(known_hosts_path: &PathBuf, line: usize) -> Result<(), String> {
+    let contents = std::fs::read_to_string(known_hosts_path)
+        .map_err(|error| format!("failed to read SSH known hosts: {error}"))?;
+    let mut lines: Vec<&str> = contents.lines().collect();
+    if line == 0 || line > lines.len() {
+        return Err(format!("SSH known-hosts line {line} is out of range"));
+    }
+    lines.remove(line - 1);
+    let mut rebuilt = lines.join("\n");
+    if !rebuilt.is_empty() {
+        rebuilt.push('\n');
+    }
+    std::fs::write(known_hosts_path, rebuilt)
+        .map_err(|error| format!("failed to update SSH known hosts: {error}"))
 }
 
 pub(crate) fn run_remote_command(request: NativeSshCommandRequest) -> Result<String, String> {
@@ -1186,6 +1224,64 @@ mod tests {
             host_key_status("localhost", 2222, &changed_key, &path).expect("status loads"),
             HostKeyTrustStatus::Changed { line: 2 }
         );
+    }
+
+    #[test]
+    fn trust_host_key_replaces_changed_entry_when_requested() {
+        let path = temp_known_hosts_path("replace");
+        let original = russh::keys::ssh_key::PublicKey::from_openssh(
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJdD7y3aLq454yWBdwLWbieU1ebz9/cu7/QEXn9OIeZJ",
+        )
+        .expect("original host key parses");
+        russh::keys::known_hosts::learn_known_hosts_path("localhost", 2222, &original, &path)
+            .expect("original host key is trusted");
+
+        let rotated = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA6rWI3G1sz07DnfFlrouTcysQlj2P+jpNSOEWD9OJ3X";
+        let preview = trust_host_key(
+            path.clone(),
+            TrustSshHostKeyRequest {
+                host: "localhost".to_string(),
+                port: Some(2222),
+                public_key: rotated.to_string(),
+                replace: true,
+            },
+        )
+        .expect("changed host key is replaced when replace is requested");
+        assert_eq!(preview.status, "trusted");
+
+        let rotated_key =
+            russh::keys::ssh_key::PublicKey::from_openssh(rotated).expect("rotated host key parses");
+        assert_eq!(
+            host_key_status("localhost", 2222, &rotated_key, &path).expect("status loads"),
+            HostKeyTrustStatus::Trusted
+        );
+        assert_eq!(
+            host_key_status("localhost", 2222, &original, &path).expect("status loads"),
+            HostKeyTrustStatus::Changed { line: 1 }
+        );
+    }
+
+    #[test]
+    fn trust_host_key_refuses_changed_entry_without_replace() {
+        let path = temp_known_hosts_path("refuse");
+        let original = russh::keys::ssh_key::PublicKey::from_openssh(
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJdD7y3aLq454yWBdwLWbieU1ebz9/cu7/QEXn9OIeZJ",
+        )
+        .expect("original host key parses");
+        russh::keys::known_hosts::learn_known_hosts_path("localhost", 2222, &original, &path)
+            .expect("original host key is trusted");
+
+        let error = trust_host_key(
+            path,
+            TrustSshHostKeyRequest {
+                host: "localhost".to_string(),
+                port: Some(2222),
+                public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA6rWI3G1sz07DnfFlrouTcysQlj2P+jpNSOEWD9OJ3X".to_string(),
+                replace: false,
+            },
+        )
+        .expect_err("changed host key is refused without replace");
+        assert!(error.contains("refusing to replace changed SSH host key"));
     }
 
     #[test]

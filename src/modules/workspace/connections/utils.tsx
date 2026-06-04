@@ -242,13 +242,30 @@ export async function confirmTrustedSshHostKey(preview: SshHostKeyPreview) {
   }
 
   if (preview.status === "changed") {
-    throw new Error(
-      i18next.t("terminal.sshHostKeyChangeDetail", {
+    const shouldReplace = await confirmNativeDialog(
+      i18next.t("terminal.replaceChangedHostKeyWarning", {
         host: `${preview.host}:${preview.port}`,
         algorithm: preview.algorithm,
         fingerprint: preview.fingerprint,
       }),
+      {
+        kind: "warning",
+        title: i18next.t("terminal.replaceChangedHostKeyTitle"),
+      },
     );
+    if (shouldReplace !== true) {
+      throw new Error(i18next.t("terminal.hostKeyNotTrusted"));
+    }
+
+    await invokeCommand("trust_ssh_host_key", {
+      request: {
+        host: preview.host,
+        port: preview.port,
+        publicKey: preview.publicKey,
+        replace: true,
+      },
+    });
+    return;
   }
 
   const shouldTrust = await confirmNativeDialog(

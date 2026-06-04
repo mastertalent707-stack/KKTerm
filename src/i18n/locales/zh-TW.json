@@ -2100,6 +2100,8 @@
     "sshHostKeyChanged": "SSH 主機金鑰",
     "sshHostKeyChangedDetail": "已變更！這可能表示有中間人攻擊。",
     "sshHostKeyChangeDetail": "{{host}} 的 SSH 主機金鑰已變更。提供了 {{algorithm}} {{fingerprint}}。",
+    "replaceChangedHostKeyTitle": "SSH 主機金鑰已變更",
+    "replaceChangedHostKeyWarning": "{{host}} 的 SSH 主機金鑰已變更，現在提供 {{algorithm}} {{fingerprint}}。這通常表示伺服器已重新安裝或輪換金鑰，但也可能代表發生中間人攻擊。只有在您預期此變更時，才取代受信任的金鑰。",
     "sshPortForwardOpened": "已為遠端連接埠 {{port}} 開啟 SSH 連接埠重新導向。",
     "sshPortRedirect": "SSH 連接埠重新導向",
     "starting": "正在啟動",

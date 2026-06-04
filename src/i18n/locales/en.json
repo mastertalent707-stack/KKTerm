@@ -1546,6 +1546,8 @@
     "sshHostKeyChanged": "SSH host key for",
     "sshHostKeyChangedDetail": "has changed! This could indicate a man-in-the-middle attack.",
     "sshHostKeyChangeDetail": "SSH host key for {{host}} changed. Presented {{algorithm}} {{fingerprint}}.",
+    "replaceChangedHostKeyTitle": "SSH host key changed",
+    "replaceChangedHostKeyWarning": "The SSH host key for {{host}} has changed, and now presents {{algorithm}} {{fingerprint}}. This usually means the server was reinstalled or rotated its key, but it can also indicate a man-in-the-middle attack. Only replace the trusted key if you expected this change.",
     "trustHostKey": "Trust SSH host key for",
     "hostKeyNotTrusted": "SSH host key was not trusted.",
     "selectKeyFile": "Select SSH key file",

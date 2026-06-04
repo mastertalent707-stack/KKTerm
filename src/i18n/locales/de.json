@@ -2100,6 +2100,8 @@
     "sshHostKeyChanged": "SSH-Host-Schlüssel für",
     "sshHostKeyChangedDetail": "hat sich geändert! Dies könnte auf einen Man-in-the-Middle-Angriff hindeuten.",
     "sshHostKeyChangeDetail": "SSH-Host-Schlüssel für {{host}} hat sich geändert. Vorgelegter {{algorithm}} {{fingerprint}}.",
+    "replaceChangedHostKeyTitle": "SSH-Host-Schlüssel geändert",
+    "replaceChangedHostKeyWarning": "Der SSH-Host-Schlüssel für {{host}} hat sich geändert und legt nun {{algorithm}} {{fingerprint}} vor. Das bedeutet meist, dass der Server neu installiert wurde oder seinen Schlüssel gewechselt hat, kann aber auch auf einen Man-in-the-Middle-Angriff hindeuten. Ersetzen Sie den vertrauenswürdigen Schlüssel nur, wenn Sie diese Änderung erwartet haben.",
     "sshPortForwardOpened": "SSH-Port-Weiterleitung für entfernten Port {{port}} geöffnet.",
     "sshPortRedirect": "SSH-Port-Weiterleitung",
     "starting": "Starte",

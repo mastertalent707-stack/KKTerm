@@ -2100,6 +2100,8 @@
     "sshHostKeyChanged": "SSHホストキーが変更されました：",
     "sshHostKeyChangedDetail": "が変更されました！中間者攻撃の可能性があります。",
     "sshHostKeyChangeDetail": "{{host}}のSSHホストキーが変更されました。提示された{{algorithm}} {{fingerprint}}。",
+    "replaceChangedHostKeyTitle": "SSHホストキーが変更されました",
+    "replaceChangedHostKeyWarning": "{{host}}のSSHホストキーが変更され、現在は{{algorithm}} {{fingerprint}}が提示されています。通常はサーバーの再インストールやキーのローテーションを意味しますが、中間者攻撃の可能性もあります。この変更が想定どおりの場合のみ、信頼済みキーを置き換えてください。",
     "sshPortForwardOpened": "リモートポート {{port}} の SSH ポートリダイレクトを開きました。",
     "sshPortRedirect": "SSH ポートリダイレクト",
     "starting": "起動中",

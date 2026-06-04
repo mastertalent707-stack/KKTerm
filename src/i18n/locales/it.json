@@ -2100,6 +2100,8 @@
     "sshHostKeyChanged": "La chiave host SSH per",
     "sshHostKeyChangedDetail": "è cambiata! Questo potrebbe indicare un attacco man-in-the-middle.",
     "sshHostKeyChangeDetail": "Chiave host SSH per {{host}} cambiata. Presentata {{algorithm}} {{fingerprint}}.",
+    "replaceChangedHostKeyTitle": "Chiave host SSH cambiata",
+    "replaceChangedHostKeyWarning": "La chiave host SSH per {{host}} è cambiata e ora presenta {{algorithm}} {{fingerprint}}. Di solito significa che il server è stato reinstallato o ha ruotato la chiave, ma può anche indicare un attacco man-in-the-middle. Sostituisci la chiave attendibile solo se ti aspettavi questo cambiamento.",
     "sshPortForwardOpened": "Reindirizzamento porta SSH aperto per la porta remota {{port}}.",
     "sshPortRedirect": "Reindirizzamento porta SSH",
     "starting": "Avvio",

@@ -1293,7 +1293,9 @@ type CommandMap = {
     result: SshHostKeyPreview;
   };
   trust_ssh_host_key: {
-    args: { request: { host: string; port?: number; publicKey: string } };
+    args: {
+      request: { host: string; port?: number; publicKey: string; replace?: boolean };
+    };
     result: SshHostKeyPreview;
   };
   store_secret: {

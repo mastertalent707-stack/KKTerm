@@ -2100,6 +2100,8 @@
     "sshHostKeyChanged": "คีย์โฮสต์ SSH สำหรับ",
     "sshHostKeyChangedDetail": "เปลี่ยนแปลงแล้ว! นี่อาจเป็นการโจมตีแบบ man-in-the-middle",
     "sshHostKeyChangeDetail": "คีย์โฮสต์ SSH สำหรับ {{host}} เปลี่ยนไป แสดง {{algorithm}} {{fingerprint}}",
+    "replaceChangedHostKeyTitle": "คีย์โฮสต์ SSH เปลี่ยนไป",
+    "replaceChangedHostKeyWarning": "คีย์โฮสต์ SSH สำหรับ {{host}} เปลี่ยนไป และตอนนี้แสดง {{algorithm}} {{fingerprint}} โดยทั่วไปหมายความว่าเซิร์ฟเวอร์ถูกติดตั้งใหม่หรือหมุนเวียนคีย์ แต่ก็อาจบ่งชี้การโจมตีแบบ man-in-the-middle ได้เช่นกัน ให้แทนที่คีย์ที่เชื่อถือเฉพาะเมื่อคุณคาดหวังการเปลี่ยนแปลงนี้",
     "sshPortForwardOpened": "เปิดการเปลี่ยนเส้นทางพอร์ต SSH สำหรับพอร์ตระยะไกล {{port}} แล้ว",
     "sshPortRedirect": "การเปลี่ยนเส้นทางพอร์ต SSH",
     "starting": "กำลังเริ่มต้น",
