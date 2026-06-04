@@ -529,7 +529,8 @@
     "queuedPrompts": "キュー内のプロンプト",
     "queuedPromptIndex": "次 {{index}}",
     "deleteQueuedPrompt": "キュー内プロンプトを削除: {{prompt}}",
-    "tutorialSurfaceNotOpen": "そのコントロールは、現在開いていないタブ内にあります。"
+    "tutorialSurfaceNotOpen": "そのコントロールは、現在開いていないタブ内にあります。",
+    "directAttachmentPrompt": "これについて手伝ってください。見えている内容を説明し、エラー、警告、または問題のように見える場合は、できる限り修正方法を説明してください。"
   },
   "app": {
     "aiAssistant": "AIアシスタント",
@@ -1878,8 +1879,8 @@
     "builtInMcpServerEnabledHint": "外部ツール向けに kkterm-cli を stdio MCP server として公開します。",
     "builtInMcpAllowAllDangerous": "組み込みの危険な MCP ツール: すべて許可",
     "builtInMcpAllowAllDangerousHint": "有効にすると、危険な kkterm.dangerous.* MCP ツールが確認プロンプトなしで実行されます。",
-    "allowInsecureMcpHttp": "Allow insecure Remote MCP HTTP servers",
-    "allowInsecureMcpHttpHint": "When enabled, Remote MCP servers on local or network http:// URLs are allowed; leave this off unless you trust the network and server.",
+    "allowInsecureMcpHttp": "安全でない Remote MCP HTTP server を許可",
+    "allowInsecureMcpHttpHint": "有効にすると、ローカルまたはネットワーク上の http:// URL の Remote MCP server が許可されます。ネットワークと server を信頼できる場合を除き、無効のままにしてください。",
     "rdpRemoteResolution": "リモート解像度",
     "rdpRemoteResolutionAutomatic": "自動",
     "builtInMcpShowConfig": "設定を表示",
@@ -1921,7 +1922,23 @@
     "installerCheckInterval604800": "毎週",
     "installerCheckInterval2592000": "毎月",
     "rdpWebviewStability": "RDP セッションの安定性 (WebView2)",
-    "rdpWebviewStabilityHint": "ソフトウェア レンダリングを強制し、ウィンドウ オクルージョンによるスロットリングを無効にして、Remote Desktop (RDP) ホスト内で KKTerm を実行しているときにクライアントが切断および再接続されても KKTerm の応答性を維持します。KKTerm がリモート セッションで実行されていることを検出すると自動的に適用されます。強制するにはこの設定をオンにしてください。GPU アクセラレーションが無効になるため、ローカル インストールではオフのままにしてください。KKTerm の再起動後に有効になります。"
+    "rdpWebviewStabilityHint": "ソフトウェア レンダリングを強制し、ウィンドウ オクルージョンによるスロットリングを無効にして、Remote Desktop (RDP) ホスト内で KKTerm を実行しているときにクライアントが切断および再接続されても KKTerm の応答性を維持します。KKTerm がリモート セッションで実行されていることを検出すると自動的に適用されます。強制するにはこの設定をオンにしてください。GPU アクセラレーションが無効になるため、ローカル インストールではオフのままにしてください。KKTerm の再起動後に有効になります。",
+    "submitAiAttachmentsDirectly": "スクリーンショット/テキストを AI Assistant に直接送信",
+    "submitAiAttachmentsDirectlyDesc": "有効にすると、「AI Assistant に送信」は添付されたスクリーンショットまたはターミナルバッファーを既定のヘルプリクエストとともに送信します。無効にすると、独自の質問を入力できるようにコンテキストを添付するだけです。",
+    "useCodexCli": "Codex CLI を使用",
+    "useCodexCliHint": "ローカルの Codex CLI を OpenAI バックエンドとして使用します。API キーフィールドは無効になり、代わりに Codex CLI 認証が使用されます。",
+    "useClaudeCli": "Claude Code CLI を使用",
+    "useClaudeCliHint": "ローカルの Claude Code CLI を Anthropic バックエンドとして使用します。API キーフィールドは無効になり、代わりに Claude Code 認証が使用されます。",
+    "aiCliStatusUnknown": "CLI ステータスはまだ確認されていません。",
+    "aiCliStatusMissing": "CLI がインストールされていません。",
+    "aiCliStatusAuthRequired": "CLI はインストールされていますが、認証されていません。",
+    "aiCliStatusReady": "CLI はインストール済みで認証されています。",
+    "aiCliRefreshStatus": "ステータスを確認",
+    "aiCliInstall": "CLI をインストール",
+    "aiCliAuthenticate": "認証",
+    "aiCliInstallStarted": "AI CLI のインストールが完了しました。",
+    "aiCliInstallFailed": "AI CLI のインストールが完了しませんでした。",
+    "aiCliAuthStarted": "AI CLI 認証を外部ターミナルで開きました。"
   },
   "sftp": {
     "accessed": "アクセス日時",

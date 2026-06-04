@@ -529,7 +529,8 @@
     "queuedPrompts": "Prompt trong hàng đợi",
     "queuedPromptIndex": "Tiếp theo {{index}}",
     "deleteQueuedPrompt": "Xóa prompt trong hàng đợi: {{prompt}}",
-    "tutorialSurfaceNotOpen": "Điều khiển đó nằm trong một thẻ hiện chưa mở."
+    "tutorialSurfaceNotOpen": "Điều khiển đó nằm trong một thẻ hiện chưa mở.",
+    "directAttachmentPrompt": "Hãy giúp tôi với nội dung này. Giải thích những gì bạn thấy, và nếu trông giống lỗi, cảnh báo hoặc sự cố, hãy cố gắng hết sức giải thích cách khắc phục."
   },
   "app": {
     "aiAssistant": "Trợ lý AI",
@@ -1878,8 +1879,8 @@
     "builtInMcpServerEnabledHint": "Cung cấp kkterm-cli như một stdio MCP server cho công cụ bên ngoài.",
     "builtInMcpAllowAllDangerous": "Công cụ MCP nguy hiểm tích hợp: cho phép tất cả",
     "builtInMcpAllowAllDangerousHint": "Khi bật, các công cụ MCP nguy hiểm kkterm.dangerous.* chạy mà không có lời nhắc xác nhận.",
-    "allowInsecureMcpHttp": "Allow insecure Remote MCP HTTP servers",
-    "allowInsecureMcpHttpHint": "When enabled, Remote MCP servers on local or network http:// URLs are allowed; leave this off unless you trust the network and server.",
+    "allowInsecureMcpHttp": "Cho phép server Remote MCP HTTP không an toàn",
+    "allowInsecureMcpHttpHint": "Khi bật, các server Remote MCP trên URL http:// cục bộ hoặc mạng được phép; hãy để tắt trừ khi bạn tin tưởng mạng và server đó.",
     "rdpRemoteResolution": "Độ phân giải từ xa",
     "rdpRemoteResolutionAutomatic": "Tự động",
     "builtInMcpShowConfig": "Hiện config",
@@ -1921,7 +1922,23 @@
     "installerCheckInterval604800": "Mỗi tuần",
     "installerCheckInterval2592000": "Mỗi tháng",
     "rdpWebviewStability": "Độ ổn định phiên RDP (WebView2)",
-    "rdpWebviewStabilityHint": "Buộc kết xuất bằng phần mềm và tắt điều tiết khi cửa sổ bị che khuất để KKTerm vẫn phản hồi khi chạy trong máy chủ Remote Desktop (RDP) và máy khách ngắt kết nối rồi kết nối lại. Tự động áp dụng khi KKTerm phát hiện đang chạy trong phiên từ xa; bật tùy chọn này để buộc áp dụng. Tắt tăng tốc GPU, vì vậy hãy để tắt đối với các bản cài đặt cục bộ. Có hiệu lực sau khi khởi động lại KKTerm."
+    "rdpWebviewStabilityHint": "Buộc kết xuất bằng phần mềm và tắt điều tiết khi cửa sổ bị che khuất để KKTerm vẫn phản hồi khi chạy trong máy chủ Remote Desktop (RDP) và máy khách ngắt kết nối rồi kết nối lại. Tự động áp dụng khi KKTerm phát hiện đang chạy trong phiên từ xa; bật tùy chọn này để buộc áp dụng. Tắt tăng tốc GPU, vì vậy hãy để tắt đối với các bản cài đặt cục bộ. Có hiệu lực sau khi khởi động lại KKTerm.",
+    "submitAiAttachmentsDirectly": "Gửi ảnh chụp màn hình/văn bản trực tiếp đến AI Assistant",
+    "submitAiAttachmentsDirectlyDesc": "Khi bật, Gửi đến AI Assistant sẽ gửi ảnh chụp màn hình hoặc bộ đệm terminal đã đính kèm cùng một yêu cầu trợ giúp mặc định. Khi tắt, nó chỉ đính kèm ngữ cảnh để bạn có thể nhập câu hỏi của riêng mình.",
+    "useCodexCli": "Dùng Codex CLI",
+    "useCodexCliHint": "Dùng Codex CLI cục bộ làm backend OpenAI. Trường khóa API bị tắt; thay vào đó dùng xác thực Codex CLI.",
+    "useClaudeCli": "Dùng Claude Code CLI",
+    "useClaudeCliHint": "Dùng Claude Code CLI cục bộ làm backend Anthropic. Trường khóa API bị tắt; thay vào đó dùng xác thực Claude Code.",
+    "aiCliStatusUnknown": "Chưa kiểm tra trạng thái CLI.",
+    "aiCliStatusMissing": "CLI chưa được cài đặt.",
+    "aiCliStatusAuthRequired": "CLI đã được cài đặt nhưng chưa xác thực.",
+    "aiCliStatusReady": "CLI đã được cài đặt và xác thực.",
+    "aiCliRefreshStatus": "Kiểm tra trạng thái",
+    "aiCliInstall": "Cài đặt CLI",
+    "aiCliAuthenticate": "Xác thực",
+    "aiCliInstallStarted": "Đã hoàn tất cài đặt AI CLI.",
+    "aiCliInstallFailed": "Cài đặt AI CLI chưa hoàn tất.",
+    "aiCliAuthStarted": "Xác thực AI CLI đã mở trong terminal bên ngoài."
   },
   "sftp": {
     "accessed": "Accessed",

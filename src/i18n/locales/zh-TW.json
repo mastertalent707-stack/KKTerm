@@ -529,7 +529,8 @@
     "queuedPrompts": "佇列中的提示",
     "queuedPromptIndex": "下一個 {{index}}",
     "deleteQueuedPrompt": "刪除佇列提示：{{prompt}}",
-    "tutorialSurfaceNotOpen": "該控制項位於目前未開啟的分頁中。"
+    "tutorialSurfaceNotOpen": "該控制項位於目前未開啟的分頁中。",
+    "directAttachmentPrompt": "幫我處理這個。說明你看到了什麼；如果它看起來像錯誤、警告或問題，請盡力說明如何修正。"
   },
   "app": {
     "aiAssistant": "AI 助理",
@@ -1878,8 +1879,8 @@
     "builtInMcpServerEnabledHint": "將 kkterm-cli 作為 stdio MCP server 暴露給外部工具。",
     "builtInMcpAllowAllDangerous": "內建危險 MCP 工具：全部允許",
     "builtInMcpAllowAllDangerousHint": "啟用後，危險的 kkterm.dangerous.* MCP 工具會在沒有確認提示的情況下執行。",
-    "allowInsecureMcpHttp": "Allow insecure Remote MCP HTTP servers",
-    "allowInsecureMcpHttpHint": "When enabled, Remote MCP servers on local or network http:// URLs are allowed; leave this off unless you trust the network and server.",
+    "allowInsecureMcpHttp": "允許不安全的 Remote MCP HTTP server",
+    "allowInsecureMcpHttpHint": "啟用時，會允許位於本機或網路 http:// URL 的 Remote MCP server；除非你信任該網路和 server，否則請保持關閉。",
     "rdpRemoteResolution": "遠端解析度",
     "rdpRemoteResolutionAutomatic": "自動",
     "builtInMcpShowConfig": "顯示設定",
@@ -1921,7 +1922,23 @@
     "installerCheckInterval604800": "每週",
     "installerCheckInterval2592000": "每月",
     "rdpWebviewStability": "RDP 工作階段穩定性 (WebView2)",
-    "rdpWebviewStabilityHint": "強制使用軟體轉譯並停用視窗遮蔽節流，讓 KKTerm 在 Remote Desktop (RDP) 主機內執行且用戶端中斷連線再重新連線時仍保持回應。當 KKTerm 偵測到正在遠端工作階段中執行時會自動套用；開啟此選項即可強制套用。此設定會停用 GPU 加速，因此本機安裝請保持關閉。重新啟動 KKTerm 後生效。"
+    "rdpWebviewStabilityHint": "強制使用軟體轉譯並停用視窗遮蔽節流，讓 KKTerm 在 Remote Desktop (RDP) 主機內執行且用戶端中斷連線再重新連線時仍保持回應。當 KKTerm 偵測到正在遠端工作階段中執行時會自動套用；開啟此選項即可強制套用。此設定會停用 GPU 加速，因此本機安裝請保持關閉。重新啟動 KKTerm 後生效。",
+    "submitAiAttachmentsDirectly": "將螢幕截圖/文字直接提交給 AI Assistant",
+    "submitAiAttachmentsDirectlyDesc": "啟用時，「傳送到 AI Assistant」會將附加的螢幕截圖或終端緩衝區與預設求助要求一起提交。停用時，它只會附加脈絡，讓你輸入自己的問題。",
+    "useCodexCli": "使用 Codex CLI",
+    "useCodexCliHint": "使用本機 Codex CLI 作為 OpenAI 後端。API 金鑰欄位會停用；改用 Codex CLI 驗證。",
+    "useClaudeCli": "使用 Claude Code CLI",
+    "useClaudeCliHint": "使用本機 Claude Code CLI 作為 Anthropic 後端。API 金鑰欄位會停用；改用 Claude Code 驗證。",
+    "aiCliStatusUnknown": "尚未檢查 CLI 狀態。",
+    "aiCliStatusMissing": "CLI 尚未安裝。",
+    "aiCliStatusAuthRequired": "CLI 已安裝，但尚未驗證。",
+    "aiCliStatusReady": "CLI 已安裝並完成驗證。",
+    "aiCliRefreshStatus": "檢查狀態",
+    "aiCliInstall": "安裝 CLI",
+    "aiCliAuthenticate": "驗證",
+    "aiCliInstallStarted": "AI CLI 安裝已完成。",
+    "aiCliInstallFailed": "AI CLI 安裝未完成。",
+    "aiCliAuthStarted": "已在外部終端中開啟 AI CLI 驗證。"
   },
   "sftp": {
     "accessed": "存取日期",

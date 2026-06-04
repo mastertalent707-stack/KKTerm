@@ -529,7 +529,8 @@
     "queuedPrompts": "Prompt antrean",
     "queuedPromptIndex": "Berikutnya {{index}}",
     "deleteQueuedPrompt": "Hapus prompt antrean: {{prompt}}",
-    "tutorialSurfaceNotOpen": "Kontrol itu berada di dalam tab yang saat ini tidak terbuka."
+    "tutorialSurfaceNotOpen": "Kontrol itu berada di dalam tab yang saat ini tidak terbuka.",
+    "directAttachmentPrompt": "Bantu saya dengan ini. Jelaskan apa yang Anda lihat, dan jika terlihat seperti kesalahan, peringatan, atau masalah, jelaskan sebaik mungkin cara memperbaikinya."
   },
   "app": {
     "aiAssistant": "AI Assistant",
@@ -1878,8 +1879,8 @@
     "builtInMcpServerEnabledHint": "Ekspos kkterm-cli sebagai stdio MCP server untuk alat eksternal.",
     "builtInMcpAllowAllDangerous": "Alat MCP berbahaya bawaan: izinkan semua",
     "builtInMcpAllowAllDangerousHint": "Saat diaktifkan, alat MCP berbahaya kkterm.dangerous.* berjalan tanpa prompt konfirmasi.",
-    "allowInsecureMcpHttp": "Allow insecure Remote MCP HTTP servers",
-    "allowInsecureMcpHttpHint": "When enabled, Remote MCP servers on local or network http:// URLs are allowed; leave this off unless you trust the network and server.",
+    "allowInsecureMcpHttp": "Izinkan server Remote MCP HTTP yang tidak aman",
+    "allowInsecureMcpHttpHint": "Saat diaktifkan, server Remote MCP pada URL http:// lokal atau jaringan diizinkan; biarkan nonaktif kecuali Anda memercayai jaringan dan server tersebut.",
     "rdpRemoteResolution": "Resolusi jarak jauh",
     "rdpRemoteResolutionAutomatic": "Otomatis",
     "builtInMcpShowConfig": "Tampilkan config",
@@ -1921,7 +1922,23 @@
     "installerCheckInterval604800": "Setiap minggu",
     "installerCheckInterval2592000": "Setiap bulan",
     "rdpWebviewStability": "Stabilitas sesi RDP (WebView2)",
-    "rdpWebviewStabilityHint": "Memaksa rendering perangkat lunak dan menonaktifkan pembatasan oklusi jendela agar KKTerm tetap responsif saat berjalan di dalam host Remote Desktop (RDP) dan klien terputus lalu tersambung kembali. Diterapkan otomatis saat KKTerm mendeteksi bahwa aplikasi berjalan dalam sesi jarak jauh; aktifkan opsi ini untuk memaksanya. Menonaktifkan akselerasi GPU, jadi biarkan nonaktif untuk instalasi lokal. Berlaku setelah KKTerm dimulai ulang."
+    "rdpWebviewStabilityHint": "Memaksa rendering perangkat lunak dan menonaktifkan pembatasan oklusi jendela agar KKTerm tetap responsif saat berjalan di dalam host Remote Desktop (RDP) dan klien terputus lalu tersambung kembali. Diterapkan otomatis saat KKTerm mendeteksi bahwa aplikasi berjalan dalam sesi jarak jauh; aktifkan opsi ini untuk memaksanya. Menonaktifkan akselerasi GPU, jadi biarkan nonaktif untuk instalasi lokal. Berlaku setelah KKTerm dimulai ulang.",
+    "submitAiAttachmentsDirectly": "Kirim tangkapan layar/teks langsung ke AI Assistant",
+    "submitAiAttachmentsDirectlyDesc": "Saat diaktifkan, Kirim ke AI Assistant mengirim tangkapan layar atau buffer terminal terlampir dengan permintaan bantuan default. Saat dinonaktifkan, konteks hanya dilampirkan agar Anda dapat mengetik pertanyaan sendiri.",
+    "useCodexCli": "Gunakan Codex CLI",
+    "useCodexCliHint": "Gunakan Codex CLI lokal sebagai backend OpenAI. Kolom kunci API dinonaktifkan; autentikasi Codex CLI digunakan sebagai gantinya.",
+    "useClaudeCli": "Gunakan Claude Code CLI",
+    "useClaudeCliHint": "Gunakan Claude Code CLI lokal sebagai backend Anthropic. Kolom kunci API dinonaktifkan; autentikasi Claude Code digunakan sebagai gantinya.",
+    "aiCliStatusUnknown": "Status CLI belum diperiksa.",
+    "aiCliStatusMissing": "CLI belum terpasang.",
+    "aiCliStatusAuthRequired": "CLI sudah terpasang tetapi belum diautentikasi.",
+    "aiCliStatusReady": "CLI sudah terpasang dan diautentikasi.",
+    "aiCliRefreshStatus": "Periksa status",
+    "aiCliInstall": "Instal CLI",
+    "aiCliAuthenticate": "Autentikasi",
+    "aiCliInstallStarted": "Instalasi AI CLI selesai.",
+    "aiCliInstallFailed": "Instalasi AI CLI tidak selesai.",
+    "aiCliAuthStarted": "Autentikasi AI CLI dibuka di terminal eksternal."
   },
   "sftp": {
     "accessed": "Diakses",

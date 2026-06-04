@@ -529,7 +529,8 @@
     "queuedPrompts": "대기 중인 프롬프트",
     "queuedPromptIndex": "다음 {{index}}",
     "deleteQueuedPrompt": "대기 중인 프롬프트 삭제: {{prompt}}",
-    "tutorialSurfaceNotOpen": "해당 컨트롤은 지금 열려 있지 않은 탭 안에 있습니다."
+    "tutorialSurfaceNotOpen": "해당 컨트롤은 지금 열려 있지 않은 탭 안에 있습니다.",
+    "directAttachmentPrompt": "이것을 도와주세요. 보이는 내용을 설명하고, 오류나 경고 또는 문제처럼 보이면 해결 방법을 최대한 설명해 주세요."
   },
   "app": {
     "aiAssistant": "AI 어시스턴트",
@@ -1878,8 +1879,8 @@
     "builtInMcpServerEnabledHint": "외부 도구를 위해 kkterm-cli를 stdio MCP server로 노출합니다.",
     "builtInMcpAllowAllDangerous": "내장 위험 MCP 도구: 모두 허용",
     "builtInMcpAllowAllDangerousHint": "활성화하면 위험한 kkterm.dangerous.* MCP 도구가 확인 프롬프트 없이 실행됩니다.",
-    "allowInsecureMcpHttp": "Allow insecure Remote MCP HTTP servers",
-    "allowInsecureMcpHttpHint": "When enabled, Remote MCP servers on local or network http:// URLs are allowed; leave this off unless you trust the network and server.",
+    "allowInsecureMcpHttp": "안전하지 않은 Remote MCP HTTP server 허용",
+    "allowInsecureMcpHttpHint": "활성화하면 로컬 또는 네트워크 http:// URL의 Remote MCP server가 허용됩니다. 네트워크와 server를 신뢰하지 않는 한 꺼 두세요.",
     "rdpRemoteResolution": "원격 해상도",
     "rdpRemoteResolutionAutomatic": "자동",
     "builtInMcpShowConfig": "구성 보기",
@@ -1921,7 +1922,23 @@
     "installerCheckInterval604800": "매주",
     "installerCheckInterval2592000": "매월",
     "rdpWebviewStability": "RDP 세션 안정성(WebView2)",
-    "rdpWebviewStabilityHint": "KKTerm이 Remote Desktop(RDP) 호스트 안에서 실행되고 클라이언트가 연결을 끊었다가 다시 연결할 때도 응답성을 유지하도록 소프트웨어 렌더링을 강제하고 창 가림 스로틀링을 비활성화합니다. KKTerm이 원격 세션에서 실행 중임을 감지하면 자동으로 적용됩니다. 강제로 적용하려면 이 옵션을 켜세요. GPU 가속을 비활성화하므로 로컬 설치에서는 꺼 두세요. KKTerm을 다시 시작한 후 적용됩니다."
+    "rdpWebviewStabilityHint": "KKTerm이 Remote Desktop(RDP) 호스트 안에서 실행되고 클라이언트가 연결을 끊었다가 다시 연결할 때도 응답성을 유지하도록 소프트웨어 렌더링을 강제하고 창 가림 스로틀링을 비활성화합니다. KKTerm이 원격 세션에서 실행 중임을 감지하면 자동으로 적용됩니다. 강제로 적용하려면 이 옵션을 켜세요. GPU 가속을 비활성화하므로 로컬 설치에서는 꺼 두세요. KKTerm을 다시 시작한 후 적용됩니다.",
+    "submitAiAttachmentsDirectly": "스크린샷/텍스트를 AI Assistant에 바로 제출",
+    "submitAiAttachmentsDirectlyDesc": "활성화하면 AI Assistant로 보내기가 첨부된 스크린샷 또는 터미널 버퍼를 기본 도움 요청과 함께 제출합니다. 비활성화하면 직접 질문을 입력할 수 있도록 컨텍스트만 첨부합니다.",
+    "useCodexCli": "Codex CLI 사용",
+    "useCodexCliHint": "로컬 Codex CLI를 OpenAI 백엔드로 사용합니다. API 키 필드는 비활성화되고 대신 Codex CLI 인증이 사용됩니다.",
+    "useClaudeCli": "Claude Code CLI 사용",
+    "useClaudeCliHint": "로컬 Claude Code CLI를 Anthropic 백엔드로 사용합니다. API 키 필드는 비활성화되고 대신 Claude Code 인증이 사용됩니다.",
+    "aiCliStatusUnknown": "CLI 상태를 아직 확인하지 않았습니다.",
+    "aiCliStatusMissing": "CLI가 설치되어 있지 않습니다.",
+    "aiCliStatusAuthRequired": "CLI가 설치되어 있지만 인증되지 않았습니다.",
+    "aiCliStatusReady": "CLI가 설치되어 있고 인증되었습니다.",
+    "aiCliRefreshStatus": "상태 확인",
+    "aiCliInstall": "CLI 설치",
+    "aiCliAuthenticate": "인증",
+    "aiCliInstallStarted": "AI CLI 설치가 완료되었습니다.",
+    "aiCliInstallFailed": "AI CLI 설치가 완료되지 않았습니다.",
+    "aiCliAuthStarted": "AI CLI 인증이 외부 터미널에서 열렸습니다."
   },
   "sftp": {
     "accessed": "접근일",

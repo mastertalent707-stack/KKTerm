@@ -529,7 +529,8 @@
     "queuedPrompts": "Prompts in Warteschlange",
     "queuedPromptIndex": "Nächste {{index}}",
     "deleteQueuedPrompt": "Prompt aus Warteschlange löschen: {{prompt}}",
-    "tutorialSurfaceNotOpen": "Dieses Steuerelement befindet sich in einem Tab, der gerade nicht geöffnet ist."
+    "tutorialSurfaceNotOpen": "Dieses Steuerelement befindet sich in einem Tab, der gerade nicht geöffnet ist.",
+    "directAttachmentPrompt": "Hilf mir dabei. Erkläre, was du siehst, und wenn es wie ein Fehler, eine Warnung oder ein Problem aussieht, erkläre bitte so gut wie möglich, wie ich es beheben kann."
   },
   "app": {
     "aiAssistant": "KI-Assistent",
@@ -1878,8 +1879,8 @@
     "builtInMcpServerEnabledHint": "Stellt kkterm-cli als stdio-MCP-Server für externe Tools bereit.",
     "builtInMcpAllowAllDangerous": "Integrierte gefährliche MCP-Tools: Alle erlauben",
     "builtInMcpAllowAllDangerousHint": "Wenn aktiviert, werden gefährliche kkterm.dangerous.* MCP-Tools ohne Bestätigungsabfragen ausgeführt.",
-    "allowInsecureMcpHttp": "Allow insecure Remote MCP HTTP servers",
-    "allowInsecureMcpHttpHint": "When enabled, Remote MCP servers on local or network http:// URLs are allowed; leave this off unless you trust the network and server.",
+    "allowInsecureMcpHttp": "Unsichere Remote MCP HTTP-Server erlauben",
+    "allowInsecureMcpHttpHint": "Wenn aktiviert, sind Remote MCP-Server unter lokalen oder Netzwerk-http://-URLs erlaubt; lasse dies deaktiviert, sofern du dem Netzwerk und dem Server nicht vertraust.",
     "rdpRemoteResolution": "Remote-Auflösung",
     "rdpRemoteResolutionAutomatic": "Automatisch",
     "builtInMcpShowConfig": "Konfig anzeigen",
@@ -1921,7 +1922,23 @@
     "installerCheckInterval604800": "Jede Woche",
     "installerCheckInterval2592000": "Jeden Monat",
     "rdpWebviewStability": "RDP-Sitzungsstabilität (WebView2)",
-    "rdpWebviewStabilityHint": "Erzwingt Software-Rendering und deaktiviert die Drosselung bei Fensterverdeckung, damit KKTerm reaktionsfähig bleibt, wenn es in einem Remote Desktop (RDP)-Host ausgeführt wird und der Client die Verbindung trennt und erneut herstellt. Wird automatisch angewendet, wenn KKTerm erkennt, dass es in einer Remotesitzung läuft; aktivieren Sie diese Option, um es zu erzwingen. Deaktiviert die GPU-Beschleunigung; lassen Sie die Option daher bei lokalen Installationen deaktiviert. Wird nach einem Neustart von KKTerm wirksam."
+    "rdpWebviewStabilityHint": "Erzwingt Software-Rendering und deaktiviert die Drosselung bei Fensterverdeckung, damit KKTerm reaktionsfähig bleibt, wenn es in einem Remote Desktop (RDP)-Host ausgeführt wird und der Client die Verbindung trennt und erneut herstellt. Wird automatisch angewendet, wenn KKTerm erkennt, dass es in einer Remotesitzung läuft; aktivieren Sie diese Option, um es zu erzwingen. Deaktiviert die GPU-Beschleunigung; lassen Sie die Option daher bei lokalen Installationen deaktiviert. Wird nach einem Neustart von KKTerm wirksam.",
+    "submitAiAttachmentsDirectly": "Screenshot/Text direkt an den AI Assistant senden",
+    "submitAiAttachmentsDirectlyDesc": "Wenn aktiviert, sendet \"An AI Assistant senden\" den angehängten Screenshot oder Terminalpuffer mit einer Standard-Hilfeanfrage. Wenn deaktiviert, wird der Kontext nur angehängt, damit du deine eigene Frage eingeben kannst.",
+    "useCodexCli": "Codex CLI verwenden",
+    "useCodexCliHint": "Verwendet die lokale Codex CLI als OpenAI-Backend. Das API-Schlüsselfeld ist deaktiviert; stattdessen wird die Codex CLI-Authentifizierung verwendet.",
+    "useClaudeCli": "Claude Code CLI verwenden",
+    "useClaudeCliHint": "Verwendet die lokale Claude Code CLI als Anthropic-Backend. Das API-Schlüsselfeld ist deaktiviert; stattdessen wird die Claude Code-Authentifizierung verwendet.",
+    "aiCliStatusUnknown": "CLI-Status wurde noch nicht geprüft.",
+    "aiCliStatusMissing": "CLI ist nicht installiert.",
+    "aiCliStatusAuthRequired": "CLI ist installiert, aber nicht authentifiziert.",
+    "aiCliStatusReady": "CLI ist installiert und authentifiziert.",
+    "aiCliRefreshStatus": "Status prüfen",
+    "aiCliInstall": "CLI installieren",
+    "aiCliAuthenticate": "Authentifizieren",
+    "aiCliInstallStarted": "AI CLI-Installation abgeschlossen.",
+    "aiCliInstallFailed": "AI CLI-Installation wurde nicht abgeschlossen.",
+    "aiCliAuthStarted": "AI CLI-Authentifizierung wurde in einem externen Terminal geöffnet."
   },
   "sftp": {
     "accessed": "Zugegriffen",

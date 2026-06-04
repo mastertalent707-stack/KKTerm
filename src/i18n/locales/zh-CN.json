@@ -529,7 +529,8 @@
     "queuedPrompts": "队列中的提示",
     "queuedPromptIndex": "下一个 {{index}}",
     "deleteQueuedPrompt": "删除队列提示：{{prompt}}",
-    "tutorialSurfaceNotOpen": "该控件位于当前未打开的标签页中。"
+    "tutorialSurfaceNotOpen": "该控件位于当前未打开的标签页中。",
+    "directAttachmentPrompt": "帮我处理这个。说明你看到了什么；如果它看起来像错误、警告或问题，请尽力说明如何修复。"
   },
   "app": {
     "aiAssistant": "AI 助手",
@@ -1878,8 +1879,8 @@
     "builtInMcpServerEnabledHint": "将 kkterm-cli 作为 stdio MCP server 暴露给外部工具。",
     "builtInMcpAllowAllDangerous": "内置危险 MCP 工具：全部允许",
     "builtInMcpAllowAllDangerousHint": "启用后，危险的 kkterm.dangerous.* MCP 工具会在没有确认提示的情况下执行。",
-    "allowInsecureMcpHttp": "Allow insecure Remote MCP HTTP servers",
-    "allowInsecureMcpHttpHint": "When enabled, Remote MCP servers on local or network http:// URLs are allowed; leave this off unless you trust the network and server.",
+    "allowInsecureMcpHttp": "允许不安全的 Remote MCP HTTP server",
+    "allowInsecureMcpHttpHint": "启用后，允许使用本地或网络 http:// URL 的 Remote MCP server；除非你信任该网络和 server，否则请保持关闭。",
     "rdpRemoteResolution": "远程分辨率",
     "rdpRemoteResolutionAutomatic": "自动",
     "builtInMcpShowConfig": "显示配置",
@@ -1921,7 +1922,23 @@
     "installerCheckInterval604800": "每周",
     "installerCheckInterval2592000": "每月",
     "rdpWebviewStability": "RDP 会话稳定性 (WebView2)",
-    "rdpWebviewStabilityHint": "强制使用软件渲染并禁用窗口遮挡限流，以便 KKTerm 在 Remote Desktop (RDP) 主机内运行且客户端断开并重新连接时仍保持响应。KKTerm 检测到正在远程会话中运行时会自动应用；开启此选项可强制应用。此设置会禁用 GPU 加速，因此本地安装请保持关闭。重启 KKTerm 后生效。"
+    "rdpWebviewStabilityHint": "强制使用软件渲染并禁用窗口遮挡限流，以便 KKTerm 在 Remote Desktop (RDP) 主机内运行且客户端断开并重新连接时仍保持响应。KKTerm 检测到正在远程会话中运行时会自动应用；开启此选项可强制应用。此设置会禁用 GPU 加速，因此本地安装请保持关闭。重启 KKTerm 后生效。",
+    "submitAiAttachmentsDirectly": "将截图/文本直接提交给 AI Assistant",
+    "submitAiAttachmentsDirectlyDesc": "启用后，“发送到 AI Assistant”会将附加的截图或终端缓冲区与默认求助请求一起提交。禁用后，它只会附加上下文，以便你输入自己的问题。",
+    "useCodexCli": "使用 Codex CLI",
+    "useCodexCliHint": "使用本地 Codex CLI 作为 OpenAI 后端。API 密钥字段会被禁用；改用 Codex CLI 身份验证。",
+    "useClaudeCli": "使用 Claude Code CLI",
+    "useClaudeCliHint": "使用本地 Claude Code CLI 作为 Anthropic 后端。API 密钥字段会被禁用；改用 Claude Code 身份验证。",
+    "aiCliStatusUnknown": "尚未检查 CLI 状态。",
+    "aiCliStatusMissing": "CLI 未安装。",
+    "aiCliStatusAuthRequired": "CLI 已安装但未完成身份验证。",
+    "aiCliStatusReady": "CLI 已安装并完成身份验证。",
+    "aiCliRefreshStatus": "检查状态",
+    "aiCliInstall": "安装 CLI",
+    "aiCliAuthenticate": "身份验证",
+    "aiCliInstallStarted": "AI CLI 安装已完成。",
+    "aiCliInstallFailed": "AI CLI 安装未完成。",
+    "aiCliAuthStarted": "已在外部终端中打开 AI CLI 身份验证。"
   },
   "sftp": {
     "accessed": "访问日期",

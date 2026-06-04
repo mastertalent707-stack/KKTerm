@@ -529,7 +529,8 @@
     "queuedPrompts": "พรอมป์ในคิว",
     "queuedPromptIndex": "ถัดไป {{index}}",
     "deleteQueuedPrompt": "ลบพรอมป์ในคิว: {{prompt}}",
-    "tutorialSurfaceNotOpen": "ตัวควบคุมนั้นอยู่ในแท็บที่ยังไม่ได้เปิดอยู่ในตอนนี้"
+    "tutorialSurfaceNotOpen": "ตัวควบคุมนั้นอยู่ในแท็บที่ยังไม่ได้เปิดอยู่ในตอนนี้",
+    "directAttachmentPrompt": "ช่วยฉันกับสิ่งนี้หน่อย อธิบายสิ่งที่คุณเห็น และถ้าดูเหมือนข้อผิดพลาด คำเตือน หรือปัญหา โปรดพยายามอธิบายวิธีแก้ไขให้ดีที่สุด"
   },
   "app": {
     "aiAssistant": "ผู้ช่วย AI",
@@ -1878,8 +1879,8 @@
     "builtInMcpServerEnabledHint": "เปิดเผย kkterm-cli เป็น stdio MCP server สำหรับเครื่องมือภายนอก",
     "builtInMcpAllowAllDangerous": "เครื่องมือ MCP อันตรายในตัว: อนุญาตทั้งหมด",
     "builtInMcpAllowAllDangerousHint": "เมื่อเปิดใช้ เครื่องมือ MCP อันตราย kkterm.dangerous.* จะทำงานโดยไม่แสดงพร้อมท์ยืนยัน",
-    "allowInsecureMcpHttp": "Allow insecure Remote MCP HTTP servers",
-    "allowInsecureMcpHttpHint": "When enabled, Remote MCP servers on local or network http:// URLs are allowed; leave this off unless you trust the network and server.",
+    "allowInsecureMcpHttp": "อนุญาตเซิร์ฟเวอร์ Remote MCP HTTP ที่ไม่ปลอดภัย",
+    "allowInsecureMcpHttpHint": "เมื่อเปิดใช้งาน จะอนุญาตเซิร์ฟเวอร์ Remote MCP บน URL http:// ในเครื่องหรือในเครือข่าย; ปิดไว้เว้นแต่คุณจะเชื่อถือเครือข่ายและเซิร์ฟเวอร์นั้น",
     "rdpRemoteResolution": "ความละเอียดระยะไกล",
     "rdpRemoteResolutionAutomatic": "อัตโนมัติ",
     "builtInMcpShowConfig": "แสดง config",
@@ -1921,7 +1922,23 @@
     "installerCheckInterval604800": "ทุกสัปดาห์",
     "installerCheckInterval2592000": "ทุกเดือน",
     "rdpWebviewStability": "ความเสถียรของเซสชัน RDP (WebView2)",
-    "rdpWebviewStabilityHint": "บังคับใช้การเรนเดอร์ด้วยซอฟต์แวร์และปิดการลดความเร็วจากการถูกหน้าต่างอื่นบดบัง เพื่อให้ KKTerm ยังตอบสนองได้เมื่อทำงานอยู่ภายในโฮสต์ Remote Desktop (RDP) แล้วไคลเอนต์ตัดการเชื่อมต่อและเชื่อมต่อใหม่ ระบบจะใช้โดยอัตโนมัติเมื่อ KKTerm ตรวจพบว่ากำลังทำงานในเซสชันระยะไกล เปิดตัวเลือกนี้เพื่อบังคับใช้ ปิดใช้งานการเร่งความเร็วด้วย GPU ดังนั้นให้ปิดไว้สำหรับการติดตั้งในเครื่อง มีผลหลังจากรีสตาร์ท KKTerm"
+    "rdpWebviewStabilityHint": "บังคับใช้การเรนเดอร์ด้วยซอฟต์แวร์และปิดการลดความเร็วจากการถูกหน้าต่างอื่นบดบัง เพื่อให้ KKTerm ยังตอบสนองได้เมื่อทำงานอยู่ภายในโฮสต์ Remote Desktop (RDP) แล้วไคลเอนต์ตัดการเชื่อมต่อและเชื่อมต่อใหม่ ระบบจะใช้โดยอัตโนมัติเมื่อ KKTerm ตรวจพบว่ากำลังทำงานในเซสชันระยะไกล เปิดตัวเลือกนี้เพื่อบังคับใช้ ปิดใช้งานการเร่งความเร็วด้วย GPU ดังนั้นให้ปิดไว้สำหรับการติดตั้งในเครื่อง มีผลหลังจากรีสตาร์ท KKTerm",
+    "submitAiAttachmentsDirectly": "ส่งภาพหน้าจอ/ข้อความไปยัง AI Assistant โดยตรง",
+    "submitAiAttachmentsDirectlyDesc": "เมื่อเปิดใช้งาน ส่งไปยัง AI Assistant จะส่งภาพหน้าจอหรือบัฟเฟอร์เทอร์มินัลที่แนบมาพร้อมคำขอความช่วยเหลือเริ่มต้น เมื่อปิดใช้งาน จะเพียงแนบบริบทเพื่อให้คุณพิมพ์คำถามของคุณเองได้",
+    "useCodexCli": "ใช้ Codex CLI",
+    "useCodexCliHint": "ใช้ Codex CLI ในเครื่องเป็นแบ็กเอนด์ของ OpenAI ช่องคีย์ API จะถูกปิดใช้งาน และใช้การยืนยันตัวตนของ Codex CLI แทน",
+    "useClaudeCli": "ใช้ Claude Code CLI",
+    "useClaudeCliHint": "ใช้ Claude Code CLI ในเครื่องเป็นแบ็กเอนด์ของ Anthropic ช่องคีย์ API จะถูกปิดใช้งาน และใช้การยืนยันตัวตนของ Claude Code แทน",
+    "aiCliStatusUnknown": "ยังไม่ได้ตรวจสอบสถานะ CLI",
+    "aiCliStatusMissing": "ยังไม่ได้ติดตั้ง CLI",
+    "aiCliStatusAuthRequired": "ติดตั้ง CLI แล้ว แต่ยังไม่ได้ยืนยันตัวตน",
+    "aiCliStatusReady": "ติดตั้งและยืนยันตัวตน CLI แล้ว",
+    "aiCliRefreshStatus": "ตรวจสอบสถานะ",
+    "aiCliInstall": "ติดตั้ง CLI",
+    "aiCliAuthenticate": "ยืนยันตัวตน",
+    "aiCliInstallStarted": "การติดตั้ง AI CLI เสร็จสมบูรณ์แล้ว",
+    "aiCliInstallFailed": "การติดตั้ง AI CLI ไม่เสร็จสมบูรณ์",
+    "aiCliAuthStarted": "เปิดการยืนยันตัวตน AI CLI ในเทอร์มินัลภายนอกแล้ว"
   },
   "sftp": {
     "accessed": "เข้าถึงเมื่อ",
