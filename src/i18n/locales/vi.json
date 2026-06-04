@@ -2099,6 +2099,8 @@
     "sshHostKeyChanged": "SSH host key for",
     "sshHostKeyChangedDetail": "has changed! This could indicate a man-in-the-middle attack.",
     "sshHostKeyChangeDetail": "Khóa máy chủ SSH cho {{host}} đã thay đổi. Trình bày {{algorithm}} {{fingerprint}}.",
+    "replaceChangedHostKeyTitle": "Khóa máy chủ SSH đã thay đổi",
+    "replaceChangedHostKeyWarning": "Khóa máy chủ SSH cho {{host}} đã thay đổi và hiện trình bày {{algorithm}} {{fingerprint}}. Điều này thường có nghĩa là máy chủ đã được cài đặt lại hoặc xoay vòng khóa, nhưng cũng có thể là dấu hiệu của một cuộc tấn công xen giữa (man-in-the-middle). Chỉ thay thế khóa tin cậy nếu bạn dự kiến sự thay đổi này.",
     "sshPortForwardOpened": "Đã mở chuyển hướng cổng SSH cho cổng từ xa {{port}}.",
     "sshPortRedirect": "Chuyển hướng cổng SSH",
     "starting": "Starting",

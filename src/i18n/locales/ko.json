@@ -2099,6 +2099,8 @@
     "sshHostKeyChanged": "SSH 호스트 키 변경됨:",
     "sshHostKeyChangedDetail": "이(가) 변경되었습니다! 중간자 공격일 수 있습니다.",
     "sshHostKeyChangeDetail": "{{host}}의 SSH 호스트 키가 변경되었습니다. 제시된 {{algorithm}} {{fingerprint}}。",
+    "replaceChangedHostKeyTitle": "SSH 호스트 키가 변경됨",
+    "replaceChangedHostKeyWarning": "{{host}}의 SSH 호스트 키가 변경되어 이제 {{algorithm}} {{fingerprint}}을(를) 제시합니다. 보통 서버가 재설치되었거나 키를 교체한 경우이지만, 중간자 공격을 의미할 수도 있습니다. 이 변경이 예상된 경우에만 신뢰할 수 있는 키를 교체하세요.",
     "sshPortForwardOpened": "원격 포트 {{port}}에 대한 SSH 포트 리다이렉트가 열렸습니다.",
     "sshPortRedirect": "SSH 포트 리다이렉트",
     "starting": "시작 중",

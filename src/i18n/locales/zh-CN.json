@@ -2099,6 +2099,8 @@
     "sshHostKeyChanged": "SSH 主机密钥",
     "sshHostKeyChangedDetail": "已变更！这可能表示有中间人攻击。",
     "sshHostKeyChangeDetail": "{{host}} 的 SSH 主机密钥已更改。提供了 {{algorithm}} {{fingerprint}}。",
+    "replaceChangedHostKeyTitle": "SSH 主机密钥已更改",
+    "replaceChangedHostKeyWarning": "{{host}} 的 SSH 主机密钥已更改，现在提供 {{algorithm}} {{fingerprint}}。这通常表示服务器已重新安装或轮换了密钥，但也可能意味着存在中间人攻击。仅在你预期此更改时才替换受信任的密钥。",
     "sshPortForwardOpened": "已为远程端口 {{port}} 打开 SSH 端口重定向。",
     "sshPortRedirect": "SSH 端口重定向",
     "starting": "正在启动",

@@ -2099,6 +2099,8 @@
     "sshHostKeyChanged": "Kunci host SSH untuk",
     "sshHostKeyChangedDetail": "telah berubah! Ini bisa menunjukkan serangan man-in-the-middle.",
     "sshHostKeyChangeDetail": "Kunci host SSH untuk {{host}} berubah. Disajikan {{algorithm}} {{fingerprint}}.",
+    "replaceChangedHostKeyTitle": "Kunci host SSH berubah",
+    "replaceChangedHostKeyWarning": "Kunci host SSH untuk {{host}} telah berubah dan kini menyajikan {{algorithm}} {{fingerprint}}. Ini biasanya berarti server diinstal ulang atau merotasi kuncinya, tetapi juga bisa menandakan serangan man-in-the-middle. Ganti kunci tepercaya hanya jika Anda memang mengharapkan perubahan ini.",
     "sshPortForwardOpened": "Pengalihan port SSH dibuka untuk port jarak jauh {{port}}.",
     "sshPortRedirect": "Pengalihan port SSH",
     "starting": "Memulai",

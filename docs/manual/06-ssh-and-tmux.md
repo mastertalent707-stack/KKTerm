@@ -8,12 +8,19 @@
 
 ## Host key trust
 
-When connecting to an SSH host, the user sees `terminal.verifyingHostKey`. If the host key does not match a previously trusted key, KKTerm shows an app-owned dialog:
+When connecting to an SSH host, the user sees `terminal.verifyingHostKey`. Host-key verification runs before authentication regardless of the auth method (password, key file, or agent).
 
-- Title: `terminal.sshHostKeyChanged`
-- Body: `terminal.sshHostKeyChangedDetail` (long form) or `terminal.sshHostKeyChangeDetail`
-- Trust action: `terminal.trustHostKey`
+For a host that has never been trusted, KKTerm shows an app-owned dialog:
+
+- Trust action title: `terminal.trustHostKey`
 - Untrusted state status: `terminal.hostKeyNotTrusted`
+
+If the host key no longer matches a previously trusted key, KKTerm shows a stronger warning dialog instead of failing outright:
+
+- Title: `terminal.replaceChangedHostKeyTitle`
+- Body: `terminal.replaceChangedHostKeyWarning`
+
+Confirming this dialog replaces the stored trusted key (the conflicting entry in KKTerm's `ssh_known_hosts` file is removed and the new key is learned); cancelling aborts with `terminal.hostKeyNotTrusted`. This is the fallback path for legitimate key rotation (server reinstall, rotated host keys). `terminal.sshHostKeyChanged`, `terminal.sshHostKeyChangedDetail`, and `terminal.sshHostKeyChangeDetail` remain for descriptive messaging.
 
 This is not a `window.confirm`. Users explicitly approve the new key; the trusted key set is persisted with the Connection's metadata.
 

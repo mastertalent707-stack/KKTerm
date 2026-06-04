@@ -2099,6 +2099,8 @@
     "sshHostKeyChanged": "La clave del host SSH para",
     "sshHostKeyChangedDetail": "¡ha cambiado! Esto podría indicar un ataque de intermediario.",
     "sshHostKeyChangeDetail": "La clave de host SSH para {{host}} cambió. Se presentó {{algorithm}} {{fingerprint}}.",
+    "replaceChangedHostKeyTitle": "La clave del host SSH cambió",
+    "replaceChangedHostKeyWarning": "La clave del host SSH para {{host}} cambió y ahora presenta {{algorithm}} {{fingerprint}}. Esto suele significar que el servidor se reinstaló o rotó su clave, pero también puede indicar un ataque de intermediario. Reemplaza la clave de confianza solo si esperabas este cambio.",
     "sshPortForwardOpened": "Redirección de puerto SSH abierta para el puerto remoto {{port}}.",
     "sshPortRedirect": "Redirección de puerto SSH",
     "starting": "Iniciando",
