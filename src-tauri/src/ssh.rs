@@ -21,6 +21,7 @@ const SSH_TMUX_RESUME_MAX_ATTEMPTS: usize = 2;
 const SSH_TMUX_RESUME_TIMEOUT: Duration = Duration::from_secs(10);
 const SSH_TMUX_RESUME_DELAY: Duration = Duration::from_millis(750);
 const SSH_STARTUP_TIMEOUT: Duration = Duration::from_secs(15);
+const SSH_X11_REQUEST_WANT_REPLY: bool = true;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -672,7 +673,13 @@ async fn run_native_terminal_once(
             .map_err(|error| format!("failed to allocate SSH PTY: {error}"))?;
         let x11_forwarding_status = if request.x11_forwarding.is_some() {
             let status = match channel
-                .request_x11(false, false, "MIT-MAGIC-COOKIE-1", x11_auth_cookie(), 0)
+                .request_x11(
+                    SSH_X11_REQUEST_WANT_REPLY,
+                    false,
+                    "MIT-MAGIC-COOKIE-1",
+                    x11_auth_cookie(),
+                    0,
+                )
                 .await
             {
                 Ok(()) => NativeSshX11ForwardingStatus::Enabled,
@@ -1244,6 +1251,14 @@ mod tests {
         let config = native_ssh_client_config();
 
         assert_eq!(config.inactivity_timeout, None);
+    }
+
+    #[test]
+    fn x11_forwarding_request_waits_for_server_reply() {
+        assert!(
+            SSH_X11_REQUEST_WANT_REPLY,
+            "X11 request status must reflect server acceptance or rejection"
+        );
     }
 
     #[test]
