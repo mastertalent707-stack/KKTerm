@@ -2614,7 +2614,7 @@ fn send_vnc_ctrl_alt_delete(
 #[cfg(target_os = "windows")]
 fn configure_single_instance<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
     builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-        focus_main_window(app);
+        restore_main_window(app);
     }))
 }
 
@@ -2624,7 +2624,7 @@ fn configure_single_instance<R: tauri::Runtime>(builder: tauri::Builder<R>) -> t
 }
 
 #[cfg(target_os = "windows")]
-fn focus_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+fn restore_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     if let Some(main_window) = app.get_window(window_state::MAIN_WINDOW_LABEL) {
         if main_window.is_minimized().unwrap_or(false) {
             let _ = main_window.unminimize();
