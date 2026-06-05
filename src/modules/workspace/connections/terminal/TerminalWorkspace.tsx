@@ -14,7 +14,7 @@ import type { FormEvent, KeyboardEvent, MouseEvent as ReactMouseEvent, PointerEv
 import { useTranslation } from "react-i18next";
 import i18next from "../../../../i18n/config";
 import { ariaInvalid, dialogButtonAria, menuButtonAria } from "../../../../lib/aria";
-import { invokeCommand, isTauriRuntime, listenMainWindowFocusChanged, saveTextFile, type RemoteLoopbackPort, type TerminalOutput, type TerminalRecordingEntry, type TerminalRecordingInfo, type TmuxSession } from "../../../../lib/tauri";
+import { focusCurrentWebview, invokeCommand, isTauriRuntime, listenMainWindowFocusChanged, saveTextFile, type RemoteLoopbackPort, type TerminalOutput, type TerminalRecordingEntry, type TerminalRecordingInfo, type TmuxSession } from "../../../../lib/tauri";
 import { defaultTerminalSettings } from "../../../../app-defaults";
 import { forgetTmuxSessionId, useWorkspaceStore } from "../../../../store";
 import { createTerminalRenderer, type TerminalDimensions, type TerminalRenderer } from "./renderer";
@@ -232,7 +232,28 @@ export function TerminalWorkspace({
     if (!renderer || shouldPreserveTerminalWorkspaceFocus()) {
       return;
     }
-    renderer.focus();
+    logTerminalFocusDiagnostic("restore:before");
+    // On Windows/WebView2 the xterm textarea usually stays as
+    // document.activeElement while KKTerm is in the background, so a bare
+    // terminal.focus() short-circuits (the element is "already focused") and
+    // the native input chain is never re-established when we return. Re-assert
+    // focus at the OS webview level first, then force the textarea to actually
+    // re-acquire focus by blurring before focusing.
+    const reassert = () => {
+      if (shouldPreserveTerminalWorkspaceFocus()) {
+        return;
+      }
+      renderer.blur();
+      renderer.focus();
+      logTerminalFocusDiagnostic("restore:after");
+    };
+    if (isTauriRuntime()) {
+      void focusCurrentWebview()
+        .catch(() => undefined)
+        .finally(() => window.requestAnimationFrame(reassert));
+      return;
+    }
+    reassert();
   }
 
   useEffect(() => {
@@ -2877,6 +2898,24 @@ function shouldPreserveExternalFocus(paneElement: HTMLElement | null) {
   }
 
   return isEditableElement(activeElement) || isFocusableElement(activeElement);
+}
+
+// Opt-in focus tracing for the "terminal loses input focus after app switch"
+// bug. Enable from the devtools console with
+// localStorage.setItem("kkterm:debug-focus", "1") and reload; each restore
+// attempt then logs whether the document actually holds OS focus and which
+// element is active, turning the previously blind guess-and-try into a
+// verifiable signal on Windows.
+function logTerminalFocusDiagnostic(stage: string) {
+  if (typeof localStorage === "undefined" || localStorage.getItem("kkterm:debug-focus") !== "1") {
+    return;
+  }
+  const active = document.activeElement;
+  const describe = active instanceof HTMLElement
+    ? `${active.tagName.toLowerCase()}${active.className ? `.${active.className.split(/\s+/).join(".")}` : ""}`
+    : String(active);
+  // eslint-disable-next-line no-console
+  console.info(`[kkterm focus] ${stage} hasFocus=${document.hasFocus()} active=${describe}`);
 }
 
 function shouldPreserveTerminalWorkspaceFocus() {
