@@ -2334,6 +2334,14 @@ fn set_webview_visibility(
 }
 
 #[tauri::command]
+fn focus_webview_session(
+    webviews: tauri::State<'_, webview::WebviewSessionManager>,
+    request: webview::WebviewSimpleRequest,
+) -> Result<(), String> {
+    webviews.focus(request)
+}
+
+#[tauri::command]
 fn webview_navigate(
     webviews: tauri::State<'_, webview::WebviewSessionManager>,
     request: webview::WebviewNavigateRequest,
@@ -3012,6 +3020,7 @@ pub fn run() {
             start_webview_session,
             update_webview_bounds,
             set_webview_visibility,
+            focus_webview_session,
             webview_navigate,
             webview_reload,
             webview_go_back,

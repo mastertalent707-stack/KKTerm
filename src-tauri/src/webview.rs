@@ -792,6 +792,20 @@ impl WebviewSessionManager {
         Ok(())
     }
 
+    pub fn focus(&self, request: WebviewSimpleRequest) -> Result<(), String> {
+        let sessions = self.lock()?;
+        let session = sessions
+            .get(&request.session_id)
+            .ok_or_else(|| format!("webview session '{}' was not found", request.session_id))?;
+        if !session.visible {
+            return Ok(());
+        }
+        session
+            .webview
+            .set_focus()
+            .map_err(|error| format!("failed to focus webview: {error}"))
+    }
+
     pub fn navigate(&self, request: WebviewNavigateRequest) -> Result<(), String> {
         let url = parse_external_url(&request.url)?;
         let sessions = self.lock()?;

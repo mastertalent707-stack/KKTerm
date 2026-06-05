@@ -133,6 +133,7 @@ type CapturedCredentialPayload = {
 const CREDENTIAL_TITLE_PREFIX = "__KKTERM_URL_CREDENTIAL__";
 const EXTERNAL_LINK_TITLE_PREFIX = "__KKTERM_URL_EXTERNAL_LINK__";
 const AUTO_REFRESH_INTERVALS_SECONDS = [0, 5, 15, 30, 60, 120] as const;
+const MAIN_WINDOW_FOCUS_CHANGED_EVENT = "kkterm://main-window-focus-changed";
 const WEBVIEW_PRE_CAPTURE_INTERVAL_MS = 1200;
 // A speculative pre-capture is only a faithful stand-in for the live surface for a short
 // window. Beyond this, fall back to capturing on-open so an unrelated overlay (e.g. a
@@ -168,6 +169,18 @@ function intersectClientRects(rect: DOMRectReadOnly, clipRect: DOMRectReadOnly) 
   };
 }
 
+function webviewChromeHasInteractiveFocus(workspace: HTMLElement | null) {
+  const activeElement = document.activeElement;
+  if (!activeElement || !workspace?.contains(activeElement)) {
+    return false;
+  }
+  return Boolean(
+    activeElement.closest(
+      "button, input, select, textarea, [contenteditable='true'], [role='button'], [role='menuitem']",
+    ),
+  );
+}
+
 export function WebViewWorkspace({
   isActive,
   onOpenAssistant = () => undefined,
@@ -201,6 +214,7 @@ export function WebViewWorkspace({
   const pendingCaptureNonceRef = useRef<string | null>(null);
   const externalLinkTokenRef = useRef<string | null>(null);
   const faviconUpdatedRef = useRef(false);
+  const restoreFocusOnWindowFocusRef = useRef(false);
   const credentialRef = useRef({ canFillCredential: false });
   const [navError, setNavError] = useState("");
   const [fillStatus, setFillStatus] = useState("");
@@ -238,6 +252,24 @@ export function WebViewWorkspace({
     };
   };
 
+  const shouldFocusWebviewSession = () =>
+    isTauriRuntime() &&
+    sessionStartedRef.current &&
+    visibilityRef.current.isActive &&
+    !visibilityRef.current.suppressed &&
+    !webviewChromeHasInteractiveFocus(workspaceRef.current);
+
+  const focusWebviewSession = () => {
+    if (!shouldFocusWebviewSession()) {
+      return;
+    }
+    void invokeCommand("focus_webview_session", {
+      request: { sessionId: sessionIdRef.current },
+    }).catch((error) => {
+      setNavError(error instanceof Error ? error.message : String(error));
+    });
+  };
+
   const pushWebviewVisibility = () => {
     if (!sessionStartedRef.current) {
       return;
@@ -247,13 +279,17 @@ export function WebViewWorkspace({
     if (!bounds && visible) {
       return;
     }
-    void invokeCommand("set_webview_visibility", {
+    const visibilityUpdate = invokeCommand("set_webview_visibility", {
       request: { sessionId: sessionIdRef.current, visible, ...(bounds ?? HIDDEN_WEBVIEW_BOUNDS) },
-    }).catch((error) => {
+    });
+    void visibilityUpdate.catch((error) => {
       setNavError(error instanceof Error ? error.message : String(error));
     });
     if (visible && bounds) {
       lastBoundsRef.current = bounds;
+      void visibilityUpdate
+        .then(() => window.requestAnimationFrame(focusWebviewSession))
+        .catch(() => undefined);
     }
   };
 
@@ -460,6 +496,49 @@ export function WebViewWorkspace({
     pushWebviewVisibility();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
+
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    const handleWindowBlur = () => {
+      restoreFocusOnWindowFocusRef.current = shouldFocusWebviewSession();
+    };
+    const handleWindowFocus = () => {
+      if (!restoreFocusOnWindowFocusRef.current) {
+        return;
+      }
+      restoreFocusOnWindowFocusRef.current = false;
+      window.requestAnimationFrame(focusWebviewSession);
+    };
+    let disposed = false;
+    let removeNativeFocusListener: (() => void) | undefined;
+
+    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener("focus", handleWindowFocus);
+    void listen<boolean>(MAIN_WINDOW_FOCUS_CHANGED_EVENT, (event) => {
+      if (event.payload) {
+        handleWindowFocus();
+      } else {
+        handleWindowBlur();
+      }
+    }).then((unlisten) => {
+      if (disposed) {
+        unlisten();
+      } else {
+        removeNativeFocusListener = unlisten;
+      }
+    });
+
+    return () => {
+      disposed = true;
+      window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("focus", handleWindowFocus);
+      removeNativeFocusListener?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!isTauriRuntime()) {

@@ -1705,6 +1705,10 @@ type CommandMap = {
     args: { request: SetWebviewVisibilityRequest };
     result: null;
   };
+  focus_webview_session: {
+    args: { request: WebviewSimpleRequest };
+    result: null;
+  };
   webview_navigate: {
     args: { request: WebviewNavigateRequest };
     result: null;

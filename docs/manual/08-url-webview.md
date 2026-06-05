@@ -10,7 +10,7 @@
 
 ## Surface
 
-A URL Pane hosts a child WebView2 surface positioned over its Tab. The surface is not a Tab — it follows the Tab's geometry and is hidden when the Tab is inactive. In split Panes and Dashboard Connection widgets, the WebView2 bounds are clipped to the host panel so page content stays contained and scrolls inside the URL Pane. App-owned modal overlays that must appear above native browser content, such as Connection dialogs and the Dashboard catalog, temporarily park intersecting WebView2 surfaces offscreen. Menu overlays do **not** suppress WebView2 (RDP remains the only kind that uses screenshot-backed overlay parking).
+A URL Pane hosts a child WebView2 surface positioned over its Tab. The surface is not a Tab — it follows the Tab's geometry and is hidden when the Tab is inactive. When a URL Pane becomes active, or KKTerm regains OS focus while the page owned focus, KKTerm reapplies focus to the child WebView2 surface. In split Panes and Dashboard Connection widgets, the WebView2 bounds are clipped to the host panel so page content stays contained and scrolls inside the URL Pane. App-owned modal overlays that must appear above native browser content, such as Connection dialogs and the Dashboard catalog, temporarily park intersecting WebView2 surfaces offscreen. Menu overlays do **not** suppress WebView2 (RDP remains the only kind that uses screenshot-backed overlay parking).
 
 Tutorial target: `webview.surface`.
 
