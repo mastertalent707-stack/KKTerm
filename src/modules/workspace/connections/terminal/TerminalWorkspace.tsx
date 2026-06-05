@@ -492,7 +492,6 @@ function EmbeddedConnectionPane({
       {pane.kind === "webview" ? (
         <WebViewWorkspace
           isActive={isActive}
-          layoutTabId={tabId}
           onOpenAssistant={onOpenAssistant}
           tab={embeddedTab}
         />
@@ -1216,6 +1215,8 @@ function TerminalPaneView({
   const sessionIdRef = useRef<string | null>(null);
   const lastResizeDimensionsRef = useRef<TerminalDimensions | null>(null);
   const restoreFocusOnWindowFocusRef = useRef(false);
+  const focusRestoreRafRef = useRef<number | null>(null);
+  const focusRestoreTimerRefs = useRef<number[]>([]);
   const resizeFrameRef = useRef<number | null>(null);
   const resizeTimeoutRefs = useRef<number[]>([]);
   const fitAndResizeRef = useRef<() => void>(() => undefined);
@@ -1243,6 +1244,40 @@ function TerminalPaneView({
   const [recordingBusy, setRecordingBusy] = useState(false);
   const [recordingsOpen, setRecordingsOpen] = useState(false);
   const [tmuxMouseEnabled, setTmuxMouseEnabled] = useState(true);
+  function clearScheduledFocusRestore() {
+    if (focusRestoreRafRef.current !== null) {
+      window.cancelAnimationFrame(focusRestoreRafRef.current);
+      focusRestoreRafRef.current = null;
+    }
+    for (const timerId of focusRestoreTimerRefs.current) {
+      window.clearTimeout(timerId);
+    }
+    focusRestoreTimerRefs.current = [];
+  }
+
+  function focusTerminalRenderer() {
+    const renderer = terminalRendererRef.current;
+    if (renderer) {
+      focusTerminalUnlessExternalInputIsActive(renderer, paneRef.current);
+    }
+  }
+
+  function scheduleFocusRestore() {
+    clearScheduledFocusRestore();
+    queueMicrotask(focusTerminalRenderer);
+    focusRestoreRafRef.current = window.requestAnimationFrame(() => {
+      focusRestoreRafRef.current = null;
+      focusTerminalRenderer();
+    });
+    focusRestoreTimerRefs.current = [0, 50, 150].map((delay) => {
+      const timerId = window.setTimeout(() => {
+        focusRestoreTimerRefs.current = focusRestoreTimerRefs.current.filter((id) => id !== timerId);
+        focusTerminalRenderer();
+      }, delay);
+      return timerId;
+    });
+  }
+
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const terminalSettings = useWorkspaceStore((state) => state.terminalSettings);
   const sshSettings = useWorkspaceStore((state) => state.sshSettings);
@@ -1808,14 +1843,7 @@ function TerminalPaneView({
         return;
       }
       restoreFocusOnWindowFocusRef.current = false;
-      const focus = () => {
-        const renderer = terminalRendererRef.current;
-        if (renderer) {
-          focusTerminalUnlessExternalInputIsActive(renderer, paneRef.current);
-        }
-      };
-      queueMicrotask(focus);
-      window.requestAnimationFrame(focus);
+      scheduleFocusRestore();
     };
     let disposed = false;
     let removeNativeFocusListener: (() => void) | undefined;
@@ -1842,6 +1870,7 @@ function TerminalPaneView({
       window.removeEventListener("blur", handleWindowBlur);
       window.removeEventListener("focus", handleWindowFocus);
       removeNativeFocusListener?.();
+      clearScheduledFocusRestore();
     };
   }, [isActive, isFocused]);
 
