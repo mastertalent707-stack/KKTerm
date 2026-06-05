@@ -3,6 +3,40 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.61/kkterm-0.1.61-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.61/kkterm-0.1.61-windows-arm64-setup.exe)
+
+## Highlights
+- Refined URL Connection controls and moved layout options into the actions menu—no more fighting the toolbar like it’s a flaky terminal prompt.
+- Improved the Notes Dashboard Widget instance to better match paper-like corners and realism.
+
+## New
+- Added **Send to AI** for **URL Connections**. ([#259](https://github.com/ryantsai/KKTerm/pull/259) by @ryantsai)
+
+## Improved
+- Refined URL toolbar actions by moving URL layout controls into the **actions menu**. ([#259](https://github.com/ryantsai/KKTerm/pull/259) by @ryantsai)
+- Updated the Notes widget styling: squarer corners and a more realistic folded-corner curl. ([#260](https://github.com/ryantsai/KKTerm/pull/260) by @ryantsai)
+
+## Internal
+- Updated dashboard CSS for notes/table appearance and paper-corner realism. (`e5eb42d`, `6dd1545`, `700954f`)
+
+---
+
+## Highlights（繁體中文／台灣）
+- 強化 **URL Connection** 的控制方式：把「版面配置」選項移到 **actions menu** 裡，讓你不用再跟工具列互相猜謎（就像終端機提示符偶爾會抽風一樣）。
+- 改進「筆記」Dashboard Widget Instance 的外觀，讓紙感角落更逼真。
+
+## New（新增）
+- 為 **URL Connections** 新增 **Send to AI** 功能。([#259](https://github.com/ryantsai/KKTerm/pull/259) by @ryantsai)
+
+## Improved（改進）
+- 改良 URL 工具列操作：將 URL 版面配置控制項移到 **actions menu**。([#259](https://github.com/ryantsai/KKTerm/pull/259) by @ryantsai)
+- 更新「筆記」Widget 樣式：角落更方、更像折角紙的自然捲曲感。([#260](https://github.com/ryantsai/KKTerm/pull/260) by @ryantsai)
+
+## Internal（內部）
+- 更新 Dashboard CSS，用於筆記/表格呈現與更逼真的紙角效果。(`e5eb42d`, `6dd1545`, `700954f`)
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.60/kkterm-0.1.60-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.60/kkterm-0.1.60-windows-arm64-setup.exe)
 
