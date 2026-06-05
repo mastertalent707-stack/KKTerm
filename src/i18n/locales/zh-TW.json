@@ -2121,6 +2121,7 @@
     "rdpDesktopRequired": "RDP 使用 Windows 桌面執行環境。",
     "vncDesktopRequired": "VNC 使用桌面執行環境。",
     "rdpActiveX": "Microsoft RDP ActiveX 主機正在此工作區中執行。",
+    "rdpErrorStatus": "RDP error: {{message}}",
     "vncFramebuffer": "VNC framebuffer 正在此工作區中執行。",
     "transportUnavailable": "遠端桌面傳輸無法使用。",
     "session": "工作階段",

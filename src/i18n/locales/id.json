@@ -2121,6 +2121,7 @@
     "rdpDesktopRequired": "RDP menggunakan runtime desktop Windows.",
     "vncDesktopRequired": "VNC menggunakan runtime desktop.",
     "rdpActiveX": "Host Microsoft RDP ActiveX berjalan di ruang kerja ini.",
+    "rdpErrorStatus": "RDP error: {{message}}",
     "vncFramebuffer": "Framebuffer VNC berjalan di ruang kerja ini.",
     "transportUnavailable": "Transport desktop jarak jauh tidak tersedia.",
     "session": "sesi",

@@ -2121,6 +2121,7 @@
     "rdpDesktopRequired": "RDPはWindowsデスクトップランタイムを使用します。",
     "vncDesktopRequired": "VNCはデスクトップランタイムを使用します。",
     "rdpActiveX": "Microsoft RDP ActiveXホストがこのワークスペースで実行中です。",
+    "rdpErrorStatus": "RDP error: {{message}}",
     "vncFramebuffer": "VNCフレームバッファがこのワークスペースで実行中です。",
     "transportUnavailable": "リモートデスクトップトランスポートが利用できません。",
     "session": "セッション",

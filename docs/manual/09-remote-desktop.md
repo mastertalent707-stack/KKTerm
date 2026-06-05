@@ -23,6 +23,7 @@ Tutorial target: `remoteDesktop.surface`.
 - For VNC: while the first framebuffer is awaited, `remoteDesktop.waitingFramebuffer`.
 - `remoteDesktop.disconnected` after the session ends.
 - `remoteDesktop.reconnect` / `remoteDesktop.reconnecting` reissue the connect with the same Connection settings.
+- RDP command and startup failures surface as Status Bar errors through `remoteDesktop.rdpErrorStatus` even when Advanced Debugging is off.
 
 Runtime checks:
 
@@ -53,6 +54,10 @@ The native HWND backing an RDP Session does not obey DOM z-index. When an app-ow
 3. Hides ("parks") the ActiveX HWND until the overlay closes.
 
 This behaviour is **RDP-only**. WebView2, VNC, terminal, and SFTP surfaces never use overlay parking. Geometry-scoped detection lives in `src/modules/workspace/nativeOverlay.ts`. Do not extend this workaround to other surfaces.
+
+## RDP debug logging
+
+Debug builds write RDP startup, ActiveX control creation, display-size sync, and main-thread command timing records to `rdp.debug.log` beside `kkterm.log`. Release builds write the same JSONL log only when Settings → General → Debug → `settings.advancedDebugging` is enabled. Records include non-secret Connection details such as host, username, port, RDP options, bounds, selected ActiveX ProgID, display size, scale factors, and command errors. Password values are not logged deliberately; users should still review the file before sharing because hostnames and usernames may be sensitive.
 
 ## RDP / VNC settings
 

@@ -9,7 +9,10 @@ mod platform {
     };
 
     use serde::{Deserialize, Serialize};
+    use serde_json::json;
     use tauri::{AppHandle, Manager};
+
+    use crate::logging::rdp_debug;
     use windows::{
         core::{IUnknown_Vtbl, Interface, BSTR, GUID, PCSTR, PCWSTR},
         Win32::{
@@ -191,7 +194,7 @@ mod platform {
         options: Option<RdpSessionOptions>,
     }
 
-    #[derive(Clone, Deserialize)]
+    #[derive(Clone, Deserialize, Serialize)]
     #[serde(rename_all = "camelCase")]
     pub struct RdpSessionOptions {
         #[serde(default = "default_color_depth")]
@@ -848,6 +851,8 @@ mod platform {
         app: &AppHandle,
         request: StartRdpSessionRequest,
     ) -> Result<RdpSessionStarted, String> {
+        let password_supplied = request.password().is_some();
+        let secret_owner_id = request.secret_owner_id().map(str::to_string);
         let session_id = required_id(request.session_id)?;
         let host = required_field("RDP host", request.host)?;
         let user = request.user.trim().to_string();
@@ -855,6 +860,12 @@ mod platform {
         if port == 0 {
             return Err("RDP port must be between 1 and 65535".to_string());
         }
+        let requested_bounds = json!({
+            "x": request.x,
+            "y": request.y,
+            "width": request.width,
+            "height": request.height,
+        });
 
         {
             let sessions = lock_sessions(&sessions)?;
@@ -862,6 +873,20 @@ mod platform {
                 return Err(format!("RDP session '{session_id}' is already running"));
             }
         }
+
+        rdp_debug(
+            "session.start.request",
+            &json!({
+                "sessionId": &session_id,
+                "host": &host,
+                "user": &user,
+                "port": port,
+                "secretOwnerId": secret_owner_id,
+                "passwordSupplied": password_supplied,
+                "bounds": requested_bounds,
+                "options": &request.options,
+            }),
+        );
 
         let atl = atl_functions()?;
         unsafe {
@@ -891,6 +916,25 @@ mod platform {
             scale_factor,
         );
         let initial_rect = staged_rect(size.2, size.3);
+        rdp_debug(
+            "session.start.geometry",
+            &json!({
+                "sessionId": &session_id,
+                "scaleFactor": scale_factor,
+                "scaledRect": {
+                    "x": size.0,
+                    "y": size.1,
+                    "width": size.2,
+                    "height": size.3,
+                },
+                "initialStagedRect": {
+                    "x": initial_rect.0,
+                    "y": initial_rect.1,
+                    "width": initial_rect.2,
+                    "height": initial_rect.3,
+                },
+            }),
+        );
         let (hwnd, dispatch, control) = create_rdp_control(parent_hwnd, initial_rect)?;
 
         let options = request.options.unwrap_or_default();
@@ -901,6 +945,20 @@ mod platform {
             size.2,
             size.3,
             scale_factor,
+        );
+        rdp_debug(
+            "session.start.display_settings",
+            &json!({
+                "sessionId": &session_id,
+                "control": &control,
+                "resolutionMode": resolution_mode_name(resolution_mode),
+                "desktopWidth": display_settings.desktop_width,
+                "desktopHeight": display_settings.desktop_height,
+                "physicalWidth": display_settings.physical_width,
+                "physicalHeight": display_settings.physical_height,
+                "desktopScaleFactor": display_settings.desktop_scale_factor,
+                "deviceScaleFactor": display_settings.device_scale_factor,
+            }),
         );
 
         configure_rdp_control(
@@ -913,7 +971,26 @@ mod platform {
             resolution_mode,
             &options,
         )?;
+        rdp_debug(
+            "session.start.configured",
+            &json!({
+                "sessionId": &session_id,
+                "control": &control,
+                "host": &host,
+                "user": &user,
+                "port": port,
+                "passwordSupplied": password_supplied,
+                "options": &options,
+            }),
+        );
         invoke_method(&dispatch, "Connect")?;
+        rdp_debug(
+            "session.start.connect_invoked",
+            &json!({
+                "sessionId": &session_id,
+                "control": &control,
+            }),
+        );
 
         let mut sessions = lock_sessions(&sessions)?;
         sessions.insert(
@@ -934,6 +1011,16 @@ mod platform {
             },
         );
 
+        rdp_debug(
+            "session.start.ok",
+            &json!({
+                "sessionId": &session_id,
+                "host": &host,
+                "port": port,
+                "control": &control,
+            }),
+        );
+
         Ok(RdpSessionStarted {
             session_id,
             host,
@@ -948,6 +1035,18 @@ mod platform {
     ) -> Result<(HWND, IDispatch, String), String> {
         let mut last_error = String::new();
         for progid in RDP_PROGIDS {
+            rdp_debug(
+                "control.create.try",
+                &json!({
+                    "progid": progid,
+                    "rect": {
+                        "x": rect.0,
+                        "y": rect.1,
+                        "width": rect.2,
+                        "height": rect.3,
+                    },
+                }),
+            );
             let class_name = wide_null("AtlAxWin");
             let control_name = wide_null(progid);
             let hwnd = unsafe {
@@ -971,6 +1070,13 @@ mod platform {
                 Ok(hwnd) => hwnd,
                 Err(error) => {
                     last_error = format!("{progid}: {error}");
+                    rdp_debug(
+                        "control.create.window_error",
+                        &json!({
+                            "progid": progid,
+                            "error": error.to_string(),
+                        }),
+                    );
                     continue;
                 }
             };
@@ -979,9 +1085,19 @@ mod platform {
                 get_dispid(&dispatch, "Server")?;
                 Ok(dispatch)
             }) {
-                Ok(dispatch) => return Ok((hwnd, dispatch, (*progid).to_string())),
+                Ok(dispatch) => {
+                    rdp_debug("control.create.ok", &json!({ "progid": progid }));
+                    return Ok((hwnd, dispatch, (*progid).to_string()));
+                }
                 Err(error) => {
                     last_error = format!("{progid}: {error}");
+                    rdp_debug(
+                        "control.create.dispatch_error",
+                        &json!({
+                            "progid": progid,
+                            "error": &error,
+                        }),
+                    );
                     unsafe {
                         let _ = DestroyWindow(hwnd);
                     }
@@ -1124,6 +1240,15 @@ mod platform {
             "quality" => 0,
             "speed" => 0x0000_0001 | 0x0000_0002 | 0x0000_0004 | 0x0000_0008 | 0x0000_0020,
             _ => 0x0000_0001 | 0x0000_0004 | 0x0000_0008,
+        }
+    }
+
+    fn resolution_mode_name(mode: RemoteResolutionMode) -> &'static str {
+        match mode {
+            RemoteResolutionMode::Automatic => "automatic",
+            RemoteResolutionMode::SmartSizing => "smartSizing",
+            RemoteResolutionMode::DpiZoom => "dpiZoom",
+            RemoteResolutionMode::Fixed { .. } => "fixed",
         }
     }
 
@@ -1810,8 +1935,24 @@ mod platform {
         {
             return true;
         }
-        if resize_remote_desktop(&session.dispatch, display_settings).is_err() {
-            return false;
+        match resize_remote_desktop(&session.dispatch, display_settings) {
+            Ok(()) => {}
+            Err(error) => {
+                rdp_debug(
+                    "display.resize.error",
+                    &json!({
+                        "error": error,
+                        "force": force,
+                        "desktopWidth": display_settings.desktop_width,
+                        "desktopHeight": display_settings.desktop_height,
+                        "physicalWidth": display_settings.physical_width,
+                        "physicalHeight": display_settings.physical_height,
+                        "desktopScaleFactor": display_settings.desktop_scale_factor,
+                        "deviceScaleFactor": display_settings.device_scale_factor,
+                    }),
+                );
+                return false;
+            }
         }
         session.desktop_width = display_settings.desktop_width;
         session.desktop_height = display_settings.desktop_height;
@@ -2016,6 +2157,23 @@ mod platform {
             let started = Instant::now();
             let result = f(app_for_closure);
             let elapsed = started.elapsed();
+            match &result {
+                Ok(_) => rdp_debug(
+                    "main_thread.operation.ok",
+                    &json!({
+                        "operation": operation,
+                        "elapsedMs": elapsed.as_millis(),
+                    }),
+                ),
+                Err(error) => rdp_debug(
+                    "main_thread.operation.error",
+                    &json!({
+                        "operation": operation,
+                        "elapsedMs": elapsed.as_millis(),
+                        "error": error,
+                    }),
+                ),
+            }
             if elapsed >= RDP_MAIN_THREAD_WARN_AFTER {
                 eprintln!(
                     "RDP main-thread operation '{operation}' took {} ms; nested RDP, WebView2, or ActiveX stalls may be blocking the UI thread",

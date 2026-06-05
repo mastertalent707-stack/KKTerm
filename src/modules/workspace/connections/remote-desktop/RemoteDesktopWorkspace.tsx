@@ -145,6 +145,13 @@ export function RemoteDesktopWorkspace({
   const canStartVnc = connection?.type === "vnc";
   const viewMode = resolveRemoteDesktopViewMode(connection, rdpSettings, vncSettings);
 
+  const reportRemoteDesktopError = (message: string) => {
+    setRdpError(message);
+    if (connection?.type === "rdp") {
+      showStatusBarNotice(t("remoteDesktop.rdpErrorStatus", { message }), { tone: "error" });
+    }
+  };
+
   const computeBounds = () => {
     const node = hostRef.current;
     if (!node) {
@@ -486,7 +493,7 @@ export function RemoteDesktopWorkspace({
       void invokeCommand("set_rdp_visibility", {
         request: { sessionId, visible: false, ...(previous ?? bounds) },
       }).catch((error) => {
-        setRdpError(error instanceof Error ? error.message : String(error));
+        reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
       });
       attemptRdpDisplaySync();
       return;
@@ -501,7 +508,7 @@ export function RemoteDesktopWorkspace({
         }
       })
       .catch((error) => {
-        setRdpError(error instanceof Error ? error.message : String(error));
+        reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
       });
     if (!visible) {
       if (wantsVisible) {
@@ -514,7 +521,7 @@ export function RemoteDesktopWorkspace({
       void invokeCommand("update_rdp_bounds", {
         request: { sessionId, ...bounds },
       }).catch((error) => {
-        setRdpError(error instanceof Error ? error.message : String(error));
+        reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
       });
     }
   };
@@ -622,7 +629,7 @@ export function RemoteDesktopWorkspace({
         }
       })
       .catch((error) => {
-        setRdpError(error instanceof Error ? error.message : String(error));
+        reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
       })
       .finally(() => {
         displaySyncInFlightRef.current = false;
@@ -715,7 +722,7 @@ export function RemoteDesktopWorkspace({
       return;
     }
     void invokeCommand("send_vnc_ctrl_alt_delete", { request: { sessionId } }).catch((error) => {
-      setRdpError(error instanceof Error ? error.message : String(error));
+      reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
     });
   };
 
@@ -807,7 +814,7 @@ export function RemoteDesktopWorkspace({
             rdpVisibleRef.current = false;
           })
           .catch((error) => {
-            setRdpError(error instanceof Error ? error.message : String(error));
+            reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
           });
         return;
       }
@@ -837,7 +844,7 @@ export function RemoteDesktopWorkspace({
       void invokeCommand("update_rdp_bounds", {
         request: { sessionId, ...bounds },
       }).catch((error) => {
-        setRdpError(error instanceof Error ? error.message : String(error));
+        reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
       });
     });
   };
@@ -905,7 +912,7 @@ export function RemoteDesktopWorkspace({
           sessionStartedRef.current = false;
           if (!disposed) {
             setRdpStatus("");
-            setRdpError(error instanceof Error ? error.message : String(error));
+            reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
           }
         });
     });
@@ -979,7 +986,7 @@ export function RemoteDesktopWorkspace({
           sessionStartedRef.current = false;
           if (!disposed) {
             setRdpStatus("");
-            setRdpError(error instanceof Error ? error.message : String(error));
+            reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
           }
         });
       });
@@ -1183,7 +1190,7 @@ export function RemoteDesktopWorkspace({
           }
         })
         .catch((error) => {
-          setRdpError(error instanceof Error ? error.message : String(error));
+          reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
         });
     }, 1000);
 
@@ -1217,7 +1224,7 @@ export function RemoteDesktopWorkspace({
       return;
     }
     if (event.kind === "error") {
-      setRdpError(event.message);
+      reportRemoteDesktopError(event.message);
       setRdpStatus(t("remoteDesktop.disconnected"));
       return;
     }
@@ -1321,7 +1328,7 @@ export function RemoteDesktopWorkspace({
     void invokeCommand("send_vnc_pointer_event", {
       request: { sessionId, ...pending },
     }).catch((error) => {
-      setRdpError(error instanceof Error ? error.message : String(error));
+      reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
     });
   };
 
@@ -1379,7 +1386,7 @@ export function RemoteDesktopWorkspace({
     void invokeCommand("send_vnc_key_event", {
       request: { sessionId, key, down },
     }).catch((error) => {
-      setRdpError(error instanceof Error ? error.message : String(error));
+      reportRemoteDesktopError(error instanceof Error ? error.message : String(error));
     });
   };
 

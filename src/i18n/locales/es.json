@@ -2121,6 +2121,7 @@
     "rdpDesktopRequired": "RDP usa el entorno de escritorio de Windows.",
     "vncDesktopRequired": "VNC usa el entorno de escritorio.",
     "rdpActiveX": "El host Microsoft RDP ActiveX se está ejecutando en este espacio de trabajo.",
+    "rdpErrorStatus": "RDP error: {{message}}",
     "vncFramebuffer": "El framebuffer VNC se está ejecutando en este espacio de trabajo.",
     "transportUnavailable": "Transporte de escritorio remoto no disponible.",
     "session": "sesión",

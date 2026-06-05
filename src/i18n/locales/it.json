@@ -2121,6 +2121,7 @@
     "rdpDesktopRequired": "RDP utilizza il runtime desktop Windows.",
     "vncDesktopRequired": "VNC utilizza il runtime desktop.",
     "rdpActiveX": "L'host Microsoft RDP ActiveX è in esecuzione in questo spazio di lavoro.",
+    "rdpErrorStatus": "RDP error: {{message}}",
     "vncFramebuffer": "Il framebuffer VNC è in esecuzione in questo spazio di lavoro.",
     "transportUnavailable": "Trasporto desktop remoto non disponibile.",
     "session": "sessione",
