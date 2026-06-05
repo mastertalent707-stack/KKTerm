@@ -281,9 +281,15 @@
     "notesPageIndicator": "Seite {{page}} von {{total}}",
     "notesRotationDegrees": "Drehung in Grad",
     "notesFoldDepth": "Falztiefe",
-    "notesBackgroundColor": "Hintergrundfarbe",
+    "notesFoldCorner": "Fold corner",
+    "notesMarkdownEnabled": "Render Markdown",    "notesBackgroundColor": "Hintergrundfarbe",
     "notesFont": "Schriftart",
-    "notesColor": {
+    "notesFoldCornerOption": {
+      "topRight": "Top right",
+      "topLeft": "Top left",
+      "bottomRight": "Bottom right",
+      "bottomLeft": "Bottom left"
+    },    "notesColor": {
       "yellow": "Gelb",
       "pink": "Rosa",
       "blue": "Blau",
@@ -882,7 +888,12 @@
     "enhancedGraphics": "Erweiterte Grafik",
     "rdpResolutionValue": "An Arbeitsbereichsgrenzen anpassen",
     "display": "Anzeige",
-    "networkPerformance": "Netzwerk und Leistung",
+    "remoteDesktopViewMode": "View mode",
+    "remoteDesktopViewModeFit": "Fit to workspace",
+    "remoteDesktopViewModeStretch": "Stretch to fill",
+    "remoteDesktopViewModeActualSize": "Actual size with scrollbars",
+    "remoteDesktopViewModeFitWidth": "Fit width",
+    "remoteDesktopViewModeFitHeight": "Fit height",    "networkPerformance": "Netzwerk und Leistung",
     "encoding": "Kodierung",
     "rdpDisplayHint": "Geplante Anzeige-Standards für neue RDP-Verbindungen.",
     "rdpNetworkHint": "Geplante Netzwerkabstimmung für neue RDP-Verbindungen.",
@@ -2109,7 +2120,9 @@
     "vncFramebuffer": "VNC-Framebuffer läuft in diesem Arbeitsbereich.",
     "transportUnavailable": "Remotedesktop-Transport nicht verfügbar.",
     "session": "Sitzung",
-    "displayAria": "VNC-Anzeige"
+    "displayAria": "VNC-Anzeige",
+    "viewModeButton": "View mode: {{mode}}",
+    "viewModeSaved": "View mode saved: {{mode}}"
   },
   "ai": {
     "title": "KI-Assistent",

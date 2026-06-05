@@ -281,9 +281,15 @@
     "notesPageIndicator": "Halaman {{page}} dari {{total}}",
     "notesRotationDegrees": "Derajat rotasi",
     "notesFoldDepth": "Kedalaman lipatan",
-    "notesBackgroundColor": "Warna latar",
+    "notesFoldCorner": "Fold corner",
+    "notesMarkdownEnabled": "Render Markdown",    "notesBackgroundColor": "Warna latar",
     "notesFont": "Font",
-    "notesColor": {
+    "notesFoldCornerOption": {
+      "topRight": "Top right",
+      "topLeft": "Top left",
+      "bottomRight": "Bottom right",
+      "bottomLeft": "Bottom left"
+    },    "notesColor": {
       "yellow": "Kuning",
       "pink": "Merah muda",
       "blue": "Biru",
@@ -882,7 +888,12 @@
     "enhancedGraphics": "Grafis tingkat lanjut",
     "rdpResolutionValue": "Sesuaikan batas ruang kerja",
     "display": "Tampilan",
-    "networkPerformance": "Jaringan dan performa",
+    "remoteDesktopViewMode": "View mode",
+    "remoteDesktopViewModeFit": "Fit to workspace",
+    "remoteDesktopViewModeStretch": "Stretch to fill",
+    "remoteDesktopViewModeActualSize": "Actual size with scrollbars",
+    "remoteDesktopViewModeFitWidth": "Fit width",
+    "remoteDesktopViewModeFitHeight": "Fit height",    "networkPerformance": "Jaringan dan performa",
     "encoding": "Encoding",
     "rdpDisplayHint": "Default tampilan yang direncanakan untuk Koneksi RDP baru.",
     "rdpNetworkHint": "Penyetelan jaringan yang direncanakan untuk Koneksi RDP baru.",
@@ -2109,7 +2120,9 @@
     "vncFramebuffer": "Framebuffer VNC berjalan di ruang kerja ini.",
     "transportUnavailable": "Transport desktop jarak jauh tidak tersedia.",
     "session": "sesi",
-    "displayAria": "Tampilan VNC"
+    "displayAria": "Tampilan VNC",
+    "viewModeButton": "View mode: {{mode}}",
+    "viewModeSaved": "View mode saved: {{mode}}"
   },
   "ai": {
     "title": "AI Assistant",

@@ -281,9 +281,15 @@
     "notesPageIndicator": "第 {{page}} 页，共 {{total}} 页",
     "notesRotationDegrees": "旋转角度",
     "notesFoldDepth": "折角深度",
-    "notesBackgroundColor": "背景颜色",
+    "notesFoldCorner": "Fold corner",
+    "notesMarkdownEnabled": "Render Markdown",    "notesBackgroundColor": "背景颜色",
     "notesFont": "字体",
-    "notesColor": {
+    "notesFoldCornerOption": {
+      "topRight": "Top right",
+      "topLeft": "Top left",
+      "bottomRight": "Bottom right",
+      "bottomLeft": "Bottom left"
+    },    "notesColor": {
       "yellow": "黄色",
       "pink": "粉色",
       "blue": "蓝色",
@@ -882,7 +888,12 @@
     "enhancedGraphics": "增强图形",
     "rdpResolutionValue": "适配工作区边界",
     "display": "显示",
-    "networkPerformance": "网络与性能",
+    "remoteDesktopViewMode": "View mode",
+    "remoteDesktopViewModeFit": "Fit to workspace",
+    "remoteDesktopViewModeStretch": "Stretch to fill",
+    "remoteDesktopViewModeActualSize": "Actual size with scrollbars",
+    "remoteDesktopViewModeFitWidth": "Fit width",
+    "remoteDesktopViewModeFitHeight": "Fit height",    "networkPerformance": "网络与性能",
     "encoding": "编码",
     "rdpDisplayHint": "新 RDP 连接的计划显示默认值。",
     "rdpNetworkHint": "新 RDP 连接的计划网络调优。",
@@ -2109,7 +2120,9 @@
     "vncFramebuffer": "VNC framebuffer 正在此工作区中运行。",
     "transportUnavailable": "远程桌面传输不可用。",
     "session": "会话",
-    "displayAria": "VNC 画面"
+    "displayAria": "VNC 画面",
+    "viewModeButton": "View mode: {{mode}}",
+    "viewModeSaved": "View mode saved: {{mode}}"
   },
   "ai": {
     "title": "AI 助手",

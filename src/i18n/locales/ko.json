@@ -281,9 +281,15 @@
     "notesPageIndicator": "{{total}}페이지 중 {{page}}페이지",
     "notesRotationDegrees": "회전 각도",
     "notesFoldDepth": "접힌 모서리 깊이",
-    "notesBackgroundColor": "배경색",
+    "notesFoldCorner": "Fold corner",
+    "notesMarkdownEnabled": "Render Markdown",    "notesBackgroundColor": "배경색",
     "notesFont": "글꼴",
-    "notesColor": {
+    "notesFoldCornerOption": {
+      "topRight": "Top right",
+      "topLeft": "Top left",
+      "bottomRight": "Bottom right",
+      "bottomLeft": "Bottom left"
+    },    "notesColor": {
       "yellow": "노란색",
       "pink": "분홍색",
       "blue": "파란색",
@@ -882,7 +888,12 @@
     "enhancedGraphics": "향상된 그래픽",
     "rdpResolutionValue": "워크스페이스 영역에 맞춤",
     "display": "디스플레이",
-    "networkPerformance": "네트워크 및 성능",
+    "remoteDesktopViewMode": "View mode",
+    "remoteDesktopViewModeFit": "Fit to workspace",
+    "remoteDesktopViewModeStretch": "Stretch to fill",
+    "remoteDesktopViewModeActualSize": "Actual size with scrollbars",
+    "remoteDesktopViewModeFitWidth": "Fit width",
+    "remoteDesktopViewModeFitHeight": "Fit height",    "networkPerformance": "네트워크 및 성능",
     "encoding": "인코딩",
     "rdpDisplayHint": "새 RDP 연결을 위한 계획된 디스플레이 기본값.",
     "rdpNetworkHint": "새 RDP 연결을 위한 계획된 네트워크 튜닝.",
@@ -2109,7 +2120,9 @@
     "vncFramebuffer": "VNC 프레임버퍼가 이 워크스페이스에서 실행 중입니다.",
     "transportUnavailable": "원격 데스크톱 전송을 사용할 수 없습니다.",
     "session": "세션",
-    "displayAria": "VNC 디스플레이"
+    "displayAria": "VNC 디스플레이",
+    "viewModeButton": "View mode: {{mode}}",
+    "viewModeSaved": "View mode saved: {{mode}}"
   },
   "ai": {
     "title": "AI 어시스턴트",

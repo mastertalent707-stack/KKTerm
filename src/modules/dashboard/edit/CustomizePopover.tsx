@@ -68,6 +68,24 @@ const NOTES_SETTINGS_SCHEMA: WidgetSettingsSchema = {
       step: 0.05,
       defaultValue: 0.5,
     },
+    {
+      key: "foldCorner",
+      type: "select",
+      label: "dashboard.notesFoldCorner",
+      defaultValue: "topRight",
+      options: [
+        { label: "dashboard.notesFoldCornerOption.topRight", value: "topRight" },
+        { label: "dashboard.notesFoldCornerOption.topLeft", value: "topLeft" },
+        { label: "dashboard.notesFoldCornerOption.bottomRight", value: "bottomRight" },
+        { label: "dashboard.notesFoldCornerOption.bottomLeft", value: "bottomLeft" },
+      ],
+    },
+    {
+      key: "markdownEnabled",
+      type: "boolean",
+      label: "dashboard.notesMarkdownEnabled",
+      defaultValue: true,
+    },
   ],
 };
 
@@ -468,7 +486,9 @@ function WidgetSettingsFieldControl({
         <span>{label}</span>
         <select value={typeof value === "string" ? value : ""} onChange={(event) => onChange(event.target.value)}>
           {field.options.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
+            <option key={option.value} value={option.value}>
+              {option.label.includes(".") ? t(option.label) : option.label}
+            </option>
           ))}
         </select>
       </label>

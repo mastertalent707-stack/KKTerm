@@ -3417,11 +3417,47 @@ button.dashboard-pill-dot:focus-visible {
   right: 0;
   width: var(--note-fold-size);
   height: var(--note-fold-size);
-  background: linear-gradient(225deg, rgb(0 0 0 / var(--note-fold-depth-alpha)) 0%, rgb(0 0 0 / 0%) 55%),
-    linear-gradient(225deg, transparent 50%, var(--note-paper-edge) 50%);
   box-shadow:
     calc(0px - var(--note-fold-shadow-offset)) var(--note-fold-shadow-offset) var(--note-fold-shadow-blur) rgb(0 0 0 / 10%);
   pointer-events: none;
+}
+
+.dw-notes--fold-topRight::before {
+  top: 0;
+  right: 0;
+  background: linear-gradient(225deg, rgb(0 0 0 / var(--note-fold-depth-alpha)) 0%, rgb(0 0 0 / 0%) 55%),
+    linear-gradient(225deg, transparent 50%, var(--note-paper-edge) 50%);
+}
+
+.dw-notes--fold-topLeft::before {
+  top: 0;
+  left: 0;
+  right: auto;
+  background: linear-gradient(135deg, rgb(0 0 0 / var(--note-fold-depth-alpha)) 0%, rgb(0 0 0 / 0%) 55%),
+    linear-gradient(135deg, transparent 50%, var(--note-paper-edge) 50%);
+  box-shadow:
+    var(--note-fold-shadow-offset) var(--note-fold-shadow-offset) var(--note-fold-shadow-blur) rgb(0 0 0 / 10%);
+}
+
+.dw-notes--fold-bottomRight::before {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(315deg, rgb(0 0 0 / var(--note-fold-depth-alpha)) 0%, rgb(0 0 0 / 0%) 55%),
+    linear-gradient(315deg, transparent 50%, var(--note-paper-edge) 50%);
+  box-shadow:
+    calc(0px - var(--note-fold-shadow-offset)) calc(0px - var(--note-fold-shadow-offset)) var(--note-fold-shadow-blur) rgb(0 0 0 / 10%);
+}
+
+.dw-notes--fold-bottomLeft::before {
+  top: auto;
+  left: 0;
+  right: auto;
+  bottom: 0;
+  background: linear-gradient(45deg, rgb(0 0 0 / var(--note-fold-depth-alpha)) 0%, rgb(0 0 0 / 0%) 55%),
+    linear-gradient(45deg, transparent 50%, var(--note-paper-edge) 50%);
+  box-shadow:
+    var(--note-fold-shadow-offset) calc(0px - var(--note-fold-shadow-offset)) var(--note-fold-shadow-blur) rgb(0 0 0 / 10%);
 }
 
 .dw-notes-page-actions {
@@ -3456,20 +3492,24 @@ button.dashboard-pill-dot:focus-visible {
   border-color: rgb(0 0 0 / 12%);
 }
 
-.dw-notes-text {
+.dw-notes-text,
+.dw-notes-markdown {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-  background: transparent;
-  border: 0;
-  outline: none;
-  resize: none;
   color: inherit;
   font: inherit;
   font-size: 18px;
   line-height: 1.45;
-  padding: 0;
   letter-spacing: 0.1px;
+}
+
+.dw-notes-text {
+  background: transparent;
+  border: 0;
+  outline: none;
+  resize: none;
+  padding: 0;
 }
 
 .dw-notes-text::placeholder {
@@ -3477,7 +3517,75 @@ button.dashboard-pill-dot:focus-visible {
   font-style: italic;
 }
 
-.dw-notes.is-tearing .dw-notes-text {
+.dw-notes-markdown {
+  overflow: auto;
+  padding: 0 2px 0 0;
+  cursor: text;
+}
+
+.dw-notes-markdown > :first-child {
+  margin-top: 0;
+}
+
+.dw-notes-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.dw-notes-markdown h1,
+.dw-notes-markdown h2,
+.dw-notes-markdown h3,
+.dw-notes-markdown h4,
+.dw-notes-markdown h5,
+.dw-notes-markdown h6,
+.dw-notes-markdown p,
+.dw-notes-markdown ul,
+.dw-notes-markdown ol,
+.dw-notes-markdown blockquote,
+.dw-notes-markdown pre {
+  margin: 0 0 0.55em;
+}
+
+.dw-notes-markdown h1 { font-size: 1.35em; }
+.dw-notes-markdown h2 { font-size: 1.2em; }
+.dw-notes-markdown h3,
+.dw-notes-markdown h4,
+.dw-notes-markdown h5,
+.dw-notes-markdown h6 { font-size: 1.05em; }
+
+.dw-notes-markdown ul,
+.dw-notes-markdown ol {
+  padding-left: 1.25em;
+}
+
+.dw-notes-markdown blockquote {
+  padding-left: 0.65em;
+  border-left: 2px solid rgb(0 0 0 / 18%);
+}
+
+.dw-notes-markdown :not(pre) > code {
+  padding: 0.05em 0.25em;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 38%);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.85em;
+}
+
+.dw-notes-markdown pre {
+  overflow: auto;
+  padding: 0.45em 0.55em;
+  border-radius: 5px;
+  background: rgb(255 255 255 / 36%);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.78em;
+}
+
+.dw-notes-markdown a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.dw-notes.is-tearing .dw-notes-text,
+.dw-notes.is-tearing .dw-notes-markdown {
   opacity: 0;
 }
 
@@ -3509,7 +3617,7 @@ button.dashboard-pill-dot:focus-visible {
   box-shadow:
     0 1px 1px rgb(0 0 0 / 10%),
     0 8px 18px -6px rgb(0 0 0 / 22%);
-  transform-origin: calc(100% - (var(--note-fold-size) / 2)) calc(var(--note-fold-size) / 2);
+  transform-origin: 50% 50%;
 }
 
 .dw-notes-toolbar {

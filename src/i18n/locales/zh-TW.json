@@ -281,9 +281,15 @@
     "notesPageIndicator": "第 {{page}} 頁，共 {{total}} 頁",
     "notesRotationDegrees": "旋轉角度",
     "notesFoldDepth": "摺角深度",
-    "notesBackgroundColor": "背景顏色",
+    "notesFoldCorner": "Fold corner",
+    "notesMarkdownEnabled": "Render Markdown",    "notesBackgroundColor": "背景顏色",
     "notesFont": "字型",
-    "notesColor": {
+    "notesFoldCornerOption": {
+      "topRight": "Top right",
+      "topLeft": "Top left",
+      "bottomRight": "Bottom right",
+      "bottomLeft": "Bottom left"
+    },    "notesColor": {
       "yellow": "黃色",
       "pink": "粉紅色",
       "blue": "藍色",
@@ -882,7 +888,12 @@
     "enhancedGraphics": "增強圖形",
     "rdpResolutionValue": "配合工作區邊界",
     "display": "顯示",
-    "networkPerformance": "網路與效能",
+    "remoteDesktopViewMode": "View mode",
+    "remoteDesktopViewModeFit": "Fit to workspace",
+    "remoteDesktopViewModeStretch": "Stretch to fill",
+    "remoteDesktopViewModeActualSize": "Actual size with scrollbars",
+    "remoteDesktopViewModeFitWidth": "Fit width",
+    "remoteDesktopViewModeFitHeight": "Fit height",    "networkPerformance": "網路與效能",
     "encoding": "編碼",
     "rdpDisplayHint": "新 RDP 連線的規劃顯示預設值。",
     "rdpNetworkHint": "新 RDP 連線的規劃網路調校。",
@@ -2109,7 +2120,9 @@
     "vncFramebuffer": "VNC framebuffer 正在此工作區中執行。",
     "transportUnavailable": "遠端桌面傳輸無法使用。",
     "session": "工作階段",
-    "displayAria": "VNC 畫面"
+    "displayAria": "VNC 畫面",
+    "viewModeButton": "View mode: {{mode}}",
+    "viewModeSaved": "View mode saved: {{mode}}"
   },
   "ai": {
     "title": "AI 助理",

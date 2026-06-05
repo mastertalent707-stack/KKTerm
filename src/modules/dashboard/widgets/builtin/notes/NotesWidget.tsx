@@ -1,5 +1,7 @@
 import { Minus, Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import DOMPurify from "dompurify";
+import { marked } from "marked";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import type { BuiltInWidgetBodyProps } from "../../../registry/builtInRegistry";
@@ -7,6 +9,7 @@ import { useWidgetConfig } from "../../widgetLocalStorage";
 
 type NotesColor = "yellow" | "pink" | "blue" | "green" | "orange" | "purple" | "white";
 type NotesFont = "handwriting" | "marker" | "system" | "serif" | "mono";
+type NotesFoldCorner = "topRight" | "topLeft" | "bottomRight" | "bottomLeft";
 
 interface NotesConfig {
   pages: string[];
@@ -18,6 +21,8 @@ interface NotesWidgetSettings {
   rotationDegrees: number;
   foldSizePx: number;
   foldDepth: number;
+  foldCorner: NotesFoldCorner;
+  markdownEnabled: boolean;
 }
 
 const DEFAULT_CONFIG: NotesConfig = {
@@ -30,12 +35,15 @@ const DEFAULT_SETTINGS: NotesWidgetSettings = {
   rotationDegrees: -0.6,
   foldSizePx: 22,
   foldDepth: 0.5,
+  foldCorner: "topRight",
+  markdownEnabled: true,
 };
 
 const DELETE_ANIMATION_MS = 220;
 
 const COLOR_VALUES: NotesColor[] = ["yellow", "pink", "blue", "green", "orange", "purple", "white"];
 const FONT_VALUES: NotesFont[] = ["handwriting", "marker", "system", "serif", "mono"];
+const FOLD_CORNER_VALUES: NotesFoldCorner[] = ["topRight", "topLeft", "bottomRight", "bottomLeft"];
 
 function storageKey(instanceId: string) {
   return `kkterm.dashboard.notes.${instanceId}.v1`;
@@ -71,6 +79,8 @@ export function randomNotesSettings(): NotesWidgetSettings {
     rotationDegrees: randomNotesRotationDegrees(),
     foldSizePx: Math.round(18 + Math.random() * 16),
     foldDepth: Math.round((0.3 + Math.random() * 0.5) * 100) / 100,
+    foldCorner: FOLD_CORNER_VALUES[Math.floor(Math.random() * FOLD_CORNER_VALUES.length)] ?? "topRight",
+    markdownEnabled: true,
   };
 }
 
@@ -86,10 +96,21 @@ export function parseNotesSettingsJson(settingsValuesJson: string): NotesWidgetS
     const foldDepth = typeof parsed.foldDepth === "number"
       ? Math.max(0, Math.min(1, parsed.foldDepth))
       : DEFAULT_SETTINGS.foldDepth;
-    return { rotationDegrees, foldSizePx, foldDepth };
+    const foldCorner =
+      typeof parsed.foldCorner === "string" && FOLD_CORNER_VALUES.includes(parsed.foldCorner as NotesFoldCorner)
+        ? (parsed.foldCorner as NotesFoldCorner)
+        : DEFAULT_SETTINGS.foldCorner;
+    const markdownEnabled =
+      typeof parsed.markdownEnabled === "boolean" ? parsed.markdownEnabled : DEFAULT_SETTINGS.markdownEnabled;
+    return { rotationDegrees, foldSizePx, foldDepth, foldCorner, markdownEnabled };
   } catch {
     return DEFAULT_SETTINGS;
   }
+}
+
+function renderMarkdown(markdown: string) {
+  const html = marked.parse(markdown, { async: false }) as string;
+  return DOMPurify.sanitize(html);
 }
 
 export function NotesBody({ instance }: BuiltInWidgetBodyProps) {
@@ -103,15 +124,25 @@ export function NotesBody({ instance }: BuiltInWidgetBodyProps) {
     () => parseNotesSettingsJson(instance.settingsValuesJson),
     [instance.settingsValuesJson],
   );
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [tearingPageIndex, setTearingPageIndex] = useState<number | null>(null);
+  const [isEditingMarkdown, setIsEditingMarkdown] = useState(false);
   const activePage = config.pages[activePageIndex] ?? "";
+  const renderedMarkdown = useMemo(() => renderMarkdown(activePage), [activePage]);
+  const showMarkdownPreview = settings.markdownEnabled && activePage.trim().length > 0 && !isEditingMarkdown;
 
   useEffect(() => {
     if (activePageIndex >= config.pages.length) {
       setActivePageIndex(Math.max(0, config.pages.length - 1));
     }
   }, [activePageIndex, config.pages.length]);
+
+  useEffect(() => {
+    if (isEditingMarkdown) {
+      textAreaRef.current?.focus();
+    }
+  }, [isEditingMarkdown]);
 
   function updateActivePage(text: string) {
     const pages = [...config.pages];
@@ -143,7 +174,7 @@ export function NotesBody({ instance }: BuiltInWidgetBodyProps) {
 
   return (
     <div
-      className={`dw-notes dw-notes--color-${config.color} dw-notes--font-${config.font}${tearingPageIndex === activePageIndex ? " is-tearing" : ""}`}
+      className={`dw-notes dw-notes--color-${config.color} dw-notes--font-${config.font} dw-notes--fold-${settings.foldCorner}${tearingPageIndex === activePageIndex ? " is-tearing" : ""}`}
       style={{
         "--note-rotation": `${settings.rotationDegrees}deg`,
         "--note-fold-size": `${settings.foldSizePx}px`,
@@ -175,14 +206,29 @@ export function NotesBody({ instance }: BuiltInWidgetBodyProps) {
           </button>
         ) : null}
       </div>
-      <textarea
-        className="dw-notes-text"
-        value={activePage}
-        onChange={(e) => updateActivePage(e.target.value)}
-        placeholder={t("dashboard.notesPlaceholder")}
-        aria-label={t("dashboard.notesAriaLabel")}
-        spellCheck={false}
-      />
+      {showMarkdownPreview ? (
+        <div
+          className="dw-notes-markdown"
+          aria-label={t("dashboard.notesAriaLabel")}
+          dangerouslySetInnerHTML={{ __html: renderedMarkdown }}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            setIsEditingMarkdown(true);
+          }}
+        />
+      ) : (
+        <textarea
+          ref={textAreaRef}
+          className="dw-notes-text"
+          value={activePage}
+          onChange={(e) => updateActivePage(e.target.value)}
+          onFocus={() => setIsEditingMarkdown(true)}
+          onBlur={() => setIsEditingMarkdown(false)}
+          placeholder={t("dashboard.notesPlaceholder")}
+          aria-label={t("dashboard.notesAriaLabel")}
+          spellCheck={false}
+        />
+      )}
       <div className="dw-notes-toolbar" role="toolbar" aria-label={t("dashboard.notesToolbarLabel")}>
         <div className="dw-notes-colors" role="radiogroup" aria-label={t("dashboard.notesBackgroundColor")}>
           {COLOR_VALUES.map((color) => (

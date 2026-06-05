@@ -281,9 +281,15 @@
     "notesPageIndicator": "Página {{page}} de {{total}}",
     "notesRotationDegrees": "Graus de rotação",
     "notesFoldDepth": "Profundidade da dobra",
-    "notesBackgroundColor": "Cor de fundo",
+    "notesFoldCorner": "Fold corner",
+    "notesMarkdownEnabled": "Render Markdown",    "notesBackgroundColor": "Cor de fundo",
     "notesFont": "Fonte",
-    "notesColor": {
+    "notesFoldCornerOption": {
+      "topRight": "Top right",
+      "topLeft": "Top left",
+      "bottomRight": "Bottom right",
+      "bottomLeft": "Bottom left"
+    },    "notesColor": {
       "yellow": "Amarelo",
       "pink": "Rosa",
       "blue": "Azul",
@@ -882,7 +888,12 @@
     "enhancedGraphics": "Gráficos aprimorados",
     "rdpResolutionValue": "Ajustar aos limites da área de trabalho",
     "display": "Exibição",
-    "networkPerformance": "Rede e desempenho",
+    "remoteDesktopViewMode": "View mode",
+    "remoteDesktopViewModeFit": "Fit to workspace",
+    "remoteDesktopViewModeStretch": "Stretch to fill",
+    "remoteDesktopViewModeActualSize": "Actual size with scrollbars",
+    "remoteDesktopViewModeFitWidth": "Fit width",
+    "remoteDesktopViewModeFitHeight": "Fit height",    "networkPerformance": "Rede e desempenho",
     "encoding": "Codificação",
     "rdpDisplayHint": "Padrões de exibição planejados para novas Conexões RDP.",
     "rdpNetworkHint": "Ajustes de rede planejados para novas Conexões RDP.",
@@ -2109,7 +2120,9 @@
     "vncFramebuffer": "O framebuffer VNC está em execução nesta área de trabalho.",
     "transportUnavailable": "Transporte de área de trabalho remota indisponível.",
     "session": "sessão",
-    "displayAria": "Tela VNC"
+    "displayAria": "Tela VNC",
+    "viewModeButton": "View mode: {{mode}}",
+    "viewModeSaved": "View mode saved: {{mode}}"
   },
   "ai": {
     "title": "Assistente IA",

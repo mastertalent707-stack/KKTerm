@@ -281,9 +281,15 @@
     "notesPageIndicator": "{{total}} ページ中 {{page}} ページ",
     "notesRotationDegrees": "回転角度",
     "notesFoldDepth": "折り目の深さ",
-    "notesBackgroundColor": "背景色",
+    "notesFoldCorner": "Fold corner",
+    "notesMarkdownEnabled": "Render Markdown",    "notesBackgroundColor": "背景色",
     "notesFont": "フォント",
-    "notesColor": {
+    "notesFoldCornerOption": {
+      "topRight": "Top right",
+      "topLeft": "Top left",
+      "bottomRight": "Bottom right",
+      "bottomLeft": "Bottom left"
+    },    "notesColor": {
       "yellow": "黄色",
       "pink": "ピンク",
       "blue": "青",
@@ -882,7 +888,12 @@
     "enhancedGraphics": "拡張グラフィックス",
     "rdpResolutionValue": "ワークスペース領域に合わせる",
     "display": "ディスプレイ",
-    "networkPerformance": "ネットワークとパフォーマンス",
+    "remoteDesktopViewMode": "View mode",
+    "remoteDesktopViewModeFit": "Fit to workspace",
+    "remoteDesktopViewModeStretch": "Stretch to fill",
+    "remoteDesktopViewModeActualSize": "Actual size with scrollbars",
+    "remoteDesktopViewModeFitWidth": "Fit width",
+    "remoteDesktopViewModeFitHeight": "Fit height",    "networkPerformance": "ネットワークとパフォーマンス",
     "encoding": "エンコーディング",
     "rdpDisplayHint": "新しいRDP接続の計画されたディスプレイのデフォルト。",
     "rdpNetworkHint": "新しいRDP接続の計画されたネットワークチューニング。",
@@ -2109,7 +2120,9 @@
     "vncFramebuffer": "VNCフレームバッファがこのワークスペースで実行中です。",
     "transportUnavailable": "リモートデスクトップトランスポートが利用できません。",
     "session": "セッション",
-    "displayAria": "VNCディスプレイ"
+    "displayAria": "VNCディスプレイ",
+    "viewModeButton": "View mode: {{mode}}",
+    "viewModeSaved": "View mode saved: {{mode}}"
   },
   "ai": {
     "title": "AIアシスタント",

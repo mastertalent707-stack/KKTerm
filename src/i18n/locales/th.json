@@ -281,9 +281,15 @@
     "notesPageIndicator": "หน้า {{page}} จาก {{total}}",
     "notesRotationDegrees": "องศาการหมุน",
     "notesFoldDepth": "ความลึกของรอยพับ",
-    "notesBackgroundColor": "สีพื้นหลัง",
+    "notesFoldCorner": "Fold corner",
+    "notesMarkdownEnabled": "Render Markdown",    "notesBackgroundColor": "สีพื้นหลัง",
     "notesFont": "แบบอักษร",
-    "notesColor": {
+    "notesFoldCornerOption": {
+      "topRight": "Top right",
+      "topLeft": "Top left",
+      "bottomRight": "Bottom right",
+      "bottomLeft": "Bottom left"
+    },    "notesColor": {
       "yellow": "สีเหลือง",
       "pink": "สีชมพู",
       "blue": "สีฟ้า",
@@ -882,7 +888,12 @@
     "enhancedGraphics": "กราฟิกขั้นสูง",
     "rdpResolutionValue": "พอดีกับขอบเขตพื้นที่ทำงาน",
     "display": "การแสดงผล",
-    "networkPerformance": "เครือข่ายและประสิทธิภาพ",
+    "remoteDesktopViewMode": "View mode",
+    "remoteDesktopViewModeFit": "Fit to workspace",
+    "remoteDesktopViewModeStretch": "Stretch to fill",
+    "remoteDesktopViewModeActualSize": "Actual size with scrollbars",
+    "remoteDesktopViewModeFitWidth": "Fit width",
+    "remoteDesktopViewModeFitHeight": "Fit height",    "networkPerformance": "เครือข่ายและประสิทธิภาพ",
     "encoding": "การเข้ารหัส",
     "rdpDisplayHint": "ค่าเริ่มต้นการแสดงผลที่วางแผนไว้สำหรับการเชื่อมต่อ RDP ใหม่",
     "rdpNetworkHint": "การปรับแต่งเครือข่ายที่วางแผนไว้สำหรับการเชื่อมต่อ RDP ใหม่",
@@ -2109,7 +2120,9 @@
     "vncFramebuffer": "VNC framebuffer กำลังทำงานในพื้นที่ทำงานนี้",
     "transportUnavailable": "การขนส่งเดสก์ท็อประยะไกลไม่พร้อมใช้งาน",
     "session": "เซสชัน",
-    "displayAria": "การแสดงผล VNC"
+    "displayAria": "การแสดงผล VNC",
+    "viewModeButton": "View mode: {{mode}}",
+    "viewModeSaved": "View mode saved: {{mode}}"
   },
   "ai": {
     "title": "ผู้ช่วย AI",

@@ -281,8 +281,16 @@
     "notesPageIndicator": "Page {{page}} of {{total}}",
     "notesRotationDegrees": "Rotation degrees",
     "notesFoldDepth": "Fold depth",
+    "notesFoldCorner": "Fold corner",
+    "notesMarkdownEnabled": "Render Markdown",
     "notesBackgroundColor": "Background color",
     "notesFont": "Font",
+    "notesFoldCornerOption": {
+      "topRight": "Top right",
+      "topLeft": "Top left",
+      "bottomRight": "Bottom right",
+      "bottomLeft": "Bottom left"
+    },
     "notesColor": {
       "yellow": "Yellow",
       "pink": "Pink",
