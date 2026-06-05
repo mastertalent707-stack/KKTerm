@@ -14,7 +14,7 @@ import type { FormEvent, KeyboardEvent, MouseEvent as ReactMouseEvent, PointerEv
 import { useTranslation } from "react-i18next";
 import i18next from "../../../../i18n/config";
 import { ariaInvalid, dialogButtonAria, menuButtonAria } from "../../../../lib/aria";
-import { focusCurrentWebview, invokeCommand, isTauriRuntime, listenMainWindowFocusChanged, saveTextFile, type RemoteLoopbackPort, type TerminalOutput, type TerminalRecordingEntry, type TerminalRecordingInfo, type TmuxSession } from "../../../../lib/tauri";
+import { focusCurrentWebview, invokeCommand, isTauriRuntime, listenMainWindowFocusChanged, logUiDebug, saveTextFile, type RemoteLoopbackPort, type TerminalOutput, type TerminalRecordingEntry, type TerminalRecordingInfo, type TmuxSession } from "../../../../lib/tauri";
 import { defaultTerminalSettings } from "../../../../app-defaults";
 import { forgetTmuxSessionId, useWorkspaceStore } from "../../../../store";
 import { createTerminalRenderer, type TerminalDimensions, type TerminalRenderer } from "./renderer";
@@ -2900,22 +2900,21 @@ function shouldPreserveExternalFocus(paneElement: HTMLElement | null) {
   return isEditableElement(activeElement) || isFocusableElement(activeElement);
 }
 
-// Opt-in focus tracing for the "terminal loses input focus after app switch"
-// bug. Enable from the devtools console with
-// localStorage.setItem("kkterm:debug-focus", "1") and reload; each restore
-// attempt then logs whether the document actually holds OS focus and which
-// element is active, turning the previously blind guess-and-try into a
-// verifiable signal on Windows.
+// Focus tracing for the "terminal loses input focus after app switch" bug.
+// Records whether the document actually holds OS focus and which element is
+// active at each restore step to ui.debug.log (written in debug builds, or in
+// release builds when the advanced debugging setting is on), turning the
+// previously blind guess-and-try into a verifiable signal on Windows.
 function logTerminalFocusDiagnostic(stage: string) {
-  if (typeof localStorage === "undefined" || localStorage.getItem("kkterm:debug-focus") !== "1") {
-    return;
-  }
   const active = document.activeElement;
   const describe = active instanceof HTMLElement
     ? `${active.tagName.toLowerCase()}${active.className ? `.${active.className.split(/\s+/).join(".")}` : ""}`
     : String(active);
-  // eslint-disable-next-line no-console
-  console.info(`[kkterm focus] ${stage} hasFocus=${document.hasFocus()} active=${describe}`);
+  logUiDebug("terminal.focus_restore", {
+    stage,
+    hasFocus: document.hasFocus(),
+    activeElement: describe,
+  });
 }
 
 function shouldPreserveTerminalWorkspaceFocus() {
