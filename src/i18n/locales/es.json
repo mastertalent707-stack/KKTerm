@@ -785,6 +785,7 @@
     "debugHint": "Controla los diagnósticos locales detallados.",
     "advancedDebugging": "Depuración avanzada",
     "advancedDebuggingHint": "Escribe registros completos de depuración del Asistente de IA, MCP, Asistente de instalación y latidos incluso en compilaciones de lanzamiento. Los registros pueden incluir prompts, argumentos de herramientas, salida de comandos del instalador, capturas de pantalla y código fuente de widgets generado.",
+    "openLogFolder": "Abrir carpeta de registros",
     "rdpWebviewStability": "Estabilidad de la sesión RDP (WebView2)",
     "rdpWebviewStabilityHint": "Fuerza el renderizado por software y desactiva la limitación por oclusión de ventanas para que KKTerm siga respondiendo cuando se ejecuta dentro de un host de Remote Desktop (RDP) y el cliente se desconecta y vuelve a conectarse. Se aplica automáticamente cuando KKTerm detecta que se ejecuta en una sesión remota; activa esta opción para forzarlo. Desactiva la aceleración de GPU, así que déjalo desactivado en instalaciones locales. Surte efecto después de reiniciar KKTerm.",
     "settingsExportFilter": "Exportación de ajustes de KKTerm",

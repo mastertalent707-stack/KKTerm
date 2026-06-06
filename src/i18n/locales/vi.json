@@ -785,6 +785,7 @@
     "debugHint": "Điều khiển chẩn đoán cục bộ chi tiết.",
     "advancedDebugging": "Gỡ lỗi nâng cao",
     "advancedDebuggingHint": "Ghi nhật ký gỡ lỗi đầy đủ của Trợ lý AI, MCP, Trợ lý cài đặt và heartbeat ngay cả trong bản dựng phát hành. Nhật ký có thể bao gồm prompt, đối số công cụ, đầu ra lệnh trình cài đặt, ảnh chụp màn hình và mã nguồn widget được tạo.",
+    "openLogFolder": "Mở thư mục nhật ký",
     "rdpWebviewStability": "Độ ổn định phiên RDP (WebView2)",
     "rdpWebviewStabilityHint": "Buộc kết xuất bằng phần mềm và tắt điều tiết khi cửa sổ bị che khuất để KKTerm vẫn phản hồi khi chạy trong máy chủ Remote Desktop (RDP) và máy khách ngắt kết nối rồi kết nối lại. Tự động áp dụng khi KKTerm phát hiện đang chạy trong phiên từ xa; bật tùy chọn này để buộc áp dụng. Tắt tăng tốc GPU, vì vậy hãy để tắt đối với các bản cài đặt cục bộ. Có hiệu lực sau khi khởi động lại KKTerm.",
     "settingsExportFilter": "Xuất cài đặt KKTerm",

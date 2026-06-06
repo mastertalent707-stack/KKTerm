@@ -29,6 +29,20 @@ pub fn log_path() -> Option<PathBuf> {
     LOG_PATH.get().cloned()
 }
 
+pub fn log_dir() -> Result<PathBuf, String> {
+    if let Some(log_path) = LOG_PATH.get() {
+        return log_path
+            .parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| "failed to resolve log folder".to_string());
+    }
+
+    let exe_path = std::env::current_exe().ok();
+    let local_app_data = std::env::var_os("LOCALAPPDATA").map(PathBuf::from);
+    runtime_log_dir_for(exe_path.as_deref(), local_app_data.as_deref())
+        .ok_or_else(|| "failed to resolve log folder".to_string())
+}
+
 pub fn status() -> String {
     LOG_STATUS
         .get()
@@ -120,7 +134,10 @@ pub fn advanced_debugging_enabled() -> bool {
 }
 
 fn write_startup_line() -> std::io::Result<PathBuf> {
-    let log_dir = std::env::current_dir()?.join("logs");
+    let exe_path = std::env::current_exe().ok();
+    let local_app_data = std::env::var_os("LOCALAPPDATA").map(PathBuf::from);
+    let log_dir = runtime_log_dir_for(exe_path.as_deref(), local_app_data.as_deref())
+        .ok_or_else(|| std::io::Error::other("failed to resolve log folder"))?;
     fs::create_dir_all(&log_dir)?;
 
     let log_path = log_dir.join("kkterm.log");
@@ -135,6 +152,13 @@ fn write_startup_line() -> std::io::Result<PathBuf> {
 
 fn sensitive_debug_log_enabled(debug_assertions: bool, advanced_debugging_enabled: bool) -> bool {
     debug_assertions || advanced_debugging_enabled
+}
+
+fn runtime_log_dir_for(exe_path: Option<&Path>, local_app_data: Option<&Path>) -> Option<PathBuf> {
+    exe_path
+        .and_then(Path::parent)
+        .map(|folder| folder.join("Logs"))
+        .or_else(|| local_app_data.map(|folder| folder.join("KKTerm").join("Logs")))
 }
 
 fn redact_rdp_debug_payload(value: &Value) -> Value {
@@ -297,6 +321,29 @@ mod tests {
         let path = rdp_debug_log_path_for(Path::new("logs/kkterm.log"));
 
         assert_eq!(path, PathBuf::from("logs").join("rdp.debug.log"));
+    }
+
+    #[test]
+    fn runtime_log_dir_uses_executable_directory_with_spaces() {
+        let exe_path = Path::new(r"C:\Program Files\KK Term\kkterm.exe");
+
+        let path = runtime_log_dir_for(Some(exe_path), None).expect("log dir");
+
+        assert_eq!(
+            path,
+            PathBuf::from(r"C:\Program Files\KK Term").join("Logs")
+        );
+    }
+
+    #[test]
+    fn runtime_log_dir_falls_back_to_local_app_data() {
+        let path = runtime_log_dir_for(None, Some(Path::new(r"C:\Users\Ryan\AppData\Local")))
+            .expect("log dir");
+
+        assert_eq!(
+            path,
+            PathBuf::from(r"C:\Users\Ryan\AppData\Local\KKTerm\Logs")
+        );
     }
 
     #[test]

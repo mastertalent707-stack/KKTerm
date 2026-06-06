@@ -993,6 +993,10 @@ type CommandMap = {
     args: undefined;
     result: void;
   };
+  open_log_folder: {
+    args: undefined;
+    result: void;
+  };
   list_custom_fonts: {
     args: undefined;
     result: CustomFont[];

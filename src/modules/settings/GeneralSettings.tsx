@@ -139,6 +139,16 @@ export function GeneralSettings() {
     }
   }
 
+  async function handleOpenLogFolder() {
+    try {
+      await invokeCommand("open_log_folder");
+    } catch (openError) {
+      showStatusBarNotice(openError instanceof Error ? openError.message : String(openError), {
+        tone: "error",
+      });
+    }
+  }
+
   async function handleImportSettings() {
     try {
       const path = await selectSettingsImportFile({
@@ -539,18 +549,28 @@ export function GeneralSettings() {
           <p className="field-hint">{t("settings.debugHint")}</p>
         </div>
         <div className="settings-toggle-list">
-          <label className="settings-toggle-row">
-            <ToggleSwitch
-              checked={draft.advancedDebuggingEnabled}
-              onChange={(checked) =>
-                setDraft((s) => ({ ...s, advancedDebuggingEnabled: checked }))
-              }
-            />
+          <div className="settings-toggle-row">
             <span>
               <strong>{t("settings.advancedDebugging")}</strong>
               <small>{t("settings.advancedDebuggingHint")}</small>
             </span>
-          </label>
+            <div className="settings-toggle-actions">
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => void handleOpenLogFolder()}
+              >
+                <FolderOpen size={16} />
+                {t("settings.openLogFolder")}
+              </button>
+              <ToggleSwitch
+                checked={draft.advancedDebuggingEnabled}
+                onChange={(checked) =>
+                  setDraft((s) => ({ ...s, advancedDebuggingEnabled: checked }))
+                }
+              />
+            </div>
+          </div>
           <label className="settings-toggle-row">
             <ToggleSwitch
               checked={draft.rdpWebviewStability}

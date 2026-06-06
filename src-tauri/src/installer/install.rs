@@ -14,7 +14,7 @@ use std::io::{BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 use std::thread::JoinHandle;
 use std::time::{Instant, SystemTime};
 
@@ -25,11 +25,11 @@ use serde_json::json;
 /// genuinely quiet for 30–90s during MSIX staging.
 const HEARTBEAT_INTERVAL_SECS: u64 = 10;
 
-use super::detect::{github_release_install_dir, github_release_marker_path, GithubReleaseMarker};
+use super::detect::{GithubReleaseMarker, github_release_install_dir, github_release_marker_path};
 use super::events::ProgressEvent;
 use super::managed_app::{
-    managed_app_binary_dir, managed_app_data_dir, managed_app_install_dir, managed_app_marker_path,
-    ManagedAppMarker,
+    ManagedAppMarker, managed_app_binary_dir, managed_app_data_dir, managed_app_install_dir,
+    managed_app_marker_path,
 };
 use super::options::InstallOptions;
 use super::proc::{no_window, npm_program};
@@ -770,7 +770,9 @@ fn winget_error_text(code: u32) -> Option<&'static str> {
         0x8A150004 => "Opening manifest failed",
         0x8A150005 => "Cancellation signal received",
         0x8A150006 => "Running ShellExecute failed",
-        0x8A150007 => "Cannot process manifest. The manifest version is higher than supported. Please update the client.",
+        0x8A150007 => {
+            "Cannot process manifest. The manifest version is higher than supported. Please update the client."
+        }
         0x8A150008 => "Downloading installer failed",
         0x8A150009 => "Cannot write to index; it is a higher schema version",
         0x8A15000A => "The index is corrupt",
@@ -792,7 +794,9 @@ fn winget_error_text(code: u32) -> Option<&'static str> {
         0x8A15001A => "The source location is not secure",
         0x8A15001B => "The Microsoft Store client is blocked by policy",
         0x8A15001C => "The Microsoft Store app is blocked by policy",
-        0x8A15001D => "The feature is currently under development. It can be enabled using winget settings.",
+        0x8A15001D => {
+            "The feature is currently under development. It can be enabled using winget settings."
+        }
         0x8A15001E => "Failed to install the Microsoft Store app",
         0x8A15001F => "Failed to perform auto complete",
         0x8A150020 => "Failed to initialize YAML parser",
@@ -834,7 +838,9 @@ fn winget_error_text(code: u32) -> Option<&'static str> {
         0x8A150044 => "The rest API endpoint is not found",
         0x8A150045 => "Failed to open the source",
         0x8A150046 => "Source agreements were not agreed to",
-        0x8A150047 => "Header size exceeds the allowable limit of 1024 characters. Please reduce the size and try again.",
+        0x8A150047 => {
+            "Header size exceeds the allowable limit of 1024 characters. Please reduce the size and try again."
+        }
         0x8A150048 => "Missing resource file",
         0x8A150049 => "Running MSI install failed",
         0x8A15004A => "Arguments for msiexec are invalid",
@@ -871,10 +877,14 @@ fn winget_error_text(code: u32) -> Option<&'static str> {
         0x8A150069 => "The package currently installed is the stub package",
         0x8A15006A => "Application shutdown signal received",
         0x8A15006B => "Failed to download package dependencies",
-        0x8A15006C => "Failed to download package. Download for offline installation is prohibited.",
+        0x8A15006C => {
+            "Failed to download package. Download for offline installation is prohibited."
+        }
         0x8A15006D => "A required service is busy or unavailable. Try again later.",
         0x8A15006E => "The guid provided does not correspond to a valid resume state",
-        0x8A15006F => "The current client version did not match the client version of the saved state",
+        0x8A15006F => {
+            "The current client version did not match the client version of the saved state"
+        }
         0x8A150070 => "The resume state data is invalid",
         0x8A150071 => "Unable to open the checkpoint database",
         0x8A150072 => "Exceeded max resume limit",
@@ -888,31 +898,49 @@ fn winget_error_text(code: u32) -> Option<&'static str> {
         0x8A15007A => "Repair operation is not applicable",
         0x8A15007B => "Repair operation failed",
         0x8A15007C => "The installer technology in use doesn't support repair",
-        0x8A15007D => "Repair operations involving administrator privileges are not permitted on packages installed within the user scope",
+        0x8A15007D => {
+            "Repair operations involving administrator privileges are not permitted on packages installed within the user scope"
+        }
         0x8A15007E => "The SQLite connection was terminated to prevent corruption",
         0x8A15007F => "Failed to get Microsoft Store package catalog",
-        0x8A150080 => "No applicable Microsoft Store package found from Microsoft Store package catalog",
+        0x8A150080 => {
+            "No applicable Microsoft Store package found from Microsoft Store package catalog"
+        }
         0x8A150081 => "Failed to get Microsoft Store package download information",
         0x8A150082 => "No applicable Microsoft Store package download information found",
         0x8A150083 => "Failed to retrieve Microsoft Store package license",
         0x8A150084 => "The Microsoft Store package does not support download",
-        0x8A150085 => "Failed to retrieve Microsoft Store package license. The Microsoft Entra Id account does not have the required privilege.",
-        0x8A150086 => "Downloaded zero byte installer; ensure that your network connection is working properly",
+        0x8A150085 => {
+            "Failed to retrieve Microsoft Store package license. The Microsoft Entra Id account does not have the required privilege."
+        }
+        0x8A150086 => {
+            "Downloaded zero byte installer; ensure that your network connection is working properly"
+        }
         0x8A150087 => "Failed installing one or more fonts",
         0x8A150088 => "Font file is not supported and cannot be installed",
         0x8A150089 => "Font package is already installed",
         0x8A15008A => "Font file not found",
-        0x8A15008B => "Font uninstall failed. The font may not be in a good state. Try uninstalling after a restart.",
+        0x8A15008B => {
+            "Font uninstall failed. The font may not be in a good state. Try uninstalling after a restart."
+        }
         0x8A15008C => "Font validation failed",
-        0x8A15008D => "Font rollback failed. The font may not be in a good state. Try uninstalling after a restart.",
-        0x8A15008E => "An upgrade is available but uses a different install technology than the current installation",
+        0x8A15008D => {
+            "Font rollback failed. The font may not be in a good state. Try uninstalling after a restart."
+        }
+        0x8A15008E => {
+            "An upgrade is available but uses a different install technology than the current installation"
+        }
         0x8A150101 => "Application is currently running. Exit the application then try again.",
         0x8A150102 => "Another installation is already in progress. Try again later.",
         0x8A150103 => "One or more file is being used. Exit the application then try again.",
         0x8A150104 => "This package has a dependency missing from your system",
         0x8A150105 => "There's no more space on your PC. Make space, then try again.",
-        0x8A150106 => "There's not enough memory available to install. Close other applications then try again.",
-        0x8A150107 => "This application requires internet connectivity. Connect to a network then try again.",
+        0x8A150106 => {
+            "There's not enough memory available to install. Close other applications then try again."
+        }
+        0x8A150107 => {
+            "This application requires internet connectivity. Connect to a network then try again."
+        }
         0x8A150108 => "This application encountered an error during installation. Contact support.",
         0x8A150109 => "Restart your PC to finish installation",
         0x8A15010A => "Installation failed. Restart your PC then try again.",
@@ -2148,9 +2176,10 @@ mod tests {
         let args = managed_ollama_winget_args(&InstallOptions::default());
 
         assert!(args.contains(&"--location".to_string()));
-        assert!(args
-            .iter()
-            .any(|arg| arg.ends_with(r"installer\apps\ollama\app")));
+        assert!(
+            args.iter()
+                .any(|arg| arg.ends_with(r"installer\apps\ollama\app"))
+        );
     }
 
     #[test]
@@ -2254,10 +2283,7 @@ mod tests {
     fn decodes_documented_winget_exit_code() {
         // 0x8A150052 printed as a signed i32 is the cryptic -1978335150.
         let detail = exit_status_detail("winget", -1978335150);
-        assert_eq!(
-            detail,
-            " (0x8A150052: Failed to install portable package)"
-        );
+        assert_eq!(detail, " (0x8A150052: Failed to install portable package)");
     }
 
     #[test]

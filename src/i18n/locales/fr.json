@@ -785,6 +785,7 @@
     "debugHint": "Contrôle les diagnostics locaux détaillés.",
     "advancedDebugging": "Débogage avancé",
     "advancedDebuggingHint": "Écrit les journaux de débogage complets de l’Assistant IA, MCP, l’Assistant d’installation et les battements de cœur, même dans les builds de publication. Les journaux peuvent inclure les prompts, les arguments d’outils, la sortie des commandes d’installation, les captures d’écran et le code source de widget généré.",
+    "openLogFolder": "Ouvrir le dossier des journaux",
     "rdpWebviewStability": "Stabilité de session RDP (WebView2)",
     "rdpWebviewStabilityHint": "Force le rendu logiciel et désactive la limitation liée à l’occlusion des fenêtres afin que KKTerm reste réactif lorsqu’il s’exécute dans un hôte Remote Desktop (RDP) et que le client se déconnecte puis se reconnecte. S’applique automatiquement lorsque KKTerm détecte qu’il s’exécute dans une session distante ; activez cette option pour le forcer. Désactive l’accélération GPU ; laissez-la donc désactivée pour les installations locales. Prend effet après le redémarrage de KKTerm.",
     "settingsExportFilter": "Export des paramètres KKTerm",

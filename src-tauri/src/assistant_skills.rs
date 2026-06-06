@@ -448,7 +448,10 @@ Custom
         assert_eq!(without_custom, vec!["ssh-troubleshooter".to_string()]);
         assert_eq!(
             with_custom,
-            vec!["custom-helper".to_string(), "ssh-troubleshooter".to_string()]
+            vec![
+                "custom-helper".to_string(),
+                "ssh-troubleshooter".to_string()
+            ]
         );
     }
 

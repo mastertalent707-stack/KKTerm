@@ -8,8 +8,8 @@
 //! Both paths fall through to TCP-connect on `fallback_tcp_port` if ICMP returns
 //! a permission/EPERM error on the very first packet.
 
-use crate::net::scan::tcp_check;
 use crate::net::NetError;
+use crate::net::scan::tcp_check;
 use serde::Serialize;
 use std::net::IpAddr;
 use std::time::Duration;
@@ -146,8 +146,8 @@ mod backend {
     use tokio::task;
     use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
     use windows_sys::Win32::NetworkManagement::IpHelper::{
-        IcmpCloseHandle, IcmpCreateFile, IcmpSendEcho, ICMP_ECHO_REPLY, IP_OPTION_INFORMATION,
-        IP_REQ_TIMED_OUT, IP_SUCCESS,
+        ICMP_ECHO_REPLY, IP_OPTION_INFORMATION, IP_REQ_TIMED_OUT, IP_SUCCESS, IcmpCloseHandle,
+        IcmpCreateFile, IcmpSendEcho,
     };
 
     pub async fn ping_one(ip: IpAddr, opts: &PingOptions) -> IcmpOutcome {
@@ -213,7 +213,7 @@ mod backend {
     use super::{IcmpOutcome, PingOptions};
     use std::net::IpAddr;
     use std::time::Duration;
-    use surge_ping::{Client, Config, IcmpPacket, PingIdentifier, PingSequence, ICMP};
+    use surge_ping::{Client, Config, ICMP, IcmpPacket, PingIdentifier, PingSequence};
 
     pub async fn ping_one(ip: IpAddr, opts: &PingOptions) -> IcmpOutcome {
         let icmp_kind = match ip {

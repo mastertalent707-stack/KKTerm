@@ -317,15 +317,13 @@ fn detect_antigravity_cli() -> DetectedState {
         return DetectedState::not_installed();
     }
     let program = exe_path.to_string_lossy().into_owned();
-    DetectedState::installed(command_version(&program, &["--version"])).with_install_location(
-        Some(
-            exe_path
-                .parent()
-                .unwrap_or(&local_data)
-                .to_string_lossy()
-                .into_owned(),
-        ),
-    )
+    DetectedState::installed(command_version(&program, &["--version"])).with_install_location(Some(
+        exe_path
+            .parent()
+            .unwrap_or(&local_data)
+            .to_string_lossy()
+            .into_owned(),
+    ))
 }
 
 fn antigravity_cli_exe_path_from_local_data(local_data: &std::path::Path) -> PathBuf {
@@ -564,8 +562,8 @@ mod windows_installed_software {
 
     use windows_sys::Win32::Foundation::{ERROR_NO_MORE_ITEMS, ERROR_SUCCESS};
     use windows_sys::Win32::System::Registry::{
-        RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_CURRENT_USER,
-        HKEY_LOCAL_MACHINE, KEY_READ, KEY_WOW64_32KEY, KEY_WOW64_64KEY, REG_EXPAND_SZ, REG_SZ,
+        HKEY, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, KEY_WOW64_32KEY, KEY_WOW64_64KEY,
+        REG_EXPAND_SZ, REG_SZ, RegCloseKey, RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW,
     };
 
     use super::{InstalledSoftwareEntry, InstalledSoftwareSnapshot};

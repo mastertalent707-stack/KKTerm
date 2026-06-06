@@ -4,7 +4,7 @@ mod platform {
         collections::HashMap,
         ffi::c_void,
         mem::ManuallyDrop,
-        sync::{mpsc, Arc, Mutex, MutexGuard, OnceLock},
+        sync::{Arc, Mutex, MutexGuard, OnceLock, mpsc},
         time::{Duration, Instant},
     };
 
@@ -14,7 +14,6 @@ mod platform {
 
     use crate::logging::rdp_debug;
     use windows::{
-        core::{IUnknown_Vtbl, Interface, BSTR, GUID, PCSTR, PCWSTR},
         Win32::{
             Foundation::{
                 HANDLE, HGLOBAL, HWND, LPARAM, POINT, RECT, VARIANT_BOOL, VARIANT_FALSE,
@@ -23,31 +22,32 @@ mod platform {
             Graphics::Gdi::ClientToScreen,
             System::{
                 Com::{
-                    IDispatch, DISPATCH_METHOD, DISPATCH_PROPERTYGET, DISPATCH_PROPERTYPUT,
-                    DISPPARAMS,
+                    DISPATCH_METHOD, DISPATCH_PROPERTYGET, DISPATCH_PROPERTYPUT, DISPPARAMS,
+                    IDispatch,
                 },
                 DataExchange::{CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData},
                 LibraryLoader::{GetProcAddress, LoadLibraryW},
-                Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE},
-                Ole::{OleInitialize, CF_UNICODETEXT, DISPID_PROPERTYPUT},
+                Memory::{GMEM_MOVEABLE, GlobalAlloc, GlobalLock, GlobalUnlock},
+                Ole::{CF_UNICODETEXT, DISPID_PROPERTYPUT, OleInitialize},
                 Variant::{
-                    VariantClear, VARIANT, VT_BOOL, VT_BSTR, VT_DISPATCH, VT_I2, VT_I4, VT_UI4,
+                    VARIANT, VT_BOOL, VT_BSTR, VT_DISPATCH, VT_I2, VT_I4, VT_UI4, VariantClear,
                 },
             },
             UI::{
                 Input::KeyboardAndMouse::{
-                    MapVirtualKeyW, SendInput, SetFocus, VkKeyScanW, INPUT, INPUT_0,
-                    INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP,
-                    MAPVK_VK_TO_VSC, MAPVK_VK_TO_VSC_EX, VIRTUAL_KEY,
+                    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP,
+                    MAPVK_VK_TO_VSC, MAPVK_VK_TO_VSC_EX, MapVirtualKeyW, SendInput, SetFocus,
+                    VIRTUAL_KEY, VkKeyScanW,
                 },
                 WindowsAndMessaging::{
-                    CreateWindowExW, DestroyWindow, GetWindowRect, SendMessageW,
-                    SetForegroundWindow, SetWindowPos, ShowWindow, HMENU, SWP_NOACTIVATE,
-                    SWP_NOZORDER, SW_SHOWNOACTIVATE, WS_CLIPCHILDREN, WS_CLIPSIBLINGS,
-                    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_POPUP, WS_VISIBLE,
+                    CreateWindowExW, DestroyWindow, GetWindowRect, HMENU, SW_SHOWNOACTIVATE,
+                    SWP_NOACTIVATE, SWP_NOZORDER, SendMessageW, SetForegroundWindow, SetWindowPos,
+                    ShowWindow, WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_EX_NOACTIVATE,
+                    WS_EX_TOOLWINDOW, WS_POPUP, WS_VISIBLE,
                 },
             },
         },
+        core::{BSTR, GUID, IUnknown_Vtbl, Interface, PCSTR, PCWSTR},
     };
 
     const HOST_WINDOW_LABEL: &str = "main";
@@ -2137,10 +2137,7 @@ mod platform {
         connection_state == RDP_CONNECTED_STATE
     }
 
-    fn rdp_display_ready_after_sync(
-        connection_state: i32,
-        _display_sync_completed: bool,
-    ) -> bool {
+    fn rdp_display_ready_after_sync(connection_state: i32, _display_sync_completed: bool) -> bool {
         // Some servers reject dynamic display updates after interactive credential
         // prompts; once ActiveX reports connected, reveal the control at its
         // current size instead of leaving the pane stuck preparing.
@@ -2478,7 +2475,9 @@ mod platform {
         fn treats_unknown_desktop_size_as_needing_resize() {
             // (current_w, current_h, current_desktop_scale, current_device_scale,
             //  target_w, target_h, target_desktop_scale, target_device_scale)
-            assert!(should_resize_remote_desktop(0, 0, 0, 0, 1920, 1080, 100, 100));
+            assert!(should_resize_remote_desktop(
+                0, 0, 0, 0, 1920, 1080, 100, 100
+            ));
             assert!(should_resize_remote_desktop(
                 1920, 1080, 100, 100, 2048, 1080, 100, 100
             ));

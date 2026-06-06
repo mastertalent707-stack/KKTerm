@@ -785,6 +785,7 @@
     "debugHint": "Steuert ausführliche lokale Diagnosen.",
     "advancedDebugging": "Erweitertes Debugging",
     "advancedDebuggingHint": "Schreibt vollständige Debugprotokolle für KI-Assistent, MCP, Installationshelfer und Heartbeat auch in Release-Builds. Protokolle können Prompts, Tool-Argumente, Installer-Befehlsausgaben, Screenshots und generierten Widget-Quellcode enthalten.",
+    "openLogFolder": "Log-Ordner öffnen",
     "rdpWebviewStability": "RDP-Sitzungsstabilität (WebView2)",
     "rdpWebviewStabilityHint": "Erzwingt Software-Rendering und deaktiviert die Drosselung bei Fensterverdeckung, damit KKTerm reaktionsfähig bleibt, wenn es in einem Remote Desktop (RDP)-Host ausgeführt wird und der Client die Verbindung trennt und erneut herstellt. Wird automatisch angewendet, wenn KKTerm erkennt, dass es in einer Remotesitzung läuft; aktivieren Sie diese Option, um es zu erzwingen. Deaktiviert die GPU-Beschleunigung; lassen Sie die Option daher bei lokalen Installationen deaktiviert. Wird nach einem Neustart von KKTerm wirksam.",
     "settingsExportFilter": "KKTerm-Einstellungsexport",

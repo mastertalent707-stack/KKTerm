@@ -205,6 +205,16 @@ fn open_custom_fonts_folder(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn open_log_folder(app: tauri::AppHandle) -> Result<(), String> {
+    let folder = logging::log_dir()?;
+    fs::create_dir_all(&folder)
+        .map_err(|error| format!("failed to create log folder {}: {error}", folder.display()))?;
+    app.opener()
+        .open_path(folder.to_string_lossy(), None::<&str>)
+        .map_err(|error| format!("failed to open log folder {}: {error}", folder.display()))
+}
+
+#[tauri::command]
 async fn list_custom_fonts() -> Result<Vec<CustomFontEntry>, String> {
     tauri::async_runtime::spawn_blocking(list_custom_fonts_sync)
         .await
@@ -2905,6 +2915,7 @@ pub fn run() {
             update_appearance_settings,
             get_custom_fonts_folder,
             open_custom_fonts_folder,
+            open_log_folder,
             list_custom_fonts,
             load_custom_font_data,
             get_ssh_settings,

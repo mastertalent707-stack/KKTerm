@@ -93,11 +93,10 @@ pub async fn installer_load_catalog(
         "command.installer_load_catalog.start",
         &json!({ "forceRefresh": _force_refresh }),
     );
-    let catalog = tauri::async_runtime::spawn_blocking(|| {
-        load_bundled_catalog().map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|error| format!("failed to load installer catalog: {error}"))??;
+    let catalog =
+        tauri::async_runtime::spawn_blocking(|| load_bundled_catalog().map_err(|e| e.to_string()))
+            .await
+            .map_err(|error| format!("failed to load installer catalog: {error}"))??;
     *runtime.catalog.lock().unwrap() = Some(catalog.clone());
     crate::logging::installer_helper_debug(
         "command.installer_load_catalog.ok",
@@ -1169,7 +1168,10 @@ fn stop_web_ui_for_tool(tool_id: &str) -> Result<(), String> {
     let affordance = web_ui_affordance(tool_id)
         .ok_or_else(|| format!("tool `{tool_id}` does not expose a managed web UI"))?;
     if let Some(service) = service_affordance(tool_id).filter(|s| {
-        matches!(query_service_state(&s.service_name).as_deref(), Some("RUNNING"))
+        matches!(
+            query_service_state(&s.service_name).as_deref(),
+            Some("RUNNING")
+        )
     }) {
         return run_elevated_cmd_script(
             &service_control_script(&service.service_name, "stop"),
@@ -1238,7 +1240,13 @@ fn stop_port_listener(port: u16) -> Result<(), String> {
         "$ids = @(Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort {port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique); foreach ($id in $ids) {{ Stop-Process -Id $id -Force -ErrorAction Stop }}"
     );
     let mut powershell = Command::new("powershell");
-    powershell.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &command]);
+    powershell.args([
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        &command,
+    ]);
     let status = no_window(&mut powershell)
         .status()
         .map_err(|error| format!("failed to stop localhost:{port}: {error}"))?;
@@ -1847,18 +1855,14 @@ mod tests {
         };
         let script = service_install_script(&service);
 
-        assert!(script.contains(
-            r#"for %%I in (node.exe) do set "KKTERM_SERVICE_NODE=%%~$PATH:I""#
-        ));
         assert!(
-            script.contains(r#"for %%I in (npm.cmd) do set "KKTERM_NPM_CMD=%%~$PATH:I""#)
+            script.contains(r#"for %%I in (node.exe) do set "KKTERM_SERVICE_NODE=%%~$PATH:I""#)
         );
+        assert!(script.contains(r#"for %%I in (npm.cmd) do set "KKTERM_NPM_CMD=%%~$PATH:I""#));
         assert!(script.contains(r#"node_modules\npm\bin\npm-cli.js"#));
-        assert!(
-            script.contains(
-                r#"nssm install "KKTerm-Test" "%KKTERM_SERVICE_NODE%" "%KKTERM_NPM_CLI%" exec -- vite"#
-            )
-        );
+        assert!(script.contains(
+            r#"nssm install "KKTerm-Test" "%KKTERM_SERVICE_NODE%" "%KKTERM_NPM_CLI%" exec -- vite"#
+        ));
         assert!(!script.contains(r#"nssm install "KKTerm-Test" "%KKTERM_SERVICE_APP%""#));
         assert!(!script.contains(r#"nssm install "KKTerm-Test" npm.cmd"#));
     }

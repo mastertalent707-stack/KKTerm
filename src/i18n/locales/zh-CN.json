@@ -785,6 +785,7 @@
     "debugHint": "控制详细的本地诊断。",
     "advancedDebugging": "高级调试",
     "advancedDebuggingHint": "即使在发布版本中，也会写入 AI 助手、MCP、安装助手和心跳的完整调试日志。日志可能包含提示词、工具参数、安装程序命令输出、截图和生成的小组件源码。",
+    "openLogFolder": "打开日志文件夹",
     "rdpWebviewStability": "RDP 会话稳定性 (WebView2)",
     "rdpWebviewStabilityHint": "强制使用软件渲染并禁用窗口遮挡限流，以便 KKTerm 在 Remote Desktop (RDP) 主机内运行且客户端断开并重新连接时仍保持响应。KKTerm 检测到正在远程会话中运行时会自动应用；开启此选项可强制应用。此设置会禁用 GPU 加速，因此本地安装请保持关闭。重启 KKTerm 后生效。",
     "settingsExportFilter": "KKTerm 设置导出",

@@ -3969,7 +3969,9 @@ fn build_copilot_sdk_session_config(
 fn format_copilot_sdk_error(stage: &str, error: CopilotSdkError) -> String {
     match error.kind() {
         CopilotSdkErrorKind::BinaryNotFound { name, hint } => {
-            let hint = hint.as_deref().unwrap_or("No additional hint was provided.");
+            let hint = hint
+                .as_deref()
+                .unwrap_or("No additional hint was provided.");
             format!(
                 "GitHub Copilot SDK could not find {name}. Rebuild KKTerm with bundled Copilot CLI support, set COPILOT_CLI_PATH, or install the Copilot CLI. {hint}"
             )

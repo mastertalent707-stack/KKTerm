@@ -301,7 +301,6 @@ impl GeneralSettings {
     pub(crate) fn rdp_webview_stability(&self) -> bool {
         self.rdp_webview_stability
     }
-
 }
 
 #[derive(Clone, Serialize)]

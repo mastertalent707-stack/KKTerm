@@ -651,29 +651,31 @@ mod platform {
     }
 
     pub fn enumerate_window_rects(screen: &ScreenRect) -> Vec<ScreenRect> {
-        unsafe extern "system" fn enum_window(hwnd: HWND, lparam: LPARAM) -> i32 { unsafe {
-            let state = &mut *(lparam as *mut WindowEnumeration);
-            if IsWindowVisible(hwnd) == 0 {
-                return 1;
-            }
+        unsafe extern "system" fn enum_window(hwnd: HWND, lparam: LPARAM) -> i32 {
+            unsafe {
+                let state = &mut *(lparam as *mut WindowEnumeration);
+                if IsWindowVisible(hwnd) == 0 {
+                    return 1;
+                }
 
-            let mut rect: RECT = mem::zeroed();
-            if GetWindowRect(hwnd, &mut rect) == 0 {
-                return 1;
-            }
+                let mut rect: RECT = mem::zeroed();
+                if GetWindowRect(hwnd, &mut rect) == 0 {
+                    return 1;
+                }
 
-            let Some(rect) = screen_rect_from_rect(rect) else {
-                return 1;
-            };
-            if rect.width < 80 || rect.height < 60 || !rect_intersects(&rect, state.screen) {
-                return 1;
-            }
+                let Some(rect) = screen_rect_from_rect(rect) else {
+                    return 1;
+                };
+                if rect.width < 80 || rect.height < 60 || !rect_intersects(&rect, state.screen) {
+                    return 1;
+                }
 
-            state
-                .windows
-                .push(clamp_rect_to_screen(&rect, state.screen));
-            1
-        }}
+                state
+                    .windows
+                    .push(clamp_rect_to_screen(&rect, state.screen));
+                1
+            }
+        }
 
         let mut state = WindowEnumeration {
             screen,
@@ -934,46 +936,48 @@ mod platform {
             y: i32,
             width: i32,
             height: i32,
-        ) -> Result<DxgiOutputTarget, String> { unsafe {
-            let right = x
-                .checked_add(width)
-                .ok_or_else(|| "screenshot region is too wide".to_string())?;
-            let bottom = y
-                .checked_add(height)
-                .ok_or_else(|| "screenshot region is too tall".to_string())?;
-            let mut adapter_index = 0;
-            while let Ok(adapter) = factory.EnumAdapters1(adapter_index) {
-                let mut output_index = 0;
-                while let Ok(output) = adapter.EnumOutputs(output_index) {
-                    let desc = output
-                        .GetDesc()
-                        .map_err(|error| format!("failed to read DXGI output: {error}"))?;
-                    let rect = desc.DesktopCoordinates;
-                    if x >= rect.left
-                        && y >= rect.top
-                        && right <= rect.right
-                        && bottom <= rect.bottom
-                    {
-                        return Ok(DxgiOutputTarget {
-                            adapter,
-                            output,
-                            left: rect.left,
-                            top: rect.top,
-                            right: rect.right,
-                            bottom: rect.bottom,
-                            rotation: desc.Rotation.0,
-                        });
+        ) -> Result<DxgiOutputTarget, String> {
+            unsafe {
+                let right = x
+                    .checked_add(width)
+                    .ok_or_else(|| "screenshot region is too wide".to_string())?;
+                let bottom = y
+                    .checked_add(height)
+                    .ok_or_else(|| "screenshot region is too tall".to_string())?;
+                let mut adapter_index = 0;
+                while let Ok(adapter) = factory.EnumAdapters1(adapter_index) {
+                    let mut output_index = 0;
+                    while let Ok(output) = adapter.EnumOutputs(output_index) {
+                        let desc = output
+                            .GetDesc()
+                            .map_err(|error| format!("failed to read DXGI output: {error}"))?;
+                        let rect = desc.DesktopCoordinates;
+                        if x >= rect.left
+                            && y >= rect.top
+                            && right <= rect.right
+                            && bottom <= rect.bottom
+                        {
+                            return Ok(DxgiOutputTarget {
+                                adapter,
+                                output,
+                                left: rect.left,
+                                top: rect.top,
+                                right: rect.right,
+                                bottom: rect.bottom,
+                                rotation: desc.Rotation.0,
+                            });
+                        }
+                        output_index += 1;
                     }
-                    output_index += 1;
+                    adapter_index += 1;
                 }
-                adapter_index += 1;
-            }
 
-            Err(
-                "screenshot region spans multiple outputs or no matching DXGI output was found"
-                    .to_string(),
-            )
-        }}
+                Err(
+                    "screenshot region spans multiple outputs or no matching DXGI output was found"
+                        .to_string(),
+                )
+            }
+        }
 
         unsafe fn capture_output_rect(
             target: DxgiOutputTarget,
@@ -981,64 +985,66 @@ mod platform {
             y: i32,
             width: i32,
             height: i32,
-        ) -> Result<Vec<u8>, String> { unsafe {
-            let adapter: IDXGIAdapter = target
-                .adapter
-                .cast()
-                .map_err(|error| format!("failed to use DXGI adapter: {error}"))?;
-            let output1: IDXGIOutput1 = target
-                .output
-                .cast()
-                .map_err(|error| format!("failed to use DXGI output duplication: {error}"))?;
-            let (device, context) = create_device(&adapter)?;
-            let duplication = output1
-                .DuplicateOutput(&device)
-                .map_err(|error| format!("failed to duplicate DXGI output: {error}"))?;
+        ) -> Result<Vec<u8>, String> {
+            unsafe {
+                let adapter: IDXGIAdapter = target
+                    .adapter
+                    .cast()
+                    .map_err(|error| format!("failed to use DXGI adapter: {error}"))?;
+                let output1: IDXGIOutput1 = target
+                    .output
+                    .cast()
+                    .map_err(|error| format!("failed to use DXGI output duplication: {error}"))?;
+                let (device, context) = create_device(&adapter)?;
+                let duplication = output1
+                    .DuplicateOutput(&device)
+                    .map_err(|error| format!("failed to duplicate DXGI output: {error}"))?;
 
-            for attempt in 1..=DXGI_FRAME_ATTEMPTS {
-                let mut frame_info = DXGI_OUTDUPL_FRAME_INFO::default();
-                let mut resource: Option<IDXGIResource> = None;
-                duplication
-                    .AcquireNextFrame(DXGI_FRAME_TIMEOUT_MS, &mut frame_info, &mut resource)
-                    .map_err(|error| format!("failed to acquire DXGI frame: {error}"))?;
-                let _frame_guard = FrameGuard {
-                    duplication: duplication.clone(),
-                };
-                let frame = DxgiFrameStats::from_frame_info(&frame_info);
-                log_dxgi(&format!(
-                    "frame attempt {attempt}/{DXGI_FRAME_ATTEMPTS}: last_present={}, last_mouse={}, accumulated={}, metadata={}, protected={}",
-                    frame.last_present_time,
-                    frame.last_mouse_update_time,
-                    frame.accumulated_frames,
-                    frame.total_metadata_buffer_size,
-                    frame.protected_content_masked_out
-                ));
-                if !frame_has_desktop_update(&frame) {
-                    continue;
+                for attempt in 1..=DXGI_FRAME_ATTEMPTS {
+                    let mut frame_info = DXGI_OUTDUPL_FRAME_INFO::default();
+                    let mut resource: Option<IDXGIResource> = None;
+                    duplication
+                        .AcquireNextFrame(DXGI_FRAME_TIMEOUT_MS, &mut frame_info, &mut resource)
+                        .map_err(|error| format!("failed to acquire DXGI frame: {error}"))?;
+                    let _frame_guard = FrameGuard {
+                        duplication: duplication.clone(),
+                    };
+                    let frame = DxgiFrameStats::from_frame_info(&frame_info);
+                    log_dxgi(&format!(
+                        "frame attempt {attempt}/{DXGI_FRAME_ATTEMPTS}: last_present={}, last_mouse={}, accumulated={}, metadata={}, protected={}",
+                        frame.last_present_time,
+                        frame.last_mouse_update_time,
+                        frame.accumulated_frames,
+                        frame.total_metadata_buffer_size,
+                        frame.protected_content_masked_out
+                    ));
+                    if !frame_has_desktop_update(&frame) {
+                        continue;
+                    }
+
+                    let resource =
+                        resource.ok_or_else(|| "DXGI frame resource is empty".to_string())?;
+                    let desktop_texture: ID3D11Texture2D = resource
+                        .cast()
+                        .map_err(|error| format!("failed to read DXGI frame texture: {error}"))?;
+
+                    return copy_desktop_texture_to_dib(
+                        &device,
+                        &context,
+                        &desktop_texture,
+                        &target,
+                        x,
+                        y,
+                        width,
+                        height,
+                    );
                 }
 
-                let resource =
-                    resource.ok_or_else(|| "DXGI frame resource is empty".to_string())?;
-                let desktop_texture: ID3D11Texture2D = resource
-                    .cast()
-                    .map_err(|error| format!("failed to read DXGI frame texture: {error}"))?;
-
-                return copy_desktop_texture_to_dib(
-                    &device,
-                    &context,
-                    &desktop_texture,
-                    &target,
-                    x,
-                    y,
-                    width,
-                    height,
-                );
+                Err(format!(
+                    "DXGI did not acquire a desktop image update after {DXGI_FRAME_ATTEMPTS} attempts"
+                ))
             }
-
-            Err(format!(
-                "DXGI did not acquire a desktop image update after {DXGI_FRAME_ATTEMPTS} attempts"
-            ))
-        }}
+        }
 
         unsafe fn copy_desktop_texture_to_dib(
             device: &ID3D11Device,
@@ -1049,142 +1055,150 @@ mod platform {
             y: i32,
             width: i32,
             height: i32,
-        ) -> Result<Vec<u8>, String> { unsafe {
-            let mut texture_desc = D3D11_TEXTURE2D_DESC::default();
-            desktop_texture.GetDesc(&mut texture_desc);
-            log_dxgi(&format!(
-                "texture desc: width={}, height={}, mip_levels={}, array_size={}, format={:?}, usage={:?}, bind_flags={}, cpu_access={}, misc={}",
-                texture_desc.Width,
-                texture_desc.Height,
-                texture_desc.MipLevels,
-                texture_desc.ArraySize,
-                texture_desc.Format,
-                texture_desc.Usage,
-                texture_desc.BindFlags,
-                texture_desc.CPUAccessFlags,
-                texture_desc.MiscFlags
-            ));
+        ) -> Result<Vec<u8>, String> {
+            unsafe {
+                let mut texture_desc = D3D11_TEXTURE2D_DESC::default();
+                desktop_texture.GetDesc(&mut texture_desc);
+                log_dxgi(&format!(
+                    "texture desc: width={}, height={}, mip_levels={}, array_size={}, format={:?}, usage={:?}, bind_flags={}, cpu_access={}, misc={}",
+                    texture_desc.Width,
+                    texture_desc.Height,
+                    texture_desc.MipLevels,
+                    texture_desc.ArraySize,
+                    texture_desc.Format,
+                    texture_desc.Usage,
+                    texture_desc.BindFlags,
+                    texture_desc.CPUAccessFlags,
+                    texture_desc.MiscFlags
+                ));
 
-            let geometry = DxgiCopyGeometry {
-                source_left: (x - target.left) as u32,
-                source_top: (y - target.top) as u32,
-                source_right: (x - target.left + width) as u32,
-                source_bottom: (y - target.top + height) as u32,
-            };
-            validate_copy_geometry(
-                geometry,
-                texture_desc.Width,
-                texture_desc.Height,
-                target.rotation,
-            )?;
+                let geometry = DxgiCopyGeometry {
+                    source_left: (x - target.left) as u32,
+                    source_top: (y - target.top) as u32,
+                    source_right: (x - target.left + width) as u32,
+                    source_bottom: (y - target.top + height) as u32,
+                };
+                validate_copy_geometry(
+                    geometry,
+                    texture_desc.Width,
+                    texture_desc.Height,
+                    target.rotation,
+                )?;
 
-            let copy_texture = create_staging_texture(device, width as u32, height as u32)?;
-            let source_box = D3D11_BOX {
-                left: geometry.source_left,
-                top: geometry.source_top,
-                front: 0,
-                right: geometry.source_right,
-                bottom: geometry.source_bottom,
-                back: 1,
-            };
-            context.CopySubresourceRegion(
-                &copy_texture,
-                0,
-                0,
-                0,
-                0,
-                desktop_texture,
-                0,
-                Some(&source_box),
-            );
+                let copy_texture = create_staging_texture(device, width as u32, height as u32)?;
+                let source_box = D3D11_BOX {
+                    left: geometry.source_left,
+                    top: geometry.source_top,
+                    front: 0,
+                    right: geometry.source_right,
+                    bottom: geometry.source_bottom,
+                    back: 1,
+                };
+                context.CopySubresourceRegion(
+                    &copy_texture,
+                    0,
+                    0,
+                    0,
+                    0,
+                    desktop_texture,
+                    0,
+                    Some(&source_box),
+                );
 
-            let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
-            context
-                .Map(&copy_texture, 0, D3D11_MAP_READ, 0, Some(&mut mapped))
-                .map_err(|error| format!("failed to map DXGI screenshot texture: {error}"))?;
-            let _map_guard = MapGuard {
-                context: context.clone(),
-                texture: copy_texture.clone(),
-            };
-            log_dxgi(&format!("mapped row pitch: {}", mapped.RowPitch));
+                let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
+                context
+                    .Map(&copy_texture, 0, D3D11_MAP_READ, 0, Some(&mut mapped))
+                    .map_err(|error| format!("failed to map DXGI screenshot texture: {error}"))?;
+                let _map_guard = MapGuard {
+                    context: context.clone(),
+                    texture: copy_texture.clone(),
+                };
+                log_dxgi(&format!("mapped row pitch: {}", mapped.RowPitch));
 
-            let row_bytes = width as usize * 4;
-            let mut pixels = vec![0u8; row_bytes * height as usize];
-            for row in 0..height as usize {
-                let source = (mapped.pData as *const u8).add(row * mapped.RowPitch as usize);
-                let source = slice::from_raw_parts(source, row_bytes);
-                let target_start = row * row_bytes;
-                pixels[target_start..target_start + row_bytes].copy_from_slice(source);
+                let row_bytes = width as usize * 4;
+                let mut pixels = vec![0u8; row_bytes * height as usize];
+                for row in 0..height as usize {
+                    let source = (mapped.pData as *const u8).add(row * mapped.RowPitch as usize);
+                    let source = slice::from_raw_parts(source, row_bytes);
+                    let target_start = row * row_bytes;
+                    pixels[target_start..target_start + row_bytes].copy_from_slice(source);
+                }
+                log_dxgi(&format!(
+                    "first non-black pixel sample: {:?}",
+                    sample_non_black_pixel(&pixels, width as u32, height as u32)
+                ));
+
+                bgra_pixels_to_dib(&pixels, width, height)
             }
-            log_dxgi(&format!(
-                "first non-black pixel sample: {:?}",
-                sample_non_black_pixel(&pixels, width as u32, height as u32)
-            ));
-
-            bgra_pixels_to_dib(&pixels, width, height)
-        }}
+        }
 
         unsafe fn create_device(
             adapter: &IDXGIAdapter,
-        ) -> Result<(ID3D11Device, ID3D11DeviceContext), String> { unsafe {
-            let preferred = [D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0];
-            create_device_with_feature_levels(adapter, &preferred).or_else(|_| {
-                let fallback = [D3D_FEATURE_LEVEL_11_0];
-                create_device_with_feature_levels(adapter, &fallback)
-            })
-        }}
+        ) -> Result<(ID3D11Device, ID3D11DeviceContext), String> {
+            unsafe {
+                let preferred = [D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0];
+                create_device_with_feature_levels(adapter, &preferred).or_else(|_| {
+                    let fallback = [D3D_FEATURE_LEVEL_11_0];
+                    create_device_with_feature_levels(adapter, &fallback)
+                })
+            }
+        }
 
         unsafe fn create_device_with_feature_levels(
             adapter: &IDXGIAdapter,
             feature_levels: &[windows::Win32::Graphics::Direct3D::D3D_FEATURE_LEVEL],
-        ) -> Result<(ID3D11Device, ID3D11DeviceContext), String> { unsafe {
-            let mut device = None;
-            let mut context = None;
-            D3D11CreateDevice(
-                adapter,
-                D3D_DRIVER_TYPE_UNKNOWN,
-                HMODULE::default(),
-                D3D11_CREATE_DEVICE_FLAG(0),
-                Some(feature_levels),
-                D3D11_SDK_VERSION,
-                Some(&mut device),
-                None,
-                Some(&mut context),
-            )
-            .map_err(|error| format!("failed to create D3D11 device: {error}"))?;
+        ) -> Result<(ID3D11Device, ID3D11DeviceContext), String> {
+            unsafe {
+                let mut device = None;
+                let mut context = None;
+                D3D11CreateDevice(
+                    adapter,
+                    D3D_DRIVER_TYPE_UNKNOWN,
+                    HMODULE::default(),
+                    D3D11_CREATE_DEVICE_FLAG(0),
+                    Some(feature_levels),
+                    D3D11_SDK_VERSION,
+                    Some(&mut device),
+                    None,
+                    Some(&mut context),
+                )
+                .map_err(|error| format!("failed to create D3D11 device: {error}"))?;
 
-            Ok((
-                device.ok_or_else(|| "D3D11 device is empty".to_string())?,
-                context.ok_or_else(|| "D3D11 device context is empty".to_string())?,
-            ))
-        }}
+                Ok((
+                    device.ok_or_else(|| "D3D11 device is empty".to_string())?,
+                    context.ok_or_else(|| "D3D11 device context is empty".to_string())?,
+                ))
+            }
+        }
 
         unsafe fn create_staging_texture(
             device: &ID3D11Device,
             width: u32,
             height: u32,
-        ) -> Result<ID3D11Texture2D, String> { unsafe {
-            let desc = D3D11_TEXTURE2D_DESC {
-                Width: width.max(1),
-                Height: height.max(1),
-                MipLevels: 1,
-                ArraySize: 1,
-                Format: DXGI_FORMAT_B8G8R8A8_UNORM,
-                SampleDesc: DXGI_SAMPLE_DESC {
-                    Count: 1,
-                    Quality: 0,
-                },
-                Usage: D3D11_USAGE_STAGING,
-                BindFlags: 0,
-                CPUAccessFlags: D3D11_CPU_ACCESS_READ.0 as u32,
-                MiscFlags: 0,
-            };
-            let mut texture = None;
-            device
-                .CreateTexture2D(&desc, None, Some(&mut texture))
-                .map_err(|error| format!("failed to create D3D11 staging texture: {error}"))?;
-            texture.ok_or_else(|| "D3D11 staging texture is empty".to_string())
-        }}
+        ) -> Result<ID3D11Texture2D, String> {
+            unsafe {
+                let desc = D3D11_TEXTURE2D_DESC {
+                    Width: width.max(1),
+                    Height: height.max(1),
+                    MipLevels: 1,
+                    ArraySize: 1,
+                    Format: DXGI_FORMAT_B8G8R8A8_UNORM,
+                    SampleDesc: DXGI_SAMPLE_DESC {
+                        Count: 1,
+                        Quality: 0,
+                    },
+                    Usage: D3D11_USAGE_STAGING,
+                    BindFlags: 0,
+                    CPUAccessFlags: D3D11_CPU_ACCESS_READ.0 as u32,
+                    MiscFlags: 0,
+                };
+                let mut texture = None;
+                device
+                    .CreateTexture2D(&desc, None, Some(&mut texture))
+                    .map_err(|error| format!("failed to create D3D11 staging texture: {error}"))?;
+                texture.ok_or_else(|| "D3D11 staging texture is empty".to_string())
+            }
+        }
 
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         struct DxgiFrameStats {
@@ -1455,72 +1469,76 @@ mod platform {
         bitmap: HBITMAP,
         width: i32,
         height: i32,
-    ) -> Result<Vec<u8>, String> { unsafe {
-        let stride = ((width * 32 + 31) / 32) * 4;
-        let image_size = (stride * height) as usize;
-        let header_size = mem::size_of::<BITMAPINFOHEADER>();
-        let mut dib = vec![0u8; header_size + image_size];
+    ) -> Result<Vec<u8>, String> {
+        unsafe {
+            let stride = ((width * 32 + 31) / 32) * 4;
+            let image_size = (stride * height) as usize;
+            let header_size = mem::size_of::<BITMAPINFOHEADER>();
+            let mut dib = vec![0u8; header_size + image_size];
 
-        let header = dib.as_mut_ptr() as *mut BITMAPINFOHEADER;
-        (*header).biSize = header_size as u32;
-        (*header).biWidth = width;
-        (*header).biHeight = -height;
-        (*header).biPlanes = 1;
-        (*header).biBitCount = 32;
-        (*header).biCompression = BI_RGB;
-        (*header).biSizeImage = image_size as u32;
+            let header = dib.as_mut_ptr() as *mut BITMAPINFOHEADER;
+            (*header).biSize = header_size as u32;
+            (*header).biWidth = width;
+            (*header).biHeight = -height;
+            (*header).biPlanes = 1;
+            (*header).biBitCount = 32;
+            (*header).biCompression = BI_RGB;
+            (*header).biSizeImage = image_size as u32;
 
-        let info = dib.as_mut_ptr() as *mut BITMAPINFO;
-        let bits = dib.as_mut_ptr().add(header_size) as *mut c_void;
-        let lines = GetDIBits(
-            screen_dc,
-            bitmap,
-            0,
-            height as u32,
-            bits,
-            info,
-            DIB_RGB_COLORS,
-        );
-        if lines == 0 {
-            return Err("failed to encode screenshot for clipboard".to_string());
+            let info = dib.as_mut_ptr() as *mut BITMAPINFO;
+            let bits = dib.as_mut_ptr().add(header_size) as *mut c_void;
+            let lines = GetDIBits(
+                screen_dc,
+                bitmap,
+                0,
+                height as u32,
+                bits,
+                info,
+                DIB_RGB_COLORS,
+            );
+            if lines == 0 {
+                return Err("failed to encode screenshot for clipboard".to_string());
+            }
+
+            Ok(dib)
         }
+    }
 
-        Ok(dib)
-    }}
+    unsafe fn write_dib_to_clipboard(owner: HWND, dib: &[u8]) -> Result<(), String> {
+        unsafe {
+            let handle = GlobalAlloc(GMEM_MOVEABLE, dib.len());
+            if handle.is_null() {
+                return Err("failed to allocate clipboard image memory".to_string());
+            }
 
-    unsafe fn write_dib_to_clipboard(owner: HWND, dib: &[u8]) -> Result<(), String> { unsafe {
-        let handle = GlobalAlloc(GMEM_MOVEABLE, dib.len());
-        if handle.is_null() {
-            return Err("failed to allocate clipboard image memory".to_string());
+            let target = GlobalLock(handle);
+            if target.is_null() {
+                let _ = GlobalFree(handle);
+                return Err("failed to lock clipboard image memory".to_string());
+            }
+            ptr::copy_nonoverlapping(dib.as_ptr(), target as *mut u8, dib.len());
+            let _ = GlobalUnlock(handle);
+
+            if OpenClipboard(owner) == 0 {
+                let _ = GlobalFree(handle);
+                return Err("failed to open clipboard".to_string());
+            }
+            let clipboard = ClipboardGuard;
+
+            if EmptyClipboard() == 0 {
+                let _ = GlobalFree(handle);
+                return Err("failed to clear clipboard".to_string());
+            }
+            if SetClipboardData(CF_DIB as u32, handle as HANDLE).is_null() {
+                let _ = GlobalFree(handle);
+                return Err("failed to write screenshot to clipboard".to_string());
+            }
+
+            mem::forget(clipboard);
+            let _ = CloseClipboard();
+            Ok(())
         }
-
-        let target = GlobalLock(handle);
-        if target.is_null() {
-            let _ = GlobalFree(handle);
-            return Err("failed to lock clipboard image memory".to_string());
-        }
-        ptr::copy_nonoverlapping(dib.as_ptr(), target as *mut u8, dib.len());
-        let _ = GlobalUnlock(handle);
-
-        if OpenClipboard(owner) == 0 {
-            let _ = GlobalFree(handle);
-            return Err("failed to open clipboard".to_string());
-        }
-        let clipboard = ClipboardGuard;
-
-        if EmptyClipboard() == 0 {
-            let _ = GlobalFree(handle);
-            return Err("failed to clear clipboard".to_string());
-        }
-        if SetClipboardData(CF_DIB as u32, handle as HANDLE).is_null() {
-            let _ = GlobalFree(handle);
-            return Err("failed to write screenshot to clipboard".to_string());
-        }
-
-        mem::forget(clipboard);
-        let _ = CloseClipboard();
-        Ok(())
-    }}
+    }
 
     enum SelectionMode {
         Window { windows: Vec<ScreenRect> },
@@ -1611,157 +1629,165 @@ mod platform {
         message: u32,
         wparam: WPARAM,
         lparam: LPARAM,
-    ) -> LRESULT { unsafe {
-        if message == WM_NCCREATE {
-            let create = lparam as *const CREATESTRUCTW;
-            let overlay = (*create).lpCreateParams as *mut SelectionOverlay;
-            SetWindowLongPtrW(hwnd, GWLP_USERDATA, overlay as isize);
-            return DefWindowProcW(hwnd, message, wparam, lparam);
-        }
-
-        let overlay = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut SelectionOverlay;
-        if overlay.is_null() {
-            return DefWindowProcW(hwnd, message, wparam, lparam);
-        }
-        let overlay = &mut *overlay;
-
-        match message {
-            WM_CREATE => 0,
-            WM_MOUSEMOVE => {
-                let point = message_point(lparam, &overlay.screen);
-                match &overlay.mode {
-                    SelectionMode::Window { windows } => {
-                        overlay.hover = windows
-                            .iter()
-                            .find(|rect| rect_contains(rect, point.0, point.1))
-                            .map(copy_rect);
-                    }
-                    SelectionMode::Region => {
-                        if overlay.drag_start.is_some() {
-                            overlay.drag_current = Some(point);
-                        }
-                    }
-                }
-                let _ = InvalidateRect(hwnd, ptr::null(), 0);
-                0
+    ) -> LRESULT {
+        unsafe {
+            if message == WM_NCCREATE {
+                let create = lparam as *const CREATESTRUCTW;
+                let overlay = (*create).lpCreateParams as *mut SelectionOverlay;
+                SetWindowLongPtrW(hwnd, GWLP_USERDATA, overlay as isize);
+                return DefWindowProcW(hwnd, message, wparam, lparam);
             }
-            WM_LBUTTONDOWN => {
-                let point = message_point(lparam, &overlay.screen);
-                match overlay.mode {
-                    SelectionMode::Window { .. } => {
-                        if let Some(rect) = overlay.hover.as_ref() {
-                            overlay.result = Some(copy_rect(rect));
-                            DestroyWindow(hwnd);
-                        }
-                    }
-                    SelectionMode::Region => {
-                        overlay.drag_start = Some(point);
-                        overlay.drag_current = Some(point);
-                        SetCapture(hwnd);
-                    }
-                }
-                0
+
+            let overlay = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut SelectionOverlay;
+            if overlay.is_null() {
+                return DefWindowProcW(hwnd, message, wparam, lparam);
             }
-            WM_LBUTTONUP => {
-                if matches!(overlay.mode, SelectionMode::Region) {
+            let overlay = &mut *overlay;
+
+            match message {
+                WM_CREATE => 0,
+                WM_MOUSEMOVE => {
                     let point = message_point(lparam, &overlay.screen);
-                    let _ = ReleaseCapture();
-                    if let Some(start) = overlay.drag_start {
-                        let rect = rect_from_points(start, point);
-                        if rect.width >= 4 && rect.height >= 4 {
-                            overlay.result = Some(clamp_rect_to_screen(&rect, &overlay.screen));
+                    match &overlay.mode {
+                        SelectionMode::Window { windows } => {
+                            overlay.hover = windows
+                                .iter()
+                                .find(|rect| rect_contains(rect, point.0, point.1))
+                                .map(copy_rect);
+                        }
+                        SelectionMode::Region => {
+                            if overlay.drag_start.is_some() {
+                                overlay.drag_current = Some(point);
+                            }
                         }
                     }
-                    DestroyWindow(hwnd);
+                    let _ = InvalidateRect(hwnd, ptr::null(), 0);
+                    0
                 }
-                0
-            }
-            WM_KEYDOWN => {
-                if wparam == VK_ESCAPE as usize {
-                    DestroyWindow(hwnd);
-                    return 0;
+                WM_LBUTTONDOWN => {
+                    let point = message_point(lparam, &overlay.screen);
+                    match overlay.mode {
+                        SelectionMode::Window { .. } => {
+                            if let Some(rect) = overlay.hover.as_ref() {
+                                overlay.result = Some(copy_rect(rect));
+                                DestroyWindow(hwnd);
+                            }
+                        }
+                        SelectionMode::Region => {
+                            overlay.drag_start = Some(point);
+                            overlay.drag_current = Some(point);
+                            SetCapture(hwnd);
+                        }
+                    }
+                    0
                 }
-                DefWindowProcW(hwnd, message, wparam, lparam)
+                WM_LBUTTONUP => {
+                    if matches!(overlay.mode, SelectionMode::Region) {
+                        let point = message_point(lparam, &overlay.screen);
+                        let _ = ReleaseCapture();
+                        if let Some(start) = overlay.drag_start {
+                            let rect = rect_from_points(start, point);
+                            if rect.width >= 4 && rect.height >= 4 {
+                                overlay.result = Some(clamp_rect_to_screen(&rect, &overlay.screen));
+                            }
+                        }
+                        DestroyWindow(hwnd);
+                    }
+                    0
+                }
+                WM_KEYDOWN => {
+                    if wparam == VK_ESCAPE as usize {
+                        DestroyWindow(hwnd);
+                        return 0;
+                    }
+                    DefWindowProcW(hwnd, message, wparam, lparam)
+                }
+                WM_PAINT => {
+                    paint_selection_overlay(hwnd, overlay);
+                    0
+                }
+                WM_DESTROY => {
+                    PostQuitMessage(0);
+                    0
+                }
+                _ => DefWindowProcW(hwnd, message, wparam, lparam),
             }
-            WM_PAINT => {
-                paint_selection_overlay(hwnd, overlay);
-                0
+        }
+    }
+
+    unsafe fn paint_selection_overlay(hwnd: HWND, overlay: &SelectionOverlay<'_>) {
+        unsafe {
+            let mut paint: PAINTSTRUCT = mem::zeroed();
+            let hdc = BeginPaint(hwnd, &mut paint);
+            if hdc.is_null() {
+                return;
             }
-            WM_DESTROY => {
-                PostQuitMessage(0);
-                0
+
+            let header_size = mem::size_of::<BITMAPINFOHEADER>();
+            if overlay.dib.len() >= header_size {
+                let info = overlay.dib.as_ptr() as *const BITMAPINFO;
+                let bits = overlay.dib.as_ptr().add(header_size) as *const c_void;
+                let _ = SetDIBitsToDevice(
+                    hdc,
+                    0,
+                    0,
+                    overlay.screen.width as u32,
+                    overlay.screen.height as u32,
+                    0,
+                    0,
+                    0,
+                    overlay.screen.height as u32,
+                    bits,
+                    info,
+                    DIB_RGB_COLORS,
+                );
             }
-            _ => DefWindowProcW(hwnd, message, wparam, lparam),
+
+            let selected = match overlay.mode {
+                SelectionMode::Window { .. } => overlay.hover.as_ref().map(copy_rect),
+                SelectionMode::Region => overlay
+                    .drag_start
+                    .zip(overlay.drag_current)
+                    .map(|(start, current)| rect_from_points(start, current)),
+            };
+            let selected = selected
+                .as_ref()
+                .map(|rect| clamp_rect_to_screen(rect, &overlay.screen));
+            dim_outside_rect(hdc, &overlay.screen, selected.as_ref());
+            if let Some(rect) = selected {
+                frame_rect(
+                    hdc,
+                    &screen_to_overlay_rect(&rect, &overlay.screen),
+                    0x00ff_ffff,
+                );
+                let inner = inset_rect(&screen_to_overlay_rect(&rect, &overlay.screen), 1);
+                frame_rect(hdc, &inner, 0x0000_78ff);
+            }
+
+            EndPaint(hwnd, &paint);
         }
-    }}
+    }
 
-    unsafe fn paint_selection_overlay(hwnd: HWND, overlay: &SelectionOverlay<'_>) { unsafe {
-        let mut paint: PAINTSTRUCT = mem::zeroed();
-        let hdc = BeginPaint(hwnd, &mut paint);
-        if hdc.is_null() {
-            return;
+    unsafe fn dim_outside_rect(hdc: HDC, screen: &ScreenRect, selected: Option<&ScreenRect>) {
+        unsafe {
+            let brush = Brush::new(0x0000_0000);
+            let Some(selected) = selected else {
+                return;
+            };
+
+            let selected = screen_to_overlay_rect(selected, screen);
+            for rect in outside_rects(screen.width, screen.height, &selected) {
+                let _ = FillRect(hdc, &rect, brush.0);
+            }
         }
+    }
 
-        let header_size = mem::size_of::<BITMAPINFOHEADER>();
-        if overlay.dib.len() >= header_size {
-            let info = overlay.dib.as_ptr() as *const BITMAPINFO;
-            let bits = overlay.dib.as_ptr().add(header_size) as *const c_void;
-            let _ = SetDIBitsToDevice(
-                hdc,
-                0,
-                0,
-                overlay.screen.width as u32,
-                overlay.screen.height as u32,
-                0,
-                0,
-                0,
-                overlay.screen.height as u32,
-                bits,
-                info,
-                DIB_RGB_COLORS,
-            );
+    unsafe fn frame_rect(hdc: HDC, rect: &RECT, color: u32) {
+        unsafe {
+            let brush = Brush::new(color);
+            let _ = FrameRect(hdc, rect, brush.0);
         }
-
-        let selected = match overlay.mode {
-            SelectionMode::Window { .. } => overlay.hover.as_ref().map(copy_rect),
-            SelectionMode::Region => overlay
-                .drag_start
-                .zip(overlay.drag_current)
-                .map(|(start, current)| rect_from_points(start, current)),
-        };
-        let selected = selected
-            .as_ref()
-            .map(|rect| clamp_rect_to_screen(rect, &overlay.screen));
-        dim_outside_rect(hdc, &overlay.screen, selected.as_ref());
-        if let Some(rect) = selected {
-            frame_rect(
-                hdc,
-                &screen_to_overlay_rect(&rect, &overlay.screen),
-                0x00ff_ffff,
-            );
-            let inner = inset_rect(&screen_to_overlay_rect(&rect, &overlay.screen), 1);
-            frame_rect(hdc, &inner, 0x0000_78ff);
-        }
-
-        EndPaint(hwnd, &paint);
-    }}
-
-    unsafe fn dim_outside_rect(hdc: HDC, screen: &ScreenRect, selected: Option<&ScreenRect>) { unsafe {
-        let brush = Brush::new(0x0000_0000);
-        let Some(selected) = selected else {
-            return;
-        };
-
-        let selected = screen_to_overlay_rect(selected, screen);
-        for rect in outside_rects(screen.width, screen.height, &selected) {
-            let _ = FillRect(hdc, &rect, brush.0);
-        }
-    }}
-
-    unsafe fn frame_rect(hdc: HDC, rect: &RECT, color: u32) { unsafe {
-        let brush = Brush::new(color);
-        let _ = FrameRect(hdc, rect, brush.0);
-    }}
+    }
 
     fn outside_rects(width: i32, height: i32, selected: &RECT) -> [RECT; 4] {
         [
@@ -1881,9 +1907,9 @@ mod platform {
     struct Brush(HBRUSH);
 
     impl Brush {
-        unsafe fn new(color: u32) -> Self { unsafe {
-            Self(CreateSolidBrush(color))
-        }}
+        unsafe fn new(color: u32) -> Self {
+            unsafe { Self(CreateSolidBrush(color)) }
+        }
     }
 
     impl Drop for Brush {
@@ -1897,13 +1923,15 @@ mod platform {
     struct ScreenDc(HDC);
 
     impl ScreenDc {
-        unsafe fn new() -> Result<Self, String> { unsafe {
-            let hdc = GetDC(ptr::null_mut());
-            if hdc.is_null() {
-                return Err("failed to get screen device context".to_string());
+        unsafe fn new() -> Result<Self, String> {
+            unsafe {
+                let hdc = GetDC(ptr::null_mut());
+                if hdc.is_null() {
+                    return Err("failed to get screen device context".to_string());
+                }
+                Ok(Self(hdc))
             }
-            Ok(Self(hdc))
-        }}
+        }
     }
 
     impl Drop for ScreenDc {
@@ -1917,13 +1945,15 @@ mod platform {
     struct MemoryDc(HDC);
 
     impl MemoryDc {
-        unsafe fn new(screen_dc: HDC) -> Result<Self, String> { unsafe {
-            let hdc = CreateCompatibleDC(screen_dc);
-            if hdc.is_null() {
-                return Err("failed to create screenshot device context".to_string());
+        unsafe fn new(screen_dc: HDC) -> Result<Self, String> {
+            unsafe {
+                let hdc = CreateCompatibleDC(screen_dc);
+                if hdc.is_null() {
+                    return Err("failed to create screenshot device context".to_string());
+                }
+                Ok(Self(hdc))
             }
-            Ok(Self(hdc))
-        }}
+        }
     }
 
     impl Drop for MemoryDc {
@@ -1937,13 +1967,15 @@ mod platform {
     struct Bitmap(HBITMAP);
 
     impl Bitmap {
-        unsafe fn new(screen_dc: HDC, width: i32, height: i32) -> Result<Self, String> { unsafe {
-            let bitmap = CreateCompatibleBitmap(screen_dc, width, height);
-            if bitmap.is_null() {
-                return Err("failed to create screenshot bitmap".to_string());
+        unsafe fn new(screen_dc: HDC, width: i32, height: i32) -> Result<Self, String> {
+            unsafe {
+                let bitmap = CreateCompatibleBitmap(screen_dc, width, height);
+                if bitmap.is_null() {
+                    return Err("failed to create screenshot bitmap".to_string());
+                }
+                Ok(Self(bitmap))
             }
-            Ok(Self(bitmap))
-        }}
+        }
     }
 
     impl Drop for Bitmap {

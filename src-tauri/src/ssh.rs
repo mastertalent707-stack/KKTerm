@@ -1,16 +1,17 @@
 use russh::{
+    Channel, ChannelMsg, Disconnect,
     client::{self, Msg, Session},
     keys::{
-        agent::{client::AgentClient, AgentIdentity},
-        load_secret_key, PrivateKeyWithHashAlg,
+        PrivateKeyWithHashAlg,
+        agent::{AgentIdentity, client::AgentClient},
+        load_secret_key,
     },
-    Channel, ChannelMsg, Disconnect,
 };
 use serde::{Deserialize, Serialize};
 use std::{
     future::Future,
     path::PathBuf,
-    sync::{mpsc as std_mpsc, Arc},
+    sync::{Arc, mpsc as std_mpsc},
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
@@ -703,12 +704,18 @@ async fn run_native_terminal_once(
                 .map_err(|error| format!("failed to initialize SSH shell: {error}"))?;
         }
 
-        Ok::<_, String>((session, channel, ready_start.elapsed().as_millis(), x11_forwarding_status))
+        Ok::<_, String>((
+            session,
+            channel,
+            ready_start.elapsed().as_millis(),
+            x11_forwarding_status,
+        ))
     };
 
-    let (session, mut channel, terminal_ready_ms, x11_forwarding_status) = tokio::time::timeout(startup_timeout, startup)
-        .await
-        .map_err(|_| "timed out while starting native SSH session".to_string())??;
+    let (session, mut channel, terminal_ready_ms, x11_forwarding_status) =
+        tokio::time::timeout(startup_timeout, startup)
+            .await
+            .map_err(|_| "timed out while starting native SSH session".to_string())??;
 
     if let Some(ready_tx) = ready_tx {
         let _ = ready_tx.send(Ok((terminal_ready_ms, x11_forwarding_status)));

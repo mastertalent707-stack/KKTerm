@@ -161,8 +161,7 @@ fn winget_show_version_from_output(stdout: &str) -> Option<String> {
         if value.is_empty() {
             continue;
         }
-        if (label.trim().eq_ignore_ascii_case("version")
-            || looks_like_winget_version_value(value))
+        if (label.trim().eq_ignore_ascii_case("version") || looks_like_winget_version_value(value))
             && looks_like_winget_version_value(value)
         {
             return Some(value.to_string());

@@ -26,7 +26,11 @@ use super::schema::PlanStep;
 pub const PROGRESS_EVENT: &str = "installer://progress";
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum ProgressEvent {
     /// Declared step list for the upcoming install/uninstall. Emitted once
     /// before any `StepStarted`. UI renders all steps as `pending`.

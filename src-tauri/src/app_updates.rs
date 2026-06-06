@@ -99,7 +99,10 @@ fn validate_update_request(request: &DownloadAndInstallAppUpdateRequest) -> Resu
     }
 
     validate_github_release_url(&request.download_url, &request.asset_name)?;
-    validate_github_release_url(&request.checksum_url, &format!("{}.sha256", request.asset_name))?;
+    validate_github_release_url(
+        &request.checksum_url,
+        &format!("{}.sha256", request.asset_name),
+    )?;
     Ok(())
 }
 
@@ -168,8 +171,12 @@ fn parse_sha256(value: &str) -> Result<String, String> {
 }
 
 fn sha256_file(path: &Path) -> Result<String, String> {
-    let bytes = fs::read(path)
-        .map_err(|error| format!("failed to read downloaded installer {}: {error}", path.display()))?;
+    let bytes = fs::read(path).map_err(|error| {
+        format!(
+            "failed to read downloaded installer {}: {error}",
+            path.display()
+        )
+    })?;
     let digest = Sha256::digest(&bytes);
     Ok(format!("{digest:x}"))
 }

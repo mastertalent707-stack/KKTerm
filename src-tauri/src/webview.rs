@@ -595,9 +595,9 @@ impl WebviewSessionManager {
             committed: false,
         };
 
-        let host_window = app.get_window(HOST_WINDOW_LABEL).ok_or_else(|| {
-            format!("host window '{HOST_WINDOW_LABEL}' is not available")
-        })?;
+        let host_window = app
+            .get_window(HOST_WINDOW_LABEL)
+            .ok_or_else(|| format!("host window '{HOST_WINDOW_LABEL}' is not available"))?;
 
         let label = webview_label_for(&session_id);
         let navigation_app = app.clone();

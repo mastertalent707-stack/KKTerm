@@ -1300,12 +1300,39 @@
   line-height: 1.35;
 }
 
+.settings-toggle-actions {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.settings-toggle-actions .secondary-button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  height: 36px;
+  padding: 0 13px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
 .toggle-switch {
   grid-column: 2;
   grid-row: 1;
   align-self: start;
   margin: 0;
   order: initial;
+}
+
+.settings-toggle-actions .toggle-switch {
+  grid-column: auto;
+  grid-row: auto;
 }
 
 .toggle-switch-track {

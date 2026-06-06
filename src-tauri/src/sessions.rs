@@ -1,7 +1,7 @@
 #[cfg(target_os = "windows")]
 use crate::windows_local_pty;
 use crate::{secrets, serial, ssh, storage, telnet, x_server};
-use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize};
+use portable_pty::{Child, CommandBuilder, MasterPty, PtySize, native_pty_system};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashMap},
@@ -434,7 +434,7 @@ impl TerminalRecordingManager {
                     return Err(format!(
                         "failed to read terminal recordings folder {}: {error}",
                         folder.display()
-                    ))
+                    ));
                 }
             };
             recordings.extend(
@@ -463,7 +463,7 @@ impl TerminalRecordingManager {
                 return Err(format!(
                     "failed to read terminal recordings root {}: {error}",
                     root.display()
-                ))
+                ));
             }
         };
         for group in groups
@@ -2463,9 +2463,11 @@ mod tests {
         assert_eq!(started.path, stopped.path);
         let text = std::fs::read_to_string(&stopped.path).expect("recording file reads");
         assert_eq!(text, "existing line\nnew line\r\n");
-        assert!(stopped
-            .path
-            .starts_with(root.join("prod-east").join("prod-east--conn-12345678")));
+        assert!(
+            stopped
+                .path
+                .starts_with(root.join("prod-east").join("prod-east--conn-12345678"))
+        );
     }
 
     #[test]

@@ -785,6 +785,7 @@
     "debugHint": "Mengontrol diagnostik lokal yang terperinci.",
     "advancedDebugging": "Debug Lanjutan",
     "advancedDebuggingHint": "Menulis log debug lengkap Asisten AI, MCP, Pembantu Instalasi, dan heartbeat bahkan dalam build rilis. Log dapat menyertakan prompt, argumen alat, output perintah penginstal, tangkapan layar, dan sumber widget yang dihasilkan.",
+    "openLogFolder": "Buka folder log",
     "rdpWebviewStability": "Stabilitas sesi RDP (WebView2)",
     "rdpWebviewStabilityHint": "Memaksa rendering perangkat lunak dan menonaktifkan pembatasan oklusi jendela agar KKTerm tetap responsif saat berjalan di dalam host Remote Desktop (RDP) dan klien terputus lalu tersambung kembali. Diterapkan otomatis saat KKTerm mendeteksi bahwa aplikasi berjalan dalam sesi jarak jauh; aktifkan opsi ini untuk memaksanya. Menonaktifkan akselerasi GPU, jadi biarkan nonaktif untuk instalasi lokal. Berlaku setelah KKTerm dimulai ulang.",
     "settingsExportFilter": "Ekspor pengaturan KKTerm",
