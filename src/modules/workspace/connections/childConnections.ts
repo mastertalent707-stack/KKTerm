@@ -97,3 +97,13 @@ export function syncChildConnectionsFromTabs(
 
   return changed ? next : children;
 }
+
+export function focusedPaneIdForChildLayout(
+  existingTab: Pick<WorkspaceTab, "focusedPaneId"> | undefined,
+  panes: WorkspacePane[],
+) {
+  const paneIds = new Set(panes.map((pane) => pane.id));
+  return existingTab?.focusedPaneId && paneIds.has(existingTab.focusedPaneId)
+    ? existingTab.focusedPaneId
+    : panes[0]?.id;
+}
