@@ -280,6 +280,16 @@ export function TerminalWorkspace({
       return;
     }
 
+    const restore = () => restoreFocusedTerminalPane("workspace-activated");
+    const frameId = window.requestAnimationFrame(restore);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [focusedPaneId, isActive]);
+
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+
     // Restore terminal input focus when the OS hands the window back to us, or
     // after a title-bar drag. We deliberately do NOT listen to the DOM window
     // "focus" event: focusing the webview natively re-fires it, which would

@@ -58,6 +58,7 @@ When opening a Connection from the tree with a target Pane focused, the `connect
 ### Focus
 
 `terminal.focusPane` switches the active Pane. Pane focus follows mouse click and keyboard tab cycling. Terminal Panes use xterm.js, which is backed by a hidden textarea — WebView2 focus quirks can affect input. Validate focus behaviour with the real Tauri runtime, not a browser preview.
+When returning to Workspace or selecting a different focused terminal Pane, KKTerm restores text input focus to that Pane so typing continues without an extra click.
 
 ### Closing
 
