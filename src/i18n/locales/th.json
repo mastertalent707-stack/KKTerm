@@ -136,7 +136,7 @@
       "gNocturne": "น็อกเทิร์น"
     },
     "dynamicBackgrounds": {
-      "fuji": "Mt. Fuji",
+      "fuji": "ภูเขาไฟฟูจิ",
       "aurora": "ออโรรา",
       "clouds": "เมฆ",
       "ocean": "มหาสมุทร",
@@ -2123,7 +2123,7 @@
     "rdpDesktopRequired": "RDP ใช้รันไทม์เดสก์ท็อป Windows",
     "vncDesktopRequired": "VNC ใช้รันไทม์เดสก์ท็อป",
     "rdpActiveX": "Microsoft RDP ActiveX host กำลังทำงานในพื้นที่ทำงานนี้",
-    "rdpErrorStatus": "RDP error: {{message}}",
+    "rdpErrorStatus": "ข้อผิดพลาด RDP: {{message}}",
     "vncFramebuffer": "VNC framebuffer กำลังทำงานในพื้นที่ทำงานนี้",
     "transportUnavailable": "การขนส่งเดสก์ท็อประยะไกลไม่พร้อมใช้งาน",
     "session": "เซสชัน",

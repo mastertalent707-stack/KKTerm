@@ -136,7 +136,7 @@
       "gNocturne": "Nocturne"
     },
     "dynamicBackgrounds": {
-      "fuji": "Mt. Fuji",
+      "fuji": "Mont Fuji",
       "aurora": "Aurore",
       "clouds": "Nuages",
       "ocean": "Océan",
@@ -2123,7 +2123,7 @@
     "rdpDesktopRequired": "RDP utilise l'environnement de bureau Windows.",
     "vncDesktopRequired": "VNC utilise l'environnement de bureau.",
     "rdpActiveX": "L'hôte Microsoft RDP ActiveX est en cours d'exécution dans cet espace de travail.",
-    "rdpErrorStatus": "RDP error: {{message}}",
+    "rdpErrorStatus": "Erreur RDP : {{message}}",
     "vncFramebuffer": "Le tampon d'image VNC est en cours d'exécution dans cet espace de travail.",
     "transportUnavailable": "Transport de bureau à distance indisponible.",
     "session": "session",

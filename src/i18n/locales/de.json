@@ -136,7 +136,7 @@
       "gNocturne": "Nocturne"
     },
     "dynamicBackgrounds": {
-      "fuji": "Mt. Fuji",
+      "fuji": "Fuji",
       "aurora": "Aurora",
       "clouds": "Wolken",
       "ocean": "Ozean",
@@ -2123,7 +2123,7 @@
     "rdpDesktopRequired": "RDP verwendet die Windows-Desktop-Laufzeitumgebung.",
     "vncDesktopRequired": "VNC verwendet die Desktop-Laufzeitumgebung.",
     "rdpActiveX": "Microsoft RDP ActiveX-Host läuft in diesem Arbeitsbereich.",
-    "rdpErrorStatus": "RDP error: {{message}}",
+    "rdpErrorStatus": "RDP-Fehler: {{message}}",
     "vncFramebuffer": "VNC-Framebuffer läuft in diesem Arbeitsbereich.",
     "transportUnavailable": "Remotedesktop-Transport nicht verfügbar.",
     "session": "Sitzung",

@@ -136,7 +136,7 @@
       "gNocturne": "夜曲"
     },
     "dynamicBackgrounds": {
-      "fuji": "Mt. Fuji",
+      "fuji": "富士山",
       "aurora": "极光",
       "clouds": "云朵",
       "ocean": "海洋",
@@ -2123,7 +2123,7 @@
     "rdpDesktopRequired": "RDP 使用 Windows 桌面运行环境。",
     "vncDesktopRequired": "VNC 使用桌面运行环境。",
     "rdpActiveX": "Microsoft RDP ActiveX 主机正在此工作区中运行。",
-    "rdpErrorStatus": "RDP error: {{message}}",
+    "rdpErrorStatus": "RDP 错误：{{message}}",
     "vncFramebuffer": "VNC framebuffer 正在此工作区中运行。",
     "transportUnavailable": "远程桌面传输不可用。",
     "session": "会话",

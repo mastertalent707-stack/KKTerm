@@ -136,7 +136,7 @@
       "gNocturne": "ノクターン"
     },
     "dynamicBackgrounds": {
-      "fuji": "Mt. Fuji",
+      "fuji": "富士山",
       "aurora": "オーロラ",
       "clouds": "雲",
       "ocean": "海",
@@ -2123,7 +2123,7 @@
     "rdpDesktopRequired": "RDPはWindowsデスクトップランタイムを使用します。",
     "vncDesktopRequired": "VNCはデスクトップランタイムを使用します。",
     "rdpActiveX": "Microsoft RDP ActiveXホストがこのワークスペースで実行中です。",
-    "rdpErrorStatus": "RDP error: {{message}}",
+    "rdpErrorStatus": "RDP エラー: {{message}}",
     "vncFramebuffer": "VNCフレームバッファがこのワークスペースで実行中です。",
     "transportUnavailable": "リモートデスクトップトランスポートが利用できません。",
     "session": "セッション",
