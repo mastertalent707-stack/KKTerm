@@ -677,7 +677,7 @@ mod platform {
                 let display_sync_attempted =
                     tracks_pane_size && is_rdp_displayable_state(connection_state);
                 let display_sync_completed = display_sync_attempted
-                    && sync_remote_desktop_size(session, display_settings, true);
+                    && sync_remote_desktop_size(session, display_settings, false);
                 let display_synced =
                     rdp_display_ready_after_sync(connection_state, display_sync_completed);
                 rdp_debug(
@@ -1992,46 +1992,6 @@ mod platform {
         }
     }
 
-    fn invoke_method_with_u32_args(
-        dispatch: &IDispatch,
-        name: &str,
-        args: &[u32],
-    ) -> Result<(), String> {
-        let dispid = get_dispid(dispatch, name)?;
-        let mut variants: Vec<VARIANT> =
-            args.iter().rev().map(|value| variant_u4(*value)).collect();
-        let mut params = DISPPARAMS {
-            rgvarg: if variants.is_empty() {
-                std::ptr::null_mut()
-            } else {
-                variants.as_mut_ptr()
-            },
-            rgdispidNamedArgs: std::ptr::null_mut(),
-            cArgs: variants.len() as u32,
-            cNamedArgs: 0,
-        };
-        let mut result = VARIANT::default();
-        unsafe {
-            let invoke_result = dispatch
-                .Invoke(
-                    dispid,
-                    &windows::core::GUID::zeroed(),
-                    LOCALE_USER_DEFAULT,
-                    DISPATCH_METHOD,
-                    &mut params,
-                    Some(&mut result),
-                    None,
-                    None,
-                )
-                .map_err(|error| format!("failed to invoke RDP ActiveX method '{name}': {error}"));
-            for variant in variants.iter_mut() {
-                let _ = VariantClear(variant);
-            }
-            let _ = VariantClear(&mut result);
-            invoke_result
-        }
-    }
-
     fn variant_i4(value: i32) -> VARIANT {
         let mut variant = VARIANT::default();
         unsafe {
@@ -2093,6 +2053,19 @@ mod platform {
                 display_settings.device_scale_factor,
             )
         {
+            rdp_debug(
+                "display.resize.skipped",
+                &json!({
+                    "reason": "unchanged",
+                    "force": force,
+                    "desktopWidth": display_settings.desktop_width,
+                    "desktopHeight": display_settings.desktop_height,
+                    "physicalWidth": display_settings.physical_width,
+                    "physicalHeight": display_settings.physical_height,
+                    "desktopScaleFactor": display_settings.desktop_scale_factor,
+                    "deviceScaleFactor": display_settings.device_scale_factor,
+                }),
+            );
             return true;
         }
         let resize_method = match resize_remote_desktop(&session.dispatch, display_settings) {
@@ -2177,7 +2150,7 @@ mod platform {
         dispatch: &IDispatch,
         display_settings: RdpDisplaySettings,
     ) -> Result<&'static str, String> {
-        match invoke_method_with_i32_args(
+        invoke_method_with_i32_args(
             dispatch,
             "UpdateSessionDisplaySettings",
             &[
@@ -2189,30 +2162,8 @@ mod platform {
                 display_settings.desktop_scale_factor,
                 display_settings.device_scale_factor,
             ],
-        ) {
-            Ok(()) => Ok("UpdateSessionDisplaySettings"),
-            Err(update_error) => {
-                reconnect_remote_desktop(
-                    dispatch,
-                    display_settings.desktop_width,
-                    display_settings.desktop_height,
-                )
-                .map(|()| "Reconnect")
-                .map_err(|reconnect_error| {
-                    format!(
-                        "UpdateSessionDisplaySettings failed: {update_error}; Reconnect fallback failed: {reconnect_error}"
-                    )
-                })
-            }
-        }
-    }
-
-    fn reconnect_remote_desktop(dispatch: &IDispatch, width: i32, height: i32) -> Result<(), String> {
-        let width = u32::try_from(width)
-            .map_err(|_| format!("RDP reconnect width '{width}' is outside ULONG range"))?;
-        let height = u32::try_from(height)
-            .map_err(|_| format!("RDP reconnect height '{height}' is outside ULONG range"))?;
-        invoke_method_with_u32_args(dispatch, "Reconnect", &[width, height])
+        )
+        .map(|()| "UpdateSessionDisplaySettings")
     }
 
     fn show_rdp_for_session(
