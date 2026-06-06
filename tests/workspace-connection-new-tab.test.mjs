@@ -24,8 +24,8 @@ test("Connection Tree supports forced new Tabs from Ctrl-click and Add to menu",
   );
   assert.match(
     storeSource,
-    /childConnectionGroupParentId: connection\.id,[\s\S]*?focusedPaneId: undefined,/,
-    "parent panorama activation should not mark a child row as selected in the Connection Tree",
+    /childConnectionGroupParentId: connection\.id,[\s\S]*?focusedPaneId: focusedPaneIdForChildLayout\(existingGroupTab,\s*childPanes\),/,
+    "parent panorama activation should restore the previously focused child Pane when reopening a live child layout",
   );
   assert.match(
     storeSource,
@@ -35,7 +35,7 @@ test("Connection Tree supports forced new Tabs from Ctrl-click and Add to menu",
   assert.match(
     storeSource,
     /maximizedPaneId: undefined/,
-    "parent panorama activation should restore the full child panorama",
+    "parent panorama activation should restore the full child panorama while preserving focus",
   );
   assert.match(
     sidebarSource,
@@ -69,8 +69,8 @@ test("Connection Tree supports forced new Tabs from Ctrl-click and Add to menu",
   );
   assert.match(
     sidebarSource,
-    /activeTab\?\.childConnectionGroupParentId === connection\.id && !activeTab\.focusedPaneId/,
-    "parent panorama selection should not also mean child-row selection",
+    /activeTab\?\.childConnectionGroupParentId === connection\.id/,
+    "parent Connection rows should remain active when a focused child Pane is restored in the panorama",
   );
   assert.match(
     sidebarSource,

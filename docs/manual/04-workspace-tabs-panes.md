@@ -36,8 +36,7 @@ It does not duplicate the parent Connection's host, protocol, or credential meta
 
 Right-clicking a Child Connection Tab exposes `connections.rename` and `connections.properties`; the properties dialog `connections.childConnectionProperties` edits the child Tab name, icon image, and icon background. Double-clicking the child row name starts inline rename.
 
-Selecting a parent Connection that already has Child Connection Tabs opens all of its children together in one split Tab when no child Session is already open. Two children use a left/right split, three use two Panes above one Pane, and larger sets use a grid-style split for monitoring many Sessions at once. If a child or child-layout Tab is already live, KKTerm reuses the existing Tab/Pane and focuses it instead of opening another SSH or terminal Session.
-When an existing child-layout Tab is refreshed or reselected, KKTerm preserves the focused Pane when that Pane is still part of the layout.
+Selecting a parent Connection that already has Child Connection Tabs opens all of its children together in one split Tab when no child Session is already open. Two children use a left/right split, three use two Panes above one Pane, and larger sets use a grid-style split for monitoring many Sessions at once. If a child or child-layout Tab is already live, KKTerm reuses the existing Tab/Pane instead of opening another SSH or terminal Session. When an existing child-layout Tab is refreshed or reselected, KKTerm restores the previously focused child Pane when that Pane is still part of the layout, clears any single-Pane maximize state, and returns terminal input focus to that Pane.
 
 ## Tab right-click menu
 

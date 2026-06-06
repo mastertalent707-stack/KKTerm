@@ -54,6 +54,7 @@ import { elevatedLocalShellAction } from "./modules/workspace/connections/quickC
 import { resolveDefaultTerminalAppearance } from "./modules/workspace/connections/terminalAppearanceDefaults";
 import type { LocalShellOption } from "./modules/workspace/connections/utils";
 import { markPanesForRuntimeMove } from "./modules/workspace/paneRegistry";
+import { focusedPaneIdForChildLayout } from "./modules/workspace/connections/childConnections";
 
 const LAYOUT_STORAGE_PREFIX = "kkterm.layout.";
 const TMUX_SESSION_STORAGE_PREFIX = "kkterm.tmuxSessions.";
@@ -1350,7 +1351,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       kind: "terminal",
       panes: childPanes,
       layout: layoutForChildPanes(childPanes),
-      focusedPaneId: undefined,
+      focusedPaneId: focusedPaneIdForChildLayout(existingGroupTab, childPanes),
       maximizedPaneId: undefined,
       quickCommandBarVisible: false,
       connection,

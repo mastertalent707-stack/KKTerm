@@ -105,5 +105,5 @@ export function focusedPaneIdForChildLayout(
   const paneIds = new Set(panes.map((pane) => pane.id));
   return existingTab?.focusedPaneId && paneIds.has(existingTab.focusedPaneId)
     ? existingTab.focusedPaneId
-    : panes[0]?.id;
+    : undefined;
 }

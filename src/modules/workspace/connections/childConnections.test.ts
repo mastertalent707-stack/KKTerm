@@ -58,7 +58,8 @@ if (syncedChild.terminalOpacity !== 42) {
   throw new Error("Open child terminal transparency should sync into stored child metadata.");
 }
 
-const existingFocusedPane = focusedPaneIdForChildLayout(tab, tab.panes);
+const focusedTab = { ...tab, focusedPaneId: "pane-child-1" };
+const existingFocusedPane = focusedPaneIdForChildLayout(focusedTab, focusedTab.panes);
 if (existingFocusedPane !== "pane-child-1") {
   throw new Error("Refreshing an existing child layout should preserve its focused Pane.");
 }
@@ -67,6 +68,11 @@ const fallbackFocusedPane = focusedPaneIdForChildLayout(
   { ...tab, focusedPaneId: "missing-pane" },
   tab.panes,
 );
-if (fallbackFocusedPane !== "pane-child-1") {
-  throw new Error("Refreshing a child layout with stale focus should fall back to the first Pane.");
+if (fallbackFocusedPane !== undefined) {
+  throw new Error("Refreshing a child layout with stale focus should leave the panorama focus unset.");
+}
+
+const initialFocusedPane = focusedPaneIdForChildLayout(undefined, tab.panes);
+if (initialFocusedPane !== undefined) {
+  throw new Error("Opening a child panorama without prior focus should not invent a focused child Pane.");
 }

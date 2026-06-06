@@ -3915,7 +3915,7 @@ function ConnectionRowWithChildTabs({
 }) {
   const activeTab = childTabs.find((tab) => tab.id === activeTabId);
   const isActiveParent =
-    activeTab?.childConnectionGroupParentId === connection.id && !activeTab.focusedPaneId
+    activeTab?.childConnectionGroupParentId === connection.id
       ? true
       : Boolean(
           activeTab &&
