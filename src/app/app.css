@@ -250,7 +250,7 @@
 }
 
 .rail-button-dont-sleep.dont-sleep-enabled {
-  color: var(--nav-toolbar-warning);
+  color: var(--green);
 }
 
 .rail-button:disabled {

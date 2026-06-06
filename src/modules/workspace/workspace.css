@@ -312,7 +312,7 @@
 }
 
 .status-bar-dont-sleep-enabled {
-  color: var(--amber);
+  color: var(--green);
 }
 
 .status-bar-x-server-running {

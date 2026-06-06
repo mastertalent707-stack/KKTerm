@@ -130,17 +130,9 @@
   align-items: center;
   gap: 0.65rem;
   margin: 0 0 0.75rem;
-  padding-bottom: 0.55rem;
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-muted);
-}
-
-.installer-section__title::after {
-  content: "";
-  height: 1px;
-  flex: 1 1 auto;
-  background: color-mix(in srgb, var(--border) 70%, transparent);
 }
 
 .installer-section__rows {

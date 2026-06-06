@@ -29,6 +29,11 @@
   background: var(--accent);
 }
 
+[data-color-scheme="blue-green-white"] .quick-connect {
+  color: #ffffff;
+  background: var(--green);
+}
+
 .quick-connect-menu {
   position: absolute;
   top: calc(100% + 5px);
