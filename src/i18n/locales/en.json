@@ -987,7 +987,7 @@
     "updateNotes": "Release notes",
     "updateChecksRequireRuntime": "Update checks require the Tauri desktop runtime.",
     "updateCheckFailed": "Could not check for updates: {{message}}",
-    "appSlogan": "Local-first administration workspace.",
+    "appSlogan": "The terminal tool for keeping every machine on its best behavior.",
     "developer": "Developer",
     "version": "Version",
     "license": "License",

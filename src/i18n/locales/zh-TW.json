@@ -987,7 +987,7 @@
     "updateNotes": "發行說明",
     "updateChecksRequireRuntime": "更新檢查需要 Tauri 桌面執行環境。",
     "updateCheckFailed": "無法檢查更新：{{message}}",
-    "appSlogan": "以本機為優先的管理工作區。",
+    "appSlogan": "祝大家機台永遠都乖乖的終端機工具。",
     "developer": "開發者",
     "version": "版本",
     "license": "授權",

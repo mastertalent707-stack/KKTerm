@@ -987,7 +987,7 @@
     "updateNotes": "บันทึกรุ่น",
     "updateChecksRequireRuntime": "การตรวจสอบการอัปเดตต้องการใช้ Tauri desktop runtime",
     "updateCheckFailed": "ไม่สามารถตรวจสอบการอัปเดต: {{message}}",
-    "appSlogan": "พื้นที่ทำงานระบบดูแลแบบ local-first",
+    "appSlogan": "เครื่องมือเทอร์มินัลที่ช่วยให้ทุกเครื่องเชื่องและไม่งอแง",
     "developer": "ผู้พัฒนา",
     "version": "เวอร์ชัน",
     "license": "ใบอนุญาต",

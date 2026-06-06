@@ -987,7 +987,7 @@
     "updateNotes": "リリースノート",
     "updateChecksRequireRuntime": "アップデート確認にはTauriデスクトップランタイムが必要です。",
     "updateCheckFailed": "アップデートの確認に失敗しました: {{message}}",
-    "appSlogan": "ローカルファーストの管理ワークスペース。",
+    "appSlogan": "マシンがいつもお行儀よく動くことを願うターミナルツール。",
     "developer": "開発者",
     "version": "バージョン",
     "license": "ライセンス",

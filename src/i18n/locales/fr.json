@@ -987,7 +987,7 @@
     "updateNotes": "Notes de version",
     "updateChecksRequireRuntime": "La vérification des mises à jour nécessite l’environnement de bureau Tauri.",
     "updateCheckFailed": "Échec de la vérification des mises à jour : {{message}}",
-    "appSlogan": "Espace de travail d'administration local-first.",
+    "appSlogan": "L’outil terminal pour que vos machines restent sages.",
     "developer": "Développeur",
     "version": "Version",
     "license": "Licence",

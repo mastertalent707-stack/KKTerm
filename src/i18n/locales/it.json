@@ -987,7 +987,7 @@
     "updateNotes": "Note di rilascio",
     "updateChecksRequireRuntime": "La verifica degli aggiornamenti richiede il runtime desktop Tauri.",
     "updateCheckFailed": "Impossibile verificare gli aggiornamenti: {{message}}",
-    "appSlogan": "Spazio di lavoro di amministrazione local-first.",
+    "appSlogan": "Lo strumento da terminale che aiuta le tue macchine a rigare dritto.",
     "developer": "Sviluppatore",
     "version": "Versione",
     "license": "Licenza",

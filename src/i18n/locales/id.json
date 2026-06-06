@@ -987,7 +987,7 @@
     "updateNotes": "Catatan rilis",
     "updateChecksRequireRuntime": "Pemeriksaan pembaruan memerlukan runtime desktop Tauri.",
     "updateCheckFailed": "Tidak dapat memeriksa pembaruan: {{message}}",
-    "appSlogan": "Ruang kerja administrasi local-first.",
+    "appSlogan": "Alat terminal agar semua mesin tetap nurut.",
     "developer": "Pengembang",
     "version": "Versi",
     "license": "Lisensi",

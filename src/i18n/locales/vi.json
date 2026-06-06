@@ -987,7 +987,7 @@
     "updateNotes": "Ghi chú phát hành",
     "updateChecksRequireRuntime": "Kiểm tra cập nhật yêu cầu môi trường desktop Tauri.",
     "updateCheckFailed": "Không thể kiểm tra cập nhật: {{message}}",
-    "appSlogan": "Không gian làm việc quản trị ưu tiên cục bộ.",
+    "appSlogan": "Công cụ terminal để máy móc luôn ngoan ngoãn nghe lời.",
     "developer": "Developer",
     "version": "Version",
     "license": "License",

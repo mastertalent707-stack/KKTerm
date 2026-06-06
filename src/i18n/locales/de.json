@@ -987,7 +987,7 @@
     "updateNotes": "Versionshinweise",
     "updateChecksRequireRuntime": "Update-Prüfungen erfordern die Tauri-Desktop-Laufzeitumgebung.",
     "updateCheckFailed": "Update-Prüfung fehlgeschlagen: {{message}}",
-    "appSlogan": "Lokal-zentrierter Administrations-Arbeitsbereich.",
+    "appSlogan": "Das Terminal-Tool, damit alle Maschinen brav mitspielen.",
     "developer": "Entwickler",
     "version": "Version",
     "license": "Lizenz",

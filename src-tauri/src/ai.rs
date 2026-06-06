@@ -1446,14 +1446,32 @@ fn resolve_cli_backend_command(provider: AiCliBackendKind, configured: Option<St
 }
 
 fn common_cli_backend_command_path(provider: AiCliBackendKind) -> Option<PathBuf> {
-    common_user_bin_candidates(cli_backend_command_names(provider))
+    cli_backend_discovery_candidates(provider)
         .into_iter()
-        .chain(path_cli_backend_candidates(provider))
-        .chain(match provider {
+        .find(|path| path.is_file())
+}
+
+fn cli_backend_discovery_candidates(provider: AiCliBackendKind) -> Vec<PathBuf> {
+    combine_cli_backend_candidates(
+        path_cli_backend_candidates(provider),
+        common_user_bin_candidates(cli_backend_command_names(provider)),
+        match provider {
             AiCliBackendKind::Codex => codex_vscode_extension_candidates(),
             AiCliBackendKind::ClaudeCode => Vec::new(),
-        })
-        .find(|path| path.is_file())
+        },
+    )
+}
+
+fn combine_cli_backend_candidates(
+    path_candidates: Vec<PathBuf>,
+    common_candidates: Vec<PathBuf>,
+    extension_candidates: Vec<PathBuf>,
+) -> Vec<PathBuf> {
+    path_candidates
+        .into_iter()
+        .chain(common_candidates)
+        .chain(extension_candidates)
+        .collect()
 }
 
 fn cli_backend_command_names(provider: AiCliBackendKind) -> &'static [&'static str] {
@@ -8500,19 +8518,24 @@ mod tests {
     }
 
     #[test]
-    fn common_cli_candidates_prefer_active_nvm_before_roaming_npm() {
-        let candidates = bin_candidates_from_roots(
+    fn cli_backend_discovery_prefers_path_candidates_before_common_bins() {
+        let path_candidates = bin_candidates_from_roots(
+            vec![PathBuf::from("C:\\nvm4w\\nodejs")],
+            &["claude.exe", "claude.cmd"],
+        );
+        let common_candidates = bin_candidates_from_roots(
             vec![
                 PathBuf::from("C:\\Users\\Tester\\.local\\bin"),
-                PathBuf::from("C:\\nvm4w\\nodejs"),
                 PathBuf::from("C:\\Users\\Tester\\AppData\\Roaming\\npm"),
             ],
-            &["codex.exe", "codex.cmd"],
+            &["claude.exe", "claude.cmd"],
         );
+        let candidates =
+            combine_cli_backend_candidates(path_candidates, common_candidates, Vec::new());
 
-        assert!(candidates[0].ends_with(".local\\bin\\codex.exe"));
-        assert!(candidates[2].ends_with("nvm4w\\nodejs\\codex.exe"));
-        assert!(candidates[4].ends_with("Roaming\\npm\\codex.exe"));
+        assert!(candidates[0].ends_with("nvm4w\\nodejs\\claude.exe"));
+        assert!(candidates[2].ends_with(".local\\bin\\claude.exe"));
+        assert!(candidates[4].ends_with("Roaming\\npm\\claude.exe"));
     }
 
     #[test]

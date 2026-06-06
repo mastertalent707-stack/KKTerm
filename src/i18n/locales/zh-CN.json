@@ -987,7 +987,7 @@
     "updateNotes": "发行说明",
     "updateChecksRequireRuntime": "更新检查需要 Tauri 桌面运行时。",
     "updateCheckFailed": "无法检查更新：{{message}}",
-    "appSlogan": "本地优先的管理工作区。",
+    "appSlogan": "祝大家的机器永远乖乖听话的终端工具。",
     "developer": "开发者",
     "version": "版本",
     "license": "许可协议",

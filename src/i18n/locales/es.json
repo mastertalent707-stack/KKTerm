@@ -987,7 +987,7 @@
     "updateNotes": "Notas de la versión",
     "updateChecksRequireRuntime": "La búsqueda de actualizaciones requiere el entorno de escritorio Tauri.",
     "updateCheckFailed": "No se pudo buscar actualizaciones: {{message}}",
-    "appSlogan": "Espacio de trabajo de administración local.",
+    "appSlogan": "La herramienta de terminal para que tus máquinas se porten bien.",
     "developer": "Desarrollador",
     "version": "Versión",
     "license": "Licencia",

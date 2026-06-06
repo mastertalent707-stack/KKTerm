@@ -987,7 +987,7 @@
     "updateNotes": "Notas de versão",
     "updateChecksRequireRuntime": "A verificação de atualizações requer o ambiente de desktop Tauri.",
     "updateCheckFailed": "Não foi possível verificar atualizações: {{message}}",
-    "appSlogan": "Área de trabalho de administração local-first.",
+    "appSlogan": "A ferramenta de terminal para suas máquinas se comportarem direitinho.",
     "developer": "Desenvolvedor",
     "version": "Versão",
     "license": "Licença",
