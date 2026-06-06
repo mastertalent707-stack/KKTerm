@@ -49,6 +49,14 @@ async function loadMarked(): Promise<string> {
   return rawDefault(() => import("widget-lib:marked?global=marked"));
 }
 
+async function loadJwtDecode(): Promise<string> {
+  const source = await rawDefault(() => import("widget-lib:jwt-decode?global=__kkJwtDecodeModule"));
+  return `${source}
+;window.jwt_decode = window.__kkJwtDecodeModule && window.__kkJwtDecodeModule.jwtDecode
+  ? window.__kkJwtDecodeModule.jwtDecode
+  : window.__kkJwtDecodeModule;`;
+}
+
 async function loadUplot(): Promise<string> {
   const [source, css] = await Promise.all([
     rawDefault(() => import("uplot/dist/uPlot.iife.min.js?raw")),
@@ -63,12 +71,6 @@ async function loadUplot(): Promise<string> {
 }
 
 export const WIDGET_LIBRARIES: Record<string, WidgetLibrary> = {
-  echarts: {
-    key: "echarts",
-    global: "echarts",
-    description: "Apache ECharts data visualization (bar, line, scatter, treemap, heatmap, radar). Mount in a measured kk-stage/kk-panel and call chart.resize() on viewport resize.",
-    load: () => rawDefault(() => import("widget-lib:echarts?global=echarts")),
-  },
   chartjs: {
     key: "chartjs",
     global: "Chart",
@@ -86,12 +88,6 @@ export const WIDGET_LIBRARIES: Record<string, WidgetLibrary> = {
     global: "JsBarcode",
     description: "1D barcode renderer (Code128, EAN, UPC, ITF) to SVG or canvas.",
     load: () => rawDefault(() => import("jsbarcode/dist/JsBarcode.all.min.js?raw")),
-  },
-  jspdf: {
-    key: "jspdf",
-    global: "jspdf",
-    description: "PDF generation. Access as window.jspdf.jsPDF.",
-    load: () => rawDefault(() => import("widget-lib:jspdf?global=jspdf")),
   },
   mathjs: {
     key: "mathjs",
@@ -128,12 +124,6 @@ export const WIDGET_LIBRARIES: Record<string, WidgetLibrary> = {
     global: "rough",
     description: "Hand-drawn / sketch style rendering to canvas or SVG.",
     load: () => rawDefault(() => import("roughjs/bundled/rough.js?raw")),
-  },
-  alasql: {
-    key: "alasql",
-    global: "alasql",
-    description: "SQL queries over JavaScript arrays of objects.",
-    load: () => rawDefault(() => import("widget-lib:alasql?global=alasql")),
   },
   three: {
     key: "three",
@@ -194,7 +184,7 @@ export const WIDGET_LIBRARIES: Record<string, WidgetLibrary> = {
     key: "jwtdecode",
     global: "jwt_decode",
     description: "Decode JSON Web Tokens (header + payload, no signature verify).",
-    load: () => rawDefault(() => import("jwt-decode/build/jwt-decode.js?raw")),
+    load: loadJwtDecode,
   },
   diffmatchpatch: {
     key: "diffmatchpatch",

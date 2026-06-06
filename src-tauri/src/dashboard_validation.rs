@@ -176,18 +176,15 @@ pub const MAX_WIDGET_LIBRARIES: usize = 8;
 pub const MAX_HTML_SHIM_BYTES: usize = 128 * 1024;
 
 pub const KNOWN_LIBRARY_GLOBALS: &[(&str, &str)] = &[
-    ("echarts", "echarts"),
     ("chartjs", "Chart"),
     ("qrcode", "QRCode"),
     ("jsbarcode", "JsBarcode"),
-    ("jspdf", "jspdf"),
     ("mathjs", "math"),
     ("papaparse", "Papa"),
     ("pica", "pica"),
     ("dayjs", "dayjs"),
     ("konva", "Konva"),
     ("roughjs", "rough"),
-    ("alasql", "alasql"),
     ("three", "THREE"),
     ("pixijs", "PIXI"),
     ("matter", "Matter"),

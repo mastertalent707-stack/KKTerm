@@ -6,6 +6,47 @@ import { widgetLibBundlePlugin } from "./scripts/vite-widget-lib-bundle";
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
+const manualChunkGroups: Record<string, string[]> = {
+  react: ["react", "react-dom", "react/jsx-runtime"],
+  i18n: ["i18next", "react-i18next"],
+  icons: ["lucide-react"],
+  xterm: [
+    "@xterm/xterm",
+    "@xterm/addon-fit",
+    "@xterm/addon-search",
+    "@xterm/addon-web-links",
+    "@xterm/addon-webgl",
+  ],
+  markdown: [
+    "@codemirror/autocomplete",
+    "@codemirror/commands",
+    "@codemirror/lang-markdown",
+    "@codemirror/language",
+    "@codemirror/search",
+    "@codemirror/state",
+    "@codemirror/theme-one-dark",
+    "@codemirror/view",
+    "@lezer/markdown",
+    "marked",
+    "dompurify",
+  ],
+  tauri: [
+    "@tauri-apps/api",
+    "@tauri-apps/plugin-dialog",
+    "@tauri-apps/plugin-fs",
+    "@tauri-apps/plugin-opener",
+  ],
+};
+
+function manualChunks(id: string): string | undefined {
+  for (const [chunkName, packageIds] of Object.entries(manualChunkGroups)) {
+    if (packageIds.some((packageId) => id.includes(`/node_modules/${packageId}/`))) {
+      return chunkName;
+    }
+  }
+  return undefined;
+}
+
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [widgetLibBundlePlugin(), react(), tailwindcss()],
@@ -38,37 +79,7 @@ export default defineConfig(async () => ({
     chunkSizeWarningLimit: 3500,
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ["react", "react-dom", "react/jsx-runtime"],
-          i18n: ["i18next", "react-i18next"],
-          icons: ["lucide-react"],
-          xterm: [
-            "@xterm/xterm",
-            "@xterm/addon-fit",
-            "@xterm/addon-search",
-            "@xterm/addon-web-links",
-            "@xterm/addon-webgl",
-          ],
-          markdown: [
-            "@codemirror/autocomplete",
-            "@codemirror/commands",
-            "@codemirror/lang-markdown",
-            "@codemirror/language",
-            "@codemirror/search",
-            "@codemirror/state",
-            "@codemirror/theme-one-dark",
-            "@codemirror/view",
-            "@lezer/markdown",
-            "marked",
-            "dompurify",
-          ],
-          tauri: [
-            "@tauri-apps/api",
-            "@tauri-apps/plugin-dialog",
-            "@tauri-apps/plugin-fs",
-            "@tauri-apps/plugin-opener",
-          ],
-        },
+        manualChunks,
       },
     },
   },
