@@ -1308,6 +1308,7 @@
     "screenControl": "Bildschirmsteuerung",
     "type": "Typ",
     "connectionProperties": "Verbindungseigenschaften",
+    "connectionNotFound": "Verbindung wurde nicht gefunden.",
     "childConnectionProperties": "Eigenschaften des untergeordneten Verbindungs-Tabs bearbeiten",
     "newConnectionTitle": "Neue Verbindung",
     "openOneOffSession": "Einmalige Sitzung öffnen",

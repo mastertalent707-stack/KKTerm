@@ -1308,6 +1308,7 @@
     "screenControl": "Screen control",
     "type": "Type",
     "connectionProperties": "Connection properties",
+    "connectionNotFound": "Connection was not found.",
     "childConnectionProperties": "Sửa thuộc tính Tab kết nối con",
     "newConnectionTitle": "New connection",
     "openOneOffSession": "Open one-off session",

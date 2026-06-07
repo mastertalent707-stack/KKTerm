@@ -28,7 +28,7 @@ import {
 } from "./connectionTabContextMenu";
 import { confirmTrustedSshHostKey, connectionPasswordOwnerId, defaultPortForConnectionType, connectionTypeLabel, ftpPortForProtocolSelection, isRemoteDesktopConnectionType, localShellOptionsForPlatform, uniqueRuntimeId, type LocalShellOption } from "./utils";
 import { RECENT_CONNECTION_LIMIT, loadCollapsedFolderIds, loadRecentConnectionIds, notifyConnectionTreeInvalidated, saveCollapsedFolderIds, saveRecentConnectionIds } from "./connectionSidebarState";
-import { collectConnectionFolderIds, countConnections, countFolders, filterConnectionTree, flattenConnections, flattenFolders, upsertRootConnection, withLiveConnectionStatuses } from "./treeUtils";
+import { collectConnectionFolderIds, countConnections, countFolders, filterConnectionTree, findConnectionInTree, flattenConnections, flattenFolders, upsertRootConnection, withLiveConnectionStatuses } from "./treeUtils";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronDown, ChevronRight, Folder, FolderPlus, KeyRound, LayoutDashboard, List, Maximize2, Minimize2, PanelRight, Pencil, Pin, PinOff, Play, Plus, RotateCcw, Save, Search, Settings, SquarePlus, Trash2, X } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -882,11 +882,16 @@ export function ConnectionSidebar({
     }
 
     setFormError("");
+    const currentConnection = findConnectionInTree(treeRef.current, editConnection.connection.id);
+    if (!currentConnection) {
+      setFormError(t("connections.connectionNotFound"));
+      return;
+    }
     const { iconDataUrl, iconBackgroundColor, password, passwordCredentialId, urlCredentialUsername, urlPassword, ...connectionRequest } = request;
     const updateRequest: UpdateConnectionRequest = {
       ...connectionRequest,
-      id: editConnection.connection.id,
-      type: editConnection.connection.type,
+      id: currentConnection.connection.id,
+      type: currentConnection.connection.type,
     };
 
     try {
@@ -908,7 +913,7 @@ export function ConnectionSidebar({
       refreshOpenConnectionMetadata({
         ...connection,
         hasPassword: connection.hasPassword || Boolean(password) || Boolean(passwordCredentialId) || Boolean(connection.passwordCredentialId),
-        passwordCredentialId: connection.passwordCredentialId ?? passwordCredentialId ?? editConnection.connection.passwordCredentialId,
+        passwordCredentialId: connection.passwordCredentialId ?? passwordCredentialId ?? currentConnection.connection.passwordCredentialId,
         urlCredentialUsername:
           connection.type === "url" && urlCredentialUsername
             ? urlCredentialUsername
@@ -1601,8 +1606,9 @@ export function ConnectionSidebar({
   function handleTreeMenuProperties(menu: TreeContextMenuState) {
     setTreeContextMenu(null);
     if (menu.kind === "connection") {
+      const currentConnection = findConnectionInTree(treeRef.current, menu.connection.id);
       setFormError("");
-      setEditConnection({ connection: menu.connection, folderId: menu.folderId });
+      setEditConnection(currentConnection ?? { connection: menu.connection, folderId: menu.folderId });
     }
   }
 
