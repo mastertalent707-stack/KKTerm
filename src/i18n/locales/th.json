@@ -1308,6 +1308,7 @@
     "screenControl": "ควบคุมหน้าจอ",
     "type": "ประเภท",
     "connectionProperties": "คุณสมบัติการเชื่อมต่อ",
+    "connectionNotFound": "ไม่พบการเชื่อมต่อ",
     "childConnectionProperties": "แก้ไขคุณสมบัติแท็บการเชื่อมต่อลูก",
     "newConnectionTitle": "การเชื่อมต่อใหม่",
     "openOneOffSession": "เปิดเซสชันครั้งเดียว",

@@ -1308,6 +1308,7 @@
     "screenControl": "Contrôle d'écran",
     "type": "Type",
     "connectionProperties": "Propriétés de la connexion",
+    "connectionNotFound": "La connexion est introuvable.",
     "childConnectionProperties": "Modifier les propriétés de l’onglet de connexion enfant",
     "newConnectionTitle": "Nouvelle connexion",
     "openOneOffSession": "Ouvrir une session ponctuelle",

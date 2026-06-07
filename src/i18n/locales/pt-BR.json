@@ -1308,6 +1308,7 @@
     "screenControl": "Controle de tela",
     "type": "Tipo",
     "connectionProperties": "Propriedades da conexão",
+    "connectionNotFound": "A conexão não foi encontrada.",
     "childConnectionProperties": "Editar propriedades da aba de conexão filha",
     "newConnectionTitle": "Nova conexão",
     "openOneOffSession": "Abrir sessão única",

@@ -1308,6 +1308,7 @@
     "screenControl": "画面制御",
     "type": "タイプ",
     "connectionProperties": "接続プロパティ",
+    "connectionNotFound": "接続が見つかりませんでした。",
     "childConnectionProperties": "子接続タブのプロパティを編集",
     "newConnectionTitle": "新規接続",
     "openOneOffSession": "一度限りのセッションを開く",

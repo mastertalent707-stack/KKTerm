@@ -112,11 +112,39 @@ export function flattenConnections(tree: ConnectionTree): Connection[] {
   ];
 }
 
+export function findConnectionInTree(
+  tree: ConnectionTree,
+  connectionId: string,
+): { connection: Connection; folderId?: string } | null {
+  const rootConnection = tree.connections.find((connection) => connection.id === connectionId);
+  if (rootConnection) {
+    return { connection: rootConnection };
+  }
+  return findConnectionInFolders(tree.folders, connectionId);
+}
+
 function flattenFolderConnections(folder: ConnectionFolder): Connection[] {
   return [
     ...folder.connections,
     ...folder.folders.flatMap((childFolder) => flattenFolderConnections(childFolder)),
   ];
+}
+
+function findConnectionInFolders(
+  folders: ConnectionFolder[],
+  connectionId: string,
+): { connection: Connection; folderId?: string } | null {
+  for (const folder of folders) {
+    const connection = folder.connections.find((entry) => entry.id === connectionId);
+    if (connection) {
+      return { connection, folderId: folder.id };
+    }
+    const childMatch = findConnectionInFolders(folder.folders, connectionId);
+    if (childMatch) {
+      return childMatch;
+    }
+  }
+  return null;
 }
 
 export function flattenFolders(
