@@ -248,17 +248,23 @@ export function TerminalWorkspace({
     // (the WebView2 input routing was dead until the click), which the
     // hasFocus/activeElement signals cannot distinguish.
     inputProbeArmedRef.current = true;
-    const renderer = focusedPaneId ? getPaneRenderer(focusedPaneId) : undefined;
+    const focusRenderer = () => getPaneRenderer(focusedPaneId)?.focus();
+    // Cover the case where DOM focus did leave the terminal (e.g. a title-bar
+    // drag parked it on <body>): re-focus the pane's textarea. This is a no-op
+    // when it already holds focus. Schedule another pass for app activation,
+    // because WebView2 can ignore textarea focus until the webview receives
+    // native keyboard focus after an Alt+Tab return.
+    focusRenderer();
+    window.requestAnimationFrame(focusRenderer);
     if (isTauriRuntime()) {
       void focusMainWindow()
         .then(() => focusCurrentWebview())
         .catch(() => undefined)
-        .finally(() => logTerminalFocusDiagnostic(`restored:${reason}`));
+        .finally(() => {
+          window.requestAnimationFrame(focusRenderer);
+          logTerminalFocusDiagnostic(`restored:${reason}`);
+        });
     }
-    // Cover the case where DOM focus did leave the terminal (e.g. a title-bar
-    // drag parked it on <body>): re-focus the pane's textarea. This is a no-op
-    // when it already holds focus, so it cannot re-enter the native path.
-    renderer?.focus();
   }
 
   function describeProbeTarget(target: EventTarget | null) {
@@ -283,9 +289,15 @@ export function TerminalWorkspace({
       return;
     }
 
-    // Restore terminal input focus after a title-bar drag. The native app-window
-    // activation path is intentionally disabled: repeated WebView2/Win32 focus
-    // attempts can fight xterm's textarea and make the cursor flicker.
+    // Restore terminal input focus after native app activation and title-bar
+    // drags. Keep the actual restore gated by shouldPreserveTerminalWorkspaceFocus
+    // so dialogs, search fields, and the assistant are not stolen from the user.
+    const handleWindowFocus = () => restoreFocusedTerminalPane("window-focus");
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        restoreFocusedTerminalPane("visibility-visible");
+      }
+    };
     const handleTitlebarPointerUp = (event: PointerEvent) => {
       const target = event.target instanceof HTMLElement ? event.target : null;
       if (!target?.closest(".app-titlebar") || target.closest("button")) {
@@ -311,11 +323,15 @@ export function TerminalWorkspace({
       logTerminalFocusDiagnostic(`input-after-activation:pointerdown:${describeProbeTarget(event.target)}`);
     };
 
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     document.addEventListener("pointerup", handleTitlebarPointerUp, true);
     document.addEventListener("keydown", handleProbeKeydown, true);
     document.addEventListener("pointerdown", handleProbePointerdown, true);
 
     return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("pointerup", handleTitlebarPointerUp, true);
       document.removeEventListener("keydown", handleProbeKeydown, true);
       document.removeEventListener("pointerdown", handleProbePointerdown, true);
