@@ -40,6 +40,7 @@ type TerminalContextMenuState = {
 };
 
 const TMUX_MOUSE_MODE_EVENT = "kkterm:tmux-mouse-mode";
+const MAIN_WINDOW_FOCUS_CHANGED_EVENT = "kkterm://main-window-focus-changed";
 const terminalInputEncoder = new TextEncoder();
 
 function normalizeFilenamePart(value: string) {
@@ -229,6 +230,7 @@ export function TerminalWorkspace({
 
   const lastFocusRestoreRef = useRef(0);
   const inputProbeArmedRef = useRef(false);
+  const restoreFocusOnWindowFocusRef = useRef(false);
   function restoreFocusedTerminalPane(reason: string) {
     logTerminalFocusDiagnostic(`restore:${reason}`);
     if (shouldPreserveTerminalWorkspaceFocus()) {
@@ -248,17 +250,23 @@ export function TerminalWorkspace({
     // (the WebView2 input routing was dead until the click), which the
     // hasFocus/activeElement signals cannot distinguish.
     inputProbeArmedRef.current = true;
-    const renderer = focusedPaneId ? getPaneRenderer(focusedPaneId) : undefined;
+    const focusRenderer = () => getPaneRenderer(focusedPaneId)?.focus();
+    // Cover the case where DOM focus did leave the terminal (e.g. a title-bar
+    // drag parked it on <body>): re-focus the pane's textarea. This is a no-op
+    // when it already holds focus. Schedule another pass for app activation,
+    // because WebView2 can ignore textarea focus until the webview receives
+    // native keyboard focus after an Alt+Tab return.
+    focusRenderer();
+    window.requestAnimationFrame(focusRenderer);
     if (isTauriRuntime()) {
       void focusMainWindow()
         .then(() => focusCurrentWebview())
         .catch(() => undefined)
-        .finally(() => logTerminalFocusDiagnostic(`restored:${reason}`));
+        .finally(() => {
+          window.requestAnimationFrame(focusRenderer);
+          logTerminalFocusDiagnostic(`restored:${reason}`);
+        });
     }
-    // Cover the case where DOM focus did leave the terminal (e.g. a title-bar
-    // drag parked it on <body>): re-focus the pane's textarea. This is a no-op
-    // when it already holds focus, so it cannot re-enter the native path.
-    renderer?.focus();
   }
 
   function describeProbeTarget(target: EventTarget | null) {
@@ -283,9 +291,26 @@ export function TerminalWorkspace({
       return;
     }
 
-    // Restore terminal input focus after a title-bar drag. The native app-window
-    // activation path is intentionally disabled: repeated WebView2/Win32 focus
-    // attempts can fight xterm's textarea and make the cursor flicker.
+    // Restore terminal input focus after native app activation only when the
+    // active terminal owned focus before the app blurred. Keep the xterm focus
+    // path pane-local instead of stealing focus on every window activation.
+    const handleWindowBlur = () => {
+      restoreFocusOnWindowFocusRef.current = shouldRestoreTerminalFocusAfterWindowBlur();
+    };
+    const handleWindowFocus = () => {
+      if (!restoreFocusOnWindowFocusRef.current) {
+        return;
+      }
+      restoreFocusOnWindowFocusRef.current = false;
+      restoreFocusedTerminalPane("window-focus");
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        handleWindowBlur();
+      } else if (document.visibilityState === "visible") {
+        handleWindowFocus();
+      }
+    };
     const handleTitlebarPointerUp = (event: PointerEvent) => {
       const target = event.target instanceof HTMLElement ? event.target : null;
       if (!target?.closest(".app-titlebar") || target.closest("button")) {
@@ -311,14 +336,40 @@ export function TerminalWorkspace({
       logTerminalFocusDiagnostic(`input-after-activation:pointerdown:${describeProbeTarget(event.target)}`);
     };
 
+    let disposed = false;
+    let removeNativeFocusListener: (() => void) | undefined;
+
+    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     document.addEventListener("pointerup", handleTitlebarPointerUp, true);
     document.addEventListener("keydown", handleProbeKeydown, true);
     document.addEventListener("pointerdown", handleProbePointerdown, true);
+    if (isTauriRuntime()) {
+      void listen<boolean>(MAIN_WINDOW_FOCUS_CHANGED_EVENT, (event) => {
+        if (event.payload) {
+          handleWindowFocus();
+        } else {
+          handleWindowBlur();
+        }
+      }).then((unlisten) => {
+        if (disposed) {
+          unlisten();
+        } else {
+          removeNativeFocusListener = unlisten;
+        }
+      });
+    }
 
     return () => {
+      disposed = true;
+      window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("pointerup", handleTitlebarPointerUp, true);
       document.removeEventListener("keydown", handleProbeKeydown, true);
       document.removeEventListener("pointerdown", handleProbePointerdown, true);
+      removeNativeFocusListener?.();
     };
   }, [focusedPaneId, isActive]);
 
@@ -2941,6 +2992,11 @@ function logTerminalFocusDiagnostic(stage: string) {
     hasFocus: document.hasFocus(),
     activeElement: describe,
   });
+}
+
+function shouldRestoreTerminalFocusAfterWindowBlur() {
+  const activeElement = document.activeElement;
+  return activeElement instanceof HTMLElement && activeElement.closest(".terminal-pane") !== null;
 }
 
 function shouldPreserveTerminalWorkspaceFocus() {
