@@ -165,7 +165,7 @@ Section header `settings.sectionTerminal`. Font family + size, line height, curs
 
 ## URL
 
-`settings.sectionUrl` — defaults for URL Connections (e.g. default auto-refresh). Embedded URL browsing is currently disabled while KKTerm runs without Tauri's `unstable` feature; opening a URL Connection launches the target in the user's default browser.
+`settings.sectionUrl` — defaults for URL Connections (e.g. default auto-refresh). Embedded URL browsing is currently disabled while KKTerm runs without Tauri's `unstable` feature; opening a URL Connection launches the target in the user's default browser. The `unstable` child-webview path was removed because it changed the main app WebView2 host shape and could break terminal keyboard input after Alt+Tab/app switch or minimize/restore until the user clicked the terminal Pane again.
 
 ## About
 
