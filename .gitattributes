@@ -1,0 +1,24 @@
+# Normalize line endings. Text files are stored and checked out with LF on
+# every platform, so tooling and tests that read source as LF (e.g. the regex
+# assertions in tests/*.test.mjs) behave identically on Windows and Linux.
+* text=auto eol=lf
+
+# Windows batch scripts must keep CRLF to execute correctly.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets: never normalize.
+*.exe   binary
+*.dll   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.icns  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.pdf   binary
+*.zip   binary
