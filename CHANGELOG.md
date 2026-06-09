@@ -3,6 +3,34 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.72/kkterm-0.1.72-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.72/kkterm-0.1.72-windows-arm64-setup.exe)
+
+## Highlights
+- Fixed a WebView URL overlay that could fail to show on a retry (no more “it worked… after I made a dialog do it” vibes).
+
+## Fixed
+- **Webview URL overlay visibility retry:** Added a bounded retry so the overlay show request waits until the underlying HWND is ready, preventing intermittent “underlying handle not available” failures. *(by @ryantsai in https://github.com/ryantsai/KKTerm/pull/292; SHA: 176cd97)*
+- **Webview URL overlay anchoring:** Anchored the overlay to the correct client origin using Win32 `ClientToScreen({0,0})`, avoiding pixel gaps beside the Pane on certain resizable/borderless Windows frames.
+
+## Internal
+- Added `.gitattributes` to enforce LF for text files, reducing CRLF-vs-LF churn that could affect tests.
+- Logging: Added `KKTERM_WEBVIEW_DEBUG` output for the computed overlay rect.
+
+---
+
+## 亮點
+- 修正 WebView 的「URL 覆蓋層」在重試時可能不會正常顯示的問題（不再需要像是「我先叫一個對話框逼它重來」那樣）。  
+
+## 修正
+- **Webview URL 覆蓋層顯示重試：** 在 HWND 就緒之前加入有界重試，讓「顯示覆蓋層」的要求不會因偶發的底層手把尚未可用而失敗。*(由 @ryantsai 於 https://github.com/ryantsai/KKTerm/pull/292；SHA：176cd97)*
+- **Webview URL 覆蓋層定位：** 透過 Win32 `ClientToScreen({0,0})` 來錨定到正確的 client origin，避免特定無邊框/可調整大小的 Windows 視窗框架下，在 Pane 旁出現幾個像素的縫隙。  
+
+## 內部
+- 新增 `.gitattributes` 以強制文字檔使用 LF，降低 CRLF-vs-LF 抖動影響測試的風險。
+- 記錄輸出：加入 `KKTERM_WEBVIEW_DEBUG`，顯示計算後的覆蓋層矩形資訊。
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.71/kkterm-0.1.71-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.71/kkterm-0.1.71-windows-arm64-setup.exe)
 
