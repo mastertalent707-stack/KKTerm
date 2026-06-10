@@ -8,6 +8,13 @@
   background: var(--app-bg);
 }
 
+/* macOS renders the native traffic-light controls over an overlay title bar.
+   They need the standard ~28px of vertical room, otherwise the buttons are
+   clipped by the top edge of the window. */
+.app-root[data-platform="macos"] {
+  --app-titlebar-height: 28px;
+}
+
 .app-titlebar {
   box-sizing: border-box;
   position: relative;

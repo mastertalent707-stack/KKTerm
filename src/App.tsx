@@ -39,7 +39,7 @@ import {
   type TutorialSurfaceKind,
 } from "./app/tutorialNavigationModel";
 import { ariaHidden } from "./lib/aria";
-import { supportsInstallerHelper } from "./lib/platform";
+import { currentPlatform, supportsInstallerHelper } from "./lib/platform";
 import { useBootstrapSettings } from "./lib/settings";
 import { SettingsPage } from "./modules/settings/SettingsPage";
 import type { SettingsAssistantContext } from "./modules/settings/settingsAssistantContext";
@@ -225,6 +225,7 @@ function App() {
   return (
     <div
       className="app-root"
+      data-platform={currentPlatform()}
       data-color-scheme={appearanceSettings.colorScheme}
     >
       <TitleBar

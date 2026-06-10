@@ -503,9 +503,12 @@ impl WebviewSessionManager {
                 let _ = download_app.emit("webview-download", payload);
                 true
             });
-        builder = builder
-            .owner(&host_window)
-            .map_err(|error| format!("failed to assign URL webview owner: {error}"))?;
+        #[cfg(windows)]
+        {
+            builder = builder
+                .owner(&host_window)
+                .map_err(|error| format!("failed to assign URL webview owner: {error}"))?;
+        }
         if let Some(additional_browser_args) = self.additional_browser_args {
             builder = builder.additional_browser_args(additional_browser_args);
         }
