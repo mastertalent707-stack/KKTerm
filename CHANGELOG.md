@@ -3,6 +3,52 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.73/kkterm-0.1.73-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.73/kkterm-0.1.73-windows-arm64-setup.exe)
+
+## Highlights
+- **Stable SSH Session keepalives**: Idle native SSH connections behind NAT/stateful firewalls are less likely to freeze—closing and reconnecting is no longer the only escape hatch.
+- **macOS arm64 support**: macOS builds are updated with platform-specific behavior and native overlay title bar handling.
+
+## New
+- **(macOS) Platform-specific features** to support macOS arm64 builds, including macOS keychain integration and conditional settings rendering.
+
+## Improved
+- **“The Big Refactor” landing across the codebase** (docs + architecture + command grouping), keeping the **Connection / Session / Tab / Pane**-related surfaces organized and easier to navigate.
+- **Dashboard security validation coverage** expanded with behavioral frontend tests for script widget permissions/CSP and schema validation.
+- **Test auto-discovery & ESLint gate**: `npm run check` now auto-discovers tests and uses an ESLint config wired into the check pipeline.
+
+## Fixed
+- **SSH keepalives for idle Sessions** (#294, by @ryantsai) — prevents idle native SSH sessions from freezing; credited from the PR’s co-author **Claude Opus 4.8**.
+
+## Internal
+- Major internal refactors and test infrastructure work (e.g., storage/ai/module decomposition and test runners) under **The Big Refactor**.
+- CI/test/tooling tweaks (Rust test gating and markdown sanitization before `dangerouslySetInnerHTML`).
+- Docs/architecture updates to reflect the new backend/frontend organization.
+
+---
+
+## 亮點
+- **穩定的 SSH Session Keepalives**：在 NAT / 有狀態防火牆之後的閒置原生 SSH 連線比較不容易凍結——不用再只靠「關掉 Tab 然後重連」才能救回來。
+- **macOS arm64 支援**：更新 macOS 版的平台特定行為與原生 overlay 標題列處理。
+
+## 新增
+- **（macOS）平台特定功能**：支援 macOS arm64 建置，包括 macOS 鑰匙圈整合，以及依平台進行設定選項的條件渲染。
+
+## 改善
+- **「The Big Refactor」在整個程式碼庫落地**（含文件與架構、指令分組等），讓與 **Connection / Session / Tab / Pane** 相關的介面更好維護與理解。
+- **Dashboard 安全性驗證覆蓋率擴充**：加入行為式前端測試，涵蓋 script widget 權限/CSP 與 schema 驗證。
+- **測試自動發現與 ESLint gate**：`npm run check` 現在會自動發現測試，並把 ESLint 設定接到檢查流程。
+
+## 修復
+- **修正閒置 Session 的 SSH keepalives** (#294，作者 @ryantsai) — 避免閒置的原生 SSH Session 凍結；並依 PR 訊息同時致謝 **Claude Opus 4.8**（共同作者）。
+
+## Internal
+- 內部大量重構與測試/基礎設施調整（例如 storage/ai/module 拆分與測試執行器）屬於 **The Big Refactor** 的範圍。
+- CI/測試/工具鏈調整（例如 Rust 測試的 CI 門檻、在 `dangerouslySetInnerHTML` 前先做 markdown sanitization）。
+- 更新文件/架構以反映新的後端/前端組織方式。
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.72/kkterm-0.1.72-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.72/kkterm-0.1.72-windows-arm64-setup.exe)
 
