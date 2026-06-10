@@ -3675,8 +3675,8 @@ function ConnectionDialog({
 
         <div className="dialog-actions">
           <button className="approve-button" disabled={!connectionType} type="submit">
-            {mode === "quick" ? <Play size={15} /> : <Save size={15} />}
-            {mode === "quick" ? t("connections.connect") : t("common.save")}
+            <Save size={15} />
+            {mode === "quick" ? t("connections.saveAndConnect") : t("common.save")}
           </button>
           <button className="toolbar-button" type="button" onClick={onCancel}>
             {t("connections.cancel")}
