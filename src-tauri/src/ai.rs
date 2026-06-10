@@ -522,6 +522,67 @@ struct CommandSafety {
     notes: Vec<String>,
 }
 
+// Keyword sets for the best-effort command-safety heuristic.
+//
+// These are matched as plain lowercase substrings, so the hint is advisory
+// only and is trivially evaded (`rm  -rf`, shell aliases, env-var indirection,
+// base64). The real safety boundary is mandatory user approval (see ADR-0003);
+// these notes only draw the user's eye and never gate execution. Keep each set
+// here so it is reviewable in one place instead of inlined at the call site.
+const DESTRUCTIVE_COMMAND_NEEDLES: &[&str] = &[
+    "rm -rf",
+    "remove-item",
+    " rmdir ",
+    " del ",
+    " format ",
+    "mkfs",
+    "diskpart",
+    "dd if=",
+    "shutdown",
+    "reboot",
+];
+
+const SERVICE_DISRUPTION_NEEDLES: &[&str] = &[
+    "systemctl restart",
+    "systemctl stop",
+    "restart-service",
+    "stop-service",
+    "docker rm",
+    "kubectl delete",
+];
+
+const CREDENTIAL_COMMAND_NEEDLES: &[&str] = &[
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "id_rsa",
+    "id_ed25519",
+    ".ssh",
+];
+
+const SENSITIVE_OUTPUT_NEEDLES: &[&str] = &[
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "authorization:",
+    "bearer ",
+    "id_rsa",
+    "id_ed25519",
+    "-----begin",
+];
+
+/// Best-effort, keyword-based classification of a proposed command's risk.
+///
+/// This is a heuristic hint, NOT a security control: it matches lowercase
+/// substrings and can be evaded by trivial obfuscation. A "clean" result means
+/// only that no known-risky keyword was seen, never that the command is safe.
+/// Execution is always gated by explicit user approval (ADR-0003).
 fn classify_command_safety(command: &str, selected_output: Option<&str>) -> CommandSafety {
     let normalized = command.to_ascii_lowercase();
     let mut notes = Vec::new();
@@ -533,54 +594,17 @@ fn classify_command_safety(command: &str, selected_output: Option<&str>) -> Comm
         );
     }
 
-    if contains_any(
-        &normalized,
-        &[
-            "rm -rf",
-            "remove-item",
-            " rmdir ",
-            " del ",
-            " format ",
-            "mkfs",
-            "diskpart",
-            "dd if=",
-            "shutdown",
-            "reboot",
-        ],
-    ) {
+    if contains_any(&normalized, DESTRUCTIVE_COMMAND_NEEDLES) {
         extra_confirmation_required = true;
         notes.push("May delete, overwrite, reboot, or otherwise change system state.".to_string());
     }
 
-    if contains_any(
-        &normalized,
-        &[
-            "systemctl restart",
-            "systemctl stop",
-            "restart-service",
-            "stop-service",
-            "docker rm",
-            "kubectl delete",
-        ],
-    ) {
+    if contains_any(&normalized, SERVICE_DISRUPTION_NEEDLES) {
         extra_confirmation_required = true;
         notes.push("May interrupt a service or running workload.".to_string());
     }
 
-    if contains_any(
-        &normalized,
-        &[
-            "password",
-            "passwd",
-            "secret",
-            "token",
-            "api_key",
-            "apikey",
-            "id_rsa",
-            "id_ed25519",
-            ".ssh",
-        ],
-    ) {
+    if contains_any(&normalized, CREDENTIAL_COMMAND_NEEDLES) {
         extra_confirmation_required = true;
         notes.push("Mentions credentials, tokens, or SSH key material.".to_string());
     }
@@ -594,7 +618,8 @@ fn classify_command_safety(command: &str, selected_output: Option<&str>) -> Comm
 
     if notes.is_empty() {
         notes.push(
-            "Read-only or low-impact intent was detected, but approval is still required."
+            "No high-risk keywords matched, but this is a best-effort heuristic, not a guarantee \
+             — review the command before approving."
                 .to_string(),
         );
     }
@@ -610,22 +635,7 @@ fn contains_any(value: &str, needles: &[&str]) -> bool {
 }
 
 fn mentions_sensitive_material(value: &str) -> bool {
-    contains_any(
-        &value.to_ascii_lowercase(),
-        &[
-            "password",
-            "passwd",
-            "secret",
-            "token",
-            "api_key",
-            "apikey",
-            "authorization:",
-            "bearer ",
-            "id_rsa",
-            "id_ed25519",
-            "-----begin",
-        ],
-    )
+    contains_any(&value.to_ascii_lowercase(), SENSITIVE_OUTPUT_NEEDLES)
 }
 
 fn trim_required(label: &str, value: String) -> Result<String, String> {
