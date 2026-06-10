@@ -307,7 +307,112 @@ mod platform {
     }
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(target_os = "macos")]
+mod platform {
+    use std::os::raw::{c_char, c_void};
+    use std::sync::mpsc;
+
+    use core_foundation_sys::base::CFRelease;
+    use core_foundation_sys::string::{
+        CFStringCreateWithCString, CFStringRef, kCFStringEncodingUTF8,
+    };
+
+    type IOPMAssertionID = u32;
+    type IOPMAssertionLevel = u32;
+    type IOReturn = i32;
+
+    const K_IOPM_ASSERTION_LEVEL_ON: IOPMAssertionLevel = 255;
+    const K_IO_RETURN_SUCCESS: IOReturn = 0;
+    // kIOPMAssertionTypePreventUserIdleDisplaySleep: keeps the display on and,
+    // by implication, prevents idle system sleep — matching the Windows
+    // ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED behavior.
+    const ASSERTION_TYPE: &[u8] = b"PreventUserIdleDisplaySleep\0";
+    const ASSERTION_NAME: &[u8] = b"KKTerm Don't Sleep\0";
+
+    #[link(name = "IOKit", kind = "framework")]
+    unsafe extern "C" {
+        fn IOPMAssertionCreateWithName(
+            assertion_type: CFStringRef,
+            assertion_level: IOPMAssertionLevel,
+            assertion_name: CFStringRef,
+            assertion_id: *mut IOPMAssertionID,
+        ) -> IOReturn;
+        fn IOPMAssertionRelease(assertion_id: IOPMAssertionID) -> IOReturn;
+    }
+
+    unsafe fn cfstring(bytes: &[u8]) -> CFStringRef {
+        unsafe {
+            CFStringCreateWithCString(
+                std::ptr::null(),
+                bytes.as_ptr() as *const c_char,
+                kCFStringEncodingUTF8,
+            )
+        }
+    }
+
+    struct AssertionGuard {
+        id: IOPMAssertionID,
+    }
+
+    impl Drop for AssertionGuard {
+        fn drop(&mut self) {
+            unsafe {
+                IOPMAssertionRelease(self.id);
+            }
+        }
+    }
+
+    pub fn run_dont_sleep_worker(
+        stop_rx: mpsc::Receiver<()>,
+        ready_tx: mpsc::Sender<Result<(), String>>,
+    ) -> Result<(), String> {
+        let guard = unsafe {
+            let type_str = cfstring(ASSERTION_TYPE);
+            let name_str = cfstring(ASSERTION_NAME);
+            if type_str.is_null() || name_str.is_null() {
+                if !type_str.is_null() {
+                    CFRelease(type_str as *const c_void);
+                }
+                if !name_str.is_null() {
+                    CFRelease(name_str as *const c_void);
+                }
+                let error = "failed to allocate Don't Sleep assertion strings".to_string();
+                let _ = ready_tx.send(Err(error.clone()));
+                return Err(error);
+            }
+
+            let mut id: IOPMAssertionID = 0;
+            let result =
+                IOPMAssertionCreateWithName(type_str, K_IOPM_ASSERTION_LEVEL_ON, name_str, &mut id);
+            CFRelease(type_str as *const c_void);
+            CFRelease(name_str as *const c_void);
+
+            if result != K_IO_RETURN_SUCCESS {
+                let error =
+                    format!("failed to create Don't Sleep power assertion: IOReturn {result}");
+                let _ = ready_tx.send(Err(error.clone()));
+                return Err(error);
+            }
+
+            AssertionGuard { id }
+        };
+
+        let _ = ready_tx.send(Ok(()));
+
+        // Hold the assertion until the manager asks the worker to stop. Unlike
+        // the Windows path there is no message pump to service.
+        loop {
+            match stop_rx.recv() {
+                Ok(()) | Err(mpsc::RecvError) => break,
+            }
+        }
+
+        drop(guard);
+        Ok(())
+    }
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 mod platform {
     use std::sync::mpsc;
 
@@ -315,8 +420,25 @@ mod platform {
         _stop_rx: mpsc::Receiver<()>,
         ready_tx: mpsc::Sender<Result<(), String>>,
     ) -> Result<(), String> {
-        let error = "Don't Sleep is currently available on Windows.".to_string();
+        let error = "Don't Sleep is not available on this platform.".to_string();
         let _ = ready_tx.send(Err(error.clone()));
         Err(error)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_set_enabled_acquires_and_releases_assertion() {
+        let manager = DontSleepManager::new();
+
+        assert!(manager.set_enabled(true).expect("enable should succeed"));
+        assert!(manager.is_enabled());
+
+        manager.set_enabled(false).expect("disable should succeed");
+        assert!(!manager.is_enabled());
     }
 }
