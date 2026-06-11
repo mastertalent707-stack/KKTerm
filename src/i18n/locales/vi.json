@@ -892,7 +892,7 @@
     "underline": "Underline",
     "powerShell": "PowerShell",
     "powerShell7": "PowerShell 7 (pwsh)",
-    "commandPrompt": "Command Prompt",
+    "commandPrompt": "Dấu nhắc Lệnh",
     "wsl": "WSL",
     "copyOnSelect": "Copy selected terminal text automatically",
     "allowLocalOsc52Clipboard": "Cho phép ghi clipboard OSC 52 terminal cục bộ",

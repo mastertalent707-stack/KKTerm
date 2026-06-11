@@ -892,7 +892,7 @@
     "underline": "Sublinhado",
     "powerShell": "PowerShell",
     "powerShell7": "PowerShell 7 (pwsh)",
-    "commandPrompt": "Command Prompt",
+    "commandPrompt": "Prompt de Comando",
     "wsl": "WSL",
     "copyOnSelect": "Copiar texto selecionado do terminal automaticamente",
     "allowLocalOsc52Clipboard": "Permitir gravações OSC 52 da área de transferência no terminal local",

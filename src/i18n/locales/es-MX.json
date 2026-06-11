@@ -892,7 +892,7 @@
     "underline": "Subrayado",
     "powerShell": "PowerShell",
     "powerShell7": "PowerShell 7 (pwsh)",
-    "commandPrompt": "Command Prompt",
+    "commandPrompt": "Símbolo del sistema",
     "wsl": "WSL",
     "copyOnSelect": "Copiar texto seleccionado del terminal automáticamente",
     "allowLocalOsc52Clipboard": "Permitir escrituras OSC 52 del portapapeles en terminal local",

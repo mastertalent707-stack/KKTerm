@@ -892,7 +892,7 @@
     "underline": "Garis bawah",
     "powerShell": "PowerShell",
     "powerShell7": "PowerShell 7 (pwsh)",
-    "commandPrompt": "Command Prompt",
+    "commandPrompt": "Prompt Perintah",
     "wsl": "WSL",
     "copyOnSelect": "Salin teks terminal otomatis saat dipilih",
     "allowLocalOsc52Clipboard": "Izinkan penulisan clipboard OSC 52 terminal lokal",

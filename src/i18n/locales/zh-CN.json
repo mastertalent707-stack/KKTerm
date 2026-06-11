@@ -892,7 +892,7 @@
     "underline": "下划线",
     "powerShell": "PowerShell",
     "powerShell7": "PowerShell 7 (pwsh)",
-    "commandPrompt": "Command Prompt",
+    "commandPrompt": "命令提示符",
     "wsl": "WSL",
     "copyOnSelect": "选中时自动复制终端文字",
     "allowLocalOsc52Clipboard": "允许本地终端 OSC 52 剪贴板写入",
