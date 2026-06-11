@@ -131,8 +131,9 @@ pub fn transfer_public_key(
 }
 
 fn user_ssh_folder() -> Result<PathBuf, String> {
-    let profile =
-        std::env::var_os("USERPROFILE").ok_or_else(|| "USERPROFILE is not set".to_string())?;
+    let profile = std::env::var_os("USERPROFILE")
+        .or_else(|| std::env::var_os("HOME"))
+        .ok_or_else(|| "USERPROFILE or HOME is not set".to_string())?;
     Ok(PathBuf::from(profile).join(".ssh"))
 }
 
@@ -315,6 +316,9 @@ fn secure_path_for_current_user(path: &Path, is_directory: bool) -> Result<(), S
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{ffi::OsString, sync::Mutex};
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn public_key_path_appends_pub_suffix() {
@@ -322,6 +326,34 @@ mod tests {
             public_key_path_for(Path::new("C:\\Users\\example\\.ssh\\id_ed25519")),
             PathBuf::from("C:\\Users\\example\\.ssh\\id_ed25519.pub")
         );
+    }
+
+    #[test]
+    fn user_ssh_folder_falls_back_to_home_when_userprofile_is_missing() {
+        let _guard = ENV_LOCK.lock().expect("env lock");
+        let original_userprofile = std::env::var_os("USERPROFILE");
+        let original_home = std::env::var_os("HOME");
+        let home = OsString::from("/Users/example");
+
+        unsafe {
+            std::env::remove_var("USERPROFILE");
+            std::env::set_var("HOME", &home);
+        }
+
+        let result = user_ssh_folder();
+
+        unsafe {
+            match original_userprofile {
+                Some(value) => std::env::set_var("USERPROFILE", value),
+                None => std::env::remove_var("USERPROFILE"),
+            }
+            match original_home {
+                Some(value) => std::env::set_var("HOME", value),
+                None => std::env::remove_var("HOME"),
+            }
+        }
+
+        assert_eq!(result, Ok(PathBuf::from(home).join(".ssh")));
     }
 
     #[cfg(target_os = "windows")]
