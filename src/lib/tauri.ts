@@ -749,6 +749,11 @@ export interface RdpClientKeyEventRequest {
   down: boolean;
 }
 
+export interface RdpClientTextRequest {
+  sessionId: string;
+  text: string;
+}
+
 export interface RdpClientSimpleRequest {
   sessionId: string;
 }
@@ -1872,6 +1877,10 @@ type CommandMap = {
   };
   send_rdp_client_key_event: {
     args: { request: RdpClientKeyEventRequest };
+    result: null;
+  };
+  send_rdp_client_text: {
+    args: { request: RdpClientTextRequest };
     result: null;
   };
   send_rdp_client_ctrl_alt_delete: {

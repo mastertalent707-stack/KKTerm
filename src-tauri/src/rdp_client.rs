@@ -93,6 +93,9 @@ struct RdpClientSession {
 enum RdpInput {
     Pointer { x: u16, y: u16, button_mask: u8 },
     Key { scancode: u16, down: bool },
+    /// Composed text (IME / printable characters) sent as RDP Unicode keyboard
+    /// events — layout- and IME-independent, unlike scancodes.
+    Text(String),
     CtrlAltDelete,
 }
 
@@ -161,6 +164,13 @@ pub struct RdpClientKeyEventRequest {
     session_id: String,
     scancode: u16,
     down: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RdpClientTextRequest {
+    session_id: String,
+    text: String,
 }
 
 #[derive(Deserialize)]
@@ -270,6 +280,10 @@ impl RdpClientSessionManager {
             &request.session_id,
             RdpInput::Key { scancode: request.scancode, down: request.down },
         )
+    }
+
+    pub fn text_input(&self, request: RdpClientTextRequest) -> Result<(), String> {
+        self.queue_input(&request.session_id, RdpInput::Text(request.text))
     }
 
     pub fn send_ctrl_alt_delete(&self, request: RdpClientSimpleRequest) -> Result<(), String> {
@@ -746,6 +760,15 @@ async fn send_rdp_input(
             } else {
                 Operation::KeyReleased(sc)
             });
+        }
+        RdpInput::Text(text) => {
+            // Each character is sent as a Unicode keyboard event (press + release),
+            // so IME-composed and layout-specific characters reach the server
+            // correctly regardless of the remote keyboard layout.
+            for character in text.chars() {
+                ops.push(Operation::UnicodeKeyPressed(character));
+                ops.push(Operation::UnicodeKeyReleased(character));
+            }
         }
         RdpInput::CtrlAltDelete => {
             let ctrl = Scancode::from_u16(0x001D);
