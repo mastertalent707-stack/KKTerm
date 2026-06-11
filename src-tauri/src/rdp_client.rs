@@ -563,6 +563,7 @@ fn spawn_rdp_event_loop(
         );
         let mut active_stage = ironrdp::session::ActiveStage::new(connection_result);
         let mut input_db = ironrdp::input::Database::new();
+        let mut last_button_mask: u8 = 0;
 
         use ironrdp_tokio::FramedWrite as _;
 
@@ -575,7 +576,7 @@ fn spawn_rdp_event_loop(
                 input = input_rx.recv() => {
                     match input {
                         Some(rdp_input) => {
-                            if let Err(e) = send_rdp_input(&mut framed, &mut input_db, rdp_input).await {
+                            if let Err(e) = send_rdp_input(&mut framed, &mut input_db, &mut last_button_mask, rdp_input).await {
                                 eprintln!("[rdp {session_id}] send_rdp_input error: {e}");
                                 emit_rdp_event(&app, RdpCanvasEvent::Error {
                                     session_id: session_id.clone(),
@@ -673,13 +674,106 @@ fn spawn_rdp_event_loop(
 
 // ── Input stub (Task 5 fills in real IronRDP input encoding) ──────────────────
 
+/// Detect press/release transitions for the three primary mouse buttons between
+/// a previous and current VNC-style button mask (bit 0 = left, 1 = middle,
+/// 2 = right). Returns `(button_bit, pressed)` for each changed button.
+fn primary_button_transitions(prev: u8, now: u8) -> Vec<(u8, bool)> {
+    let mut out = Vec::new();
+    for bit in 0..3u8 {
+        let was = prev & (1 << bit) != 0;
+        let is = now & (1 << bit) != 0;
+        if is != was {
+            out.push((bit, is));
+        }
+    }
+    out
+}
+
+fn mouse_button_for_bit(bit: u8) -> ironrdp::input::MouseButton {
+    use ironrdp::input::MouseButton;
+    match bit {
+        0 => MouseButton::Left,
+        1 => MouseButton::Middle,
+        _ => MouseButton::Right,
+    }
+}
+
+/// Translate a queued `RdpInput` into IronRDP input operations, apply them to the
+/// keyboard/mouse state `db`, encode the resulting FastPath events, and write the
+/// PDU to the server. `last_button_mask` carries the previous primary-button mask
+/// so press/release can be derived from the absolute mask the frontend sends.
 async fn send_rdp_input(
-    _framed: &mut UpgradedFramed,
-    _db: &mut ironrdp::input::Database,
-    _input: RdpInput,
+    framed: &mut UpgradedFramed,
+    db: &mut ironrdp::input::Database,
+    last_button_mask: &mut u8,
+    input: RdpInput,
 ) -> Result<(), String> {
-    // Task 5: translate RdpInput → ironrdp_input operations, apply to _db,
-    // encode as FastPath input PDUs, and write to _framed.
+    use ironrdp::input::{MousePosition, Operation, Scancode, WheelRotations};
+    use ironrdp_tokio::FramedWrite as _;
+
+    let mut ops: Vec<Operation> = Vec::new();
+    match input {
+        RdpInput::Pointer { x, y, button_mask } => {
+            ops.push(Operation::MouseMove(MousePosition { x, y }));
+            for (bit, pressed) in primary_button_transitions(*last_button_mask, button_mask) {
+                let button = mouse_button_for_bit(bit);
+                ops.push(if pressed {
+                    Operation::MouseButtonPressed(button)
+                } else {
+                    Operation::MouseButtonReleased(button)
+                });
+            }
+            // RFB-style wheel bits (3 = up, 4 = down) are momentary notches.
+            if button_mask & (1 << 3) != 0 {
+                ops.push(Operation::WheelRotations(WheelRotations {
+                    is_vertical: true,
+                    rotation_units: 120,
+                }));
+            }
+            if button_mask & (1 << 4) != 0 {
+                ops.push(Operation::WheelRotations(WheelRotations {
+                    is_vertical: true,
+                    rotation_units: -120,
+                }));
+            }
+            // Remember only the three primary buttons; wheel bits are momentary.
+            *last_button_mask = button_mask & 0b0000_0111;
+        }
+        RdpInput::Key { scancode, down } => {
+            let sc = Scancode::from(scancode);
+            ops.push(if down {
+                Operation::KeyPressed(sc)
+            } else {
+                Operation::KeyReleased(sc)
+            });
+        }
+        RdpInput::CtrlAltDelete => {
+            let ctrl = Scancode::from_u16(0x001D);
+            let alt = Scancode::from_u16(0x0038);
+            let delete = Scancode::from_u16(0xE053);
+            ops.extend([
+                Operation::KeyPressed(ctrl),
+                Operation::KeyPressed(alt),
+                Operation::KeyPressed(delete),
+                Operation::KeyReleased(delete),
+                Operation::KeyReleased(alt),
+                Operation::KeyReleased(ctrl),
+            ]);
+        }
+    }
+
+    let events = db.apply(ops);
+    if events.is_empty() {
+        return Ok(());
+    }
+
+    let pdu = ironrdp::pdu::input::fast_path::FastPathInput::new(events.to_vec())
+        .map_err(|e| format!("failed to build RDP input PDU: {e}"))?;
+    let bytes = ironrdp::core::encode_vec(&pdu).map_err(|e| format!("failed to encode RDP input: {e}"))?;
+    framed
+        .write_all(&bytes)
+        .await
+        .map_err(|e| format!("failed to send RDP input: {e}"))?;
     Ok(())
 }
 
@@ -775,5 +869,17 @@ mod tests {
         ];
         let rect = extract_rgba_rect(&full, width, 1, 1, 1, 1);
         assert_eq!(rect, vec![3, 3, 3, 255]);
+    }
+
+    #[test]
+    fn button_transitions_detect_press_and_release() {
+        assert_eq!(primary_button_transitions(0b000, 0b001), vec![(0, true)]); // left down
+        assert_eq!(primary_button_transitions(0b001, 0b000), vec![(0, false)]); // left up
+        assert_eq!(primary_button_transitions(0b001, 0b001), vec![]); // held, no change
+        assert_eq!(primary_button_transitions(0b000, 0b100), vec![(2, true)]); // right down
+        assert_eq!(
+            primary_button_transitions(0b000, 0b101),
+            vec![(0, true), (2, true)] // left + right down
+        );
     }
 }
