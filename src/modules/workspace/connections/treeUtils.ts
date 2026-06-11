@@ -109,6 +109,10 @@ export function flattenConnections(tree: ConnectionTree): Connection[] {
   ];
 }
 
+export function visibleFlatConnections(tree: ConnectionTree): Connection[] {
+  return flattenConnections(tree);
+}
+
 export function findConnectionInTree(
   tree: ConnectionTree,
   connectionId: string,

@@ -9,6 +9,7 @@ import test from "node:test";
 import {
   filterConnectedConnections,
   flattenConnections,
+  visibleFlatConnections,
 } from "../src/modules/workspace/connections/treeUtils.ts";
 import type { Connection, ConnectionFolder, ConnectionTree } from "../src/types.ts";
 
@@ -88,4 +89,20 @@ test("filterConnectedConnections keeps only connected connections and prunes emp
   // Assertions run at module load above; this anchors them to a named test so
   // the node:test runner reports a passing case.
   assert.ok(true);
+});
+
+test("visibleFlatConnections preserves tree order instead of sorting by name", () => {
+  const orderedTree: ConnectionTree = {
+    connections: [connection("z-root", "connected")],
+    folders: [
+      folder("middle-folder", [connection("a-nested", "connected")]),
+      folder("last-folder", [connection("m-nested", "connected")]),
+    ],
+  };
+
+  assert.deepEqual(
+    visibleFlatConnections(orderedTree).map((entry) => entry.id),
+    ["z-root", "a-nested", "m-nested"],
+    "Hide Folders should preserve the existing Connection order, not alphabetize the list.",
+  );
 });

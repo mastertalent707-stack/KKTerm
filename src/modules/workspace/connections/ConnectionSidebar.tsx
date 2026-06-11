@@ -28,8 +28,8 @@ import {
 } from "./connectionTabContextMenu";
 import { confirmTrustedSshHostKey, connectionPasswordOwnerId, defaultPortForConnectionType, connectionTypeLabel, ftpPortForProtocolSelection, isRemoteDesktopConnectionType, localShellOptionsForPlatform, uniqueRuntimeId, type LocalShellOption } from "./utils";
 import { RECENT_CONNECTION_LIMIT, loadCollapsedFolderIds, loadRecentConnectionIds, notifyConnectionTreeInvalidated, saveCollapsedFolderIds, saveRecentConnectionIds } from "./connectionSidebarState";
-import { collectConnectionFolderIds, countConnections, countFolders, filterConnectedConnections, filterConnectionTree, findConnectionInTree, flattenConnections, flattenFolders, withLiveConnectionStatuses } from "./treeUtils";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronDown, ChevronRight, Filter, Folder, FolderPlus, KeyRound, LayoutDashboard, List, Maximize2, Minimize2, PanelRight, Pencil, Pin, PinOff, Play, Plus, RotateCcw, Save, Search, Settings, SquarePlus, Trash2, X } from "lucide-react";
+import { collectConnectionFolderIds, countConnections, countFolders, filterConnectedConnections, filterConnectionTree, findConnectionInTree, flattenConnections, flattenFolders, visibleFlatConnections as flattenVisibleConnections, withLiveConnectionStatuses } from "./treeUtils";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronDown, ChevronRight, CircleDot, Folder, FolderPlus, KeyRound, LayoutDashboard, List, Maximize2, Minimize2, PanelRight, Pencil, Pin, PinOff, Play, Plus, RotateCcw, Save, Search, Settings, SquarePlus, Trash2, X } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
@@ -1268,14 +1268,12 @@ export function ConnectionSidebar({
     () => (isTreeFiltered ? new Set<string>() : collapsedFolderIds),
     [collapsedFolderIds, isTreeFiltered],
   );
-  const visibleFlatConnections = useMemo(() => {
+  const visibleFlatConnectionRows = useMemo(() => {
     if (!showAllConnections) {
       return [];
     }
 
-    return flattenConnections(displayTree).slice().sort((left, right) =>
-      left.name.localeCompare(right.name, undefined, { sensitivity: "base" }),
-    );
+    return flattenVisibleConnections(displayTree);
   }, [displayTree, showAllConnections]);
 
 
@@ -1480,10 +1478,10 @@ export function ConnectionSidebar({
     if (menu.kind === "tree") {
       return [
         {
-          kind: "item",
+          kind: "submenu",
           label: t("connections.newConnection"),
           iconSvg: nativeMenuIcons.plus,
-          action: handleTreeMenuCreateConnection,
+          items: buildAddConnectionMenuItems(),
         },
         {
           kind: "item",
@@ -1632,7 +1630,8 @@ export function ConnectionSidebar({
 
   function handleTreeMenuCreateConnection() {
     setTreeContextMenu(null);
-    handleNewConnectionTypeSelected("local");
+    setQuickConnectMenuOpen(false);
+    setAddConnectionMenuOpen(true);
   }
 
   function handleTreeMenuCreateFolder() {
@@ -2134,7 +2133,7 @@ export function ConnectionSidebar({
           title={t("connections.showConnected")}
           type="button"
         >
-          <Filter size={13} />
+          <CircleDot size={13} />
         </button>
         <button
           aria-pressed={showAllConnections}
@@ -2216,7 +2215,7 @@ export function ConnectionSidebar({
           />
         ) : null}
         {showAllConnections
-          ? visibleFlatConnections.map((connection, connectionIndex) => (
+          ? visibleFlatConnectionRows.map((connection, connectionIndex) => (
               <ConnectionRowWithChildTabs
                 activeTabId={activeTabId}
                 childTabs={openTabsForConnection(connection.id)}
