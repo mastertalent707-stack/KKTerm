@@ -3587,6 +3587,7 @@ dependencies = [
  "russh-sftp",
  "rustls",
  "scraper",
+ "security-framework",
  "serde",
  "serde_json",
  "serial2",

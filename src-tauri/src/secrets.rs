@@ -188,11 +188,7 @@ impl Secrets {
         let reference = SecretReference::new(request.kind, request.owner_id)?;
         let _guard = self.lock()?;
 
-        match self.entry(&reference)?.get_password() {
-            Ok(_) => Ok(SecretPresence { exists: true }),
-            Err(Error::NoEntry) => Ok(SecretPresence { exists: false }),
-            Err(error) => Err(to_secret_error(error)),
-        }
+        self.secret_exists_for_reference(&reference)
     }
 
     pub fn delete_secret(&self, request: SecretReferenceRequest) -> Result<(), String> {
@@ -312,6 +308,58 @@ impl Secrets {
         self.operation_lock
             .lock()
             .map_err(|_| "keychain operation lock is poisoned".to_string())
+    }
+
+    #[cfg(target_os = "macos")]
+    fn secret_exists_for_reference(
+        &self,
+        reference: &SecretReference,
+    ) -> Result<SecretPresence, String> {
+        use security_framework::item::{ItemClass, ItemSearchOptions};
+
+        if self.backend.is_none() {
+            return Err(self
+                .init_error
+                .clone()
+                .unwrap_or_else(|| "OS keychain is unavailable".to_string()));
+        }
+        if self.backend.as_deref() == Some("Mock keychain") {
+            return self.secret_exists_by_reading_reference(reference);
+        }
+
+        let result = ItemSearchOptions::new()
+            .class(ItemClass::generic_password())
+            .service(SERVICE_NAME)
+            .account(&reference.key())
+            .load_attributes(true)
+            .search();
+
+        match result {
+            Ok(items) => Ok(SecretPresence {
+                exists: !items.is_empty(),
+            }),
+            Err(error) if error.code() == -25300 => Ok(SecretPresence { exists: false }),
+            Err(error) => Err(format!("OS keychain error: {error}")),
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn secret_exists_for_reference(
+        &self,
+        reference: &SecretReference,
+    ) -> Result<SecretPresence, String> {
+        self.secret_exists_by_reading_reference(reference)
+    }
+
+    fn secret_exists_by_reading_reference(
+        &self,
+        reference: &SecretReference,
+    ) -> Result<SecretPresence, String> {
+        match self.entry(reference)?.get_password() {
+            Ok(_) => Ok(SecretPresence { exists: true }),
+            Err(Error::NoEntry) => Ok(SecretPresence { exists: false }),
+            Err(error) => Err(to_secret_error(error)),
+        }
     }
 
     #[cfg(test)]
