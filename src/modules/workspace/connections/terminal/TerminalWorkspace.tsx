@@ -1,4 +1,5 @@
 import { confirmTrustedSshHostKey, connectionPasswordOwnerId, connectionToolbarTitle, uniqueRuntimeId, usesNativeSshHostKeyVerification } from "../utils";
+import { resolveLocalShellForLaunch } from "./pwshPreflight";
 import { ConfirmDialog } from "../../../../app/ConfirmDialog";
 import { readFromClipboard, writeToClipboard } from "../../../../lib/clipboard";
 import { ScreenshotMenu } from "../../ScreenshotMenu";
@@ -1823,10 +1824,17 @@ function TerminalPaneView({
 
         const terminalStartAt = performance.now();
         const terminalDimensions = terminal.dimensions;
-        const shell =
+        const requestedShell =
           connection.type === "local"
             ? connection.localShell ?? terminalSettings.defaultShell
             : undefined;
+        const shell =
+          connection.type === "local"
+            ? await resolveLocalShellForLaunch(requestedShell, terminal)
+            : requestedShell;
+        if (disposed) {
+          return;
+        }
         const result = await invokeCommand("start_terminal_session", {
           request: {
             sessionId: requestedSessionId,
