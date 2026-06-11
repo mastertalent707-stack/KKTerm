@@ -753,7 +753,7 @@ pub struct AgentRunResponse {
     rename_all = "camelCase",
     rename_all_fields = "camelCase"
 )]
-enum AiStreamEvent {
+pub(crate) enum AiStreamEvent {
     ReasoningDelta {
         delta: String,
     },
@@ -4672,7 +4672,7 @@ fn reasoning_details_text(details: &[ReasoningDetail]) -> Option<String> {
 }
 
 #[derive(Deserialize, Serialize)]
-struct OpenAiToolCall {
+pub(crate) struct OpenAiToolCall {
     id: String,
     function: OpenAiToolCallFunction,
 }
