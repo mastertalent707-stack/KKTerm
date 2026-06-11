@@ -27,7 +27,7 @@ export function localShellOptionsForPlatform(): LocalShellOption[] {
     ...WINDOWS_LOCAL_SHELL_OPTIONS.filter((option) => option.value !== "cmd.exe").map((option) => ({
       label: i18next.t(option.labelKey),
       value: option.value,
-      canElevate: option.value === "powershell.exe",
+      canElevate: option.value === "powershell.exe" || option.value === "pwsh.exe",
     })),
   ];
 }

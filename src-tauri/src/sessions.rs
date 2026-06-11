@@ -1277,7 +1277,11 @@ fn normalize_elevated_shell(shell: &str) -> Result<&'static str, String> {
     match shell.trim().to_lowercase().as_str() {
         "cmd.exe" => Ok("cmd.exe"),
         "powershell.exe" => Ok("powershell.exe"),
-        _ => Err("elevated terminal shell must be Command Prompt or PowerShell".to_string()),
+        "pwsh.exe" => Ok("pwsh.exe"),
+        _ => {
+            Err("elevated terminal shell must be Command Prompt, PowerShell, or PowerShell 7"
+                .to_string())
+        }
     }
 }
 
