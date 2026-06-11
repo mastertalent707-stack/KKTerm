@@ -117,3 +117,175 @@
 //! No explicit sspi calls needed at the connect-sequence level; the connector drives it.
 
 // Implemented in later tasks.
+
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::HashMap,
+    sync::{Mutex, MutexGuard},
+};
+use tauri::{AppHandle, Emitter};
+use tokio::{
+    runtime::Runtime,
+    sync::{mpsc, oneshot},
+};
+
+const DEFAULT_RDP_PORT: u16 = 3389;
+const DEFAULT_RDP_WIDTH: u16 = 1280;
+const DEFAULT_RDP_HEIGHT: u16 = 800;
+
+pub struct RdpClientSessionManager {
+    runtime: Runtime,
+    sessions: Mutex<HashMap<String, RdpClientSession>>,
+}
+
+struct RdpClientSession {
+    input: mpsc::UnboundedSender<RdpInput>,
+    stop: Option<oneshot::Sender<()>>,
+    connected: bool,
+}
+
+/// Input operations queued from the frontend, translated to IronRDP input in
+/// the event loop (Task 4/5).
+enum RdpInput {
+    Pointer { x: u16, y: u16, button_mask: u8 },
+    Key { scancode: u16, down: bool },
+    CtrlAltDelete,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartRdpClientSessionRequest {
+    session_id: String,
+    host: String,
+    port: Option<u16>,
+    username: String,
+    #[serde(default)]
+    domain: Option<String>,
+    secret_owner_id: Option<String>,
+    password: Option<String>,
+    #[serde(default)]
+    desktop_width: Option<u16>,
+    #[serde(default)]
+    desktop_height: Option<u16>,
+}
+
+impl StartRdpClientSessionRequest {
+    fn desktop_width(&self) -> u16 {
+        self.desktop_width.filter(|v| *v > 0).unwrap_or(DEFAULT_RDP_WIDTH)
+    }
+    fn desktop_height(&self) -> u16 {
+        self.desktop_height.filter(|v| *v > 0).unwrap_or(DEFAULT_RDP_HEIGHT)
+    }
+    pub(crate) fn secret_owner_id(&self) -> Option<&str> {
+        self.secret_owner_id.as_deref().map(str::trim).filter(|v| !v.is_empty())
+    }
+    pub(crate) fn password(&self) -> Option<&str> {
+        self.password.as_deref().filter(|v| !v.is_empty())
+    }
+    pub(crate) fn set_password(&mut self, password: Option<String>) {
+        self.password = password;
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RdpClientSessionStarted {
+    session_id: String,
+    host: String,
+    port: u16,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RdpClientSessionStatus {
+    session_id: String,
+    connected: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RdpClientPointerEventRequest {
+    session_id: String,
+    x: u16,
+    y: u16,
+    button_mask: u8,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RdpClientKeyEventRequest {
+    session_id: String,
+    scancode: u16,
+    down: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RdpClientSimpleRequest {
+    session_id: String,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "kind")]
+enum RdpCanvasEvent {
+    Connected { session_id: String, name: String },
+    Resolution { session_id: String, width: u16, height: u16 },
+    RawImage { session_id: String, x: u16, y: u16, width: u16, height: u16, rgba: String },
+    SetCursor { session_id: String, width: u16, height: u16, hot_x: u16, hot_y: u16, rgba: String },
+    Error { session_id: String, message: String },
+    Disconnected { session_id: String },
+}
+
+impl RdpClientSessionManager {
+    pub fn new() -> Self {
+        Self {
+            runtime: Runtime::new().expect("RDP client runtime initializes"),
+            sessions: Mutex::new(HashMap::new()),
+        }
+    }
+
+    fn lock_sessions(&self) -> Result<MutexGuard<'_, HashMap<String, RdpClientSession>>, String> {
+        self.sessions.lock().map_err(|_| "RDP session lock is poisoned".to_string())
+    }
+}
+
+fn emit_rdp_event(app: &AppHandle, event: RdpCanvasEvent) {
+    let _ = app.emit("rdp-canvas-event", event);
+}
+
+fn required_id(value: String) -> Result<String, String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Err("RDP session id is required".to_string());
+    }
+    if trimmed.len() > 96 {
+        return Err("RDP session id must be 96 characters or fewer".to_string());
+    }
+    if !trimmed.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_')) {
+        return Err("RDP session id may only contain letters, digits, '-' or '_'".to_string());
+    }
+    Ok(trimmed.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validates_session_ids() {
+        assert_eq!(required_id("rdp-1".to_string()).as_deref(), Ok("rdp-1"));
+        assert!(required_id("bad/session".to_string()).is_err());
+    }
+
+    #[test]
+    fn start_request_deserializes_with_defaults() {
+        let json = r#"{"sessionId":"rdp-1","host":"win.local","username":"u","password":"p"}"#;
+        let request: StartRdpClientSessionRequest =
+            serde_json::from_str(json).expect("request deserializes");
+        assert_eq!(request.host, "win.local");
+        assert!(request.domain.is_none());
+        assert_eq!(request.desktop_width(), DEFAULT_RDP_WIDTH);
+        assert_eq!(request.desktop_height(), DEFAULT_RDP_HEIGHT);
+    }
+}
