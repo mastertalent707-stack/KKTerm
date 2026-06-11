@@ -752,7 +752,7 @@
     "navToolbar": "ナビゲーションツールバー",
     "toolbarText": "ツールバーテキスト",
     "language": "言語",
-    "workspaceAccess": "ワークスペースアクセス",
+    "workspaceAccess": "ウィンドウ",
     "workspaceAccessHint": "クイックアクセスとローカルランタイムの権限を管理します。",
     "performance": "パフォーマンス",
     "performanceHint": "ローカル描画と画面キャプチャの高速化を制御します。",
@@ -976,7 +976,7 @@
     "vncRemoteResizeValue": "サーバーサポートに従う",
     "vncRemoteResizeHint": "VNCサーバーがデスクトップサイズ更新をサポートしているかどうかに依存します。",
     "github": "GitHub",
-    "softwareUpdates": "ソフトウェアアップデート",
+    "softwareUpdates": "アプリのアップデート",
     "updates": "アップデート",
     "checkForUpdates": "今すぐ確認",
     "lastCheckedAt": "最終確認 {{time}}",
@@ -1262,8 +1262,8 @@
     "changesNotSaved": "変更は未保存",
     "unsavedQuitTitle": "未保存の設定",
     "unsavedQuitBody": "設定を閉じる前に変更を保存しますか？",
-    "saveAndQuit": "保存して終了",
-    "quitWithoutSaving": "保存せずに終了"
+    "saveAndQuit": "保存して閉じる",
+    "quitWithoutSaving": "保存せずに閉じる"
   },
   "connections": {
     "title": "接続",
@@ -1387,6 +1387,8 @@
     "useTmux": "tmuxセッションを使用",
     "rdpOptions": "RDP オプション",
     "vncOptions": "VNC オプション",
+    "vncUsername": "ユーザー名 (Apple Remote Desktop)",
+    "vncUsernameHint": "任意。macOS Screen Sharing / Apple Remote Desktop へのログインには Mac アカウント名を使用します。パスワードのみの VNC では空欄のままにします。",
     "inheritSettingsDefaults": "設定のデフォルトを使用",
     "localTerminal": "ローカルターミナル",
     "sshTerminal": "SSHターミナル",

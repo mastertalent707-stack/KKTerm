@@ -752,7 +752,7 @@
     "navToolbar": "Bilah navigasi",
     "toolbarText": "Teks bilah alat",
     "language": "Bahasa",
-    "workspaceAccess": "Akses ruang kerja",
+    "workspaceAccess": "Jendela",
     "workspaceAccessHint": "Mengontrol akses cepat dan izin runtime lokal.",
     "performance": "Performa",
     "performanceHint": "Mengontrol rendering lokal dan akselerasi tangkapan layar.",
@@ -976,7 +976,7 @@
     "vncRemoteResizeValue": "Ikuti dukungan server",
     "vncRemoteResizeHint": "Tergantung pada server VNC yang mendukung pembaruan ukuran desktop.",
     "github": "GitHub",
-    "softwareUpdates": "Pembaruan perangkat lunak",
+    "softwareUpdates": "Pembaruan aplikasi",
     "updates": "Pembaruan",
     "checkForUpdates": "Periksa sekarang",
     "lastCheckedAt": "Terakhir diperiksa {{time}}",
@@ -1262,8 +1262,8 @@
     "changesNotSaved": "Perubahan belum disimpan",
     "unsavedQuitTitle": "Pengaturan belum disimpan",
     "unsavedQuitBody": "Simpan perubahan sebelum menutup Pengaturan?",
-    "saveAndQuit": "Simpan dan keluar",
-    "quitWithoutSaving": "Keluar tanpa menyimpan"
+    "saveAndQuit": "Simpan dan tutup",
+    "quitWithoutSaving": "Tutup tanpa menyimpan"
   },
   "connections": {
     "title": "Koneksi",
@@ -1387,6 +1387,8 @@
     "useTmux": "Gunakan sesi tmux",
     "rdpOptions": "Opsi RDP",
     "vncOptions": "Opsi VNC",
+    "vncUsername": "Nama pengguna (Apple Remote Desktop)",
+    "vncUsernameHint": "Opsional. Gunakan nama akun Mac untuk masuk ke macOS Screen Sharing / Apple Remote Desktop. Kosongkan untuk VNC yang hanya memakai kata sandi.",
     "inheritSettingsDefaults": "Gunakan default Pengaturan",
     "localTerminal": "Terminal lokal",
     "sshTerminal": "Terminal SSH",

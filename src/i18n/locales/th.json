@@ -752,7 +752,7 @@
     "navToolbar": "แถบนำทาง",
     "toolbarText": "ข้อความแถบเครื่องมือ",
     "language": "ภาษา",
-    "workspaceAccess": "การเข้าถึงพื้นที่ทำงาน",
+    "workspaceAccess": "หน้าต่าง",
     "workspaceAccessHint": "ควบคุมการเข้าถึงด่วนและการอนุญาตรันไทม์ภายในเครื่อง",
     "performance": "ประสิทธิภาพ",
     "performanceHint": "ควบคุมการเรนเดอร์ในเครื่องและการเร่งการจับภาพหน้าจอ",
@@ -976,7 +976,7 @@
     "vncRemoteResizeValue": "ตามที่เซิร์ฟเวอร์รองรับ",
     "vncRemoteResizeHint": "ขึ้นอยู่กับเซิร์ฟเวอร์ VNC ที่รองรับการอัปเดตขนาดเดสก์ท็อป",
     "github": "GitHub",
-    "softwareUpdates": "การอัปเดตซอฟต์แวร์",
+    "softwareUpdates": "การอัปเดตแอป",
     "updates": "การอัปเดต",
     "checkForUpdates": "ตรวจสอบตอนนี้",
     "lastCheckedAt": "ตรวจสอบล่าสุด {{time}}",
@@ -1262,8 +1262,8 @@
     "changesNotSaved": "ยังไม่ได้บันทึกการเปลี่ยนแปลง",
     "unsavedQuitTitle": "การตั้งค่ายังไม่ได้บันทึก",
     "unsavedQuitBody": "บันทึกการเปลี่ยนแปลงก่อนปิดการตั้งค่าหรือไม่",
-    "saveAndQuit": "บันทึกและออก",
-    "quitWithoutSaving": "ออกโดยไม่บันทึก"
+    "saveAndQuit": "บันทึกแล้วปิด",
+    "quitWithoutSaving": "ปิดโดยไม่บันทึก"
   },
   "connections": {
     "title": "การเชื่อมต่อ",
@@ -1387,6 +1387,8 @@
     "useTmux": "ใช้เซสชัน tmux",
     "rdpOptions": "ตัวเลือก RDP",
     "vncOptions": "ตัวเลือก VNC",
+    "vncUsername": "ชื่อผู้ใช้ (Apple Remote Desktop)",
+    "vncUsernameHint": "ระบุหรือไม่ก็ได้ ใช้ชื่อบัญชี Mac สำหรับการเข้าสู่ระบบ macOS Screen Sharing / Apple Remote Desktop เว้นว่างไว้สำหรับ VNC แบบใช้รหัสผ่านเท่านั้น",
     "inheritSettingsDefaults": "ใช้ค่าเริ่มต้นจากการตั้งค่า",
     "localTerminal": "เทอร์มินัลภายใน",
     "sshTerminal": "เทอร์มินัล SSH",

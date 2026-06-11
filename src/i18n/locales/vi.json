@@ -752,7 +752,7 @@
     "navToolbar": "Thanh điều hướng",
     "toolbarText": "Văn bản thanh công cụ",
     "language": "Language",
-    "workspaceAccess": "Truy cập không gian làm việc",
+    "workspaceAccess": "Cửa sổ",
     "workspaceAccessHint": "Kiểm soát truy cập nhanh và quyền runtime cục bộ.",
     "performance": "Hiệu năng",
     "performanceHint": "Điều khiển kết xuất cục bộ và tăng tốc chụp màn hình.",
@@ -976,7 +976,7 @@
     "vncRemoteResizeValue": "Theo hỗ trợ máy chủ",
     "vncRemoteResizeHint": "Phụ thuộc vào máy chủ VNC hỗ trợ cập nhật desktop-size.",
     "github": "GitHub",
-    "softwareUpdates": "Cập nhật phần mềm",
+    "softwareUpdates": "Cập nhật ứng dụng",
     "updates": "Cập nhật",
     "checkForUpdates": "Kiểm tra ngay",
     "lastCheckedAt": "Kiểm tra lần cuối {{time}}",
@@ -1262,8 +1262,8 @@
     "changesNotSaved": "Thay đổi chưa được lưu",
     "unsavedQuitTitle": "Cài đặt chưa được lưu",
     "unsavedQuitBody": "Lưu thay đổi trước khi đóng Cài đặt?",
-    "saveAndQuit": "Lưu và thoát",
-    "quitWithoutSaving": "Thoát mà không lưu"
+    "saveAndQuit": "Lưu và đóng",
+    "quitWithoutSaving": "Đóng mà không lưu"
   },
   "connections": {
     "title": "Connections",
@@ -1387,6 +1387,8 @@
     "useTmux": "Use tmux sessions",
     "rdpOptions": "Tùy chọn RDP",
     "vncOptions": "Tùy chọn VNC",
+    "vncUsername": "Tên người dùng (Apple Remote Desktop)",
+    "vncUsernameHint": "Không bắt buộc. Dùng tên tài khoản Mac để đăng nhập macOS Screen Sharing / Apple Remote Desktop. Để trống với VNC chỉ dùng mật khẩu.",
     "inheritSettingsDefaults": "Dùng mặc định Cài đặt",
     "localTerminal": "Local terminal",
     "sshTerminal": "SSH terminal",

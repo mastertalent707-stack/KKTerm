@@ -752,7 +752,7 @@
     "navToolbar": "导航工具栏",
     "toolbarText": "工具栏文字",
     "language": "语言",
-    "workspaceAccess": "工作区访问",
+    "workspaceAccess": "窗口",
     "workspaceAccessHint": "控制快速访问及本地运行时权限。",
     "performance": "性能",
     "performanceHint": "控制本地渲染和屏幕捕获加速。",
@@ -976,7 +976,7 @@
     "vncRemoteResizeValue": "跟随服务器支持",
     "vncRemoteResizeHint": "取决于 VNC 服务器是否支持桌面大小更新。",
     "github": "GitHub",
-    "softwareUpdates": "软件更新",
+    "softwareUpdates": "App 更新",
     "updates": "更新",
     "checkForUpdates": "立即检查",
     "lastCheckedAt": "上次检查 {{time}}",
@@ -1262,8 +1262,8 @@
     "changesNotSaved": "更改未保存",
     "unsavedQuitTitle": "设置尚未保存",
     "unsavedQuitBody": "关闭设置前要先保存更改吗？",
-    "saveAndQuit": "保存并退出",
-    "quitWithoutSaving": "不保存并退出"
+    "saveAndQuit": "保存并关闭",
+    "quitWithoutSaving": "不保存并关闭"
   },
   "connections": {
     "title": "连接",
@@ -1387,6 +1387,8 @@
     "useTmux": "使用 tmux 会话",
     "rdpOptions": "RDP 选项",
     "vncOptions": "VNC 选项",
+    "vncUsername": "用户名 (Apple Remote Desktop)",
+    "vncUsernameHint": "可选。使用 Mac 账户名称登录 macOS Screen Sharing / Apple Remote Desktop。仅使用密码的 VNC 请留空。",
     "inheritSettingsDefaults": "使用设置默认值",
     "localTerminal": "本地终端",
     "sshTerminal": "SSH 终端",

@@ -752,7 +752,7 @@
     "navToolbar": "Barra de navegación",
     "toolbarText": "Texto de la barra",
     "language": "Idioma",
-    "workspaceAccess": "Acceso al espacio de trabajo",
+    "workspaceAccess": "Ventana",
     "workspaceAccessHint": "Controla el acceso rápido y los permisos del entorno de ejecución local.",
     "performance": "Rendimiento",
     "performanceHint": "Controla el renderizado local y la aceleración de captura de pantalla.",
@@ -976,7 +976,7 @@
     "vncRemoteResizeValue": "Seguir soporte del servidor",
     "vncRemoteResizeHint": "Depende de que el servidor VNC admita actualizaciones de desktop-size.",
     "github": "GitHub",
-    "softwareUpdates": "Actualizaciones de software",
+    "softwareUpdates": "Actualización de la app",
     "updates": "Actualizaciones",
     "checkForUpdates": "Comprobar ahora",
     "lastCheckedAt": "Última revisión {{time}}",
@@ -1262,8 +1262,8 @@
     "changesNotSaved": "Cambio no guardado",
     "unsavedQuitTitle": "Configuración sin guardar",
     "unsavedQuitBody": "¿Guardar los cambios antes de cerrar Configuración?",
-    "saveAndQuit": "Guardar y salir",
-    "quitWithoutSaving": "Salir sin guardar"
+    "saveAndQuit": "Guardar y cerrar",
+    "quitWithoutSaving": "Cerrar sin guardar"
   },
   "connections": {
     "title": "Conexiones",
@@ -1387,6 +1387,8 @@
     "useTmux": "Usar sesiones tmux",
     "rdpOptions": "Opciones de RDP",
     "vncOptions": "Opciones de VNC",
+    "vncUsername": "Nombre de usuario (Apple Remote Desktop)",
+    "vncUsernameHint": "Opcional. Usa el nombre de cuenta del Mac para iniciar sesión en macOS Screen Sharing / Apple Remote Desktop. Déjalo en blanco para VNC solo con contraseña.",
     "inheritSettingsDefaults": "Usar valores predeterminados",
     "localTerminal": "Terminal local",
     "sshTerminal": "Terminal SSH",

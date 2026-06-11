@@ -752,7 +752,7 @@
     "navToolbar": "導覽工具列",
     "toolbarText": "工具列文字",
     "language": "語言",
-    "workspaceAccess": "工作區存取",
+    "workspaceAccess": "視窗",
     "workspaceAccessHint": "控制快速存取及本機執行階段權限。",
     "performance": "效能",
     "performanceHint": "控制本機轉譯與螢幕擷取加速。",
@@ -976,7 +976,7 @@
     "vncRemoteResizeValue": "跟隨伺服器支援",
     "vncRemoteResizeHint": "取決於 VNC 伺服器是否支援桌面大小更新。",
     "github": "GitHub",
-    "softwareUpdates": "軟體更新",
+    "softwareUpdates": "App 更新",
     "updates": "更新",
     "checkForUpdates": "立即檢查",
     "lastCheckedAt": "上次檢查 {{time}}",
@@ -1262,8 +1262,8 @@
     "changesNotSaved": "變更尚未儲存",
     "unsavedQuitTitle": "設定尚未儲存",
     "unsavedQuitBody": "關閉設定前要先儲存變更嗎？",
-    "saveAndQuit": "儲存並離開",
-    "quitWithoutSaving": "不儲存並離開"
+    "saveAndQuit": "儲存並關閉",
+    "quitWithoutSaving": "不儲存並關閉"
   },
   "connections": {
     "title": "連線",
@@ -1387,6 +1387,8 @@
     "useTmux": "使用 tmux 工作階段",
     "rdpOptions": "RDP 選項",
     "vncOptions": "VNC 選項",
+    "vncUsername": "使用者名稱 (Apple Remote Desktop)",
+    "vncUsernameHint": "選填。使用 Mac 帳號名稱登入 macOS Screen Sharing / Apple Remote Desktop。僅使用密碼的 VNC 請留空。",
     "inheritSettingsDefaults": "使用設定預設值",
     "localTerminal": "本機終端機",
     "sshTerminal": "SSH 終端機",

@@ -752,7 +752,7 @@
     "navToolbar": "Barra di navigazione",
     "toolbarText": "Testo della barra",
     "language": "Lingua",
-    "workspaceAccess": "Accesso allo spazio di lavoro",
+    "workspaceAccess": "Finestra",
     "workspaceAccessHint": "Controlla accesso rapido e permessi runtime locali.",
     "performance": "Prestazioni",
     "performanceHint": "Controlla il rendering locale e l’accelerazione della cattura schermo.",
@@ -976,7 +976,7 @@
     "vncRemoteResizeValue": "Segui supporto server",
     "vncRemoteResizeHint": "Dipende dal server VNC che supporta gli aggiornamenti desktop-size.",
     "github": "GitHub",
-    "softwareUpdates": "Aggiornamenti software",
+    "softwareUpdates": "Aggiornamento app",
     "updates": "Aggiornamenti",
     "checkForUpdates": "Controlla ora",
     "lastCheckedAt": "Ultimo controllo {{time}}",
@@ -1262,8 +1262,8 @@
     "changesNotSaved": "Modifica non salvata",
     "unsavedQuitTitle": "Impostazioni non salvate",
     "unsavedQuitBody": "Salvare le modifiche prima di chiudere Impostazioni?",
-    "saveAndQuit": "Salva ed esci",
-    "quitWithoutSaving": "Esci senza salvare"
+    "saveAndQuit": "Salva e chiudi",
+    "quitWithoutSaving": "Chiudi senza salvare"
   },
   "connections": {
     "title": "Connessioni",
@@ -1387,6 +1387,8 @@
     "useTmux": "Usa sessioni tmux",
     "rdpOptions": "Opzioni RDP",
     "vncOptions": "Opzioni VNC",
+    "vncUsername": "Nome utente (Apple Remote Desktop)",
+    "vncUsernameHint": "Facoltativo. Usa il nome account Mac per accedere a macOS Screen Sharing / Apple Remote Desktop. Lascia vuoto per VNC con sola password.",
     "inheritSettingsDefaults": "Usa predefiniti impostazioni",
     "localTerminal": "Terminale locale",
     "sshTerminal": "Terminale SSH",

@@ -752,7 +752,7 @@
     "navToolbar": "내비게이션 툴바",
     "toolbarText": "툴바 텍스트",
     "language": "언어",
-    "workspaceAccess": "워크스페이스 접근",
+    "workspaceAccess": "창",
     "workspaceAccessHint": "빠른 접근 및 로컬 런타임 권한을 관리합니다.",
     "performance": "성능",
     "performanceHint": "로컬 렌더링 및 화면 캡처 가속을 제어합니다.",
@@ -976,7 +976,7 @@
     "vncRemoteResizeValue": "서버 지원에 따름",
     "vncRemoteResizeHint": "VNC 서버가 데스크톱 크기 업데이트를 지원하는지에 따라 달라집니다.",
     "github": "GitHub",
-    "softwareUpdates": "소프트웨어 업데이트",
+    "softwareUpdates": "앱 업데이트",
     "updates": "업데이트",
     "checkForUpdates": "지금 확인",
     "lastCheckedAt": "마지막 확인 {{time}}",
@@ -1262,8 +1262,8 @@
     "changesNotSaved": "변경 사항이 저장되지 않음",
     "unsavedQuitTitle": "저장되지 않은 설정",
     "unsavedQuitBody": "설정을 닫기 전에 변경 사항을 저장하시겠습니까?",
-    "saveAndQuit": "저장하고 종료",
-    "quitWithoutSaving": "저장하지 않고 종료"
+    "saveAndQuit": "저장하고 닫기",
+    "quitWithoutSaving": "저장하지 않고 닫기"
   },
   "connections": {
     "title": "연결",
@@ -1387,6 +1387,8 @@
     "useTmux": "tmux 세션 사용",
     "rdpOptions": "RDP 옵션",
     "vncOptions": "VNC 옵션",
+    "vncUsername": "사용자 이름 (Apple Remote Desktop)",
+    "vncUsernameHint": "선택 사항입니다. macOS Screen Sharing / Apple Remote Desktop 로그인에는 Mac 계정 이름을 사용하세요. 비밀번호만 사용하는 VNC는 비워 둡니다.",
     "inheritSettingsDefaults": "설정 기본값 사용",
     "localTerminal": "로컬 터미널",
     "sshTerminal": "SSH 터미널",
