@@ -26,6 +26,7 @@ export function FilePane({
   onSelectionChange,
   onContextMenuRequest,
   onDropTransfer,
+  forceDropTarget = false,
   renameRequest,
 }: {
   side: FilePaneSide;
@@ -50,6 +51,7 @@ export function FilePane({
     event: ReactMouseEvent,
   ) => void;
   onDropTransfer?: (targetSide: FilePaneSide, fileNames: string[]) => void;
+  forceDropTarget?: boolean;
   renameRequest?: { side: FilePaneSide; name: string; requestId: number };
 }) {
   const { t } = useTranslation();
@@ -240,6 +242,7 @@ export function FilePane({
   return (
     <article
       className="file-pane"
+      data-sftp-pane-side={side}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
           setRecentMenuOpen(false);
@@ -378,7 +381,7 @@ export function FilePane({
         </div>
       </header>
       <div
-        className={`file-table${isDropTarget ? " drop-target" : ""}`}
+        className={`file-table${isDropTarget || forceDropTarget ? " drop-target" : ""}`}
         onContextMenu={(event) => onContextMenuRequest?.(side, selectedNames, event)}
         onDragLeave={() => setIsDropTarget(false)}
         onDragOver={handleDragOver}

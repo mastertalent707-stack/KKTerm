@@ -56,7 +56,7 @@ Double-click affordance hint: `sftp.doubleClickToOpen`, `sftp.doubleClickToOpenF
 
 ## Transferring files
 
-Use drag/drop between panes or the explicit toolbar buttons `sftp.upload` and `sftp.download`. Standalone SFTP panes expose a `sftp.terminal` action that reopens the parent SSH terminal in the originating Pane; SFTP popups opened from an active SSH terminal omit that action because closing the popup returns to the parent terminal. Inline SFTP popups also omit the screenshot toolbar action, while standalone SFTP panes keep the screenshot target `sftp.screenshotTarget`.
+Use drag/drop between panes or the explicit toolbar buttons `sftp.upload` and `sftp.download`. In the Tauri desktop runtime, dropping local files or folders from the operating system onto the remote Pane also queues uploads to the current remote path. Standalone SFTP panes expose a `sftp.terminal` action that reopens the parent SSH terminal in the originating Pane; SFTP popups opened from an active SSH terminal omit that action because closing the popup returns to the parent terminal. Inline SFTP popups also omit the screenshot toolbar action, while standalone SFTP panes keep the screenshot target `sftp.screenshotTarget`.
 
 Tutorial targets: `sftp.upload`, `sftp.download`, `sftp.terminal`.
 
