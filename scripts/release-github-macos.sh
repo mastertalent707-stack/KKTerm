@@ -103,9 +103,9 @@ detect_dmg_version() {
 }
 
 assert_clean_worktree() {
-  local status
-  status=$(git status --porcelain)
-  [[ -z "$status" ]] || die "Working tree has uncommitted changes. Commit/stash them first, or rerun with --allow-dirty."
+  local git_status
+  git_status=$(git status --porcelain)
+  [[ -z "$git_status" ]] || die "Working tree has uncommitted changes. Commit/stash them first, or rerun with --allow-dirty."
 }
 
 find_latest_dmg() {

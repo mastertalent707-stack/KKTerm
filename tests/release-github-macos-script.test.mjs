@@ -25,6 +25,10 @@ test("macOS release script does not create tags or increment versions", () => {
   assert.doesNotMatch(script, /gh release create/);
 });
 
+test("macOS release script avoids zsh readonly parameter names", () => {
+  assert.doesNotMatch(script, /local\s+status\b/);
+});
+
 test("macOS release script builds deterministic DMG and checksum asset names", () => {
   assert.match(script, /TARGET_TRIPLE="aarch64-apple-darwin"/);
   assert.match(script, /DMG_NAME="kkterm-\$VERSION-macos-arm64\.dmg"/);
