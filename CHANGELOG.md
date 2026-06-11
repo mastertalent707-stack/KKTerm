@@ -3,6 +3,63 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.77/kkterm-0.1.77-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.77/kkterm-0.1.77-windows-arm64-setup.exe)
+
+## Highlights
+- macOS: Start RDP-to-Windows sessions via IronRDP (canvas client + IME keyboard), and improve how RDP Unicode text input is handled. (PR #304)
+- macOS: Fixed RDP CredSSP authentication parsing by properly splitting `DOMAIN\\user` and surfacing the real connection error. (PR #305)
+
+## New
+- macOS: Added RDP canvas view with hybrid IME keyboard handling for macOS RDP connections. (PR #304)
+- macOS: Added an RDP Unicode text input path for IME/multilingual typing. (PR #304)
+- macOS: Enabled macOS RDP plumbing (typed `rdp_client` commands + session manager state wiring). (PR #304)
+- SFTP: Allow OS file and folder drops to the remote pane for uploads. (PR(s) in this release: installer/docs/UI were updated along with SFTP changes)
+- Installer: Added install scope detection and updated the installer UI to reflect user vs system modes.
+
+## Improved
+- Dashboard: Adjusted button styles for improved visibility and consistency.  
+- Remote Desktop (macOS): Enhanced RDP screenshot handling and improved canvas integration.
+- Quick Command dialogs: Updated Quick Command subdialog backdrop styles for improved visibility.
+
+## Fixed
+- macOS RDP CredSSP: Properly split `DOMAIN\\user` for RDP CredSSP and surface the underlying error instead of a generic “CredSSP” failure. Credits: @ryantsai. (PR #305)  
+- macOS RDP CredSSP: If your keyboard/network gods demand clarity, the error chain is now less likely to swallow the underlying NTLM reason (e.g., logon failure). Credits: Claude Opus (co-author), and @ryantsai for the PR. (PR #305)
+
+## Internal
+- macOS release tooling: Added a macOS DMG release helper and updated release notes patching.  
+- Tests: Reorganized RDP support tests for clarity and accuracy.  
+- i18n: Updated Indonesian translations for connection-related labels.  
+
+
+---
+
+## 重點摘要
+- macOS：透過 IronRDP（canvas 端＋IME 鍵盤）開始連線到 Windows 的 RDP，並提升 RDP Unicode 文字輸入的處理方式。（PR #304）
+- macOS：修正 RDP CredSSP 驗證：正確拆分 `DOMAIN\\user`，並能顯示真正的連線錯誤。（PR #305）
+
+## 新增
+- macOS：加入 RDP canvas 視圖，並提供適用於 macOS RDP 連線的「混合 IME 鍵盤」處理。（PR #304）
+- macOS：加入 RDP Unicode 文字輸入路徑，支援 IME/多語系輸入。（PR #304）
+- macOS：啟用 macOS RDP 相關連線處理（註冊型別的 `rdp_client` 命令與 session manager 狀態串接）。（PR #304）
+- SFTP：允許從作業系統直接把檔案/資料夾拖到遠端 Pane 進行上傳。
+- 安裝程式：加入安裝範圍偵測，並更新 UI 以反映使用者/系統模式。
+
+## 改進
+- Dashboard：調整按鈕樣式，提升可視性與一致性。
+- 遠端桌面（macOS）：強化 RDP 截圖處理並改善 canvas 整合。
+- 快速指令（Quick Command）對話框：更新子對話框的背景樣式，提升可視性。
+
+## 修正
+- macOS RDP CredSSP：正確拆分 `DOMAIN\\user` 用於 RDP CredSSP，並顯示底層真正的連線錯誤（避免只看到泛用的 “CredSSP” 失敗）。致謝：@ryantsai。（PR #305）
+- macOS RDP CredSSP：錯誤鏈不再那麼容易被吞掉——現在比較不會只剩一個泛化的「CredSSP」訊息，而能看見更貼近實因的 NTLM 錯誤（例如登入失敗）。致謝：Claude Opus（共同作者）與 @ryantsai（PR）（PR #305）
+
+## Internal
+- macOS 發佈流程：加入 macOS DMG 發佈輔助工具，並更新發佈說明的修補流程。
+- 測試：重新整理 RDP 相關測試，讓內容更清楚且更精準。
+- i18n：更新連線相關標籤的印尼文翻譯。
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.76/kkterm-0.1.76-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.76/kkterm-0.1.76-windows-arm64-setup.exe)
 
