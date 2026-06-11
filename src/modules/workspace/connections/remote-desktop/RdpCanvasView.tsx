@@ -11,6 +11,7 @@
 
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { invokeCommand, isTauriRuntime } from "../../../../lib/tauri";
 import type { Connection } from "../../../../types";
@@ -54,7 +55,15 @@ function base64ToBytes(base64: string): Uint8Array {
   return bytes;
 }
 
-export function RdpCanvasView({ connection }: { connection: Connection }) {
+export function RdpCanvasView({
+  cadSignal = 0,
+  connection,
+  surfaceRef,
+}: {
+  cadSignal?: number;
+  connection: Connection;
+  surfaceRef?: RefObject<HTMLCanvasElement | null>;
+}) {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -225,6 +234,13 @@ export function RdpCanvasView({ connection }: { connection: Connection }) {
     void invokeCommand("send_rdp_client_text", { request: { sessionId, text } }).catch(() => undefined);
   };
 
+  const setCanvasRef = (node: HTMLCanvasElement | null) => {
+    canvasRef.current = node;
+    if (surfaceRef) {
+      surfaceRef.current = node;
+    }
+  };
+
   const sendCtrlAltDelete = () => {
     const sessionId = sessionIdRef.current;
     if (!sessionId) {
@@ -233,6 +249,14 @@ export function RdpCanvasView({ connection }: { connection: Connection }) {
     void invokeCommand("send_rdp_client_ctrl_alt_delete", { request: { sessionId } }).catch(() => undefined);
     inputRef.current?.focus();
   };
+
+  useEffect(() => {
+    if (cadSignal === 0) {
+      return;
+    }
+    sendCtrlAltDelete();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cadSignal]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (composingRef.current || e.key === "Process") {
@@ -301,7 +325,7 @@ export function RdpCanvasView({ connection }: { connection: Connection }) {
   return (
     <div className="rdp-canvas-view" onPointerDown={() => inputRef.current?.focus()}>
       <canvas
-        ref={canvasRef}
+        ref={setCanvasRef}
         className="rdp-canvas-surface"
         onPointerMove={onPointerMove}
         onPointerDown={onPointerDown}
@@ -326,14 +350,6 @@ export function RdpCanvasView({ connection }: { connection: Connection }) {
         onCompositionUpdate={onCompositionStart}
         onCompositionEnd={onCompositionEnd}
       />
-      <button
-        type="button"
-        className="rdp-canvas-cad"
-        onClick={sendCtrlAltDelete}
-        title={t("remoteDesktop.sendCtrlAltDel")}
-      >
-        {t("remoteDesktop.sendCtrlAltDel")}
-      </button>
       {(statusText || errorMessage) && (
         <div className="rdp-canvas-status">{errorMessage || statusText}</div>
       )}
