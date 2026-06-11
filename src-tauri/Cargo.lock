@@ -1375,6 +1375,7 @@ dependencies = [
  "const-oid 0.9.6",
  "der_derive",
  "flagset",
+ "pem-rfc7468 0.7.0",
  "zeroize",
 ]
 
@@ -3584,6 +3585,7 @@ dependencies = [
  "rusqlite",
  "russh",
  "russh-sftp",
+ "rustls",
  "scraper",
  "serde",
  "serde_json",
@@ -3612,6 +3614,7 @@ dependencies = [
  "windows-native-keyring-store",
  "windows-sys 0.61.2",
  "winping",
+ "x509-cert",
  "zip 8.5.1",
 ]
 
@@ -8531,7 +8534,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

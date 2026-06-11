@@ -15,8 +15,8 @@
 //! // TokioFramed<S> = Framed<TokioStream<S>>
 //! // Framed::new(stream: S::InnerStream) -> Self
 //! // TokioStream<S>::InnerStream = S  =>  TokioFramed::new(tcp_stream) works directly
-//! ironrdp_tokio::TokioFramed<tokio::net::TcpStream>
-//! ironrdp_tokio::TokioFramed<Box<dyn AsyncReadWrite + Unpin + Send + Sync>>
+//! ironrdp_tokio::TokioFramed<tokio::net::TcpStream>                       // pre-TLS
+//! ironrdp_tokio::TokioFramed<tokio_rustls::client::TlsStream<TcpStream>>  // post-TLS (concrete; see UpgradedFramed)
 //! ironrdp::connector::ClientConnector  // config: connector::Config, client_addr: SocketAddr
 //! ironrdp::connector::ConnectionResult  // returned by connect_finalize on success
 //! ```
@@ -32,100 +32,40 @@
 //! let mut connector = ironrdp::connector::ClientConnector::new(config, client_addr);
 //!
 //! // Step 3: Begin connection (negotiation / NLA pre-TLS handshake)
-//! // Signature: pub async fn connect_begin<S>(framed: &mut Framed<S>, connector: &mut ClientConnector)
-//! //            -> ConnectorResult<ShouldUpgrade>
-//! //            where S: Sync + FramedRead + FramedWrite
 //! let should_upgrade = ironrdp_tokio::connect_begin(&mut framed, &mut connector).await?;
 //!
 //! // Step 4: Extract inner TCP stream + any leftover bytes
-//! // Framed::into_inner(self) -> (S::InnerStream, BytesMut)
-//! // Here S = TokioStream<TcpStream>, so InnerStream = TcpStream
 //! let (initial_stream, leftover_bytes) = framed.into_inner();
 //!
-//! // Step 5: TLS upgrade via tokio-rustls (no-verify config for RDP, matching ironrdp-tls pattern)
-//! // Build a rustls ClientConfig with a NoCertificateVerification verifier (required for RDP).
-//! // Disable TLS resumption (CredSSP does not support TLS session resumption).
-//! // connect: tokio_rustls::TlsConnector::from(Arc::new(config)).connect(domain, stream).await?
-//! // type: tokio_rustls::client::TlsStream<TcpStream>
-//! let tls_stream: tokio_rustls::client::TlsStream<TcpStream> = /* TLS handshake */;
+//! // Step 5: TLS upgrade via tokio-rustls
+//! let tls_stream = tls_upgrade(initial_stream, &host).await?;
 //!
-//! // Step 6: Extract server public key (SubjectPublicKey bytes from peer cert SPKI)
-//! // From tls_stream.get_ref().1.peer_certificates() -> &[CertificateDer<'_>]
-//! // Take first cert, parse as x509_cert::Certificate (via x509_cert::der::Decode),
-//! // then: cert.tbs_certificate.subject_public_key_info.subject_public_key.as_bytes()
-//! // The connect_finalize parameter type is Vec<u8>.
-//! let server_public_key: Vec<u8> = /* extract from tls_stream peer cert SPKI */;
+//! // Step 6: Extract server public key
+//! let server_public_key = extract_server_public_key(&tls_stream)?;
 //!
 //! // Step 7: Mark as upgraded
-//! // Signature: pub fn mark_as_upgraded(should_upgrade: ShouldUpgrade, connector: &mut ClientConnector)
-//! //            -> Upgraded
 //! let upgraded = ironrdp_tokio::mark_as_upgraded(should_upgrade, &mut connector);
 //!
-//! // Step 8: Create upgraded framed (box-erased TLS stream; reuse leftover bytes)
-//! let erased: Box<dyn AsyncReadWrite + Unpin + Send + Sync> = Box::new(tls_stream);
-//! let mut upgraded_framed = ironrdp_tokio::TokioFramed::new_with_leftover(erased, leftover_bytes);
+//! // Step 8: Create upgraded framed over the concrete TLS stream (kept concrete,
+//! // not box-erased, so the spawned session future stays `Send`).
+//! let mut upgraded_framed = ironrdp_tokio::TokioFramed::new_with_leftover(tls_stream, leftover_bytes);
 //!
-//! // Step 9: Finalize connection (CredSSP / capability negotiation)
-//! // Signature: pub async fn connect_finalize<S, N>(
-//! //     _: Upgraded,
-//! //     connector: ClientConnector,         // consumed (not &mut)
-//! //     framed: &mut Framed<S>,
-//! //     network_client: &mut N,
-//! //     server_name: ServerName,            // ironrdp::connector::ServerName (wraps &str / String)
-//! //     server_public_key: Vec<u8>,
-//! //     kerberos_config: Option<KerberosConfig>,
-//! // ) -> ConnectorResult<ConnectionResult>
-//! // where S: FramedRead + FramedWrite, N: NetworkClient
-//! //
-//! // NetworkClient trait (not dyn-compatible):
-//! //   fn send(&mut self, request: &NetworkRequest) -> impl Future<Output=ConnectorResult<Vec<u8>>>
-//! //
-//! // For NTLM (username/password) there is NO Kerberos KDC round-trip, so a no-op NetworkClient
-//! // is acceptable. A unit struct implementing NetworkClient that panics / returns error on send
-//! // is sufficient. Pass kerberos_config = None.
-//! //
-//! // ironrdp_tokio::reqwest::ReqwestNetworkClient (requires "reqwest" feature on ironrdp-tokio)
-//! // is the provided implementation but adds a large dep. A manual no-op struct works for NTLM.
+//! // Step 9: Finalize connection
 //! let connection_result = ironrdp_tokio::connect_finalize(
-//!     upgraded,
-//!     connector,
-//!     &mut upgraded_framed,
-//!     &mut NoopNetworkClient,    // safe for NTLM; panics if Kerberos KDC round-trip is needed
-//!     server_name.into(),
-//!     server_public_key,
-//!     None,                      // kerberos_config
+//!     upgraded, connector, &mut upgraded_framed, &mut NoopNetworkClient,
+//!     ServerName::new(host), server_public_key, None,
 //! ).await?;
-//!
-//! // Step 10: Active session loop
-//! // ironrdp::session::ActiveStage::new(connection_result)
-//! // upgraded_framed is now the session transport
 //! ```
-//!
-//! ## NoopNetworkClient implementation sketch (for Task 4)
-//! ```rust,ignore
-//! struct NoopNetworkClient;
-//! impl ironrdp_tokio::NetworkClient for NoopNetworkClient {
-//!     async fn send(&mut self, _: &ironrdp_tokio::NetworkRequest) -> ironrdp_tokio::ConnectorResult<Vec<u8>> {
-//!         Err(ironrdp::connector::general_err!("no KDC network client; use NTLM not Kerberos"))
-//!     }
-//! }
-//! ```
-//!
-//! ## CredSSP / NTLM via sspi
-//! The connector internally calls sspi for NTLMv2 when `ironrdp::connector::Config` is set up
-//! with username/password credentials. The `sspi = "0.21"` dep provides the NTLM implementation.
-//! No explicit sspi calls needed at the connect-sequence level; the connector drives it.
-
-// Implemented in later tasks.
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    sync::{Mutex, MutexGuard},
+    sync::{Arc, Mutex, MutexGuard},
 };
 use tauri::{AppHandle, Emitter};
 use tokio::{
+    net::TcpStream,
     runtime::Runtime,
     sync::{mpsc, oneshot},
 };
@@ -133,6 +73,9 @@ use tokio::{
 const DEFAULT_RDP_PORT: u16 = 3389;
 const DEFAULT_RDP_WIDTH: u16 = 1280;
 const DEFAULT_RDP_HEIGHT: u16 = 800;
+
+
+// ── Session manager ───────────────────────────────────────────────────────────
 
 pub struct RdpClientSessionManager {
     runtime: Runtime,
@@ -245,10 +188,520 @@ impl RdpClientSessionManager {
         }
     }
 
+    pub fn start_session(
+        &self,
+        app: AppHandle,
+        request: StartRdpClientSessionRequest,
+    ) -> Result<RdpClientSessionStarted, String> {
+        let session_id = required_id(request.session_id.clone())?;
+        let host = {
+            let h = request.host.trim().to_string();
+            if h.is_empty() {
+                return Err("RDP host is required".to_string());
+            }
+            h
+        };
+        let port = request.port.unwrap_or(DEFAULT_RDP_PORT);
+        if port == 0 {
+            return Err("RDP port must be between 1 and 65535".to_string());
+        }
+
+        {
+            let sessions = self.lock_sessions()?;
+            if sessions.contains_key(&session_id) {
+                return Err(format!("RDP session '{session_id}' is already running"));
+            }
+        }
+
+        let width = request.desktop_width();
+        let height = request.desktop_height();
+        let username = request.username.clone();
+        let password = request.password.clone().unwrap_or_default();
+        let domain = request.domain.clone();
+
+        let (connection_result, framed) = self
+            .runtime
+            .block_on(rdp_connect(
+                host.clone(),
+                port,
+                username,
+                password,
+                domain,
+                width,
+                height,
+            ))
+            .map_err(|e| format!("RDP connect failed: {e}"))?;
+
+        let (stop_tx, stop_rx) = oneshot::channel();
+        let (input_tx, input_rx) = mpsc::unbounded_channel();
+
+        spawn_rdp_event_loop(
+            &self.runtime,
+            app,
+            session_id.clone(),
+            connection_result,
+            framed,
+            input_rx,
+            stop_rx,
+        );
+
+        let mut sessions = self.lock_sessions()?;
+        sessions.insert(
+            session_id.clone(),
+            RdpClientSession {
+                input: input_tx,
+                stop: Some(stop_tx),
+                connected: true,
+            },
+        );
+
+        Ok(RdpClientSessionStarted { session_id, host, port })
+    }
+
+    pub fn pointer_event(&self, request: RdpClientPointerEventRequest) -> Result<(), String> {
+        self.queue_input(
+            &request.session_id,
+            RdpInput::Pointer { x: request.x, y: request.y, button_mask: request.button_mask },
+        )
+    }
+
+    pub fn key_event(&self, request: RdpClientKeyEventRequest) -> Result<(), String> {
+        self.queue_input(
+            &request.session_id,
+            RdpInput::Key { scancode: request.scancode, down: request.down },
+        )
+    }
+
+    pub fn send_ctrl_alt_delete(&self, request: RdpClientSimpleRequest) -> Result<(), String> {
+        self.queue_input(&request.session_id, RdpInput::CtrlAltDelete)
+    }
+
+    pub fn close_session(&self, request: RdpClientSimpleRequest) -> Result<(), String> {
+        let removed = {
+            let mut sessions = self.lock_sessions()?;
+            sessions.remove(&request.session_id)
+        };
+        if let Some(mut session) = removed {
+            if let Some(stop) = session.stop.take() {
+                let _ = stop.send(());
+            }
+        }
+        Ok(())
+    }
+
+    pub fn session_status(&self, request: RdpClientSimpleRequest) -> Result<RdpClientSessionStatus, String> {
+        let sessions = self.lock_sessions()?;
+        let connected = sessions
+            .get(&request.session_id)
+            .map(|s| s.connected)
+            .unwrap_or(false);
+        Ok(RdpClientSessionStatus { session_id: request.session_id, connected })
+    }
+
+    fn queue_input(&self, session_id: &str, input: RdpInput) -> Result<(), String> {
+        let sessions = self.lock_sessions()?;
+        let tx = sessions
+            .get(session_id)
+            .map(|s| s.input.clone())
+            .ok_or_else(|| format!("RDP session '{session_id}' was not found"))?;
+        tx.send(input)
+            .map_err(|_| format!("RDP session '{session_id}' input channel is closed"))
+    }
+
     fn lock_sessions(&self) -> Result<MutexGuard<'_, HashMap<String, RdpClientSession>>, String> {
         self.sessions.lock().map_err(|_| "RDP session lock is poisoned".to_string())
     }
 }
+
+// ── No-op NetworkClient (safe for NTLM; Kerberos KDC round-trips never happen) ──
+
+struct NoopNetworkClient;
+
+impl ironrdp_tokio::NetworkClient for NoopNetworkClient {
+    async fn send(
+        &mut self,
+        _request: &ironrdp::connector::sspi::generator::NetworkRequest,
+    ) -> ironrdp::connector::ConnectorResult<Vec<u8>> {
+        Err(ironrdp::connector::general_err!(
+            "no KDC network client; use NTLM credentials not Kerberos"
+        ))
+    }
+}
+
+// ── TLS: NoCertificateVerification (RDP never verifies the cert chain) ────────
+
+#[derive(Debug)]
+struct NoCertificateVerification(Arc<rustls::crypto::CryptoProvider>);
+
+impl rustls::client::danger::ServerCertVerifier for NoCertificateVerification {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &rustls::pki_types::CertificateDer<'_>,
+        _intermediates: &[rustls::pki_types::CertificateDer<'_>],
+        _server_name: &rustls::pki_types::ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: rustls::pki_types::UnixTime,
+    ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
+        Ok(rustls::client::danger::ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        message: &[u8],
+        cert: &rustls::pki_types::CertificateDer<'_>,
+        dsa: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        rustls::crypto::verify_tls12_signature(
+            message,
+            cert,
+            dsa,
+            &self.0.signature_verification_algorithms,
+        )
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        message: &[u8],
+        cert: &rustls::pki_types::CertificateDer<'_>,
+        dsa: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        rustls::crypto::verify_tls13_signature(
+            message,
+            cert,
+            dsa,
+            &self.0.signature_verification_algorithms,
+        )
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        self.0.signature_verification_algorithms.supported_schemes()
+    }
+}
+
+async fn tls_upgrade(
+    stream: TcpStream,
+    server_name: &str,
+) -> Result<tokio_rustls::client::TlsStream<TcpStream>, String> {
+    let provider = Arc::new(rustls::crypto::ring::default_provider());
+    let tls_config = rustls::ClientConfig::builder_with_provider(Arc::clone(&provider))
+        .with_protocol_versions(&[&rustls::version::TLS12, &rustls::version::TLS13])
+        .map_err(|e| format!("TLS config error: {e}"))?
+        .dangerous()
+        .with_custom_certificate_verifier(Arc::new(NoCertificateVerification(provider)))
+        .with_no_client_auth();
+
+    // Disable TLS session resumption — CredSSP/MS-CSSP requires it.
+    let mut tls_config = tls_config;
+    tls_config.resumption = rustls::client::Resumption::disabled();
+
+    let connector = tokio_rustls::TlsConnector::from(Arc::new(tls_config));
+    let dns_name = rustls::pki_types::ServerName::try_from(server_name.to_string())
+        .map_err(|e| format!("invalid server name '{server_name}': {e}"))?;
+    connector
+        .connect(dns_name, stream)
+        .await
+        .map_err(|e| format!("TLS handshake failed: {e}"))
+}
+
+fn extract_server_public_key(
+    tls_stream: &tokio_rustls::client::TlsStream<TcpStream>,
+) -> Result<Vec<u8>, String> {
+    use x509_cert::der::Decode as _;
+
+    let (_, session) = tls_stream.get_ref();
+    let cert_der = session
+        .peer_certificates()
+        .and_then(|certs| certs.first())
+        .ok_or_else(|| "RDP server sent no TLS certificate".to_string())?;
+
+    let cert = x509_cert::Certificate::from_der(cert_der.as_ref())
+        .map_err(|e| format!("failed to parse server certificate: {e}"))?;
+
+    let spki_bytes = cert
+        .tbs_certificate
+        .subject_public_key_info
+        .subject_public_key
+        .as_bytes()
+        .ok_or_else(|| "server certificate subject public key is not a bitstring".to_string())?
+        .to_vec();
+
+    Ok(spki_bytes)
+}
+
+// ── Connect helper ────────────────────────────────────────────────────────────
+
+type UpgradedFramed = ironrdp_tokio::TokioFramed<tokio_rustls::client::TlsStream<TcpStream>>;
+
+async fn rdp_connect(
+    host: String,
+    port: u16,
+    username: String,
+    password: String,
+    domain: Option<String>,
+    width: u16,
+    height: u16,
+) -> Result<(ironrdp::connector::ConnectionResult, UpgradedFramed), String> {
+    use ironrdp::connector::{
+        ClientConnector, Config, Credentials, DesktopSize, ServerName,
+        credssp::KerberosConfig,
+    };
+    use ironrdp::pdu::gcc::KeyboardType;
+    use ironrdp::pdu::rdp::capability_sets::MajorPlatformType;
+    use ironrdp_tokio::{TokioFramed, connect_begin, connect_finalize, mark_as_upgraded};
+
+    // Step 1: TCP connect + create framed
+    let stream = TcpStream::connect((host.as_str(), port))
+        .await
+        .map_err(|e| format!("TCP connect to {host}:{port} failed: {e}"))?;
+    let client_addr = stream.local_addr().map_err(|e| e.to_string())?;
+    let mut framed: TokioFramed<TcpStream> = TokioFramed::new(stream);
+
+    // Step 2: Build connector config
+    let config = Config {
+        credentials: Credentials::UsernamePassword { username, password },
+        domain,
+        enable_tls: false,
+        enable_credssp: true,
+        desktop_size: DesktopSize { width, height },
+        desktop_scale_factor: 0,
+        keyboard_type: KeyboardType::IbmEnhanced,
+        keyboard_subtype: 0,
+        keyboard_functional_keys_count: 12,
+        keyboard_layout: 0x0409, // en-US
+        ime_file_name: String::new(),
+        enable_server_pointer: true,
+        pointer_software_rendering: false,
+        client_build: 0,
+        client_name: "KKTerm".to_string(),
+        client_dir: String::new(),
+        platform: MajorPlatformType::UNIX,
+        hardware_id: None,
+        bitmap: None,
+        compression_type: None,
+        performance_flags: ironrdp::pdu::rdp::client_info::PerformanceFlags::default(),
+        autologon: false,
+        enable_audio_playback: false,
+        timezone_info: ironrdp::pdu::rdp::client_info::TimezoneInfo::default(),
+        license_cache: None,
+        multitransport_flags: None,
+        alternate_shell: String::new(),
+        work_dir: String::new(),
+        dig_product_id: String::new(),
+        request_data: None,
+    };
+
+    // Step 3: Create connector + begin
+    let mut connector = ClientConnector::new(config, client_addr);
+    let should_upgrade = connect_begin(&mut framed, &mut connector)
+        .await
+        .map_err(|e| format!("RDP connect_begin failed: {e}"))?;
+
+    // Step 4: Extract inner stream
+    let (tcp_stream, leftover) = framed.into_inner();
+
+    // Step 5: TLS upgrade
+    let tls_stream = tls_upgrade(tcp_stream, &host).await?;
+
+    // Step 6: Extract server public key
+    let server_public_key = extract_server_public_key(&tls_stream)?;
+
+    // Step 7: Mark as upgraded
+    let upgraded = mark_as_upgraded(should_upgrade, &mut connector);
+
+    // Step 8: Create upgraded framed over the concrete TLS stream
+    let mut upgraded_framed: UpgradedFramed = TokioFramed::new_with_leftover(tls_stream, leftover);
+
+    // Step 9: Finalize
+    let connection_result = connect_finalize::<_, NoopNetworkClient>(
+        upgraded,
+        connector,
+        &mut upgraded_framed,
+        &mut NoopNetworkClient,
+        ServerName::new(host),
+        server_public_key,
+        None::<KerberosConfig>,
+    )
+    .await
+    .map_err(|e| format!("RDP connect_finalize failed: {e}"))?;
+
+    Ok((connection_result, upgraded_framed))
+}
+
+// ── Event loop ────────────────────────────────────────────────────────────────
+
+fn spawn_rdp_event_loop(
+    runtime: &Runtime,
+    app: AppHandle,
+    session_id: String,
+    connection_result: ironrdp::connector::ConnectionResult,
+    mut framed: UpgradedFramed,
+    mut input_rx: mpsc::UnboundedReceiver<RdpInput>,
+    mut stop: oneshot::Receiver<()>,
+) {
+    runtime.spawn(async move {
+        eprintln!("[rdp {session_id}] event loop starting");
+
+        let width = connection_result.desktop_size.width;
+        let height = connection_result.desktop_size.height;
+
+        emit_rdp_event(
+            &app,
+            RdpCanvasEvent::Connected {
+                session_id: session_id.clone(),
+                name: "RDP".to_string(),
+            },
+        );
+        emit_rdp_event(
+            &app,
+            RdpCanvasEvent::Resolution { session_id: session_id.clone(), width, height },
+        );
+
+        let mut image = ironrdp::session::image::DecodedImage::new(
+            ironrdp::graphics::image_processing::PixelFormat::RgbA32,
+            width,
+            height,
+        );
+        let mut active_stage = ironrdp::session::ActiveStage::new(connection_result);
+        let mut input_db = ironrdp::input::Database::new();
+
+        use ironrdp_tokio::FramedWrite as _;
+
+        loop {
+            tokio::select! {
+                _ = &mut stop => {
+                    eprintln!("[rdp {session_id}] stop signal received");
+                    break;
+                }
+                input = input_rx.recv() => {
+                    match input {
+                        Some(rdp_input) => {
+                            if let Err(e) = send_rdp_input(&mut framed, &mut input_db, rdp_input).await {
+                                eprintln!("[rdp {session_id}] send_rdp_input error: {e}");
+                                emit_rdp_event(&app, RdpCanvasEvent::Error {
+                                    session_id: session_id.clone(),
+                                    message: e,
+                                });
+                                break;
+                            }
+                        }
+                        None => break,
+                    }
+                }
+                pdu = framed.read_pdu() => {
+                    match pdu {
+                        Ok((action, payload)) => {
+                            let outputs = match active_stage.process(&mut image, action, &payload) {
+                                Ok(outputs) => outputs,
+                                Err(e) => {
+                                    eprintln!("[rdp {session_id}] active_stage.process error: {e}");
+                                    emit_rdp_event(&app, RdpCanvasEvent::Error {
+                                        session_id: session_id.clone(),
+                                        message: e.to_string(),
+                                    });
+                                    break;
+                                }
+                            };
+
+                            let mut should_break = false;
+                            for output in outputs {
+                                use ironrdp::session::ActiveStageOutput;
+                                match output {
+                                    ActiveStageOutput::ResponseFrame(frame) => {
+                                        if let Err(e) = framed.write_all(&frame).await {
+                                            eprintln!("[rdp {session_id}] write_all error: {e}");
+                                            emit_rdp_event(&app, RdpCanvasEvent::Error {
+                                                session_id: session_id.clone(),
+                                                message: e.to_string(),
+                                            });
+                                            should_break = true;
+                                            break;
+                                        }
+                                    }
+                                    ActiveStageOutput::GraphicsUpdate(region) => {
+                                        let rx = u16::try_from(region.left).unwrap_or(0);
+                                        let ry = u16::try_from(region.top).unwrap_or(0);
+                                        let rw = u16::try_from(
+                                            region.right.saturating_sub(region.left).saturating_add(1)
+                                        ).unwrap_or(0);
+                                        let rh = u16::try_from(
+                                            region.bottom.saturating_sub(region.top).saturating_add(1)
+                                        ).unwrap_or(0);
+                                        let image_data = image.data();
+                                        let rect_rgba = extract_rgba_rect(image_data, width, rx, ry, rw, rh);
+                                        emit_rdp_event(&app, RdpCanvasEvent::RawImage {
+                                            session_id: session_id.clone(),
+                                            x: rx,
+                                            y: ry,
+                                            width: rw,
+                                            height: rh,
+                                            rgba: BASE64.encode(rect_rgba),
+                                        });
+                                    }
+                                    ActiveStageOutput::PointerBitmap(pointer) => {
+                                        let event = cursor_event(&session_id, &pointer);
+                                        emit_rdp_event(&app, event);
+                                    }
+                                    ActiveStageOutput::Terminate(_reason) => {
+                                        eprintln!("[rdp {session_id}] server initiated disconnect");
+                                        should_break = true;
+                                        break;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            if should_break {
+                                break;
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("[rdp {session_id}] read_pdu error: {e}");
+                            emit_rdp_event(&app, RdpCanvasEvent::Error {
+                                session_id: session_id.clone(),
+                                message: e.to_string(),
+                            });
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        eprintln!("[rdp {session_id}] event loop exiting");
+        emit_rdp_event(&app, RdpCanvasEvent::Disconnected { session_id });
+    });
+}
+
+// ── Input stub (Task 5 fills in real IronRDP input encoding) ──────────────────
+
+async fn send_rdp_input(
+    _framed: &mut UpgradedFramed,
+    _db: &mut ironrdp::input::Database,
+    _input: RdpInput,
+) -> Result<(), String> {
+    // Task 5: translate RdpInput → ironrdp_input operations, apply to _db,
+    // encode as FastPath input PDUs, and write to _framed.
+    Ok(())
+}
+
+// ── Cursor stub (Task 5 fills in real pointer decoding) ───────────────────────
+
+fn cursor_event(
+    session_id: &str,
+    pointer: &ironrdp::graphics::pointer::DecodedPointer,
+) -> RdpCanvasEvent {
+    // Task 5 may refine the pixel format; `bitmap_data` is the decoded pointer
+    // bitmap and `hotspot_x/y` the click hotspot.
+    RdpCanvasEvent::SetCursor {
+        session_id: session_id.to_string(),
+        width: pointer.width,
+        height: pointer.height,
+        hot_x: pointer.hotspot_x,
+        hot_y: pointer.hotspot_y,
+        rgba: BASE64.encode(&pointer.bitmap_data),
+    }
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
 
 fn emit_rdp_event(app: &AppHandle, event: RdpCanvasEvent) {
     let _ = app.emit("rdp-canvas-event", event);
