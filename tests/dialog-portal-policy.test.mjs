@@ -50,6 +50,8 @@ test("blocking dialogs mounted from contained panes use the app-window DialogPor
 test("Quick Command subdialogs stack above the manager dialog", async () => {
   const terminalStyles = await readFile(new URL("../src/modules/workspace/connections/terminal/terminal.css", import.meta.url), "utf8");
   const baseStyles = await readFile(new URL("../src/styles/base.css", import.meta.url), "utf8");
+  const subdialogBackdropRule =
+    terminalStyles.match(/\.quick-command-subdialog-backdrop\s*\{(?<body>[^}]*)\}/s)?.groups?.body ?? "";
 
   const managerBackdropZIndex = Number(
     baseStyles.match(/\.connection-dialog-backdrop\s*\{[^}]*z-index:\s*(\d+);/s)?.[1] ?? Number.NaN,
@@ -63,6 +65,16 @@ test("Quick Command subdialogs stack above the manager dialog", async () => {
   assert.ok(
     subdialogBackdropZIndex > managerBackdropZIndex,
     "Quick Command add/library dialogs should stack above the manager dialog backdrop",
+  );
+  assert.match(
+    subdialogBackdropRule,
+    /background:\s*transparent;/,
+    "Quick Command add/library dialogs should not stack another visual dim over the manager backdrop",
+  );
+  assert.doesNotMatch(
+    subdialogBackdropRule,
+    /backdrop-filter:/,
+    "Quick Command add/library dialogs should keep the parent dialog's blur/dim level unchanged",
   );
 });
 
