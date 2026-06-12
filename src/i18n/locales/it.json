@@ -1305,6 +1305,10 @@
       "network": {
         "label": "Strumenti di amministrazione rete",
         "description": "Esegui ping sugli host, controlla le porte TCP, risolvi DNS, esegui WHOIS, elenca le interfacce e invia Wake-on-LAN."
+      },
+      "memory": {
+        "label": "Memoria dell'assistente",
+        "description": "Consente all'assistente di salvare e richiamare brevi note sui tuoi host e sulle preferenze tra le chat. Non memorizza mai segreti."
       }
     },
     "searchProvider": "Provider di ricerca",
@@ -2393,6 +2397,7 @@
     "toolApprovalTool": "Strumento {{tool}}",
     "toolApprovalBody": "Questa azione può modificare KKTerm o la macchina locale.",
     "toolApprovalDetails": "Dettagli della richiesta",
+    "toolApprovalRiskTitle": "Segnalato come rischioso",
     "watchdogApproval": {
       "lede": "Crea watchdog \"{{name}}\" con intervento AI?",
       "target": "Destinazione",
@@ -2455,6 +2460,7 @@
     "thoughtFor": "Ha riflettuto per",
     "workedFor": "Ha lavorato per {{duration}}",
     "thinkingStep": "Riflessione",
+    "workPlanTitle": "Piano",
     "toolCallRunning": "In esecuzione",
     "toolCallUsing": "Utilizzo dello strumento {{tool}}...",
     "toolCallComplete": "Completato",

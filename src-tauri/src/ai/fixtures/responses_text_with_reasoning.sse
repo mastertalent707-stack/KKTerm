@@ -1,0 +1,13 @@
+event: response.reasoning_text.delta
+data: {"type":"response.reasoning_text.delta","delta":"Checking disk usage."}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","delta":"Run "}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","delta":"df -h."}
+
+event: response.output_text.done
+data: {"type":"response.output_text.done","text":"Run df -h."}
+
+data: [DONE]

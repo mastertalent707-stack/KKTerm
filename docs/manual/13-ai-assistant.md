@@ -22,7 +22,7 @@ Chat history is stored in SQLite table `assistant_chat_threads`, indexed for rec
 
 ## Composer
 
-Default placeholder `ai.composerPlaceholder`. Send `ai.sendMessage` / `ai.send`. Stop in-flight `ai.stopMessage`. Copy `ai.copy` / `ai.copyMessage`. Highlighted Assistant Panel text can also be copied from the right-click native context menu item `common.copy`. Code label `ai.code`. Show-less / more `ai.showLess` / `ai.more`.
+Default placeholder `ai.composerPlaceholder`. Send `ai.sendMessage` / `ai.send`. Stop in-flight `ai.stopMessage`; Stop also cancels the backend agent run, so no further provider calls or tool executions happen after it. Copy `ai.copy` / `ai.copyMessage`. Highlighted Assistant Panel text can also be copied from the right-click native context menu item `common.copy`. Code label `ai.code`. Show-less / more `ai.showLess` / `ai.more`.
 
 ### Attachments
 
@@ -66,11 +66,15 @@ Assistant tool calls run under one of two modes (selector label `ai.toolPermissi
 - **Prompt** (`ai.toolPermissionPrompt`) — each tool call requires explicit approval.
 - **Allow all** (`ai.toolPermissionAllowAll`) — tool calls run without prompting. Use deliberately.
 
-In Prompt / Default permissions mode, mutating tool calls pause the current assistant response and show an in-chat approval card: `ai.toolApprovalTitle`, `ai.toolApprovalTool`, `ai.toolApprovalBody`, `ai.toolApprovalDetails`, `ai.toolApprovalWaiting`, `ai.toolApprovalSelectAction`, `ai.toolApprovalAllow`, `ai.toolApprovalAllowSession`, `ai.toolApprovalDeny`, `ai.toolApprovalApproved`, `ai.toolApprovalAllowedSession`, and `ai.toolApprovalDenied`. The action selector starts blank. Choosing `ai.toolApprovalAllow` approves the single tool call. Choosing `ai.toolApprovalAllowSession` approves the current tool call and later approval prompts for the same tool in the same chat window. Choosing `ai.toolApprovalDeny` rejects the tool call and stops the visible assistant turn.
+In Prompt / Default permissions mode, mutating tool calls pause the current assistant response and show an in-chat approval card: `ai.toolApprovalTitle`, `ai.toolApprovalTool`, `ai.toolApprovalBody`, `ai.toolApprovalDetails`, `ai.toolApprovalWaiting`, `ai.toolApprovalSelectAction`, `ai.toolApprovalAllow`, `ai.toolApprovalAllowSession`, `ai.toolApprovalDeny`, `ai.toolApprovalApproved`, `ai.toolApprovalAllowedSession`, and `ai.toolApprovalDenied`. The action selector starts blank. Choosing `ai.toolApprovalAllow` approves the single tool call. Choosing `ai.toolApprovalAllowSession` approves the current tool call and later approval prompts for the same tool in the same chat window; as an exception, a later call whose command payload matches KKTerm's risky-command heuristic (destructive, service-disrupting, or credential-touching keywords) shows the normal approval card again instead of auto-approving. Choosing `ai.toolApprovalDeny` rejects the tool call and stops the visible assistant turn. When a command-bearing tool call (shell command, terminal/remote-desktop send-text, or Quick Command create/edit) matches that heuristic, the approval card also shows an `ai.toolApprovalRiskTitle` warning block listing the backend-generated reasons it was flagged.
 
 ### Built-in tools
 
 Built-in AI tools default on except `settings.aiTools.email.label`. The email tool stays off until enabled in Settings because it requires delivery configuration and an email secret.
+
+The assistant memory tools (`settings.aiTools.memory.label`, default on) let the assistant keep short durable notes about the user's environment. `assistant_memory_remember` saves a note scoped to the active Connection (`connection:<id>`) or `global`; `assistant_memory_recall` lists notes in scope; `assistant_memory_forget` deletes one by id. Notes are stored in the SQLite `assistant_memories` table — never secrets, which stay in the OS keychain. At the start of each turn the assistant is given the global notes plus the active Connection's notes as background knowledge. Memory tools are display/local-data only and never require an approval prompt.
+
+The assistant can also call the read-only `mcp_list_tools` tool to list the remote MCP servers configured in Settings together with their cached tool schemas. It serves the cached `tools/list` results from local storage without contacting the servers and is used to ground widget code that calls `KK.callMcpTool` in real tool names and argument shapes.
 
 When `settings.useCodexCli` or `settings.useClaudeCli` routes a provider through a local CLI backend, ACP-backed sessions attach KKTerm's built-in `kkterm` MCP server so published safe tools, including Connection creation, can run through the same local bridge as external MCP clients. If ACP is unavailable and KKTerm falls back to a one-shot CLI command, the assistant can only suggest actions or Connection details instead of calling KKTerm tools.
 
@@ -116,6 +120,7 @@ Thinking / progress markers:
 - Duration formatting: `ai.workDurationUnderSecond`, `ai.workDurationSeconds`, `ai.workDurationMinutesSeconds`.
 - While a response is streaming, the work panel stays collapsed by default. During normal thinking it shows the rotating waiting phrase. During an active tool call the collapsed summary switches to `ai.toolCallUsing`, then returns to the waiting phrase after the tool completes.
 - The expanded work panel only shows `ai.thinkingStep` when the provider streams actual reasoning text or a reasoning summary. Empty thinking rows are not shown. Reasoning text is rendered as markdown.
+- For multi-step tasks, the assistant can publish a work plan through its `update_plan` tool. The expanded work panel then shows an `ai.workPlanTitle` step listing the plan's steps with their live statuses (pending, running, completed, blocked); step labels are model-generated text in the user's language. The plan replaces the synthesized progress entry for that response and is saved with the chat. `update_plan` calls do not appear as tool chips and never require approval.
 
 Waiting animation phrases rotate through `ai.waitingPhrases.0`..`ai.waitingPhrases.31`. Pre-stream state: `ai.preparingResponse`, `ai.chargingBeacon`.
 

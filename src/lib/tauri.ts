@@ -422,6 +422,11 @@ export interface AgentChatMessage {
   role: "assistant" | "user";
   content: string;
   reasoningContent?: string;
+  /**
+   * Compact summaries of tool calls made in this assistant turn, replayed by
+   * the backend as a short transcript so later turns remember prior tool work.
+   */
+  toolCalls?: Array<{ toolName: string; error?: string }>;
 }
 
 export interface AssistantSkillSummary {
@@ -464,6 +469,8 @@ export interface DownloadAndInstallAppUpdateRequest {
     text?: string;
   }>;
   systemContext?: string;
+  /** Id of the active Connection, when one is. Scopes assistant memory. */
+  activeConnectionId?: string;
   messages: AgentChatMessage[];
   outputLanguage?: string;
   allowTools?: boolean;
@@ -482,6 +489,16 @@ export type AiStreamEvent =
   | { type: "toolCallStart"; toolId: string; toolName: string }
   | { type: "toolCallEnd"; toolId: string; toolName: string; error?: string }
   | { type: "skillInvocation"; skillName: string }
+  | {
+      type: "planUpdate";
+      goal?: string;
+      steps: Array<{
+        id: string;
+        label: string;
+        status: "pending" | "running" | "completed" | "blocked";
+        detail?: string;
+      }>;
+    }
   | { type: "done"; model: string; providerKind: string }
   | { type: "error"; message: string };
 
@@ -1229,6 +1246,10 @@ type CommandMap = {
   run_ai_agent_streaming: {
     args: { channel: Channel<AiStreamEvent>; request: AgentRunRequest };
     result: AgentRunResponse;
+  };
+  cancel_assistant_streams: {
+    args: undefined;
+    result: null;
   };
   ai_coding_usage_load: {
     args: undefined;

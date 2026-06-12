@@ -1,0 +1,1 @@
+{"content":"Let me check the clock.","reasoning":"The user wants the time.","toolCalls":[{"name":"current_time","arguments":"{}"}]}

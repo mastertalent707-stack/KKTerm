@@ -1305,6 +1305,10 @@
       "network": {
         "label": "Netzwerk-Verwaltungstools",
         "description": "Hosts anpingen, TCP-Ports prüfen, DNS auflösen, WHOIS ausführen, Schnittstellen auflisten und Wake-on-LAN senden."
+      },
+      "memory": {
+        "label": "Assistenten-Gedächtnis",
+        "description": "Erlaubt dem Assistenten, kurze Notizen zu deinen Hosts und Einstellungen über Chats hinweg zu speichern und abzurufen. Speichert niemals Geheimnisse."
       }
     },
     "searchProvider": "Suchanbieter",
@@ -2393,6 +2397,7 @@
     "toolApprovalTool": "{{tool}}-Werkzeug",
     "toolApprovalBody": "Diese Aktion kann KKTerm oder den lokalen Rechner ändern.",
     "toolApprovalDetails": "Anfragedetails",
+    "toolApprovalRiskTitle": "Als riskant markiert",
     "watchdogApproval": {
       "lede": "Watchdog \"{{name}}\" mit KI-Eingriff erstellen?",
       "target": "Ziel",
@@ -2455,6 +2460,7 @@
     "thoughtFor": "Nachgedacht für",
     "workedFor": "Gearbeitet für {{duration}}",
     "thinkingStep": "Denken",
+    "workPlanTitle": "Plan",
     "toolCallRunning": "Wird ausgeführt",
     "toolCallUsing": "{{tool}}-Tool wird verwendet...",
     "toolCallComplete": "Abgeschlossen",

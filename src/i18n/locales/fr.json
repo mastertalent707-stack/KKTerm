@@ -1305,6 +1305,10 @@
       "network": {
         "label": "Outils d'administration réseau",
         "description": "Envoyer un ping aux hôtes, vérifier les ports TCP, résoudre le DNS, exécuter WHOIS, lister les interfaces et envoyer Wake-on-LAN."
+      },
+      "memory": {
+        "label": "Mémoire de l'assistant",
+        "description": "Permet à l'assistant d'enregistrer et de rappeler de courtes notes sur vos hôtes et préférences entre les discussions. Ne stocke jamais de secrets."
       }
     },
     "searchProvider": "Fournisseur de recherche",
@@ -2393,6 +2397,7 @@
     "toolApprovalTool": "Outil {{tool}}",
     "toolApprovalBody": "Cette action peut modifier KKTerm ou la machine locale.",
     "toolApprovalDetails": "Détails de la requête",
+    "toolApprovalRiskTitle": "Signalé comme risqué",
     "watchdogApproval": {
       "lede": "Créer un watchdog \"{{name}}\" avec intervention IA ?",
       "target": "Cible",
@@ -2455,6 +2460,7 @@
     "thoughtFor": "A réfléchi pendant",
     "workedFor": "A travaillé pendant {{duration}}",
     "thinkingStep": "Réflexion",
+    "workPlanTitle": "Plan",
     "toolCallRunning": "En cours",
     "toolCallUsing": "Utilisation de l'outil {{tool}}...",
     "toolCallComplete": "Terminé",

@@ -1,9 +1,5 @@
 import { ConnectionIcon } from "../modules/workspace/connections/ConnectionIcon";
 import type { TutorialHighlightRequest } from "../app/TutorialOverlay";
-import {
-  normalizeTutorialNavigationTarget,
-  tutorialNavigationForTarget,
-} from "../app/tutorialNavigationModel";
 import { connectionPasswordOwnerId, workspaceKindLabel } from "../modules/workspace/connections/utils";
 import { inspectActiveSshSystemContext } from "../modules/workspace/connections/terminal/TerminalWorkspace";
 import { readFromClipboard, writeToClipboard } from "../lib/clipboard";
@@ -12,13 +8,9 @@ import {
   Camera,
   Check,
   ChevronDown,
-  Copy,
   Eye,
-  EyeOff,
   FileImage,
   Hand,
-  KeyRound,
-  LoaderCircle,
   Plus,
   RefreshCw,
   ScrollText,
@@ -40,13 +32,12 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { ariaChecked, dialogButtonAria, menuButtonAria } from "../lib/aria";
+import { ariaChecked, menuButtonAria } from "../lib/aria";
 import { showNativeContextMenu } from "../lib/nativeContextMenu";
 import { invokeCommand, isTauriRuntime, openExternalUrl } from "../lib/tauri";
 import type {
   AiProviderModelOption,
   AiStreamEvent,
-  AssistantChatThreadRecord,
   CaptureScreenshotRequest,
 } from "../lib/tauri";
 import {
@@ -62,34 +53,23 @@ import {
 import {
   applyAssistantStreamEventToMessage,
   completeAssistantStreamMessageFromResponse,
-  type AssistantToolCallStatus,
 } from "./streamMessage";
 import { useWorkspaceStore } from "../store";
-import { isAccentName, isIconName } from "../modules/dashboard/registry/palette";
 import { useDashboardStore } from "../modules/dashboard/state/dashboardStore";
 import {
-  getFileBrowserController,
   getPaneRenderer,
-  getRemoteDesktopController,
   sendTextToRdpPane,
   writeInputToPane,
 } from "../modules/workspace/paneRegistry";
-import i18next from "../i18n/config";
 import { prepareAssistantTerminalInput } from "./terminalCommandSend";
 import { Channel } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { aiProviderSecretOwnerId } from "../lib/settings";
-import {
-  parseAssistantSecretRequests,
-  secretRequestStorageNotice,
-  type AssistantSecretRequest,
-} from "./secretRequest";
+import { parseAssistantSecretRequests } from "./secretRequest";
 import { scrollAssistantChatToBottom } from "./assistantScroll";
-import type { AiToolPermissionMode, AssistantContextSnippet, QuickCommand } from "../types";
-import { resolveCreateWidgetFollowupPrompt } from "./widgetFollowupPrompt";
-import { MarkdownContent } from "./AssistantMarkdownContent";
+import type { AiToolPermissionMode, AssistantContextSnippet } from "../types";
+import { AssistantMessageView, formatBytes } from "./AssistantMessageView";
+import { runAssistantLiveTool } from "./assistantLiveTools";
 import { AssistantToolApprovalCards } from "./AssistantToolApprovalCards";
-import { AssistantWorkPanel } from "./AssistantWorkPanel";
 import {
   isDashboardMutatingTool,
   normalizeAssistantToolName,
@@ -109,8 +89,6 @@ import type {
   AssistantLiveToolRequest,
   AssistantPageContext,
   AssistantPromptIntent,
-  AssistantRunManifest,
-  AssistantRunManifestStep,
   AssistantToolApprovalRequest,
   AssistantTextAttachment,
   PendingToolApproval,
@@ -119,31 +97,44 @@ import type {
 
 export type { AssistantPageContext } from "./assistantTypes";
 
+import {
+  assistantChatThreadToRecord,
+  assistantThreadPreview,
+  assistantThreadTitle,
+  createAssistantChatThreadId,
+  loadAssistantChatHistoryFromStorage,
+  readLegacyAssistantChatHistory,
+  sanitizeAssistantThreadTitle,
+  sortedAssistantThreads,
+  upsertAssistantChatThread,
+  writeLegacyAssistantChatHistory,
+} from "./assistantChatThreads";
+import {
+  ASSISTANT_FILE_MAX_BYTES,
+  assistantAgentIntent,
+  assistantIntentExamples,
+  assistantIntentForPrompt,
+  assistantIntentLabel,
+  assistantIntentPlaceholder,
+  assistantPromptForIntent,
+  createAiProviderSecretRequestMarkdown,
+  createAssistantChatMessage,
+  createAssistantRunManifest,
+  createImageAttachment,
+  formatAssistantMessageTime,
+  logAssistantStreamEvent,
+  readFileAsDataUrl,
+  readImageFileAsDataUrl,
+  resolveAssistantOutputLanguage,
+  sampleRandom,
+} from "./assistantComposer";
+
 type AssistantQueuedPrompt = {
   id: string;
   intent: AssistantPromptIntent;
   prompt: string;
   contextSnippet?: AssistantContextSnippet;
 };
-
-function resolveAssistantOutputLanguage(outputLanguage: string): string | undefined {
-  if (!outputLanguage) {
-    const uiCode = i18next.language || "en";
-    const name = i18next.t(`languages.${uiCode}`);
-    return name && name !== `languages.${uiCode}` ? name : undefined;
-  }
-  return outputLanguage;
-}
-
-const ASSISTANT_IMAGE_MAX_EDGE = 1280;
-const ASSISTANT_IMAGE_JPEG_QUALITY = 0.72;
-const ASSISTANT_FILE_MAX_BYTES = 10 * 1024 * 1024;
-
-function assistantQuickCommandId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? `quick-${crypto.randomUUID()}`
-    : `quick-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 function maxMeasuredTextWidth(node: HTMLDivElement | null) {
   if (!node) {
@@ -155,677 +146,6 @@ function maxMeasuredTextWidth(node: HTMLDivElement | null) {
   }, 0);
 }
 
-function createAssistantChatMessage(
-  role: AssistantChatMessage["role"],
-  content: string,
-  intent?: AssistantPromptIntent,
-  textAttachments?: AssistantTextAttachment[],
-  imageAttachments?: AssistantImageAttachment[],
-  fileAttachments?: AssistantFileAttachment[],
-  reasoningContent?: string,
-): AssistantChatMessage {
-  return {
-    id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    role,
-    content,
-    reasoningContent,
-    textAttachments,
-    imageAttachments,
-    fileAttachments,
-    intent,
-    createdAt: new Date().toISOString(),
-  };
-}
-
-function createAssistantRunManifest(
-  goal: string,
-  intent: AssistantPromptIntent,
-  toolCalls?: AssistantToolCallStatus[],
-): AssistantRunManifest {
-  const scopeByIntent: Record<AssistantPromptIntent, string> = {
-    chat: "assistant.chat",
-    extensionCreation: "assistant.extensionCreation",
-    createWidget: "assistant.dashboardWidget",
-    watchdog: "assistant.watchdog",
-  };
-  const hasToolErrors = (toolCalls ?? []).some(
-    (toolCall) => toolCall.status === "completed" && Boolean(toolCall.error?.trim()),
-  );
-  const hasRunningTools = (toolCalls ?? []).some((toolCall) => toolCall.status === "running");
-  const verificationStatus = hasToolErrors ? "failed" : hasRunningTools ? "pending" : "passed";
-  const steps: AssistantRunManifestStep[] = [
-    {
-      id: "plan",
-      label: "Plan response",
-      status: "completed",
-    },
-    {
-      id: "verify",
-      label: "Verify tool outcomes",
-      status: hasToolErrors ? "blocked" : hasRunningTools ? "running" : "completed",
-      detail: hasToolErrors ? "One or more tool calls reported an error." : undefined,
-    },
-  ];
-  return {
-    runId: `assistant-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    goal: goal.trim(),
-    scope: scopeByIntent[intent],
-    definitionOfDone: "Provide response with completed verification step or explicit blocker.",
-    verificationStatus,
-    steps,
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-function createAssistantChatThreadId() {
-  return `assistant-chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function assistantThreadTitle(messages: AssistantChatMessage[]) {
-  const firstUserMessage = messages.find((message) => message.role === "user");
-  const title = firstUserMessage?.content.trim().replace(/\s+/g, " ") || i18next.t("ai.newChat");
-  return title.length > 56 ? `${title.slice(0, 53)}...` : title;
-}
-
-function assistantThreadPreview(thread: AssistantChatThread) {
-  const lastMessage = thread.messages[thread.messages.length - 1];
-  const preview = lastMessage?.content.trim().replace(/\s+/g, " ") || i18next.t("ai.noMessages");
-  return preview.length > 64 ? `${preview.slice(0, 61)}...` : preview;
-}
-
-function assistantAgentIntent(intent: AssistantPromptIntent): "chat" | "extensionCreation" {
-  return intent === "extensionCreation" ? "extensionCreation" : "chat";
-}
-
-function assistantPromptForIntent(
-  intent: AssistantPromptIntent,
-  prompt: string,
-  previousMessages: readonly AssistantChatMessage[] = [],
-) {
-  if (intent === "createWidget") {
-    return `Create a Dashboard widget for this request:\n${resolveCreateWidgetFollowupPrompt(prompt, previousMessages)}`;
-  }
-  if (intent === "watchdog") {
-    return `Configure or draft a Watchdog for this monitoring request:\n${prompt}`;
-  }
-  return prompt;
-}
-
-function assistantIntentLabel(
-  intent: AssistantPromptIntent,
-  t: ReturnType<typeof useTranslation>["t"],
-) {
-  if (intent === "extensionCreation") {
-    return t("ai.extensionDraft");
-  }
-  if (intent === "createWidget") {
-    return t("ai.createWidget");
-  }
-  if (intent === "watchdog") {
-    return t("ai.watchdog");
-  }
-  return t("ai.title");
-}
-
-function sampleRandom<T>(arr: T[], n: number): T[] {
-  const copy = arr.slice();
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy.slice(0, n);
-}
-
-function assistantIntentExamples(
-  intent: AssistantPromptIntent,
-  t: ReturnType<typeof useTranslation>["t"],
-) {
-  const key =
-    intent === "createWidget"
-      ? "ai.createWidgetExamples"
-      : intent === "watchdog"
-        ? "ai.watchdogExamples"
-        : undefined;
-  if (!key) {
-    return [];
-  }
-  const examples = t(key, { returnObjects: true });
-  return Array.isArray(examples) ? examples.map(String) : [];
-}
-
-function assistantIntentPlaceholder(
-  intent: AssistantPromptIntent,
-  t: ReturnType<typeof useTranslation>["t"],
-) {
-  if (intent === "createWidget") {
-    return t("ai.createWidgetPlaceholder");
-  }
-  if (intent === "watchdog") {
-    return t("ai.watchdogPlaceholder");
-  }
-  return t("ai.composerPlaceholder");
-}
-
-function sanitizeAssistantThreadTitle(value: string) {
-  const title = value
-    .trim()
-    .split(/\r?\n/)[0]
-    ?.replace(/^title:\s*/i, "")
-    .replace(/^["'`]+|["'`.]+$/g, "")
-    .trim();
-  if (!title) {
-    return "";
-  }
-  return title.length > 56 ? `${title.slice(0, 53)}...` : title;
-}
-
-function formatAssistantMessageTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-  const hours = date.getHours();
-  const hour12 = hours % 12 || 12;
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const period = hours >= 12 ? i18next.t("common.pm") : i18next.t("common.am");
-  return `${hour12}:${minutes} ${period}`;
-}
-
-function readImageFileAsDataUrl(file: File): Promise<string> {
-  return readFileAsDataUrl(file);
-}
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-      } else {
-        reject(new Error("image paste did not produce a data URL"));
-      }
-    });
-    reader.addEventListener("error", () => {
-      reject(reader.error ?? new Error("failed to read pasted image"));
-    });
-    reader.readAsDataURL(file);
-  });
-}
-
-function loadImage(dataUrl: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", () => reject(new Error("failed to load image")));
-    image.src = dataUrl;
-  });
-}
-
-async function compressImageDataUrl(dataUrl: string) {
-  const image = await loadImage(dataUrl);
-  const sourceWidth = image.naturalWidth || image.width;
-  const sourceHeight = image.naturalHeight || image.height;
-  if (sourceWidth <= 0 || sourceHeight <= 0) {
-    return { dataUrl, width: 0, height: 0 };
-  }
-
-  const scale = Math.min(1, ASSISTANT_IMAGE_MAX_EDGE / Math.max(sourceWidth, sourceHeight));
-  const width = Math.max(1, Math.round(sourceWidth * scale));
-  const height = Math.max(1, Math.round(sourceHeight * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d");
-  if (!context) {
-    return { dataUrl, width: sourceWidth, height: sourceHeight };
-  }
-
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, width, height);
-  context.drawImage(image, 0, 0, width, height);
-  return {
-    dataUrl: canvas.toDataURL("image/jpeg", ASSISTANT_IMAGE_JPEG_QUALITY),
-    width,
-    height,
-  };
-}
-
-async function createImageAttachment(
-  sourceLabel: string,
-  dataUrl: string,
-): Promise<AssistantImageAttachment> {
-  const compressed = await compressImageDataUrl(dataUrl);
-  return {
-    id: `assistant-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    sourceLabel,
-    imageDataUrl: compressed.dataUrl,
-    width: compressed.width,
-    height: compressed.height,
-  };
-}
-
-function normalizeImageAttachments(value: unknown): AssistantImageAttachment[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.flatMap((item) => {
-    if (!item || typeof item !== "object") {
-      return [];
-    }
-    const candidate = item as Partial<AssistantImageAttachment>;
-    if (
-      typeof candidate.sourceLabel !== "string" ||
-      !candidate.sourceLabel.trim() ||
-      typeof candidate.imageDataUrl !== "string" ||
-      !candidate.imageDataUrl.startsWith("data:image/")
-    ) {
-      return [];
-    }
-    return [
-      {
-        id:
-          typeof candidate.id === "string" && candidate.id
-            ? candidate.id
-            : `assistant-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        sourceLabel: candidate.sourceLabel.trim(),
-        imageDataUrl: candidate.imageDataUrl,
-        width: typeof candidate.width === "number" ? candidate.width : 0,
-        height: typeof candidate.height === "number" ? candidate.height : 0,
-      },
-    ];
-  });
-}
-
-function normalizeFileAttachments(value: unknown): AssistantFileAttachment[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.flatMap((item) => {
-    if (!item || typeof item !== "object") {
-      return [];
-    }
-    const candidate = item as Partial<AssistantFileAttachment>;
-    if (
-      typeof candidate.sourceLabel !== "string" ||
-      !candidate.sourceLabel.trim() ||
-      typeof candidate.dataUrl !== "string" ||
-      !candidate.dataUrl.startsWith("data:")
-    ) {
-      return [];
-    }
-    return [
-      {
-        id:
-          typeof candidate.id === "string" && candidate.id
-            ? candidate.id
-            : `assistant-file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        sourceLabel: candidate.sourceLabel.trim(),
-        dataUrl: candidate.dataUrl,
-        mimeType:
-          typeof candidate.mimeType === "string" && candidate.mimeType.trim()
-            ? candidate.mimeType.trim()
-            : "application/octet-stream",
-        size: typeof candidate.size === "number" ? candidate.size : 0,
-      },
-    ];
-  });
-}
-
-function normalizeTextAttachments(value: unknown): AssistantTextAttachment[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.flatMap((item) => {
-    if (!item || typeof item !== "object") {
-      return [];
-    }
-    const candidate = item as Partial<AssistantTextAttachment>;
-    if (
-      typeof candidate.sourceLabel !== "string" ||
-      !candidate.sourceLabel.trim() ||
-      typeof candidate.text !== "string" ||
-      !candidate.text.trim()
-    ) {
-      return [];
-    }
-    return [
-      {
-        id:
-          typeof candidate.id === "string" && candidate.id
-            ? candidate.id
-            : `assistant-text-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        sourceLabel: candidate.sourceLabel.trim(),
-        text: candidate.text,
-        capturedAt: normalizeDateString(candidate.capturedAt) ?? new Date().toISOString(),
-      },
-    ];
-  });
-}
-
-function sortedAssistantThreads(threads: AssistantChatThread[]) {
-  return [...threads].sort(
-    (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
-  );
-}
-
-function upsertAssistantChatThread(
-  threads: AssistantChatThread[],
-  thread: AssistantChatThread,
-) {
-  const withoutThread = threads.filter((item) => item.id !== thread.id);
-  return sortedAssistantThreads([thread, ...withoutThread]);
-}
-
-function assistantIntentForPrompt(
-  activeIntent: AssistantPromptIntent,
-  prompt: string,
-): AssistantPromptIntent {
-  if (activeIntent !== "chat") {
-    return activeIntent;
-  }
-
-  const normalized = prompt.toLowerCase();
-  const asksForExtension =
-    /\b(extension|plugin|addon|add-on)\b/.test(normalized) &&
-    /\b(create|build|generate|write|draft|scaffold|make)\b/.test(normalized);
-  return asksForExtension ? "extensionCreation" : "chat";
-}
-
-function readLegacyAssistantChatHistory(): AssistantChatThread[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-  try {
-    const rawHistory = window.localStorage.getItem(ASSISTANT_CHAT_HISTORY_KEY);
-    if (!rawHistory) {
-      return [];
-    }
-    const parsed = JSON.parse(rawHistory);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-    return parsed.flatMap(normalizeAssistantChatThread);
-  } catch {
-    return [];
-  }
-}
-
-function writeLegacyAssistantChatHistory(threads: AssistantChatThread[]) {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.setItem(ASSISTANT_CHAT_HISTORY_KEY, JSON.stringify(threads));
-}
-
-function clearLegacyAssistantChatHistory() {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.removeItem(ASSISTANT_CHAT_HISTORY_KEY);
-}
-
-function assistantChatThreadToRecord(thread: AssistantChatThread): AssistantChatThreadRecord {
-  return {
-    id: thread.id,
-    title: thread.title,
-    contextLabel: thread.contextLabel,
-    messagesJson: JSON.stringify(thread.messages),
-    createdAt: thread.createdAt,
-    updatedAt: thread.updatedAt,
-  };
-}
-
-function assistantChatThreadFromRecord(record: AssistantChatThreadRecord): AssistantChatThread[] {
-  let messages: unknown;
-  try {
-    messages = JSON.parse(record.messagesJson);
-  } catch {
-    return [];
-  }
-  return normalizeAssistantChatThread({
-    id: record.id,
-    title: record.title,
-    contextLabel: record.contextLabel,
-    messages,
-    createdAt: record.createdAt,
-    updatedAt: record.updatedAt,
-  });
-}
-
-async function loadAssistantChatHistoryFromStorage(): Promise<AssistantChatThread[]> {
-  try {
-    const records = await invokeCommand("list_assistant_chat_threads", undefined);
-    const storedThreads = records.flatMap(assistantChatThreadFromRecord);
-    const legacyThreads = readLegacyAssistantChatHistory();
-    if (legacyThreads.length === 0) {
-      return storedThreads;
-    }
-
-    await Promise.all(
-      legacyThreads.map((thread) =>
-        invokeCommand("upsert_assistant_chat_thread", {
-          request: assistantChatThreadToRecord(thread),
-        }),
-      ),
-    );
-    clearLegacyAssistantChatHistory();
-    const migratedRecords = await invokeCommand("list_assistant_chat_threads", undefined);
-    return migratedRecords.flatMap(assistantChatThreadFromRecord);
-  } catch (error) {
-    console.warn("[kkterm-ai] failed to load SQLite chat history", error);
-    return readLegacyAssistantChatHistory();
-  }
-}
-
-function normalizeAssistantChatThread(value: unknown): AssistantChatThread[] {
-  if (!value || typeof value !== "object") {
-    return [];
-  }
-  const candidate = value as Partial<AssistantChatThread>;
-  const messages = Array.isArray(candidate.messages)
-    ? candidate.messages.flatMap(normalizeAssistantChatMessage)
-    : [];
-  if (messages.length === 0) {
-    return [];
-  }
-  const createdAt = normalizeDateString(candidate.createdAt) ?? messages[0].createdAt;
-  const updatedAt =
-    normalizeDateString(candidate.updatedAt) ?? messages[messages.length - 1].createdAt;
-  return [
-    {
-      id: typeof candidate.id === "string" && candidate.id ? candidate.id : createAssistantChatThreadId(),
-      title:
-        typeof candidate.title === "string" && candidate.title.trim()
-          ? candidate.title.trim()
-          : assistantThreadTitle(messages),
-      contextLabel:
-        typeof candidate.contextLabel === "string" && candidate.contextLabel.trim()
-          ? candidate.contextLabel.trim()
-          : i18next.t("ai.workspace"),
-      messages,
-      createdAt,
-      updatedAt,
-    },
-  ];
-}
-
-function normalizeAssistantChatMessage(value: unknown): AssistantChatMessage[] {
-  if (!value || typeof value !== "object") {
-    return [];
-  }
-  const candidate = value as Partial<AssistantChatMessage>;
-  if (candidate.role !== "assistant" && candidate.role !== "user") {
-    return [];
-  }
-  if (typeof candidate.content !== "string" || !candidate.content.trim()) {
-    return [];
-  }
-  return [
-    {
-      id: typeof candidate.id === "string" && candidate.id ? candidate.id : `${candidate.role}-${Date.now()}`,
-      role: candidate.role,
-      content: candidate.content,
-      reasoningContent: typeof candidate.reasoningContent === "string" && candidate.reasoningContent ? candidate.reasoningContent : undefined,
-      textAttachments: normalizeTextAttachments(candidate.textAttachments),
-      imageAttachments: normalizeImageAttachments(candidate.imageAttachments),
-      fileAttachments: normalizeFileAttachments(candidate.fileAttachments),
-      intent:
-        candidate.intent === "chat" ||
-        candidate.intent === "extensionCreation" ||
-        candidate.intent === "createWidget" ||
-        candidate.intent === "watchdog"
-          ? candidate.intent
-          : undefined,
-      createdAt: normalizeDateString(candidate.createdAt) ?? new Date().toISOString(),
-      toolCalls: normalizeAssistantToolCalls(candidate.toolCalls),
-      skillNames: normalizeAssistantSkillNames(candidate.skillNames),
-      workStartedAt: normalizeDateString(candidate.workStartedAt),
-      workCompletedAt: normalizeDateString(candidate.workCompletedAt),
-      runManifest: normalizeAssistantRunManifest(candidate.runManifest),
-    },
-  ];
-}
-
-function normalizeAssistantRunManifest(value: unknown): AssistantRunManifest | undefined {
-  if (!value || typeof value !== "object") {
-    return undefined;
-  }
-  const candidate = value as Partial<AssistantRunManifest>;
-  if (typeof candidate.goal !== "string" || !candidate.goal.trim()) {
-    return undefined;
-  }
-  if (typeof candidate.scope !== "string" || !candidate.scope.trim()) {
-    return undefined;
-  }
-  if (typeof candidate.definitionOfDone !== "string" || !candidate.definitionOfDone.trim()) {
-    return undefined;
-  }
-  const normalizedStatus =
-    candidate.verificationStatus === "failed" ||
-    candidate.verificationStatus === "passed" ||
-    candidate.verificationStatus === "pending"
-      ? candidate.verificationStatus
-      : "pending";
-  return {
-    runId:
-      typeof candidate.runId === "string" && candidate.runId
-        ? candidate.runId
-        : `assistant-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    goal: candidate.goal.trim(),
-    scope: candidate.scope.trim(),
-    definitionOfDone: candidate.definitionOfDone.trim(),
-    verificationStatus: normalizedStatus,
-    steps: Array.isArray(candidate.steps) ? candidate.steps.filter(Boolean) as AssistantRunManifestStep[] : [],
-    updatedAt: normalizeDateString(candidate.updatedAt) ?? new Date().toISOString(),
-  };
-}
-
-function normalizeAssistantSkillNames(value: unknown): string[] | undefined {
-  if (!Array.isArray(value)) {
-    return undefined;
-  }
-  const names = Array.from(
-    new Set(
-      value
-        .filter((item): item is string => typeof item === "string")
-        .map((item) => item.trim())
-        .filter((item) => /^[a-z0-9-]{1,64}$/.test(item)),
-    ),
-  );
-  return names.length > 0 ? names : undefined;
-}
-
-function normalizeAssistantToolCalls(value: unknown): AssistantToolCallStatus[] | undefined {
-  if (!Array.isArray(value)) {
-    return undefined;
-  }
-  const calls: AssistantToolCallStatus[] = value.flatMap((item) => {
-    if (!item || typeof item !== "object") {
-      return [];
-    }
-    const candidate = item as Partial<AssistantToolCallStatus>;
-    if (
-      typeof candidate.toolId !== "string" ||
-      !candidate.toolId ||
-      typeof candidate.toolName !== "string" ||
-      !candidate.toolName
-    ) {
-      return [];
-    }
-    return [
-      {
-        toolId: candidate.toolId,
-        toolName: candidate.toolName,
-        status: candidate.status === "running" ? "running" : "completed",
-        startedAt: normalizeDateString(candidate.startedAt) ?? new Date().toISOString(),
-        endedAt: normalizeDateString(candidate.endedAt),
-      },
-    ];
-  });
-  return calls.length > 0 ? calls : undefined;
-}
-
-function logAssistantStreamEvent(event: AiStreamEvent) {
-  switch (event.type) {
-    case "reasoningDelta":
-    case "contentDelta":
-      console.debug("[kkterm-ai] stream event", {
-        type: event.type,
-        deltaLength: event.delta.length,
-      });
-      return;
-    case "toolCallStart":
-    case "toolCallEnd":
-      console.debug("[kkterm-ai] stream event", {
-        type: event.type,
-        toolId: event.toolId,
-        toolName: event.toolName,
-      });
-      return;
-    case "done":
-      console.debug("[kkterm-ai] stream event", {
-        type: event.type,
-        providerKind: event.providerKind,
-        model: event.model,
-      });
-      return;
-    case "error":
-      console.debug("[kkterm-ai] stream event", {
-        type: event.type,
-        messageLength: event.message.length,
-      });
-      return;
-  }
-}
-
-function normalizeDateString(value: unknown) {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-}
-
-const ASSISTANT_CHAT_HISTORY_KEY = "kkterm.aiAssistant.chatHistory.v1";
-
-function createAiProviderSecretRequestMarkdown(
-  label: string,
-  provider: string,
-  providerKind: string,
-) {
-  return [
-    i18next.t("ai.secretCardAiProviderMessage", { provider }),
-    "",
-    "```kkterm-secret-request",
-    JSON.stringify({
-      kind: "aiApiKey",
-      ownerId: aiProviderSecretOwnerId(providerKind),
-      label,
-      description: i18next.t("ai.secretCardAiProviderDescription", { provider }),
-    }),
-    "```",
-  ].join("\n");
-}
 
 export function AssistantPanel({
   collapsed,
@@ -1171,6 +491,7 @@ export function AssistantPanel({
       const normalizedToolName = normalizeAssistantToolName(request.toolName);
       if (
         normalizedToolName &&
+        !request.riskElevated &&
         allowedToolApprovalsForCurrentChatRef.current.has(normalizedToolName)
       ) {
         setPendingToolApprovals((current) => [
@@ -1285,6 +606,11 @@ export function AssistantPanel({
     activeAssistantRequestIdRef.current += 1;
     setIsSendingPrompt(false);
     setChatError("");
+    if (isTauriRuntime()) {
+      // Detaching the UI is not enough: without this the backend agent loop
+      // keeps running — and keeps executing tools — after Stop.
+      void invokeCommand("cancel_assistant_streams").catch(() => {});
+    }
     pendingToolApprovals
       .filter((request) => request.status === "pending")
       .forEach((request) => {
@@ -1443,7 +769,12 @@ export function AssistantPanel({
   async function completeAssistantLiveTool(request: AssistantLiveToolRequest) {
     let result: unknown;
     try {
-      result = await runAssistantLiveTool(request.toolName, request.args ?? {});
+      result = await runAssistantLiveTool(request.toolName, request.args ?? {}, {
+        t,
+        onOpenWorkspace,
+        onOpenDashboard,
+        onTutorialRequest,
+      });
     } catch (error) {
       result = { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
@@ -1491,485 +822,6 @@ export function AssistantPanel({
     }
   }
 
-  async function runAssistantLiveTool(toolName: string, args: Record<string, unknown>) {
-    switch (toolName) {
-      case "tutorial_highlight":
-        return assistantTutorialHighlight(args);
-      case "session_state":
-        return assistantSessionState();
-      case "session_activate_tab":
-        return assistantActivateTab(args);
-      case "session_terminal_read_buffer":
-        return assistantTerminalReadBuffer(args);
-      case "session_terminal_send_text":
-        return assistantTerminalSendText(args);
-      case "session_remote_desktop_screenshot":
-        return assistantRemoteDesktopScreenshot(args);
-      case "workspace_connection_screenshot":
-        return assistantWorkspaceConnectionScreenshot(args);
-      case "dashboard_view_screenshot":
-        return assistantDashboardViewScreenshot(args);
-      case "dashboard_widget_screenshot":
-        return assistantDashboardWidgetScreenshot(args);
-      case "session_remote_desktop_send_text":
-        return assistantRemoteDesktopSendText(args);
-      case "session_remote_desktop_keypress":
-        return assistantRemoteDesktopKeyPress(args);
-      case "session_remote_desktop_mouse_click":
-        return assistantRemoteDesktopMouseClick(args);
-      case "session_file_browser_list":
-        return assistantFileBrowserList(args);
-      case "session_file_browser_create_folder":
-        return assistantFileBrowserCreateFolder(args);
-      case "session_file_browser_rename":
-        return assistantFileBrowserRename(args);
-      case "session_file_browser_delete":
-        return assistantFileBrowserDelete(args);
-      case "quick_command_list":
-        return assistantQuickCommandList(args);
-      case "quick_command_read":
-        return assistantQuickCommandRead(args);
-      case "quick_command_create":
-        return assistantQuickCommandCreate(args);
-      case "quick_command_edit":
-        return assistantQuickCommandEdit(args);
-      default:
-        return { ok: false, error: `Unknown live Session tool: ${toolName}` };
-    }
-  }
-
-  function attrSelector(name: string, value: string) {
-    return `[${name}="${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"]`;
-  }
-
-  function screenshotRequestForElement(element: HTMLElement): CaptureScreenshotRequest | null {
-    const bounds = element.getBoundingClientRect();
-    if (bounds.width <= 0 || bounds.height <= 0) {
-      return null;
-    }
-    return {
-      x: Math.max(0, Math.round(bounds.left)),
-      y: Math.max(0, Math.round(bounds.top)),
-      width: Math.max(1, Math.round(bounds.width)),
-      height: Math.max(1, Math.round(bounds.height)),
-    };
-  }
-
-  async function waitForElement(selector: string) {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const element = document.querySelector<HTMLElement>(selector);
-      const request = element ? screenshotRequestForElement(element) : null;
-      if (element && request) {
-        return element;
-      }
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-    }
-    return null;
-  }
-
-  async function captureElementForLiveTool(element: HTMLElement) {
-    const request = screenshotRequestForElement(element);
-    if (!request) {
-      throw new Error("Screenshot target is not visible.");
-    }
-    await waitForScreenshotSurface();
-    const screenshot = await invokeCommand("capture_screenshot_for_assistant", { request });
-    return { screenshot, bounds: request };
-  }
-
-  async function assistantWorkspaceConnectionScreenshot(args: Record<string, unknown>) {
-    if (!isTauriRuntime()) {
-      return { ok: false, error: t("workspace.screenshotsRequireRuntime") };
-    }
-    const connectionId = typeof args.connectionId === "string" ? args.connectionId.trim() : "";
-    if (!connectionId) {
-      return { ok: false, error: "connectionId is required." };
-    }
-    const workspace = useWorkspaceStore.getState();
-    const tab = workspace.tabs.find(
-      (entry) =>
-        entry.connection?.id === connectionId ||
-        entry.panes.some((pane) => pane.connection?.id === connectionId),
-    );
-    if (!tab) {
-      return { ok: false, error: "Connection is not open in the Workspace." };
-    }
-    onOpenWorkspace();
-    useWorkspaceStore.getState().activateTab(tab.id);
-    const target = await waitForElement(attrSelector("data-tutorial-id", "workspace.canvas"));
-    if (!target) {
-      return { ok: false, error: "Workspace Canvas is not visible." };
-    }
-    const { screenshot, bounds } = await captureElementForLiveTool(target);
-    return { ok: true, connectionId, tabId: tab.id, bounds, screenshot };
-  }
-
-  async function assistantDashboardViewScreenshot(args: Record<string, unknown>) {
-    if (!isTauriRuntime()) {
-      return { ok: false, error: t("workspace.screenshotsRequireRuntime") };
-    }
-    const dashboard = useDashboardStore.getState();
-    if (!dashboard.ready) {
-      await dashboard.load();
-    }
-    const state = useDashboardStore.getState();
-    const requestedViewId = typeof args.viewId === "string" ? args.viewId.trim() : "";
-    const viewId = requestedViewId || state.activeViewId || state.views[0]?.id || "";
-    if (!viewId || !state.views.some((view) => view.id === viewId)) {
-      return { ok: false, error: "Dashboard View was not found." };
-    }
-    onOpenDashboard(viewId);
-    const target = await waitForElement(attrSelector("data-dashboard-view-id", viewId));
-    if (!target) {
-      return { ok: false, error: "Dashboard View is not visible." };
-    }
-    const { screenshot, bounds } = await captureElementForLiveTool(target);
-    return { ok: true, viewId, bounds, screenshot };
-  }
-
-  async function assistantDashboardWidgetScreenshot(args: Record<string, unknown>) {
-    if (!isTauriRuntime()) {
-      return { ok: false, error: t("workspace.screenshotsRequireRuntime") };
-    }
-    const instanceId = typeof args.instanceId === "string" ? args.instanceId.trim() : "";
-    if (!instanceId) {
-      return { ok: false, error: "instanceId is required." };
-    }
-    const dashboard = useDashboardStore.getState();
-    if (!dashboard.ready) {
-      await dashboard.load();
-    }
-    const instance = useDashboardStore.getState().instances.find((entry) => entry.id === instanceId);
-    if (!instance) {
-      return { ok: false, error: "Dashboard Widget Instance was not found." };
-    }
-    onOpenDashboard(instance.viewId);
-    const target = await waitForElement(attrSelector("data-dashboard-widget-instance-id", instanceId));
-    if (!target) {
-      return { ok: false, error: "Dashboard Widget Instance is not visible." };
-    }
-    const { screenshot, bounds } = await captureElementForLiveTool(target);
-    return { ok: true, instanceId, viewId: instance.viewId, bounds, screenshot };
-  }
-
-  async function assistantTutorialHighlight(args: Record<string, unknown>) {
-    const targetId = typeof args.targetId === "string" ? args.targetId.trim() : "";
-    const title = typeof args.title === "string" ? args.title.trim() : "";
-    const body = typeof args.body === "string" ? args.body.trim() : "";
-    if (!targetId || !title || !body) {
-      return { ok: false, error: t("ai.tutorialInvalidRequest") };
-    }
-    const navigation =
-      normalizeTutorialNavigationTarget(args.navigation) ??
-      normalizeTutorialNavigationTarget(args) ??
-      tutorialNavigationForTarget(targetId);
-    return onTutorialRequest({ targetId, title, body, navigation });
-  }
-
-  function assistantSessionState() {
-    const state = useWorkspaceStore.getState();
-    return {
-      ok: true,
-      activeTabId: state.activeTabId,
-      tabs: state.tabs.map((tab) => ({
-        id: tab.id,
-        title: tab.title,
-        kind: tab.kind,
-        active: tab.id === state.activeTabId,
-        focusedPaneId: tab.focusedPaneId,
-        connection: tab.connection
-          ? {
-              id: tab.connection.id,
-              name: tab.connection.name,
-              type: tab.connection.type,
-              host: tab.connection.host,
-              user: tab.connection.user,
-            }
-          : null,
-        panes: tab.panes.map((pane) => ({
-          id: pane.id,
-          kind: pane.kind ?? "terminal",
-          title: pane.title,
-          hasTerminalBuffer: Boolean(getPaneRenderer(pane.id)),
-          hasRemoteDesktopController: Boolean(getRemoteDesktopController(pane.id)),
-        })),
-        fileBrowser: tab.kind === "sftp" || tab.kind === "ftp"
-          ? getFileBrowserController(tab.id)?.snapshot() ?? null
-          : null,
-      })),
-    };
-  }
-
-  function assistantActivateTab(args: Record<string, unknown>) {
-    const tabId = typeof args.tabId === "string" ? args.tabId.trim() : "";
-    if (!tabId) {
-      return { ok: false, error: "tabId is required." };
-    }
-    const store = useWorkspaceStore.getState();
-    const tab = store.tabs.find((entry) => entry.id === tabId);
-    if (!tab) {
-      return { ok: false, error: `No open Tab with id ${tabId}.` };
-    }
-    store.activateTab(tabId);
-    const paneId = typeof args.paneId === "string" ? args.paneId.trim() : "";
-    if (paneId) {
-      if (!tab.panes.some((pane) => pane.id === paneId)) {
-        return { ok: false, error: `Tab ${tabId} has no Pane ${paneId}.` };
-      }
-      store.setFocusedPane(tabId, paneId);
-    }
-    return {
-      ok: true,
-      activeTabId: tabId,
-      focusedPaneId: paneId || tab.focusedPaneId || null,
-    };
-  }
-
-  function activeTerminalPaneIdForLiveTool(paneId: unknown) {
-    if (typeof paneId === "string" && paneId.trim()) {
-      return paneId.trim();
-    }
-    const state = useWorkspaceStore.getState();
-    const tab = state.tabs.find((entry) => entry.id === state.activeTabId);
-    if (!tab || tab.kind !== "terminal") {
-      return "";
-    }
-    return tab.focusedPaneId ?? tab.panes[0]?.id ?? "";
-  }
-
-  function activeRemoteDesktopPaneIdForLiveTool(paneId: unknown) {
-    if (typeof paneId === "string" && paneId.trim()) {
-      return paneId.trim();
-    }
-    const state = useWorkspaceStore.getState();
-    const tab = state.tabs.find((entry) => entry.id === state.activeTabId);
-    if (!tab || tab.kind !== "remoteDesktop") {
-      return "";
-    }
-    return tab.focusedPaneId ?? tab.panes[0]?.id ?? "";
-  }
-
-  function activeFileBrowserTabIdForLiveTool(tabId: unknown) {
-    if (typeof tabId === "string" && tabId.trim()) {
-      return tabId.trim();
-    }
-    const state = useWorkspaceStore.getState();
-    const tab = state.tabs.find((entry) => entry.id === state.activeTabId);
-    if (!tab || (tab.kind !== "sftp" && tab.kind !== "ftp")) {
-      return "";
-    }
-    return tab.id;
-  }
-
-  function assistantTerminalReadBuffer(args: Record<string, unknown>) {
-    const paneId = activeTerminalPaneIdForLiveTool(args.paneId);
-    const renderer = paneId ? getPaneRenderer(paneId) : undefined;
-    if (!paneId || !renderer) {
-      return { ok: false, error: "No active terminal Pane is available." };
-    }
-    const maxChars =
-      typeof args.maxChars === "number" && Number.isFinite(args.maxChars)
-        ? Math.max(1, Math.min(50_000, Math.trunc(args.maxChars)))
-        : 20_000;
-    const text = renderer.getBufferText();
-    return {
-      ok: true,
-      paneId,
-      text: text.length > maxChars ? text.slice(text.length - maxChars) : text,
-      truncated: text.length > maxChars,
-    };
-  }
-
-  function assistantTerminalSendText(args: Record<string, unknown>) {
-    const paneId = activeTerminalPaneIdForLiveTool(args.paneId);
-    const text = typeof args.text === "string" ? args.text : "";
-    if (!paneId || !text) {
-      return { ok: false, error: "Terminal paneId and text are required." };
-    }
-    const data = args.pressEnter === false ? text : prepareAssistantTerminalInput(text);
-    const sent = writeInputToPane(paneId, data);
-    return sent ? { ok: true, paneId } : { ok: false, error: "Terminal Pane is not writable." };
-  }
-
-  async function assistantRemoteDesktopScreenshot(args: Record<string, unknown>) {
-    const paneId = activeRemoteDesktopPaneIdForLiveTool(args.paneId);
-    const controller = paneId ? getRemoteDesktopController(paneId) : undefined;
-    if (!paneId || !controller) {
-      return { ok: false, error: "No active remote desktop Session is available." };
-    }
-    const screenshot = await controller.captureScreenshot();
-    return { ok: true, paneId, screenshot };
-  }
-
-  async function assistantRemoteDesktopSendText(args: Record<string, unknown>) {
-    const paneId = activeRemoteDesktopPaneIdForLiveTool(args.paneId);
-    const controller = paneId ? getRemoteDesktopController(paneId) : undefined;
-    const text = typeof args.text === "string" ? args.text : "";
-    if (!paneId || !controller || !text) {
-      return { ok: false, error: "Remote desktop paneId and text are required." };
-    }
-    await controller.sendText(text, args.pressEnter !== false);
-    return { ok: true, paneId, kind: controller.kind };
-  }
-
-  async function assistantRemoteDesktopKeyPress(args: Record<string, unknown>) {
-    const paneId = activeRemoteDesktopPaneIdForLiveTool(args.paneId);
-    const controller = paneId ? getRemoteDesktopController(paneId) : undefined;
-    const key = typeof args.key === "string" ? args.key : "";
-    if (!paneId || !controller || !key) {
-      return { ok: false, error: "Remote desktop paneId and key are required." };
-    }
-    await controller.keyPress(key);
-    return { ok: true, paneId, kind: controller.kind, key };
-  }
-
-  async function assistantRemoteDesktopMouseClick(args: Record<string, unknown>) {
-    const paneId = activeRemoteDesktopPaneIdForLiveTool(args.paneId);
-    const controller = paneId ? getRemoteDesktopController(paneId) : undefined;
-    if (!paneId || !controller?.mouseClick) {
-      return { ok: false, error: "No active remote desktop Session is available for mouse input." };
-    }
-    const x = typeof args.x === "number" ? Math.max(0, Math.trunc(args.x)) : 0;
-    const y = typeof args.y === "number" ? Math.max(0, Math.trunc(args.y)) : 0;
-    const button = args.button === "right" || args.button === "middle" ? args.button : "left";
-    await controller.mouseClick(x, y, button);
-    return { ok: true, paneId, x, y, button };
-  }
-
-  async function assistantFileBrowserList(args: Record<string, unknown>) {
-    const tabId = activeFileBrowserTabIdForLiveTool(args.tabId);
-    const controller = tabId ? getFileBrowserController(tabId) : undefined;
-    if (!tabId || !controller) {
-      return { ok: false, error: "No active SFTP/FTP file browser Session is available." };
-    }
-    const path = typeof args.path === "string" ? args.path : null;
-    const listing = await controller.list(path);
-    return { ok: true, tabId, kind: controller.kind, listing };
-  }
-
-  async function assistantFileBrowserCreateFolder(args: Record<string, unknown>) {
-    const tabId = activeFileBrowserTabIdForLiveTool(args.tabId);
-    const controller = tabId ? getFileBrowserController(tabId) : undefined;
-    const parentPath = typeof args.parentPath === "string" ? args.parentPath : "";
-    const name = typeof args.name === "string" ? args.name : "";
-    if (!tabId || !controller || !parentPath || !name) {
-      return { ok: false, error: "File browser tabId, parentPath, and name are required." };
-    }
-    const result = await controller.createFolder(parentPath, name);
-    return { ok: true, tabId, kind: controller.kind, result };
-  }
-
-  async function assistantFileBrowserRename(args: Record<string, unknown>) {
-    const tabId = activeFileBrowserTabIdForLiveTool(args.tabId);
-    const controller = tabId ? getFileBrowserController(tabId) : undefined;
-    const path = typeof args.path === "string" ? args.path : "";
-    const newName = typeof args.newName === "string" ? args.newName : "";
-    if (!tabId || !controller || !path || !newName) {
-      return { ok: false, error: "File browser tabId, path, and newName are required." };
-    }
-    const result = await controller.rename(path, newName);
-    return { ok: true, tabId, kind: controller.kind, result };
-  }
-
-  async function assistantFileBrowserDelete(args: Record<string, unknown>) {
-    const tabId = activeFileBrowserTabIdForLiveTool(args.tabId);
-    const controller = tabId ? getFileBrowserController(tabId) : undefined;
-    const path = typeof args.path === "string" ? args.path : "";
-    if (!tabId || !controller || !path) {
-      return { ok: false, error: "File browser tabId and path are required." };
-    }
-    const result = await controller.deletePath(path);
-    return { ok: true, tabId, kind: controller.kind, result };
-  }
-
-  function quickCommandsForConnection(connectionId: string) {
-    const store = useWorkspaceStore.getState();
-    store.ensureQuickCommandsLoaded(connectionId);
-    return useWorkspaceStore.getState().quickCommandsByConnection[connectionId] ?? [];
-  }
-
-  function assistantQuickCommandList(args: Record<string, unknown>) {
-    const connectionId = typeof args.connectionId === "string" ? args.connectionId.trim() : "";
-    if (!connectionId) {
-      return { ok: false, error: "connectionId is required." };
-    }
-    return {
-      ok: true,
-      connectionId,
-      quickCommands: quickCommandsForConnection(connectionId),
-    };
-  }
-
-  function assistantQuickCommandRead(args: Record<string, unknown>) {
-    const connectionId = typeof args.connectionId === "string" ? args.connectionId.trim() : "";
-    const id = typeof args.id === "string" ? args.id.trim() : "";
-    if (!connectionId || !id) {
-      return { ok: false, error: "connectionId and id are required." };
-    }
-    const command = quickCommandsForConnection(connectionId).find((entry) => entry.id === id);
-    if (!command) {
-      return { ok: false, error: "Quick Command was not found.", connectionId, id };
-    }
-    return { ok: true, connectionId, quickCommand: command };
-  }
-
-  function assistantQuickCommandCreate(args: Record<string, unknown>) {
-    const connectionId = typeof args.connectionId === "string" ? args.connectionId.trim() : "";
-    const label = typeof args.label === "string" ? args.label.trim() : "";
-    const commandText = typeof args.command === "string" ? args.command.trim() : "";
-    if (!connectionId || !label || !commandText) {
-      return { ok: false, error: "connectionId, label, and command are required." };
-    }
-    const iconName = typeof args.iconName === "string" && isIconName(args.iconName)
-      ? args.iconName
-      : "Terminal";
-    const accentName = typeof args.accentName === "string" && isAccentName(args.accentName)
-      ? args.accentName
-      : "default";
-    const quickCommand: QuickCommand = {
-      id: assistantQuickCommandId(),
-      label,
-      command: commandText,
-      iconName,
-      accentName,
-      sendEnter: args.sendEnter === true,
-      confirm: args.confirm === true,
-    };
-    useWorkspaceStore.getState().addQuickCommand(connectionId, quickCommand);
-    return { ok: true, connectionId, quickCommand };
-  }
-
-  function assistantQuickCommandEdit(args: Record<string, unknown>) {
-    const connectionId = typeof args.connectionId === "string" ? args.connectionId.trim() : "";
-    const id = typeof args.id === "string" ? args.id.trim() : "";
-    if (!connectionId || !id) {
-      return { ok: false, error: "connectionId and id are required." };
-    }
-    const existing = quickCommandsForConnection(connectionId).find((entry) => entry.id === id);
-    if (!existing) {
-      return { ok: false, error: "Quick Command was not found.", connectionId, id };
-    }
-    const nextLabel = typeof args.label === "string" ? args.label.trim() : existing.label;
-    const nextCommand = typeof args.command === "string" ? args.command.trim() : existing.command;
-    if (!nextLabel || !nextCommand) {
-      return { ok: false, error: "label and command cannot be empty.", connectionId, id };
-    }
-    const quickCommand: QuickCommand = {
-      ...existing,
-      label: nextLabel,
-      command: nextCommand,
-      iconName: typeof args.iconName === "string" && isIconName(args.iconName)
-        ? args.iconName
-        : existing.iconName,
-      accentName: typeof args.accentName === "string" && isAccentName(args.accentName)
-        ? args.accentName
-        : existing.accentName,
-      sendEnter: typeof args.sendEnter === "boolean" ? args.sendEnter : existing.sendEnter,
-      confirm: typeof args.confirm === "boolean" ? args.confirm : existing.confirm,
-    };
-    useWorkspaceStore.getState().updateQuickCommand(connectionId, quickCommand);
-    return { ok: true, connectionId, quickCommand };
-  }
 
   async function handleToolPermissionModeChange(toolPermissionMode: AiToolPermissionMode) {
     setPermissionMenuOpen(false);
@@ -2350,6 +1202,12 @@ export function AssistantPanel({
       role: message.role,
       content: message.content,
       reasoningContent: message.reasoningContent,
+      toolCalls:
+        message.role === "assistant"
+          ? (message.toolCalls ?? [])
+              .filter((toolCall) => toolCall.status === "completed")
+              .map((toolCall) => ({ toolName: toolCall.toolName, error: toolCall.error }))
+          : undefined,
     }));
     setMessages(nextMessages);
     setCurrentThreadTitle(fallbackTitle);
@@ -2450,11 +1308,13 @@ export function AssistantPanel({
             workStartedAt,
           }),
         };
-        streamingMessageSnapshot.runManifest = createAssistantRunManifest(
-          normalizedPrompt,
-          requestIntent,
-          streamingMessageSnapshot.toolCalls,
-        );
+        if (streamingMessageSnapshot.runManifest?.source !== "model") {
+          streamingMessageSnapshot.runManifest = createAssistantRunManifest(
+            normalizedPrompt,
+            requestIntent,
+            streamingMessageSnapshot.toolCalls,
+          );
+        }
         if (streamingFlushTimer === null) {
           streamingFlushTimer = setTimeout(flushStreamingSnapshot, 50);
         }
@@ -2480,6 +1340,7 @@ export function AssistantPanel({
           systemContext,
           messages: history,
           outputLanguage: resolveAssistantOutputLanguage(aiProviderSettings.outputLanguage),
+          activeConnectionId: activeTab?.connection?.id,
         },
       });
 
@@ -2501,11 +1362,13 @@ export function AssistantPanel({
           tc.status === "running" ? { ...tc, status: "completed", endedAt: completedAt } : tc,
         ),
       };
-      streamingMessageSnapshot.runManifest = createAssistantRunManifest(
-        normalizedPrompt,
-        requestIntent,
-        streamingMessageSnapshot.toolCalls,
-      );
+      if (streamingMessageSnapshot.runManifest?.source !== "model") {
+        streamingMessageSnapshot.runManifest = createAssistantRunManifest(
+          normalizedPrompt,
+          requestIntent,
+          streamingMessageSnapshot.toolCalls,
+        );
+      }
       setMessages((current) =>
         current.map((message) => {
           const nextMessage =
@@ -3524,366 +2387,5 @@ export function AssistantPanel({
         : null}
     </aside>
   );
-}
-
-function AssistantMessageView({
-  message,
-  onCopyCode,
-  onCopyMessage,
-  onOpenLink,
-  onSecretStored,
-  onSendCode,
-}: {
-  message: AssistantChatMessage;
-  onCopyCode: (code: string) => void;
-  onCopyMessage: (message: AssistantChatMessage) => void;
-  onOpenLink: (url: string) => void;
-  onSecretStored: (request: AssistantSecretRequest) => void;
-  onSendCode: (code: string) => void;
-}) {
-  const { t } = useTranslation();
-  const userMessageLineCount = message.role === "user" ? message.content.split(/\r?\n/).length : 0;
-  const shouldTruncateUserMessage = message.role === "user" && userMessageLineCount > 10;
-  const canSendCode = message.intent !== "extensionCreation";
-  const [isUserMessageExpanded, setIsUserMessageExpanded] = useState(false);
-  const [previewImage, setPreviewImage] = useState<AssistantImageAttachment | null>(null);
-  const secretRequestContent = useMemo(
-    () => parseAssistantSecretRequests(message.content),
-    [message.content],
-  );
-
-  useEffect(() => {
-    if (!previewImage) {
-      return;
-    }
-
-    function handlePreviewKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key === "Escape") {
-        setPreviewImage(null);
-      }
-    }
-
-    window.addEventListener("keydown", handlePreviewKeyDown);
-    return () => window.removeEventListener("keydown", handlePreviewKeyDown);
-  }, [previewImage]);
-
-  return (
-    <article className={`assistant-message ${message.role}`}>
-      <div className="assistant-message-content">
-        <div
-          className={`assistant-message-bubble${shouldTruncateUserMessage && !isUserMessageExpanded ? " assistant-message-bubble-truncated" : ""}`}
-        >
-          {message.role === "user" && message.intent && message.intent !== "chat" ? (
-            <span className="assistant-message-intent-label" data-intent={message.intent}>
-              {assistantIntentLabel(message.intent, t)}
-            </span>
-          ) : null}
-          {message.textAttachments?.length ? (
-            <div className="assistant-message-text-attachments">
-              {message.textAttachments.map((attachment) => (
-                <figure className="assistant-message-text-attachment" key={attachment.id}>
-                  <figcaption>{attachment.sourceLabel}</figcaption>
-                  <pre>
-                    <code>{attachment.text}</code>
-                  </pre>
-                </figure>
-              ))}
-            </div>
-          ) : null}
-          {message.imageAttachments?.length ? (
-            <div className="assistant-message-attachments">
-              {message.imageAttachments.map((image) => (
-                <figure className="assistant-message-attachment" key={image.id}>
-                  <button
-                    {...dialogButtonAria(previewImage?.id === image.id)}
-                    aria-label={t("ai.openImagePreview", { label: image.sourceLabel })}
-                    className="assistant-message-attachment-button"
-                    onClick={() => setPreviewImage(image)}
-                    title={t("ai.openImagePreview", { label: image.sourceLabel })}
-                    type="button"
-                  >
-                    <img alt={image.sourceLabel} src={image.imageDataUrl} />
-                  </button>
-                  <figcaption>
-                    {image.sourceLabel} · {image.width} x {image.height}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          ) : null}
-          {message.fileAttachments?.length ? (
-            <div className="assistant-message-file-attachments">
-              {message.fileAttachments.map((file) => (
-                <div className="assistant-message-file-attachment" key={file.id}>
-                  <FileImage size={13} />
-                  <span>{file.sourceLabel}</span>
-                  <small>{formatBytes(file.size)}</small>
-                </div>
-              ))}
-            </div>
-          ) : null}
-          {message.role === "assistant" ? <AssistantWorkPanel message={message} /> : null}
-          <MarkdownContent
-            canSendCode={canSendCode}
-            content={secretRequestContent.markdown}
-            onCopyCode={onCopyCode}
-            onOpenLink={onOpenLink}
-            onSendCode={onSendCode}
-          />
-          {message.role === "assistant" && secretRequestContent.requests.length > 0 ? (
-            <div className="assistant-secret-card-stack">
-              {secretRequestContent.requests.map((request) => (
-                <AssistantSecretEntryCard
-                  key={secretRequestStorageNotice(request)}
-                  request={request}
-                  onStored={onSecretStored}
-                />
-              ))}
-            </div>
-          ) : null}
-        </div>
-        <div className="assistant-message-actions">
-          <time dateTime={message.createdAt}>{formatAssistantMessageTime(message.createdAt)}</time>
-          <button
-            aria-label={t("ai.copyMessage")}
-            onClick={() => onCopyMessage(message)}
-            title={t("ai.copyMessage")}
-            type="button"
-          >
-            <Copy size={10} />
-          </button>
-        </div>
-      </div>
-      {shouldTruncateUserMessage ? (
-        <button
-          className="assistant-message-expand"
-          onClick={() => setIsUserMessageExpanded((expanded) => !expanded)}
-          type="button"
-        >
-          {isUserMessageExpanded ? t("ai.showLess") : t("ai.more")}
-        </button>
-      ) : null}
-      {previewImage
-        ? createPortal(
-            <div
-              className="assistant-image-preview-backdrop"
-              onClick={() => setPreviewImage(null)}
-              role="presentation"
-            >
-              <div
-                aria-label={t("ai.imagePreviewTitle", { label: previewImage.sourceLabel })}
-                className="assistant-image-preview-dialog"
-                onClick={(event) => event.stopPropagation()}
-                role="dialog"
-              >
-                <header>
-                  <div>
-                    <strong>{previewImage.sourceLabel}</strong>
-                    <small>
-                      {previewImage.width} x {previewImage.height}
-                    </small>
-                  </div>
-                  <button
-                    aria-label={t("ai.close")}
-                    className="assistant-toolbar-button"
-                    onClick={() => setPreviewImage(null)}
-                    title={t("ai.close")}
-                    type="button"
-                  >
-                    <X size={15} />
-                  </button>
-                </header>
-                <img alt={previewImage.sourceLabel} src={previewImage.imageDataUrl} />
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
-    </article>
-  );
-}
-
-function AssistantSecretEntryCard({
-  onStored,
-  request,
-}: {
-  onStored: (request: AssistantSecretRequest) => void;
-  request: AssistantSecretRequest;
-}) {
-  const { t } = useTranslation();
-  const setAiProviderHasApiKey = useWorkspaceStore((state) => state.setAiProviderHasApiKey);
-  const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
-  const [secret, setSecret] = useState("");
-  const [showSecret, setShowSecret] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [stored, setStored] = useState(false);
-  const [error, setError] = useState("");
-  const canSave = secret.trim().length > 0 && !saving && !stored;
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!canSave) {
-      return;
-    }
-
-    setSaving(true);
-    setError("");
-    try {
-      await storeAssistantSecretRequest(request, secret.trim());
-      setSecret("");
-      setStored(true);
-      if (request.kind === "aiApiKey") {
-        setAiProviderHasApiKey(true);
-      }
-      if (request.kind === "widgetSecret") {
-        await useDashboardStore.getState().load();
-      }
-      showStatusBarNotice(t("ai.secretCardStoredStatus", { label: request.label }), {
-        tone: "success",
-      });
-      onStored(request);
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : String(saveError));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <form className="assistant-secret-card" onSubmit={(event) => void handleSubmit(event)}>
-      <header>
-        <KeyRound size={15} />
-        <div>
-          <strong>{request.label}</strong>
-          <small>{request.description ?? t("ai.secretCardDefaultDescription")}</small>
-        </div>
-      </header>
-      <p>{t("ai.secretCardPrivacy")}</p>
-      <label>
-        <span>{t("ai.secretCardInputLabel")}</span>
-        <div className="assistant-secret-input-row">
-          <input
-            autoComplete="off"
-            disabled={saving || stored}
-            onChange={(event) => setSecret(event.currentTarget.value)}
-            placeholder={request.placeholder ?? t("ai.secretCardPlaceholder")}
-            type={showSecret ? "text" : "password"}
-            value={secret}
-          />
-          <button
-            aria-label={showSecret ? t("ai.secretCardHide") : t("ai.secretCardShow")}
-            className="assistant-secret-icon-button"
-            disabled={saving || stored}
-            onClick={() => setShowSecret((show) => !show)}
-            title={showSecret ? t("ai.secretCardHide") : t("ai.secretCardShow")}
-            type="button"
-          >
-            {showSecret ? <EyeOff size={14} /> : <Eye size={14} />}
-          </button>
-        </div>
-      </label>
-      <footer>
-        <span aria-live="polite">
-          {stored ? t("ai.secretCardStoredInline") : error}
-        </span>
-        <button className="toolbar-button" disabled={!canSave} type="submit">
-          {saving ? <LoaderCircle size={14} /> : <KeyRound size={14} />}
-          {stored ? t("ai.secretCardSaved") : t("ai.secretCardSave")}
-        </button>
-      </footer>
-    </form>
-  );
-}
-
-async function storeAssistantSecretRequest(
-  request: AssistantSecretRequest,
-  secret: string,
-) {
-  if (!isTauriRuntime()) {
-    throw new Error(i18next.t("ai.secretCardRuntimeRequired"));
-  }
-
-  if (request.kind === "widgetSecret") {
-    await storeWidgetSecretRequest(request, secret);
-    return;
-  }
-
-  await invokeCommand("store_secret", {
-    request: {
-      kind: request.kind,
-      ownerId: request.ownerId,
-      secret,
-    },
-  });
-}
-
-async function storeWidgetSecretRequest(
-  request: AssistantSecretRequest,
-  secret: string,
-) {
-  if (!request.instanceId || !request.fieldKey) {
-    throw new Error(i18next.t("ai.secretCardInvalidWidgetRequest"));
-  }
-
-  const state = await invokeCommand("dashboard_load_state", undefined);
-  const instance = state.instances.find((item) => item.id === request.instanceId);
-  if (!instance) {
-    throw new Error(i18next.t("ai.secretCardMissingWidget"));
-  }
-
-  const currentValues = parseObjectJson(instance.settingsValuesJson);
-  const nextValues = {
-    ...currentValues,
-    [request.fieldKey]: {
-      type: "secretRef",
-      ownerId: request.ownerId,
-      hasSecret: true,
-      updatedAt: new Date().toISOString(),
-    },
-  };
-
-  await invokeCommand("store_secret", {
-    request: {
-      kind: request.kind,
-      ownerId: request.ownerId,
-      secret,
-    },
-  });
-
-  try {
-    await invokeCommand("dashboard_update_instance", {
-      id: request.instanceId,
-      patch: { settingsValuesJson: JSON.stringify(nextValues) },
-    });
-  } catch (error) {
-    await invokeCommand("delete_secret", {
-      request: {
-        kind: request.kind,
-        ownerId: request.ownerId,
-      },
-    }).catch(() => undefined);
-    throw error;
-  }
-}
-
-function parseObjectJson(value: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
-      : {};
-  } catch {
-    return {};
-  }
-}
-
-function formatBytes(bytes: number) {
-  if (!Number.isFinite(bytes) || bytes <= 0) {
-    return "0 KB";
-  }
-  if (bytes < 1024 * 1024) {
-    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 

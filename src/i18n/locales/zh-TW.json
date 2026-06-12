@@ -1305,6 +1305,10 @@
       "network": {
         "label": "網路管理工具",
         "description": "ping 主機、檢查 TCP 連接埠、解析 DNS、執行 WHOIS、列出網路介面並傳送網路喚醒。"
+      },
+      "memory": {
+        "label": "助理記憶",
+        "description": "讓助理在不同對話間儲存並回想關於你主機與偏好的簡短筆記。絕不儲存機密。"
       }
     },
     "searchProvider": "搜尋提供者",
@@ -2393,6 +2397,7 @@
     "toolApprovalTool": "{{tool}} 工具",
     "toolApprovalBody": "此動作可能變更 KKTerm 或本機。",
     "toolApprovalDetails": "要求詳細資料",
+    "toolApprovalRiskTitle": "已標記為有風險",
     "watchdogApproval": {
       "lede": "建立帶 AI 干預的監控器「{{name}}」？",
       "target": "目標",
@@ -2455,6 +2460,7 @@
     "thoughtFor": "思考用時",
     "workedFor": "耗時 {{duration}}",
     "thinkingStep": "思考中",
+    "workPlanTitle": "計畫",
     "toolCallRunning": "執行中",
     "toolCallUsing": "正在使用 {{tool}} 工具...",
     "toolCallComplete": "完成",

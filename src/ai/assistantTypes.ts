@@ -44,6 +44,12 @@ export type AssistantRunManifest = {
   verificationStatus: "pending" | "passed" | "failed";
   steps: AssistantRunManifestStep[];
   updatedAt: string;
+  /**
+   * "model" when the assistant published this plan via the update_plan tool.
+   * Absent for manifests the panel synthesizes; the panel never overwrites a
+   * model-provided plan with a synthesized one.
+   */
+  source?: "model";
 };
 
 export type AssistantTextAttachment = {
@@ -86,6 +92,14 @@ export type AssistantToolApprovalRequest = {
   requestId: string;
   toolName: string;
   args?: Record<string, unknown>;
+  /**
+   * Backend keyword heuristic flagged this call's command payload as risky
+   * (destructive/service-disrupting/credential-touching). Session allows must
+   * not auto-approve these; they always re-prompt.
+   */
+  riskElevated?: boolean;
+  /** Human-readable reasons the call was flagged risky, shown on the card. */
+  riskNotes?: string[];
 };
 
 export type PendingToolApproval = AssistantToolApprovalRequest & {

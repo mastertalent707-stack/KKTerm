@@ -1305,6 +1305,10 @@
       "network": {
         "label": "Alat admin jaringan",
         "description": "Ping host, periksa port TCP, resolusi DNS, jalankan WHOIS, daftar antarmuka, dan kirim Wake-on-LAN."
+      },
+      "memory": {
+        "label": "Memori asisten",
+        "description": "Memungkinkan asisten menyimpan dan mengingat catatan singkat tentang host dan preferensi Anda lintas obrolan. Tidak pernah menyimpan rahasia."
       }
     },
     "searchProvider": "Penyedia pencarian",
@@ -2393,6 +2397,7 @@
     "toolApprovalTool": "Alat {{tool}}",
     "toolApprovalBody": "Tindakan ini dapat mengubah KKTerm atau mesin lokal.",
     "toolApprovalDetails": "Detail permintaan",
+    "toolApprovalRiskTitle": "Ditandai berisiko",
     "watchdogApproval": {
       "lede": "Buat watchdog \"{{name}}\" dengan intervensi AI?",
       "target": "Target",
@@ -2455,6 +2460,7 @@
     "thoughtFor": "Berpikir selama",
     "workedFor": "Bekerja selama {{duration}}",
     "thinkingStep": "Berpikir",
+    "workPlanTitle": "Rencana",
     "toolCallRunning": "Berjalan",
     "toolCallUsing": "Menggunakan alat {{tool}}...",
     "toolCallComplete": "Selesai",

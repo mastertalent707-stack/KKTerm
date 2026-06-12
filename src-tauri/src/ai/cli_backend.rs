@@ -12,6 +12,11 @@ pub(crate) struct AcpStdioSession {
     child: std::process::Child,
     stdin: std::process::ChildStdin,
     rx: mpsc::Receiver<String>,
+    /// Polled between received lines (≤250ms latency). When it reports true
+    /// the in-flight request aborts and `Drop` kills the CLI child process.
+    /// Set only for interactive streaming runs so Stop cancels Codex/Claude
+    /// CLI sessions the same way it cancels HTTP provider runs.
+    cancel_probe: Option<Box<dyn Fn() -> bool>>,
 }
 
 impl AcpStdioSession {
@@ -52,7 +57,12 @@ impl AcpStdioSession {
                 let _ = tx.send(line);
             }
         });
-        Ok(Self { child, stdin, rx })
+        Ok(Self {
+            child,
+            stdin,
+            rx,
+            cancel_probe: None,
+        })
     }
 
     fn request(
@@ -80,6 +90,9 @@ impl AcpStdioSession {
     ) -> Result<Value, String> {
         let deadline = Instant::now() + timeout_duration;
         while Instant::now() < deadline {
+            if self.cancel_probe.as_ref().is_some_and(|probe| probe()) {
+                return Err(ASSISTANT_STREAM_CANCELED_ERROR.to_string());
+            }
             let remaining = deadline.saturating_duration_since(Instant::now());
             let Ok(line) = self
                 .rx
@@ -153,6 +166,14 @@ pub(crate) fn run_acp_agent_command_streaming(
         .ok_or_else(|| "ACP working directory is not valid UTF-8".to_string())?
         .to_string();
     let mut session = AcpStdioSession::start(&spec)?;
+    if channel.is_some() {
+        // Interactive run: let the user's Stop button cancel the CLI session.
+        let probe_app = app.clone();
+        let generation = assistant_stream_generation(app);
+        session.cancel_probe = Some(Box::new(move || {
+            assistant_stream_canceled(&probe_app, generation)
+        }));
+    }
     let mut content = String::new();
     session.request(
         1,
@@ -334,8 +355,12 @@ pub(crate) fn acp_permission_approved(
         .pointer("/params/toolCall")
         .cloned()
         .unwrap_or(Value::Null);
+    // ACP tool calls carry CLI-defined shapes we can't classify, so no risk
+    // notes here; session-allow behavior is unchanged for ACP.
     match app.try_state::<AssistantToolApprovalBridge>() {
-        Some(bridge) => tauri::async_runtime::block_on(bridge.request(app, &tool_name, &args)),
+        Some(bridge) => {
+            tauri::async_runtime::block_on(bridge.request(app, &tool_name, &args, &[]))
+        }
         None => false,
     }
 }

@@ -1305,6 +1305,10 @@
       "network": {
         "label": "네트워크 관리 도구",
         "description": "호스트 ping, TCP 포트 확인, DNS 조회, WHOIS 실행, 인터페이스 목록 표시, Wake-on-LAN 전송을 수행합니다."
+      },
+      "memory": {
+        "label": "어시스턴트 메모리",
+        "description": "호스트와 환경설정에 대한 짧은 메모를 대화 간에 저장하고 불러올 수 있게 합니다. 비밀 정보는 저장하지 않습니다."
       }
     },
     "searchProvider": "검색 제공자",
@@ -2393,6 +2397,7 @@
     "toolApprovalTool": "{{tool}} 도구",
     "toolApprovalBody": "이 작업은 KKTerm 또는 로컬 머신을 변경할 수 있습니다.",
     "toolApprovalDetails": "요청 세부정보",
+    "toolApprovalRiskTitle": "위험으로 표시됨",
     "watchdogApproval": {
       "lede": "AI 개입이 포함된 감시자 \"{{name}}\"을(를) 만드시겠습니까?",
       "target": "대상",
@@ -2455,6 +2460,7 @@
     "thoughtFor": "생각 시간",
     "workedFor": "{{duration}} 동안 작업함",
     "thinkingStep": "생각 중",
+    "workPlanTitle": "계획",
     "toolCallRunning": "실행 중",
     "toolCallUsing": "{{tool}} 도구 사용 중...",
     "toolCallComplete": "완료",

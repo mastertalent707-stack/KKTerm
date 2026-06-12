@@ -1305,6 +1305,10 @@
       "network": {
         "label": "Network admin tools",
         "description": "Ping hosts, check TCP ports, resolve DNS, run WHOIS, list interfaces, and send Wake-on-LAN."
+      },
+      "memory": {
+        "label": "Assistant memory",
+        "description": "Let the assistant save and recall short notes about your hosts and preferences across chats. Never stores secrets."
       }
     },
     "searchProvider": "Search provider",
@@ -2393,6 +2397,7 @@
     "toolApprovalTool": "{{tool}} tool",
     "toolApprovalBody": "This action can change KKTerm or the local machine.",
     "toolApprovalDetails": "Request details",
+    "toolApprovalRiskTitle": "Flagged as risky",
     "watchdogApproval": {
       "lede": "Create watchdog \"{{name}}\" with AI intervention?",
       "target": "Target",
@@ -2455,6 +2460,7 @@
     "thoughtFor": "Thought for",
     "workedFor": "Worked for {{duration}}",
     "thinkingStep": "Thinking",
+    "workPlanTitle": "Plan",
     "toolCallRunning": "Running",
     "toolCallUsing": "Using {{tool}} tool...",
     "toolCallComplete": "Complete",

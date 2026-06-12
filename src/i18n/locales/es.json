@@ -1305,6 +1305,10 @@
       "network": {
         "label": "Herramientas de administración de red",
         "description": "Hacer ping a hosts, comprobar puertos TCP, resolver DNS, ejecutar WHOIS, listar interfaces y enviar Wake-on-LAN."
+      },
+      "memory": {
+        "label": "Memoria del asistente",
+        "description": "Permite que el asistente guarde y recuerde notas breves sobre tus hosts y preferencias entre chats. Nunca almacena secretos."
       }
     },
     "searchProvider": "Proveedor de búsqueda",
@@ -2393,6 +2397,7 @@
     "toolApprovalTool": "Herramienta {{tool}}",
     "toolApprovalBody": "Esta acción puede modificar KKTerm o la máquina local.",
     "toolApprovalDetails": "Detalles de la solicitud",
+    "toolApprovalRiskTitle": "Marcado como riesgoso",
     "watchdogApproval": {
       "lede": "¿Crear vigilante \"{{name}}\" con intervención de IA?",
       "target": "Objetivo",
@@ -2455,6 +2460,7 @@
     "thoughtFor": "Pensó durante",
     "workedFor": "Trabajó durante {{duration}}",
     "thinkingStep": "Pensando",
+    "workPlanTitle": "Plan",
     "toolCallRunning": "Ejecutando",
     "toolCallUsing": "Usando la herramienta {{tool}}...",
     "toolCallComplete": "Completado",
