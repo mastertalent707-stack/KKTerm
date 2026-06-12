@@ -55,7 +55,11 @@ test("macOS release script builds deterministic DMG and checksum asset names", (
 test("macOS package script loads the updater private key for Tauri signing", () => {
   assert.equal(packageJson.scripts["package:macos"], "zsh scripts/package-macos.sh");
   assert.match(packageMacosScript, /TAURI_SIGNING_PRIVATE_KEY_PATH:-\$HOME\/\.tauri\/kkterm-updater\.key/);
-  assert.match(packageMacosScript, /export TAURI_SIGNING_PRIVATE_KEY="\$\(<"\$KEY_PATH"\)"/);
+  assert.match(packageMacosScript, /normalize_tauri_signing_key\(\) \{/);
+  assert.match(packageMacosScript, /extract_tauri_signing_key\(\) \{/);
+  assert.match(packageMacosScript, /base64 -D/);
+  assert.match(packageMacosScript, /export TAURI_SIGNING_PRIVATE_KEY="\$\(extract_tauri_signing_key "\$KEY_PATH"\)"/);
+  assert.match(packageMacosScript, /export TAURI_SIGNING_PRIVATE_KEY="\$\(normalize_tauri_signing_key "\$TAURI_SIGNING_PRIVATE_KEY"\)"/);
   assert.match(packageMacosScript, /npm exec tauri -- build --target aarch64-apple-darwin --bundles app,dmg "\$@"/);
 });
 
