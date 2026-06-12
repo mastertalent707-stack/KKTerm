@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { BuiltInWidgetBodyProps } from "../../../registry/builtInRegistry";
 import { isTauriRuntime, pickAndSaveFile } from "../../../../../lib/tauri";
 import { useWidgetConfig } from "../../widgetLocalStorage";
+import { resolveQrCanvasSize } from "./qrSizing";
 
 type CodeMode = "qr" | "barcode";
 
@@ -16,6 +17,7 @@ interface QrConfig {
 
 const DEFAULT_CONFIG: QrConfig = { text: "", mode: "qr" };
 const RENDER_DEBOUNCE_MS = 220;
+const QR_STAGE_PADDING = 12;
 
 function storageKey(instanceId: string) {
   return `kkterm.dashboard.qrCode.${instanceId}.v1`;
@@ -42,10 +44,30 @@ export function QrCodeBody({ instance }: BuiltInWidgetBodyProps) {
     DEFAULT_CONFIG,
     normalizeConfig,
   );
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [qrCanvasSize, setQrCanvasSize] = useState(360);
   const [renderError, setRenderError] = useState(false);
   const [copied, setCopied] = useState(false);
   const trimmed = config.text.trim();
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const updateSize = () => {
+      setQrCanvasSize(
+        resolveQrCanvasSize({
+          width: stage.clientWidth,
+          height: stage.clientHeight,
+          padding: QR_STAGE_PADDING,
+        }),
+      );
+    };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -65,8 +87,8 @@ export function QrCodeBody({ instance }: BuiltInWidgetBodyProps) {
       if (config.mode === "qr") {
         QRCode.toCanvas(canvas, trimmed, {
           errorCorrectionLevel: "M",
-          margin: 0,
-          width: 360,
+          margin: 1,
+          width: qrCanvasSize,
           color: { dark, light: "#00000000" },
         })
           .then(revealAfterRender)
@@ -89,7 +111,7 @@ export function QrCodeBody({ instance }: BuiltInWidgetBodyProps) {
       }
     }, RENDER_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [trimmed, config.mode]);
+  }, [trimmed, config.mode, qrCanvasSize]);
 
   function withCanvasBlob(handler: (blob: Blob) => void | Promise<void>) {
     canvasRef.current?.toBlob((blob) => {
@@ -166,7 +188,7 @@ export function QrCodeBody({ instance }: BuiltInWidgetBodyProps) {
           ) : null}
         </div>
       </div>
-      <div className="dw-qr-stage">
+      <div className="dw-qr-stage" ref={stageRef}>
         <canvas
           ref={canvasRef}
           className={`dw-qr-canvas dw-qr-canvas--${config.mode}${showCode ? "" : " is-hidden"}`}

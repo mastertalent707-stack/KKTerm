@@ -6,26 +6,27 @@ import {
   buildSpeedtestLatencyUrl,
 } from "../src/modules/dashboard/widgets/builtin/speedtest/speedtestRunner.ts";
 
-test("speedtest targets include regional choices and keep Cloudflare as the default", () => {
+test("speedtest exposes only CORS-safe Cloudflare browser targets", () => {
   assert.equal(SPEEDTEST_TARGETS[0]?.id, "cloudflare-auto");
-  assert.ok(SPEEDTEST_TARGETS.some((target) => target.region === "Asia"));
-  assert.ok(SPEEDTEST_TARGETS.some((target) => target.region === "Europe"));
-  assert.ok(SPEEDTEST_TARGETS.some((target) => target.region === "North America"));
+  assert.deepEqual(
+    SPEEDTEST_TARGETS.map((target) => target.kind),
+    ["cloudflare"],
+  );
 });
 
-test("speedtest URL builders use the selected target's latency and download endpoints", () => {
-  const tokyo = SPEEDTEST_TARGETS.find((target) => target.id === "librespeed-tokyo");
-  assert.ok(tokyo);
+test("speedtest URL builders use Cloudflare byte-sized requests", () => {
+  const cloudflare = SPEEDTEST_TARGETS[0];
+  assert.ok(cloudflare);
 
-  const latencyUrl = buildSpeedtestLatencyUrl(tokyo, 2, 12345);
+  const latencyUrl = buildSpeedtestLatencyUrl(cloudflare, 2, 12345);
   assert.equal(
     latencyUrl,
-    "https://librespeed.a573.net/backend/empty.php?cacheBust=12345-2",
+    "https://speed.cloudflare.com/__down?bytes=0&cacheBust=12345-2",
   );
 
-  const downloadUrl = buildSpeedtestDownloadUrl(tokyo, 5_000_000, 67890);
+  const downloadUrl = buildSpeedtestDownloadUrl(cloudflare, 5_000_000, 67890);
   assert.equal(
     downloadUrl,
-    "https://librespeed.a573.net/backend/garbage.php?ckSize=5&cacheBust=67890",
+    "https://speed.cloudflare.com/__down?bytes=5000000&cacheBust=67890",
   );
 });

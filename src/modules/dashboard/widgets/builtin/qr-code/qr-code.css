@@ -60,7 +60,7 @@
   display: grid;
   flex: 1 1 auto;
   min-height: 0;
-  padding: 2px;
+  padding: 12px;
   place-items: center;
   overflow: hidden;
 }
@@ -74,6 +74,8 @@
 }
 
 .dw-qr-canvas--qr {
+  width: auto;
+  height: auto;
   aspect-ratio: 1;
 }
 
