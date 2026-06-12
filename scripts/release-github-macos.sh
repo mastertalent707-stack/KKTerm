@@ -223,7 +223,7 @@ NODE
 }
 
 write_latest_json() {
-  local path="$1"
+  local output_path="$1"
   local version="$2"
   local repo="$3"
   local tag="$4"
@@ -233,7 +233,7 @@ write_latest_json() {
   UPDATE_SIGNATURE=$(<"$signature_path") \
   UPDATE_VERSION="$version" \
   UPDATE_URL="https://github.com/$repo/releases/download/$tag/$updater_name" \
-    node --input-type=module > "$path" <<'NODE'
+    node --input-type=module > "$output_path" <<'NODE'
 const signature = process.env.UPDATE_SIGNATURE?.trim();
 const version = process.env.UPDATE_VERSION;
 const url = process.env.UPDATE_URL;

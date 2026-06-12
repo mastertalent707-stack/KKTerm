@@ -34,6 +34,7 @@ test("macOS release script does not create tags or increment versions", () => {
 
 test("macOS release script avoids zsh readonly parameter names", () => {
   assert.doesNotMatch(script, /local\s+status\b/);
+  assert.doesNotMatch(script, /local\s+path\b/);
 });
 
 test("macOS release script expands home references loaded from env files", () => {
