@@ -36,6 +36,7 @@ mod ssh;
 mod ssh_config;
 mod ssh_keys;
 mod storage;
+mod system_theme;
 mod telnet;
 mod vnc;
 mod watchdog;
@@ -690,6 +691,11 @@ fn update_appearance_settings(
         window_effects::apply_title_bar_mode(&main_webview);
     }
     Ok(saved)
+}
+
+#[tauri::command]
+fn get_system_accent_color() -> Option<system_theme::SystemAccentColor> {
+    system_theme::system_accent_color()
 }
 
 #[tauri::command]
@@ -2908,6 +2914,7 @@ pub fn run() {
             update_terminal_settings,
             get_appearance_settings,
             update_appearance_settings,
+            get_system_accent_color,
             get_custom_fonts_folder,
             open_custom_fonts_folder,
             open_log_folder,

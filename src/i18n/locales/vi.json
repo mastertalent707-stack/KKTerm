@@ -848,6 +848,7 @@
     "schemeDefault": "Default",
     "schemeDark": "Dark",
     "schemeLight": "Light",
+    "schemeMatchOs": "Theo hệ điều hành",
     "schemeMac": "Mac",
     "schemeOrange": "Orange",
     "schemePurple": "Purple",

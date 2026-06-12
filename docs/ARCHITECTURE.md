@@ -553,6 +553,8 @@ Color schemes are defined in `src/styles/colorSchemes.css` as CSS custom propert
 - `src-tauri/src/storage.rs` — `validate_appearance_settings()` whitelist
 - `docs/localization_todo/` — add a per-key `<namespace>.<keyPath>.md` from `_TEMPLATE.md` for any new untranslated label
 
+The `"match-os"` color scheme is a selector setting, not a separate CSS token block. On app startup and when the user switches to `"match-os"`, the frontend resolves the current OS light/dark preference to the existing `"light"` or `"dark"` CSS block. It may read the Windows system accent once through the typed `get_system_accent_color` command and apply it as inline accent-token overrides. Do not add polling or OS theme-change listeners for this setting without a new product decision.
+
 ### Variable → UI Area Mapping
 
 | Variable | CSS Property | UI Area |

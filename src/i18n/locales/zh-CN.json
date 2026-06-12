@@ -848,6 +848,7 @@
     "schemeDefault": "默认",
     "schemeDark": "深色",
     "schemeLight": "浅色",
+    "schemeMatchOs": "匹配操作系统",
     "schemeMac": "Mac",
     "schemeOrange": "橙色",
     "schemePurple": "紫色",

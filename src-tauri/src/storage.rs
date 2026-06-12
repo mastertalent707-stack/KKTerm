@@ -3692,7 +3692,7 @@ fn validate_appearance_settings(
     settings.custom_font_path = trim_optional(settings.custom_font_path);
     settings.use_custom_title_bar = true;
     settings.color_scheme = match settings.color_scheme.to_lowercase().as_str() {
-        "default" | "dark" | "light" | "mac" | "orange" | "purple" | "pink"
+        "default" | "dark" | "light" | "match-os" | "mac" | "orange" | "purple" | "pink"
         | "green-kuai-kuai"
         | "blue-see"
         | "blue-green-white"
@@ -3703,7 +3703,7 @@ fn validate_appearance_settings(
         }
         _ => {
             return Err(
-                "color scheme must be one of: default, dark, light, mac, orange, purple, pink, green-kuai-kuai, blue-see, blue-green-white, confetti, bubble-tea, semiconductor"
+                "color scheme must be one of: default, dark, light, match-os, mac, orange, purple, pink, green-kuai-kuai, blue-see, blue-green-white, confetti, bubble-tea, semiconductor"
                     .to_string(),
             )
         }

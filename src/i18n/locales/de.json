@@ -848,6 +848,7 @@
     "schemeDefault": "Standard",
     "schemeDark": "Dunkel",
     "schemeLight": "Hell",
+    "schemeMatchOs": "System folgen",
     "schemeMac": "Mac",
     "schemeOrange": "Orange",
     "schemePurple": "Lila",

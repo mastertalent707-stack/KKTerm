@@ -1,9 +1,65 @@
-import { useEffect, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import type { RefObject } from "react";
 import { invokeCommand, isTauriRuntime } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
-import type { AppearanceSettings } from "../types";
+import type { AppearanceSettings, ColorScheme, SystemAccentColor } from "../types";
 import type { PanelLayoutState } from "./workspaceChromeLayout";
+
+type AppliedColorScheme = "dark" | "light" | Exclude<ColorScheme, "match-os">;
+
+export function resolveAppliedColorScheme(colorScheme: ColorScheme): AppliedColorScheme {
+  if (colorScheme !== "match-os") {
+    return colorScheme;
+  }
+  return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light";
+}
+
+export function useAppliedColorScheme(colorScheme: ColorScheme) {
+  const [appliedColorScheme, setAppliedColorScheme] = useState<AppliedColorScheme>(() =>
+    resolveAppliedColorScheme(colorScheme),
+  );
+
+  useEffect(() => {
+    setAppliedColorScheme(resolveAppliedColorScheme(colorScheme));
+  }, [colorScheme]);
+
+  return appliedColorScheme;
+}
+
+function accentSoftColor(accent: string, appliedColorScheme: AppliedColorScheme) {
+  const match = accent.match(/^#(?<red>[0-9a-f]{2})(?<green>[0-9a-f]{2})(?<blue>[0-9a-f]{2})$/i);
+  if (!match?.groups) {
+    return undefined;
+  }
+  const red = Number.parseInt(match.groups.red, 16);
+  const green = Number.parseInt(match.groups.green, 16);
+  const blue = Number.parseInt(match.groups.blue, 16);
+  const alpha = appliedColorScheme === "dark" ? 0.24 : 0.16;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function applySystemAccentColor(
+  node: HTMLElement,
+  accentColor: SystemAccentColor | null,
+  appliedColorScheme: AppliedColorScheme,
+) {
+  if (!accentColor) {
+    clearSystemAccentColor(node);
+    return;
+  }
+  node.style.setProperty("--accent", accentColor.accent);
+  node.style.setProperty("--nav-toolbar-accent", accentColor.accent);
+  const accentSoft = accentSoftColor(accentColor.accent, appliedColorScheme);
+  if (accentSoft) {
+    node.style.setProperty("--accent-soft", accentSoft);
+  }
+}
+
+function clearSystemAccentColor(node: HTMLElement) {
+  node.style.removeProperty("--accent");
+  node.style.removeProperty("--accent-soft");
+  node.style.removeProperty("--nav-toolbar-accent");
+}
 
 export function useFrontendLaunchTimestamp() {
   const setFrontendLaunchMs = useWorkspaceStore((state) => state.setFrontendLaunchMs);
@@ -195,15 +251,46 @@ function isEditableContextMenuTarget(target: EventTarget | null) {
 
 export function useAppShellAppearance({
   aiPanelLayout,
+  appliedColorScheme,
   appShellRef,
   appearanceSettings,
   connectionPanelLayout,
 }: {
   aiPanelLayout: PanelLayoutState;
+  appliedColorScheme: AppliedColorScheme;
   appShellRef: RefObject<HTMLDivElement | null>;
   appearanceSettings: AppearanceSettings;
   connectionPanelLayout: PanelLayoutState;
 }) {
+  useEffect(() => {
+    const node = document.documentElement;
+    if (appearanceSettings.colorScheme !== "match-os") {
+      clearSystemAccentColor(node);
+      return;
+    }
+    if (!isTauriRuntime()) {
+      clearSystemAccentColor(node);
+      return;
+    }
+
+    let disposed = false;
+    void invokeCommand("get_system_accent_color")
+      .then((accentColor) => {
+        if (!disposed) {
+          applySystemAccentColor(node, accentColor, appliedColorScheme);
+        }
+      })
+      .catch(() => {
+        if (!disposed) {
+          clearSystemAccentColor(node);
+        }
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [appearanceSettings.colorScheme, appliedColorScheme]);
+
   useLayoutEffect(() => {
     const node = appShellRef.current;
     if (!node) {
@@ -218,11 +305,13 @@ export function useAppShellAppearance({
     node.style.setProperty("--ai-panel-width", aiPanelLayout.collapsed ? "0px" : `${aiPanelLayout.width}px`);
     node.style.setProperty("--ai-resize-width", aiPanelLayout.collapsed ? "0px" : "3px");
     node.style.setProperty("--app-ui-font-family", appearanceSettings.appFontFamily);
-    node.setAttribute("data-color-scheme", appearanceSettings.colorScheme);
-    document.documentElement.setAttribute("data-color-scheme", appearanceSettings.colorScheme);
+    node.setAttribute("data-color-scheme", appliedColorScheme);
+    document.documentElement.setAttribute("data-color-scheme", appliedColorScheme);
+    document.documentElement.setAttribute("data-selected-color-scheme", appearanceSettings.colorScheme);
   }, [
     aiPanelLayout.collapsed,
     aiPanelLayout.width,
+    appliedColorScheme,
     appShellRef,
     appearanceSettings.appFontFamily,
     appearanceSettings.colorScheme,

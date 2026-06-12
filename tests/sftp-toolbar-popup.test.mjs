@@ -71,7 +71,7 @@ test("SFTP popup uses the selected app color scheme outside the app shell", asyn
 
   assert.match(
     shellEffectsSource,
-    /document\.documentElement\.setAttribute\("data-color-scheme", appearanceSettings\.colorScheme\);/,
+    /document\.documentElement\.setAttribute\("data-color-scheme", appliedColorScheme\);/,
     "portal-mounted SFTP dialogs should inherit the selected color scheme from the document root",
   );
 });

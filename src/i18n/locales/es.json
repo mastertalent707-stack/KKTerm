@@ -848,6 +848,7 @@
     "schemeDefault": "Predeterminado",
     "schemeDark": "Oscuro",
     "schemeLight": "Claro",
+    "schemeMatchOs": "Coincidir con el sistema",
     "schemeMac": "Mac",
     "schemeOrange": "Naranja",
     "schemePurple": "Púrpura",

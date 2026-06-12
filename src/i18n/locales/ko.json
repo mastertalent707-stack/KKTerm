@@ -848,6 +848,7 @@
     "schemeDefault": "기본값",
     "schemeDark": "어두움",
     "schemeLight": "밝음",
+    "schemeMatchOs": "OS에 맞춤",
     "schemeMac": "Mac",
     "schemeOrange": "주황색",
     "schemePurple": "보라색",

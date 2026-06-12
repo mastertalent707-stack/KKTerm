@@ -1768,6 +1768,23 @@
     }
 
     #[test]
+    fn appearance_settings_accept_match_os_color_scheme() {
+        let storage = Storage::open(temp_db_path("appearance-match-os"))
+            .expect("storage opens");
+
+        let updated = storage
+            .update_appearance_settings(AppearanceSettings {
+                app_font_family: "Inter".to_string(),
+                color_scheme: "MATCH-OS".to_string(),
+                custom_font_path: None,
+                use_custom_title_bar: true,
+            })
+            .expect("match-os color scheme is accepted");
+
+        assert_eq!(updated.color_scheme, "match-os");
+    }
+
+    #[test]
     fn ssh_settings_round_trip_through_settings_table() {
         let storage = Storage::open(temp_db_path("ssh-settings")).expect("storage opens");
 

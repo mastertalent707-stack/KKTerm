@@ -10,7 +10,7 @@ test("custom titlebar inherits the same color scheme as the activity rail", asyn
 
   assert.match(
     appSource,
-    /data-color-scheme=\{appearanceSettings\.colorScheme\}/,
+    /data-color-scheme=\{appliedColorScheme\}/,
     "the app root should carry the active color scheme so titlebar and shell share tokens",
   );
   assert.match(

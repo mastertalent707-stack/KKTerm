@@ -19,6 +19,7 @@ import {
   type TutorialHighlightRequest,
 } from "./app/TutorialOverlay";
 import {
+  useAppliedColorScheme,
   useAppShellAppearance,
   useDebugFrontendHeartbeat,
   useFrontendLaunchTimestamp,
@@ -154,6 +155,7 @@ function App() {
   const [tutorialHighlightRequest, setTutorialHighlightRequest] =
     useState<TutorialHighlightRequest>();
   const appearanceSettings = useWorkspaceStore((state) => state.appearanceSettings);
+  const appliedColorScheme = useAppliedColorScheme(appearanceSettings.colorScheme);
   const hideTopTabButtons = useWorkspaceStore((state) => state.generalSettings.hideTopTabButtons);
   const statusBarEnabled = useWorkspaceStore((state) => state.generalSettings.statusBarEnabled);
   const resetAllLayouts = useWorkspaceStore((state) => state.resetAllLayouts);
@@ -182,6 +184,7 @@ function App() {
   useGlobalContextMenuSuppression();
   useAppShellAppearance({
     aiPanelLayout,
+    appliedColorScheme,
     appShellRef,
     appearanceSettings,
     connectionPanelLayout,
@@ -226,7 +229,8 @@ function App() {
     <div
       className="app-root"
       data-platform={currentPlatform()}
-      data-color-scheme={appearanceSettings.colorScheme}
+      data-color-scheme={appliedColorScheme}
+      data-selected-color-scheme={appearanceSettings.colorScheme}
     >
       <TitleBar
         activePage={activePage}

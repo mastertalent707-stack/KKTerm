@@ -342,6 +342,7 @@ export type ColorScheme =
   | "default"
   | "dark"
   | "light"
+  | "match-os"
   | "mac"
   | "orange"
   | "purple"
@@ -357,6 +358,10 @@ export interface AppearanceSettings {
   appFontFamily: string;
   colorScheme: ColorScheme;
   customFontPath?: string;
+}
+
+export interface SystemAccentColor {
+  accent: string;
 }
 
 export interface CustomFont {
@@ -805,5 +810,4 @@ export interface AssistantDirectSubmitRequest {
   prompt: string;
   snippet: AssistantContextSnippet;
 }
-
 

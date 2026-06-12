@@ -45,6 +45,7 @@ import type {
   SftpSettings,
   ScreenshotSettings,
   SshSettings,
+  SystemAccentColor,
   StoreSecretRequest,
   SystemPerformanceCountersSnapshot,
   DeleteStoredCredentialRequest,
@@ -1047,6 +1048,10 @@ type CommandMap = {
   update_appearance_settings: {
     args: { request: AppearanceSettings };
     result: AppearanceSettings;
+  };
+  get_system_accent_color: {
+    args: undefined;
+    result: SystemAccentColor | null;
   };
   get_custom_fonts_folder: {
     args: undefined;
