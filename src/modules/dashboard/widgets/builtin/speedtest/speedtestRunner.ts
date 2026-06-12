@@ -7,14 +7,16 @@ const LATENCY_SAMPLES = 6;
 const DOWNLOAD_SIZES = [1_000_000, 5_000_000, 10_000_000, 25_000_000, 50_000_000];
 const DOWNLOAD_BUDGET_MS = 8_000;
 
-type SpeedtestTargetKind = "cloudflare";
+type SpeedtestTargetKind = "cloudflare" | "librespeed";
 
 export interface SpeedtestTarget {
   id: string;
   labelKey: string;
-  region: "Automatic";
+  region: "Automatic" | "Asia" | "Europe" | "North America";
   kind: SpeedtestTargetKind;
   endpoint: string;
+  downloadPath?: string;
+  latencyPath?: string;
 }
 
 export const SPEEDTEST_TARGETS: SpeedtestTarget[] = [
@@ -24,6 +26,51 @@ export const SPEEDTEST_TARGETS: SpeedtestTarget[] = [
     region: "Automatic",
     kind: "cloudflare",
     endpoint: "https://speed.cloudflare.com/__down",
+  },
+  {
+    id: "librespeed-new-york",
+    labelKey: "dashboard.speedtestTargets.newYork",
+    region: "North America",
+    kind: "librespeed",
+    endpoint: "https://nyc.speedtest.clouvider.net/backend",
+    downloadPath: "garbage.php",
+    latencyPath: "empty.php",
+  },
+  {
+    id: "librespeed-los-angeles",
+    labelKey: "dashboard.speedtestTargets.losAngeles",
+    region: "North America",
+    kind: "librespeed",
+    endpoint: "https://la.speedtest.clouvider.net/backend",
+    downloadPath: "garbage.php",
+    latencyPath: "empty.php",
+  },
+  {
+    id: "librespeed-london",
+    labelKey: "dashboard.speedtestTargets.london",
+    region: "Europe",
+    kind: "librespeed",
+    endpoint: "https://lon.speedtest.clouvider.net/backend",
+    downloadPath: "garbage.php",
+    latencyPath: "empty.php",
+  },
+  {
+    id: "librespeed-frankfurt",
+    labelKey: "dashboard.speedtestTargets.frankfurt",
+    region: "Europe",
+    kind: "librespeed",
+    endpoint: "https://fra.speedtest.clouvider.net/backend",
+    downloadPath: "garbage.php",
+    latencyPath: "empty.php",
+  },
+  {
+    id: "librespeed-tokyo",
+    labelKey: "dashboard.speedtestTargets.tokyo",
+    region: "Asia",
+    kind: "librespeed",
+    endpoint: "https://librespeed.a573.net",
+    downloadPath: "backend/garbage.php",
+    latencyPath: "backend/empty.php",
   },
 ];
 
@@ -115,11 +162,28 @@ function jitter(samples: number[]): number {
 }
 
 export function buildSpeedtestLatencyUrl(target: SpeedtestTarget, sampleIndex: number, cacheBust: number): string {
+  if (target.kind === "librespeed") {
+    return withQuery(joinUrl(target.endpoint, target.latencyPath ?? "empty.php"), {
+      cors: "true",
+      cacheBust: `${cacheBust}-${sampleIndex}`,
+    });
+  }
   return withQuery(target.endpoint, { bytes: "0", cacheBust: `${cacheBust}-${sampleIndex}` });
 }
 
 export function buildSpeedtestDownloadUrl(target: SpeedtestTarget, bytes: number, cacheBust: number): string {
+  if (target.kind === "librespeed") {
+    return withQuery(joinUrl(target.endpoint, target.downloadPath ?? "garbage.php"), {
+      ckSize: String(Math.max(1, Math.round(bytes / 1_000_000))),
+      cors: "true",
+      cacheBust: String(cacheBust),
+    });
+  }
   return withQuery(target.endpoint, { bytes: String(bytes), cacheBust: String(cacheBust) });
+}
+
+function joinUrl(base: string, path: string): string {
+  return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
 
 function withQuery(url: string, params: Record<string, string>): string {
