@@ -425,7 +425,7 @@
       "hashJwtPlaceholder": "Incolla un JWT per decodificarne header e payload…",
       "hashHint": "Inserisci del testo sopra per vedere i risultati.",
       "hashSelectFile": "Seleziona file da calcolare hash",
-      "hashSelectedFile": "File: {{name}}",
+      "hashSelectedFile": "File selezionato: {{name}}",
       "hashFileReadError": "Impossibile leggere quel file.",
       "hashInvalidInput": "Impossibile decodificare quell'input.",
       "hashTabHash": "Hash",

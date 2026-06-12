@@ -425,7 +425,7 @@
       "hashJwtPlaceholder": "Tempel JWT untuk mendekode header dan payload-nya…",
       "hashHint": "Masukkan teks di atas untuk melihat hasil.",
       "hashSelectFile": "Pilih file untuk di-hash",
-      "hashSelectedFile": "File: {{name}}",
+      "hashSelectedFile": "Berkas: {{name}}",
       "hashFileReadError": "File tersebut tidak dapat dibaca.",
       "hashInvalidInput": "Input itu tidak dapat didekodekan.",
       "hashTabHash": "Hash",
