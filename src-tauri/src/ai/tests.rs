@@ -3302,3 +3302,118 @@
             OpenAiCompatibleContent::Parts(_) => "",
         }
     }
+
+    // ── Replay eval harness ───────────────────────────────────────────────
+    //
+    // Recorded provider SSE streams (src/ai/fixtures/*.sse) are replayed
+    // through the same accumulators the live readers use (ChatStreamState /
+    // ResponsesStreamState + apply_responses_stream_event). A parser change
+    // that drops content, mis-orders tool-call argument fragments, or loses
+    // reasoning now fails here against a fixed expectation, so refactors of
+    // the streaming layer are exercised against real provider output without
+    // a network call. To add a case: drop a `<name>.sse` recording and a
+    // `<name>.expected.json` ({content, reasoning, toolCalls:[{name,arguments}]})
+    // beside the existing fixtures and add an assert_replay line.
+
+    fn sse_data_lines(sse: &str) -> Vec<String> {
+        sse.lines()
+            .filter_map(|line| sse_field_value(line.trim(), "data"))
+            .map(str::to_string)
+            .take_while(|data| data != "[DONE]")
+            .collect()
+    }
+
+    fn replay_chat_stream(sse: &str) -> (String, String, Vec<(String, String)>) {
+        let mut state = ChatStreamState::default();
+        for data in sse_data_lines(sse) {
+            let chunk: ChatSseChunk =
+                serde_json::from_str(&data).expect("recorded chat chunk parses");
+            state.apply_chunk(chunk);
+        }
+        let content = state.content().to_string();
+        let reasoning = state.reasoning_content().unwrap_or_default();
+        let tool_calls = state
+            .into_tool_calls()
+            .into_iter()
+            .map(|call| (call.function.name, call.function.arguments))
+            .collect();
+        (content, reasoning, tool_calls)
+    }
+
+    fn replay_responses_stream(sse: &str) -> (String, String, Vec<(String, String)>) {
+        let mut state = ResponsesStreamState::default();
+        let mut reasoning = String::new();
+        for data in sse_data_lines(sse) {
+            let event: Value =
+                serde_json::from_str(&data).expect("recorded responses event parses");
+            let deltas = apply_responses_stream_event(&mut state, &event);
+            if let Some(delta) = deltas.reasoning_delta {
+                reasoning.push_str(&delta);
+            }
+        }
+        let content = state.content.clone().unwrap_or_default();
+        let tool_calls = state
+            .into_tool_calls()
+            .into_iter()
+            .map(|call| (call.function.name, call.function.arguments))
+            .collect();
+        (content, reasoning, tool_calls)
+    }
+
+    fn assert_replay(
+        name: &str,
+        actual: (String, String, Vec<(String, String)>),
+        expected_json: &str,
+    ) {
+        let expected: Value =
+            serde_json::from_str(expected_json).expect("fixture expectation parses");
+        let (content, reasoning, tool_calls) = actual;
+        assert_eq!(
+            content,
+            expected["content"].as_str().unwrap_or_default(),
+            "{name}: content"
+        );
+        assert_eq!(
+            reasoning,
+            expected["reasoning"].as_str().unwrap_or_default(),
+            "{name}: reasoning"
+        );
+        let expected_tools: Vec<(String, String)> = expected["toolCalls"]
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .map(|item| {
+                        (
+                            item["name"].as_str().unwrap_or_default().to_string(),
+                            item["arguments"].as_str().unwrap_or_default().to_string(),
+                        )
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        assert_eq!(tool_calls, expected_tools, "{name}: tool calls");
+    }
+
+    #[test]
+    fn replay_recorded_chat_stream_fixtures() {
+        assert_replay(
+            "chat_reasoning_and_tool_call",
+            replay_chat_stream(include_str!("fixtures/chat_reasoning_and_tool_call.sse")),
+            include_str!("fixtures/chat_reasoning_and_tool_call.expected.json"),
+        );
+    }
+
+    #[test]
+    fn replay_recorded_responses_stream_fixtures() {
+        assert_replay(
+            "responses_text_with_reasoning",
+            replay_responses_stream(include_str!("fixtures/responses_text_with_reasoning.sse")),
+            include_str!("fixtures/responses_text_with_reasoning.expected.json"),
+        );
+        assert_replay(
+            "responses_tool_call",
+            replay_responses_stream(include_str!("fixtures/responses_tool_call.sse")),
+            include_str!("fixtures/responses_tool_call.expected.json"),
+        );
+    }

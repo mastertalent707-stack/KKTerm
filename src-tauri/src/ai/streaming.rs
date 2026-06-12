@@ -417,13 +417,103 @@ pub(crate) fn emit_stream(channel: &Channel<Value>, event: &AiStreamEvent) -> Re
         .map_err(|e| format!("failed to send stream event: {e}"))
 }
 
+/// Accumulated Chat Completions stream state. Mirrors `ResponsesStreamState`:
+/// `apply_chunk` is the single pure accumulator used by both the live stream
+/// reader and the fixture replay harness, so a parser change is exercised by
+/// recorded-stream tests before it ships.
+#[derive(Default)]
+pub(crate) struct ChatStreamState {
+    content: String,
+    reasoning: String,
+    tool_call_builders: HashMap<u32, ToolCallAccumulator>,
+}
+
+#[derive(Default)]
+pub(crate) struct ChatStreamDeltas {
+    pub(crate) content_delta: Option<String>,
+    pub(crate) reasoning_delta: Option<String>,
+}
+
+impl ChatStreamState {
+    pub(crate) fn apply_chunk(&mut self, chunk: ChatSseChunk) -> ChatStreamDeltas {
+        let mut content_delta = String::new();
+        let mut reasoning_delta = String::new();
+        for choice in chunk.choices {
+            if let Some(finish_reason) = choice.finish_reason.as_deref() {
+                ai_debug!("chat stream finish_reason={finish_reason}");
+            }
+            if let Some(c) = choice.delta.content.as_deref() {
+                if !c.is_empty() {
+                    self.content.push_str(c);
+                    content_delta.push_str(c);
+                }
+            }
+            if let Some(r) = chat_sse_delta_reasoning(&choice.delta) {
+                if !r.is_empty() {
+                    self.reasoning.push_str(&r);
+                    reasoning_delta.push_str(&r);
+                }
+            }
+            for tc in &choice.delta.tool_calls {
+                let acc = self.tool_call_builders.entry(tc.index).or_default();
+                if let Some(id) = &tc.id {
+                    acc.id.clone_from(id);
+                }
+                if let Some(ref f) = tc.function {
+                    if let Some(name) = &f.name {
+                        acc.name.clone_from(name);
+                    }
+                    if let Some(args) = &f.arguments {
+                        acc.arguments.push_str(args);
+                    }
+                }
+            }
+        }
+        ChatStreamDeltas {
+            content_delta: (!content_delta.is_empty()).then_some(content_delta),
+            reasoning_delta: (!reasoning_delta.is_empty()).then_some(reasoning_delta),
+        }
+    }
+
+    pub(crate) fn content(&self) -> &str {
+        &self.content
+    }
+
+    pub(crate) fn reasoning_content(&self) -> Option<String> {
+        if self.reasoning.trim().is_empty() {
+            None
+        } else {
+            Some(self.reasoning.clone())
+        }
+    }
+
+    pub(crate) fn into_tool_calls(self) -> Vec<OpenAiToolCall> {
+        let mut tool_calls: Vec<OpenAiToolCall> = Vec::new();
+        let mut builders = self.tool_call_builders;
+        let mut indexes: Vec<u32> = builders.keys().copied().collect();
+        indexes.sort();
+        for idx in indexes {
+            if let Some(acc) = builders.remove(&idx) {
+                if !acc.name.is_empty() {
+                    tool_calls.push(OpenAiToolCall {
+                        id: acc.id,
+                        function: OpenAiToolCallFunction {
+                            name: acc.name,
+                            arguments: acc.arguments,
+                        },
+                    });
+                }
+            }
+        }
+        tool_calls
+    }
+}
+
 pub(crate) async fn stream_chat_completions(
     response: reqwest::Response,
     channel: &Channel<Value>,
 ) -> Result<(String, Vec<OpenAiToolCall>, Option<String>), String> {
-    let mut content = String::new();
-    let mut reasoning = String::new();
-    let mut tool_call_builders: HashMap<u32, ToolCallAccumulator> = HashMap::new();
+    let mut state = ChatStreamState::default();
 
     let mut stream = response.bytes_stream();
     let mut buf = String::new();
@@ -455,68 +545,19 @@ pub(crate) async fn stream_chat_completions(
             );
             let chunk: ChatSseChunk =
                 serde_json::from_str(data).map_err(|e| format!("SSE parse error: {e}"))?;
-            for choice in chunk.choices {
-                if let Some(finish_reason) = choice.finish_reason.as_deref() {
-                    ai_debug!("chat stream finish_reason={finish_reason}");
-                }
-                if let Some(c) = choice.delta.content.as_deref() {
-                    if !c.is_empty() {
-                        content.push_str(c);
-                        emit_stream(
-                            channel,
-                            &AiStreamEvent::ContentDelta {
-                                delta: c.to_string(),
-                            },
-                        )?;
-                    }
-                }
-                if let Some(r) = chat_sse_delta_reasoning(&choice.delta) {
-                    if !r.is_empty() {
-                        reasoning.push_str(&r);
-                        emit_stream(channel, &AiStreamEvent::ReasoningDelta { delta: r })?;
-                    }
-                }
-                for tc in &choice.delta.tool_calls {
-                    let acc = tool_call_builders.entry(tc.index).or_default();
-                    if let Some(id) = &tc.id {
-                        acc.id.clone_from(id);
-                    }
-                    if let Some(ref f) = tc.function {
-                        if let Some(name) = &f.name {
-                            acc.name.clone_from(name);
-                        }
-                        if let Some(args) = &f.arguments {
-                            acc.arguments.push_str(args);
-                        }
-                    }
-                }
+            let deltas = state.apply_chunk(chunk);
+            if let Some(delta) = deltas.content_delta {
+                emit_stream(channel, &AiStreamEvent::ContentDelta { delta })?;
+            }
+            if let Some(delta) = deltas.reasoning_delta {
+                emit_stream(channel, &AiStreamEvent::ReasoningDelta { delta })?;
             }
         }
     }
 
-    let mut tool_calls: Vec<OpenAiToolCall> = Vec::new();
-    let mut indexes: Vec<u32> = tool_call_builders.keys().copied().collect();
-    indexes.sort();
-    for idx in indexes {
-        if let Some(acc) = tool_call_builders.remove(&idx) {
-            if !acc.name.is_empty() {
-                tool_calls.push(OpenAiToolCall {
-                    id: acc.id,
-                    function: OpenAiToolCallFunction {
-                        name: acc.name,
-                        arguments: acc.arguments,
-                    },
-                });
-            }
-        }
-    }
-
-    let reasoning_content = reasoning
-        .trim()
-        .is_empty()
-        .then(|| None)
-        .unwrap_or(Some(reasoning));
-
+    let content = state.content().to_string();
+    let reasoning_content = state.reasoning_content();
+    let tool_calls = state.into_tool_calls();
     Ok((content, tool_calls, reasoning_content))
 }
 

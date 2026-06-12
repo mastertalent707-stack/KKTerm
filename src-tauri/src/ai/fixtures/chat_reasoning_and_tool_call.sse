@@ -1,0 +1,8 @@
+data: {"choices":[{"delta":{"role":"assistant","content":""}}]}
+data: {"choices":[{"delta":{"reasoning_content":"The user wants the time."}}]}
+data: {"choices":[{"delta":{"content":"Let me "}}]}
+data: {"choices":[{"delta":{"content":"check the clock."}}]}
+data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_abc","function":{"name":"current_time","arguments":"{"}}]}}]}
+data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"}"}}]}}]}
+data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}
+data: [DONE]
