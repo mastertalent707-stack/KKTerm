@@ -47,6 +47,9 @@ function AssistantToolApprovalCard({
   const argsPreview = formatToolApprovalArgs(request.args);
   const toolLabel = humanizeAssistantToolName(request.toolName);
   const watchdogConfig = extractWatchdogApprovalConfig(request);
+  const riskNotes = (request.riskNotes ?? []).filter(
+    (note): note is string => typeof note === "string" && note.trim().length > 0,
+  );
 
   function handleApprovalActionChange(event: ChangeEvent<HTMLSelectElement>) {
     const action = event.currentTarget.value as ToolApprovalAction;
@@ -100,6 +103,19 @@ function AssistantToolApprovalCard({
           ) : (
             <>
               <p>{t("ai.toolApprovalBody")}</p>
+              {riskNotes.length > 0 ? (
+                <div className="assistant-tool-approval-risk" role="alert">
+                  <strong>
+                    <ShieldAlert size={13} aria-hidden="true" />
+                    {t("ai.toolApprovalRiskTitle")}
+                  </strong>
+                  <ul>
+                    {riskNotes.map((note) => (
+                      <li key={note}>{note}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               {argsPreview ? (
                 <details>
                   <summary>{t("ai.toolApprovalDetails")}</summary>

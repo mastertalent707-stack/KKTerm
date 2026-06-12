@@ -2397,6 +2397,7 @@
     "toolApprovalTool": "{{tool}}ツール",
     "toolApprovalBody": "この操作によりKKTermまたはローカルマシンが変更される可能性があります。",
     "toolApprovalDetails": "リクエスト詳細",
+    "toolApprovalRiskTitle": "リスクありとしてフラグ",
     "watchdogApproval": {
       "lede": "AI 介入付きのウォッチドッグ「{{name}}」を作成しますか？",
       "target": "ターゲット",

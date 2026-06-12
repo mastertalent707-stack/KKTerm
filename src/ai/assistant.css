@@ -1843,6 +1843,35 @@
   border-radius: 7px;
 }
 
+.assistant-tool-approval-risk {
+  display: grid;
+  gap: 5px;
+  padding: 8px 10px;
+  background: rgba(185, 28, 28, 0.08);
+  border: 1px solid rgba(185, 28, 28, 0.35);
+  border-radius: 6px;
+}
+
+.assistant-tool-approval-risk strong {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.assistant-tool-approval-risk ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.assistant-tool-approval-risk li {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .assistant-tool-approval-card header,
 .assistant-tool-approval-card footer {
   display: flex;

@@ -2397,6 +2397,7 @@
     "toolApprovalTool": "{{tool}}-Werkzeug",
     "toolApprovalBody": "Diese Aktion kann KKTerm oder den lokalen Rechner ändern.",
     "toolApprovalDetails": "Anfragedetails",
+    "toolApprovalRiskTitle": "Als riskant markiert",
     "watchdogApproval": {
       "lede": "Watchdog \"{{name}}\" mit KI-Eingriff erstellen?",
       "target": "Ziel",

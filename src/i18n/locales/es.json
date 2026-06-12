@@ -2397,6 +2397,7 @@
     "toolApprovalTool": "Herramienta {{tool}}",
     "toolApprovalBody": "Esta acción puede modificar KKTerm o la máquina local.",
     "toolApprovalDetails": "Detalles de la solicitud",
+    "toolApprovalRiskTitle": "Marcado como riesgoso",
     "watchdogApproval": {
       "lede": "¿Crear vigilante \"{{name}}\" con intervención de IA?",
       "target": "Objetivo",

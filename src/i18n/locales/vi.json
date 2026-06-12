@@ -2397,6 +2397,7 @@
     "toolApprovalTool": "Công cụ {{tool}}",
     "toolApprovalBody": "Hành động này có thể thay đổi KKTerm hoặc máy cục bộ.",
     "toolApprovalDetails": "Chi tiết yêu cầu",
+    "toolApprovalRiskTitle": "Bị gắn cờ rủi ro",
     "watchdogApproval": {
       "lede": "Tạo bộ giám sát \"{{name}}\" với sự can thiệp của AI?",
       "target": "Mục tiêu",

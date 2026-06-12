@@ -98,6 +98,8 @@ export type AssistantToolApprovalRequest = {
    * not auto-approve these; they always re-prompt.
    */
   riskElevated?: boolean;
+  /** Human-readable reasons the call was flagged risky, shown on the card. */
+  riskNotes?: string[];
 };
 
 export type PendingToolApproval = AssistantToolApprovalRequest & {

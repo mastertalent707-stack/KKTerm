@@ -2879,28 +2879,36 @@
     }
 
     #[test]
-    fn approval_risk_elevated_flags_risky_command_payloads() {
-        assert!(approval_risk_elevated(
+    fn approval_risk_notes_flag_risky_command_payloads() {
+        // Risky payloads yield non-empty notes the approval card can show.
+        let destructive = approval_risk_notes(
             "session_terminal_send_text",
-            &json!({"text": "rm -rf /var/www"})
-        ));
-        assert!(!approval_risk_elevated(
+            &json!({"text": "rm -rf /var/www"}),
+        );
+        assert!(!destructive.is_empty());
+        assert!(destructive.iter().any(|note| note.to_lowercase().contains("delete")));
+
+        assert!(approval_risk_notes(
             "session_terminal_send_text",
             &json!({"text": "ls -la"})
-        ));
-        assert!(approval_risk_elevated(
+        )
+        .is_empty());
+        assert!(!approval_risk_notes(
             "shell_command",
             &json!({"command": "remove-item -Recurse logs"})
-        ));
-        assert!(approval_risk_elevated(
+        )
+        .is_empty());
+        assert!(!approval_risk_notes(
             "quick_command_create",
             &json!({"connectionId": "c1", "label": "restart", "command": "systemctl restart nginx"})
-        ));
-        // Tools without a command-like payload never get the elevated hint.
-        assert!(!approval_risk_elevated(
+        )
+        .is_empty());
+        // Tools without a command-like payload never get risk notes.
+        assert!(approval_risk_notes(
             "dashboard_create_widget",
             &json!({"title": "rm -rf"})
-        ));
+        )
+        .is_empty());
     }
 
     #[test]

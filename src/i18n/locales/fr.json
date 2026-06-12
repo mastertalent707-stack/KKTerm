@@ -2397,6 +2397,7 @@
     "toolApprovalTool": "Outil {{tool}}",
     "toolApprovalBody": "Cette action peut modifier KKTerm ou la machine locale.",
     "toolApprovalDetails": "Détails de la requête",
+    "toolApprovalRiskTitle": "Signalé comme risqué",
     "watchdogApproval": {
       "lede": "Créer un watchdog \"{{name}}\" avec intervention IA ?",
       "target": "Cible",

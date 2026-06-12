@@ -2397,6 +2397,7 @@
     "toolApprovalTool": "{{tool}} 工具",
     "toolApprovalBody": "此動作可能變更 KKTerm 或本機。",
     "toolApprovalDetails": "要求詳細資料",
+    "toolApprovalRiskTitle": "已標記為有風險",
     "watchdogApproval": {
       "lede": "建立帶 AI 干預的監控器「{{name}}」？",
       "target": "目標",

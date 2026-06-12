@@ -2397,6 +2397,7 @@
     "toolApprovalTool": "Alat {{tool}}",
     "toolApprovalBody": "Tindakan ini dapat mengubah KKTerm atau mesin lokal.",
     "toolApprovalDetails": "Detail permintaan",
+    "toolApprovalRiskTitle": "Ditandai berisiko",
     "watchdogApproval": {
       "lede": "Buat watchdog \"{{name}}\" dengan intervensi AI?",
       "target": "Target",

@@ -400,7 +400,7 @@ impl AssistantToolApprovalBridge {
         app: &tauri::AppHandle,
         tool_name: &str,
         args: &Value,
-        risk_elevated: bool,
+        risk_notes: &[String],
     ) -> bool {
         let request_id = new_tool_approval_request_id();
         let (tx, rx) = oneshot::channel();
@@ -417,7 +417,8 @@ impl AssistantToolApprovalBridge {
             "requestId": request_id,
             "toolName": tool_name,
             "args": args,
-            "riskElevated": risk_elevated,
+            "riskElevated": !risk_notes.is_empty(),
+            "riskNotes": risk_notes,
         });
         ai_interaction_debug!("tool.approval_request", payload.clone());
         if let Err(error) = app.emit("assistant-tool-approval-request", payload) {
@@ -3284,11 +3285,11 @@ async fn run_ai_tool(
         && settings.tool_permission_mode() != "allowAll"
         && !pre_approved
     {
-        let risk_elevated = approval_risk_elevated(&call.function.name, &args);
+        let risk_notes = approval_risk_notes(&call.function.name, &args);
         let approved = match app.try_state::<AssistantToolApprovalBridge>() {
             Some(bridge) => {
                 bridge
-                    .request(app, &call.function.name, &args, risk_elevated)
+                    .request(app, &call.function.name, &args, &risk_notes)
                     .await
             }
             None => false,
@@ -3479,13 +3480,12 @@ fn tool_requires_allow_all(tool_name: &str) -> bool {
         )
 }
 
-/// Whether an approval request carries a command-like payload that the
-/// keyword heuristic flags as risky. The frontend uses this to make
-/// "Allow for session" non-transferable to dangerous payloads: a session
-/// allow keyed on the tool name alone would otherwise auto-approve any later
-/// destructive command sent through the same tool. Heuristic only — the
-/// per-call approval prompt remains the actual safety boundary (ADR-0003).
-fn approval_risk_elevated(tool_name: &str, args: &Value) -> bool {
+/// Risk notes for an approval request's command-like payload, or empty when
+/// the keyword heuristic sees nothing risky. A non-empty result both flags the
+/// request as elevated (so a session allow can't auto-approve it) and gives the
+/// approval card concrete reasons to show. Heuristic only — the per-call
+/// approval prompt remains the actual safety boundary (ADR-0003).
+fn approval_risk_notes(tool_name: &str, args: &Value) -> Vec<String> {
     let command = match tool_name {
         "shell_command" | "quick_command_create" | "quick_command_edit" => {
             args.get("command").and_then(Value::as_str)
@@ -3495,9 +3495,15 @@ fn approval_risk_elevated(tool_name: &str, args: &Value) -> bool {
         }
         _ => None,
     };
-    command.is_some_and(|command| {
-        classify_command_safety(command, None).extra_confirmation_required
-    })
+    let Some(command) = command else {
+        return Vec::new();
+    };
+    let safety = classify_command_safety(command, None);
+    if safety.extra_confirmation_required {
+        safety.notes
+    } else {
+        Vec::new()
+    }
 }
 
 fn is_assistant_skill_tool(tool_name: &str) -> bool {
@@ -4565,9 +4571,15 @@ async fn watchdog_tool(app: &tauri::AppHandle, name: &str, args: Value) -> Strin
                         .to_string();
                 };
                 // Granting standing intervention tool permissions is always
-                // elevated: a session allow must never skip this modal.
+                // elevated: a session allow must never skip this modal. The
+                // card renders the full watchdog config, so no extra notes.
                 let approved = bridge
-                    .request(app, "watchdog_create", &approval_args, true)
+                    .request(
+                        app,
+                        "watchdog_create",
+                        &approval_args,
+                        &["This grants the watchdog standing permission to run the listed tools without further prompts.".to_string()],
+                    )
                     .await;
                 if !approved {
                     return json!({

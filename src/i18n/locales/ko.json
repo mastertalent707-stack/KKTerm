@@ -2397,6 +2397,7 @@
     "toolApprovalTool": "{{tool}} 도구",
     "toolApprovalBody": "이 작업은 KKTerm 또는 로컬 머신을 변경할 수 있습니다.",
     "toolApprovalDetails": "요청 세부정보",
+    "toolApprovalRiskTitle": "위험으로 표시됨",
     "watchdogApproval": {
       "lede": "AI 개입이 포함된 감시자 \"{{name}}\"을(를) 만드시겠습니까?",
       "target": "대상",

@@ -2397,6 +2397,7 @@
     "toolApprovalTool": "เครื่องมือ {{tool}}",
     "toolApprovalBody": "การดำเนินการนี้อาจเปลี่ยนแปลง KKTerm หรือเครื่องภายใน",
     "toolApprovalDetails": "รายละเอียดคำขอ",
+    "toolApprovalRiskTitle": "ถูกระบุว่ามีความเสี่ยง",
     "watchdogApproval": {
       "lede": "สร้างวอทช์ด็อก \"{{name}}\" พร้อมการแทรกแซงของ AI ใช่ไหม?",
       "target": "เป้าหมาย",
