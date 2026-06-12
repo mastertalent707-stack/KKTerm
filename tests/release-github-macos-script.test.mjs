@@ -9,6 +9,10 @@ const script = await readFile(
 const packageJson = JSON.parse(
   await readFile(new URL("../package.json", import.meta.url), "utf8"),
 );
+const packageMacosScript = await readFile(
+  new URL("../scripts/package-macos.sh", import.meta.url),
+  "utf8",
+);
 
 test("macOS release script is a native zsh GitHub release asset uploader", () => {
   assert.match(script, /^#!\/usr\/bin\/env zsh/);
@@ -46,6 +50,13 @@ test("macOS release script builds deterministic DMG and checksum asset names", (
   assert.match(script, /SHA_NAME="\$DMG_NAME\.sha256"/);
   assert.match(script, /npm run package:macos/);
   assert.match(script, /shasum -a 256 "\$DMG_PATH"/);
+});
+
+test("macOS package script loads the updater private key for Tauri signing", () => {
+  assert.equal(packageJson.scripts["package:macos"], "zsh scripts/package-macos.sh");
+  assert.match(packageMacosScript, /TAURI_SIGNING_PRIVATE_KEY_PATH:-\$HOME\/\.tauri\/kkterm-updater\.key/);
+  assert.match(packageMacosScript, /export TAURI_SIGNING_PRIVATE_KEY="\$\(<"\$KEY_PATH"\)"/);
+  assert.match(packageMacosScript, /npm exec tauri -- build --target aarch64-apple-darwin --bundles app,dmg "\$@"/);
 });
 
 test("macOS release script uploads signed Tauri updater metadata", () => {
