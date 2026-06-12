@@ -59,7 +59,7 @@ use tauri::{Emitter, Manager};
 use crate::assistant_skills::{self, AssistantSkillSummary};
 use crate::dashboard_ids::new_dashboard_id;
 use crate::dashboard_storage as ds;
-use crate::dashboard_validation::drop_unused_script_libraries;
+use crate::dashboard_validation::{ICONS, drop_unused_script_libraries};
 use crate::storage::{
     AiAssistantToolSettings, AiProviderSettings, Storage, ai_provider_secret_owner_id,
 };
@@ -2221,12 +2221,12 @@ fn ai_tool_definitions_with_skills(
         tools.push(tool_definition(
             "dashboard_add_instance",
             "Add a widget instance to a Dashboard view at a specific grid position. When placing an existing AI Created Widget (kind script), default preset to \"ambient\" unless the user explicitly asks for a titled chrome (\"panel\") or a hero treatment.",
-            json!({"type":"object","properties":{"viewId":{"type":"string"},"kind":{"type":"string","enum":["builtIn","script"]},"sourceId":{"type":"string"},"preset":{"type":"string","enum":["panel","ambient","hero"]},"accentName":{"type":"string","enum":["default","blue","indigo","teal","green","amber","red","purple","pink","slate","cyan","orange","rose","emerald","sky"]},"iconName":{"type":"string","enum":["Hash","Network","Terminal","Server","Cpu","Activity","Bolt","Sun","Bell","Bot","Wrench","Folder","Clock","Doc","Cloud","Calendar","Database","Globe","Lock","Key","Mail","Mic","Monitor","Music","Package","Phone","Pin","Power","Printer","Radio","Search","Settings","Shield","ShoppingCart","Star","Tag","Tool","Trash","Truck","User","Users","Video","Volume","Watch","Wifi","Wind","Zap","Layers","List","Grid"]},"gridX":{"type":"integer","minimum":0,"maximum":11},"gridY":{"type":"integer","minimum":0},"gridW":{"type":"integer","minimum":1,"maximum":12},"gridH":{"type":"integer","minimum":1}},"required":["viewId","kind","sourceId","preset","accentName","iconName","gridX","gridY","gridW","gridH"]}),
+            json!({"type":"object","properties":{"viewId":{"type":"string"},"kind":{"type":"string","enum":["builtIn","script"]},"sourceId":{"type":"string"},"preset":{"type":"string","enum":["panel","ambient","hero"]},"accentName":{"type":"string","enum":["default","blue","indigo","teal","green","amber","red","purple","pink","slate","cyan","orange","rose","emerald","sky"]},"iconName":{"type":"string","enum":ICONS},"gridX":{"type":"integer","minimum":0,"maximum":11},"gridY":{"type":"integer","minimum":0},"gridW":{"type":"integer","minimum":1,"maximum":12},"gridH":{"type":"integer","minimum":1}},"required":["viewId","kind","sourceId","preset","accentName","iconName","gridX","gridY","gridW","gridH"]}),
         ));
         tools.push(tool_definition(
             "dashboard_update_instance",
             "Update a widget instance's preset, accent, icon, custom title, Ambient title visibility, or grid position.",
-            json!({"type":"object","properties":{"id":{"type":"string"},"patch":{"type":"object","properties":{"preset":{"type":"string","enum":["panel","ambient","hero"]},"accentName":{"type":"string","enum":["default","blue","indigo","teal","green","amber","red","purple","pink","slate","cyan","orange","rose","emerald","sky"]},"iconName":{"type":"string","enum":["Hash","Network","Terminal","Server","Cpu","Activity","Bolt","Sun","Bell","Bot","Wrench","Folder","Clock","Doc","Cloud","Calendar","Database","Globe","Lock","Key","Mail","Mic","Monitor","Music","Package","Phone","Pin","Power","Printer","Radio","Search","Settings","Shield","ShoppingCart","Star","Tag","Tool","Trash","Truck","User","Users","Video","Volume","Watch","Wifi","Wind","Zap","Layers","List","Grid"]},"customTitle":{"type":["string","null"]},"hideTitle":{"type":"boolean"},"gridX":{"type":"integer"},"gridY":{"type":"integer"},"gridW":{"type":"integer"},"gridH":{"type":"integer"}}}},"required":["id","patch"]}),
+            json!({"type":"object","properties":{"id":{"type":"string"},"patch":{"type":"object","properties":{"preset":{"type":"string","enum":["panel","ambient","hero"]},"accentName":{"type":"string","enum":["default","blue","indigo","teal","green","amber","red","purple","pink","slate","cyan","orange","rose","emerald","sky"]},"iconName":{"type":"string","enum":ICONS},"customTitle":{"type":["string","null"]},"hideTitle":{"type":"boolean"},"gridX":{"type":"integer"},"gridY":{"type":"integer"},"gridW":{"type":"integer"},"gridH":{"type":"integer"}}}},"required":["id","patch"]}),
         ));
         tools.push(tool_definition(
             "dashboard_remove_instance",
@@ -2749,7 +2749,7 @@ fn dashboard_create_widget_schema() -> Value {
             "body": dashboard_widget_body_schema(),
             "preset":{"type":"string","enum":["panel","ambient","hero"]},
             "accentName":{"type":"string","enum":["default","blue","indigo","teal","green","amber","red","purple","pink","slate","cyan","orange","rose","emerald","sky"]},
-            "iconName":{"type":"string","enum":["Hash","Network","Terminal","Server","Cpu","Activity","Bolt","Sun","Bell","Bot","Wrench","Folder","Clock","Doc","Cloud","Calendar","Database","Globe","Lock","Key","Mail","Mic","Monitor","Music","Package","Phone","Pin","Power","Printer","Radio","Search","Settings","Shield","ShoppingCart","Star","Tag","Tool","Trash","Truck","User","Users","Video","Volume","Watch","Wifi","Wind","Zap","Layers","List","Grid"]},
+            "iconName":{"type":"string","enum":ICONS},
             "gridX":{"type":"integer","minimum":0,"maximum":11},
             "gridY":{"type":"integer","minimum":0},
             "gridW":{"type":"integer","minimum":1,"maximum":12},
