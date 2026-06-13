@@ -13,8 +13,8 @@ import {
 import { FileGlyph } from "./finderGlyphs";
 import { formatFileSize, formatRemoteTime } from "./format";
 import type {
+  DeleteRequest,
   FilePropertiesState,
-  RemoteDeleteRequest,
   SftpContextMenuState,
   TransferConflictDecision,
   TransferConflictState,
@@ -76,13 +76,22 @@ export function ConfirmRemoteDeleteDialog({
 }: {
   onCancel: () => void;
   onConfirm: () => void;
-  request: RemoteDeleteRequest;
+  request: DeleteRequest;
 }) {
   const { t } = useTranslation();
+  const selectedKind = request.items[0]?.kind;
+  const selectedKindLabel =
+    selectedKind === "folder"
+      ? t("sftp.folder").toLowerCase()
+      : selectedKind === "symlink"
+        ? t("sftp.symlink").toLowerCase()
+        : t("sftp.file").toLowerCase();
   const message =
-    request.items.length === 1
+    request.side === "local"
+      ? t("sftp.deleteSelected")
+      : request.items.length === 1
       ? t("sftp.deleteRemoteItemConfirm", {
-          kind: request.items[0].kind,
+          kind: selectedKindLabel,
           name: request.items[0].name,
         })
       : t("sftp.deleteRemoteItemsMultiple", { count: request.items.length });
@@ -90,7 +99,7 @@ export function ConfirmRemoteDeleteDialog({
   return (
     <ConfirmSheet
       tone="danger"
-      title={t("sftp.deleteRemoteConfirm")}
+      title={request.side === "local" ? t("sftp.deleteLabel") : t("sftp.deleteRemoteConfirm")}
       message={message}
       confirmLabel={t("sftp.deleteLabel")}
       confirmIcon="trash"
@@ -212,8 +221,8 @@ export function SftpContextMenu({
     node.style.top = `${y}px`;
   }, [menu.x, menu.y]);
 
-  const canRename = isRemote && menu.names.length === 1;
-  const canDelete = isRemote && menu.names.length > 0;
+  const canRename = menu.mutable && menu.names.length === 1;
+  const canDelete = menu.mutable && menu.names.length > 0;
   const canOpen = menu.names.length === 1 && menu.openable;
 
   return (

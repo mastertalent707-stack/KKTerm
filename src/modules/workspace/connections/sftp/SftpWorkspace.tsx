@@ -30,9 +30,9 @@ import {
 } from "./SftpOverlays";
 import { formatFileSize, formatMode, formatRemoteTime, formatTransferResult, joinLocalPath, joinRemotePath } from "./format";
 import type {
+  DeleteRequest,
   FilePaneSide,
   FilePropertiesState,
-  RemoteDeleteRequest,
   SftpContextMenuState,
   TransferConflictDecision,
   TransferConflictState,
@@ -88,7 +88,7 @@ export function SftpWorkspace({
   const [propertiesState, setPropertiesState] = useState<FilePropertiesState | null>(null);
   const [transferConflict, setTransferConflict] = useState<TransferConflictState | null>(null);
   const [newRemoteFolderOpen, setNewRemoteFolderOpen] = useState(false);
-  const [remoteDeleteRequest, setRemoteDeleteRequest] = useState<RemoteDeleteRequest | null>(null);
+  const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null);
   const [isRemoteDropTarget, setIsRemoteDropTarget] = useState(false);
   const [renameRequest, setRenameRequest] = useState<{
     side: FilePaneSide;
@@ -655,6 +655,46 @@ export function SftpWorkspace({
     }
   };
 
+  const handleRenameLocalPath = async (currentName: string, newName: string) => {
+    const selected = localFiles.find((file) => file.name === currentName);
+    if (!selected || !localPath || isLocalDrivePicker || !isTauriRuntime()) {
+      return;
+    }
+
+    const trimmedName = newName.trim();
+    if (!trimmedName || trimmedName === selected.name) {
+      return;
+    }
+
+    setIsLocalLoading(true);
+    setLocalStatus(t("sftp.renaming"));
+    try {
+      await invokeCommand("rename_local_path", {
+        request: {
+          path: joinLocalPath(localPath, selected.name),
+          newName: trimmedName,
+        },
+      });
+      await refreshLocalDirectory();
+    } catch (error) {
+      setLocalStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsLocalLoading(false);
+    }
+  };
+
+  const handleDeleteLocalPath = async (names = selectedLocalNames) => {
+    const selected = localFiles.filter((file) => names.includes(file.name));
+    if (!localPath || isLocalDrivePicker || selected.length === 0 || !isTauriRuntime()) {
+      return;
+    }
+
+    setDeleteRequest({
+      side: "local",
+      items: selected.map((item) => ({ kind: item.kind, name: item.name })),
+    });
+  };
+
   const handleOpenRemoteFile = async (fileName: string) => {
     const file = remoteFiles.find((entry) => entry.name === fileName);
     const sessionId = sessionIdRef.current;
@@ -810,22 +850,38 @@ export function SftpWorkspace({
       return;
     }
 
-    setRemoteDeleteRequest({
+    setDeleteRequest({
+      side: "remote",
       items: selected.map((item) => ({ kind: item.kind, name: item.name })),
     });
   };
 
-  const handleConfirmDeleteRemotePath = async () => {
+  const handleConfirmDeletePath = async () => {
     const sessionId = sessionIdRef.current;
-    const request = remoteDeleteRequest;
-    if (!sessionId || !request || !isTauriRuntime() || !commands) {
+    const request = deleteRequest;
+    if (!request || !isTauriRuntime()) {
       return;
     }
 
-    setRemoteDeleteRequest(null);
-    setIsRemoteLoading(true);
-    setStatus(t("sftp.deleting"));
+    setDeleteRequest(null);
     try {
+      if (request.side === "local") {
+        setIsLocalLoading(true);
+        setLocalStatus(t("sftp.deleting"));
+        for (const item of request.items) {
+          await invokeCommand("delete_local_path", {
+            request: { path: joinLocalPath(localPath, item.name) },
+          });
+        }
+        await refreshLocalDirectory();
+        return;
+      }
+
+      if (!sessionId || !commands) {
+        return;
+      }
+      setIsRemoteLoading(true);
+      setStatus(t("sftp.deleting"));
       for (const item of request.items) {
         await commands.deletePath({
           sessionId,
@@ -834,8 +890,14 @@ export function SftpWorkspace({
       }
       await refreshRemoteDirectory();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      if (request.side === "local") {
+        setLocalStatus(message);
+      } else {
+        setStatus(message);
+      }
     } finally {
+      setIsLocalLoading(false);
       setIsRemoteLoading(false);
     }
   };
@@ -886,6 +948,7 @@ export function SftpWorkspace({
       names: nextNames,
       x: event.clientX,
       y: event.clientY,
+      mutable: side === "local" ? !isLocalDrivePicker : isConnected && !isTransferring,
       openable:
         nextNames.length === 1 &&
         (side === "local" ? localFiles : remoteFiles).some(
@@ -916,7 +979,14 @@ export function SftpWorkspace({
   };
 
   const handleContextRename = (menu: SftpContextMenuState) => {
-    if (menu.side === "remote" && menu.names.length === 1) {
+    if (menu.side === "local" && menu.names.length === 1 && menu.mutable) {
+      setSelectedLocalNames(menu.names);
+      setRenameRequest({
+        side: "local",
+        name: menu.names[0],
+        requestId: Date.now(),
+      });
+    } else if (menu.side === "remote" && menu.names.length === 1 && menu.mutable) {
       setSelectedRemoteNames(menu.names);
       setRenameRequest({
         side: "remote",
@@ -942,7 +1012,9 @@ export function SftpWorkspace({
   };
 
   const handleContextDelete = (menu: SftpContextMenuState) => {
-    if (menu.side === "remote") {
+    if (menu.side === "local") {
+      void handleDeleteLocalPath(menu.names);
+    } else if (menu.side === "remote") {
       void handleDeleteRemotePath(menu.names);
     }
     setContextMenu(null);
@@ -1194,6 +1266,8 @@ export function SftpWorkspace({
           selectedNames={selectedLocalNames}
           onRefresh={refreshLocalDirectory}
           onGoUp={openLocalParent}
+          onRenameSelected={!isLocalDrivePicker ? handleRenameLocalPath : undefined}
+          onDeleteSelected={!isLocalDrivePicker ? handleDeleteLocalPath : undefined}
           onOpenFolder={openLocalFolder}
           onOpenFile={(fileName) => void handleOpenLocalFile(fileName)}
           onPathSubmit={(path) => void loadLocalDirectory(path)}
@@ -1203,6 +1277,7 @@ export function SftpWorkspace({
           onDropTransfer={
             !isLocalFilesBrowser && isConnected && !isTransferring && !isLocalDrivePicker ? handleDropTransfer : undefined
           }
+          renameRequest={renameRequest?.side === "local" ? renameRequest : undefined}
         />
         {!isLocalFilesBrowser ? (
           <>
@@ -1296,11 +1371,11 @@ export function SftpWorkspace({
           onCreate={(name) => void handleConfirmCreateRemoteFolder(name)}
         />
       ) : null}
-      {remoteDeleteRequest ? (
+      {deleteRequest ? (
         <ConfirmRemoteDeleteDialog
-          request={remoteDeleteRequest}
-          onCancel={() => setRemoteDeleteRequest(null)}
-          onConfirm={() => void handleConfirmDeleteRemotePath()}
+          request={deleteRequest}
+          onCancel={() => setDeleteRequest(null)}
+          onConfirm={() => void handleConfirmDeletePath()}
         />
       ) : null}
       {transferConflict ? (

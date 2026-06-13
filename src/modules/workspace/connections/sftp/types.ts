@@ -38,6 +38,7 @@ export type SftpContextMenuState = {
   y: number;
   names: string[];
   openable: boolean;
+  mutable: boolean;
 };
 
 export type FilePropertiesState = {
@@ -47,6 +48,7 @@ export type FilePropertiesState = {
   remoteProperties?: SftpPathProperties;
 };
 
-export type RemoteDeleteRequest = {
+export type DeleteRequest = {
+  side: FilePaneSide;
   items: Array<Pick<FileEntry, "kind" | "name">>;
 };
