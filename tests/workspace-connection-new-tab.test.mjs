@@ -158,13 +158,18 @@ test("Connection Tree supports forced new Tabs from Ctrl-click and Add to menu",
   assert.match(sidebarSource, /action: \(\) => handleTreeMenuOpenNewTab\(menu\)/);
   assert.match(
     sidebarSource,
-    /const canOpenNewTab = !showChildTabsInTree \|\| isTerminalConnectionType\(menu\.connection\.type\);/,
+    /const canOpenNewTab =[\s\S]*?!showChildTabsInTree \|\| isTerminalConnectionType\(menu\.connection\.type\);/,
     "Add Tab should only be disabled for non-terminal Connections when Child Connection Tabs are enabled",
   );
   assert.match(
     sidebarSource,
     /label: `\$\{t\("workspace\.newTab"\)\}\\t\$\{t\("connections\.newTabShortcut"\)\}`,[\s\S]*?disabled: !canOpenNewTab,/,
     "native Add to > Add Tab should be disabled for non-terminal Child Connection Tab targets",
+  );
+  assert.match(
+    sidebarSource,
+    /label: t\("workspace\.newTab"\),[\s\S]*?disabled: !canOpenNewTab,[\s\S]*?iconSvg: nativeMenuIcons\.squarePlus,/,
+    "native top-level Add Tab should be disabled for non-terminal Child Connection Tab targets",
   );
   assert.match(
     sidebarSource,

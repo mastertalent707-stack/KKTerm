@@ -1522,11 +1522,14 @@ export function ConnectionSidebar({
     }
 
     const items: NativeContextMenuItem[] = [];
+    const canOpenNewTab =
+      menu.kind !== "connection" || !showChildTabsInTree || isTerminalConnectionType(menu.connection.type);
     if (menu.kind === "connection") {
       items.push(
         {
           kind: "item",
           label: t("workspace.newTab"),
+          disabled: !canOpenNewTab,
           iconSvg: nativeMenuIcons.squarePlus,
           action: () => handleTreeMenuOpenNewTab(menu),
         },
@@ -1555,7 +1558,6 @@ export function ConnectionSidebar({
     const isPinned = generalSettings.pinnedConnectionIds.includes(menu.connection.id);
     const isConnected = (activeSessionCounts[menu.connection.id] ?? 0) > 0;
     const canAddToPane = Boolean(tabs.find((tab) => tab.id === activeTabId && tab.kind === "terminal"));
-    const canOpenNewTab = !showChildTabsInTree || isTerminalConnectionType(menu.connection.type);
     items.push(
       { kind: "separator" },
       {
