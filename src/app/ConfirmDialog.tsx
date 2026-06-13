@@ -1,8 +1,10 @@
-import { ConfirmSheet } from "./ui/dialog";
+import { ConfirmSheet, type DialogIconName } from "./ui/dialog";
 
 export function ConfirmDialog({
   cancelLabel,
+  confirmIcon,
   confirmLabel,
+  icon,
   message,
   onCancel,
   onConfirm,
@@ -10,7 +12,11 @@ export function ConfirmDialog({
   tone = "default",
 }: {
   cancelLabel?: string;
+  /** Override the confirm-button glyph. Defaults to a trash icon for danger. */
+  confirmIcon?: DialogIconName;
   confirmLabel: string;
+  /** Override the tinted header glyph. Defaults to the tone glyph (info/trash). */
+  icon?: DialogIconName;
   message: string;
   onCancel: () => void;
   onConfirm: () => void;
@@ -20,10 +26,11 @@ export function ConfirmDialog({
   return (
     <ConfirmSheet
       tone={tone === "danger" ? "danger" : "info"}
+      icon={icon}
       title={title}
       message={message}
       confirmLabel={confirmLabel}
-      confirmIcon={tone === "danger" ? "trash" : undefined}
+      confirmIcon={confirmIcon ?? (tone === "danger" ? "trash" : undefined)}
       cancelLabel={cancelLabel}
       onCancel={onCancel}
       onConfirm={onConfirm}

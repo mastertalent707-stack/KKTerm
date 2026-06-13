@@ -2639,7 +2639,9 @@ function TerminalPaneView({
       ) : null}
       {multilinePasteConfirmationOpen ? (
         <ConfirmDialog
+          confirmIcon="copy"
           confirmLabel={t("common.paste")}
+          icon="copy"
           message={t("terminal.pasteMultilineConfirm")}
           onCancel={() => resolveMultilinePasteConfirmation(false)}
           onConfirm={() => resolveMultilinePasteConfirmation(true)}

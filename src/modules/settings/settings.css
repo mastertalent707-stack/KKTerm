@@ -1797,16 +1797,17 @@
   height: 28px;
   padding: 0;
   color: var(--text-muted);
-  background: transparent;
+  background: var(--surface-muted);
   border: 0;
-  border-radius: 4px;
+  border-radius: 50%;
   cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
 
 .mcp-dialog-close-button:hover,
 .mcp-dialog-close-button:focus-visible {
   color: var(--text);
-  background: var(--surface-muted);
+  background: var(--border);
   outline: none;
 }
 
@@ -2070,20 +2071,21 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   color: var(--text-muted);
-  background: transparent;
+  background: var(--surface-muted);
   border: 0;
-  border-radius: 10px;
+  border-radius: 50%;
   cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
 
 .settings-popup .connection-dialog-close:hover,
 .settings-popup .connection-dialog-close:focus-visible {
   color: var(--text);
-  background: var(--surface-muted);
+  background: var(--border);
 }
 
 .settings-popup .settings-layout {

@@ -10,14 +10,15 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { isMacPlatform } from "../../../lib/platform";
 import { DIcon, type DialogIconName } from "./icons";
 
 /* --------------------- UI convention (mac / windows) ------------------- */
-// macOS:   [ … destructive ]   spacer   Cancel   Primary
-// Windows: [ … destructive ]   spacer   Primary  Cancel
-// KKTerm is Windows-first, so the app default is "windows" (AGENTS.md).
+// macOS:   [ destructive … ]   spacer   Cancel   Primary
+// Windows: [ … ]              spacer   Primary  destructive  Cancel
+// The default follows the host platform; a provider can override for previews.
 export type DialogConvention = "mac" | "windows";
-const ConvCtx = createContext<DialogConvention>("windows");
+const ConvCtx = createContext<DialogConvention>(isMacPlatform() ? "mac" : "windows");
 export function useDialogConvention() {
   return useContext(ConvCtx);
 }
@@ -41,21 +42,24 @@ export function Actions({
   extraLeft?: ReactNode;
 }) {
   const conv = useDialogConvention();
+  // Windows: right-aligned [ Primary  Auxiliary  Cancel ].
+  // macOS:   [ Auxiliary … ] spacer [ Cancel  Primary ].
+  if (conv === "windows") {
+    return (
+      <>
+        <span className="kk-spacer" />
+        {primary}
+        {extraLeft ?? null}
+        {cancel}
+      </>
+    );
+  }
   return (
     <>
       {extraLeft ?? null}
       <span className="kk-spacer" />
-      {conv === "windows" ? (
-        <>
-          {primary}
-          {cancel}
-        </>
-      ) : (
-        <>
-          {cancel}
-          {primary}
-        </>
-      )}
+      {cancel}
+      {primary}
     </>
   );
 }

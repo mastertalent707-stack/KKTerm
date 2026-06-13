@@ -680,6 +680,14 @@ h2 {
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 
+/* Connection-dialog fields sit on the white sheet with a hairline border —
+   a white fill, not a grey one (design language). */
+.connection-dialog input,
+.connection-dialog select,
+.connection-dialog textarea {
+  background: var(--surface);
+}
+
 .connection-dialog textarea {
   height: auto;
   min-height: 82px;

@@ -38,6 +38,7 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import i18next from "../../../i18n/config";
 import { ariaExpanded, dialogButtonAria } from "../../../lib/aria";
+import { isMacPlatform } from "../../../lib/platform";
 import { nativeMenuIcons } from "../../../lib/nativeMenuIcons";
 import { showNativeContextMenu, type NativeContextMenuItem } from "../../../lib/nativeContextMenu";
 import { confirmNativeDialog, invokeCommand, isTauriRuntime, selectAppLauncherFolder, selectKeyFile, type TmuxSession } from "../../../lib/tauri";
@@ -47,6 +48,12 @@ import { DialogPortal } from "../../../app/DialogPortal";
 import { pushTrayMenu } from "../../../app/trayMenu";
 import { CHILD_CONNECTION_CLOSED_EVENT, DEFAULT_WORKSPACE_ID, appendTmuxSessionId, useWorkspaceStore } from "../../../store";
 import type { Connection, ConnectionFolder, ConnectionStatus, ConnectionTree, ConnectionType, CreateConnectionRequest, RdpSettings, SplitDirection, SshSettings, StoredCredentialSummary, UpdateConnectionRequest, VncSettings, WorkspaceChildConnection, WorkspaceTab } from "../../../types";
+
+// Dialog footer order follows the host platform: macOS shows [Cancel] [Primary],
+// Windows shows [Primary] [Cancel]. Footers are authored primary-first; the
+// mac-order class flips the visual order via CSS (these dialogs portal to body,
+// so the ordering can't ride a [data-platform] ancestor).
+const DIALOG_ACTIONS_CLASS = isMacPlatform() ? "dialog-actions mac-order" : "dialog-actions";
 
 type DraggedTreeItem =
   | { kind: "folder"; folderId: string }
@@ -2546,7 +2553,7 @@ function ChildConnectionPropertiesDialog({
             />
           </label>
         </div>
-        <div className="dialog-actions">
+        <div className={DIALOG_ACTIONS_CLASS}>
           <button className="approve-button" disabled={!trimmedName} type="submit">
             {t("common.save")}
           </button>
@@ -3771,7 +3778,7 @@ function ConnectionDialog({
 
         {error ? <p className="form-error">{error}</p> : null}
 
-        <div className="dialog-actions">
+        <div className={DIALOG_ACTIONS_CLASS}>
           <button className="approve-button" disabled={!connectionType} type="submit">
             <Check size={15} />
             {mode === "quick" ? t("connections.saveAndConnect") : t("common.save")}
@@ -3863,7 +3870,7 @@ function ConnectionSshKeyEmailDialog({
             value={email}
           />
         </label>
-        <div className="dialog-actions">
+        <div className={DIALOG_ACTIONS_CLASS}>
           <button className="approve-button" disabled={!canSubmit} type="submit">
             <KeyRound size={15} />
             {isGenerating ? t("settings.sshKeyGenerating") : t("settings.generateSshKey")}
@@ -3976,7 +3983,7 @@ function TransferSshPublicKeyDialog({
             />
           </label>
         </div>
-        <div className="dialog-actions">
+        <div className={DIALOG_ACTIONS_CLASS}>
           <button className="approve-button" disabled={!canSubmit} type="submit">
             <KeyRound size={15} />
             {t("connections.transferSshPublicKeyAction")}

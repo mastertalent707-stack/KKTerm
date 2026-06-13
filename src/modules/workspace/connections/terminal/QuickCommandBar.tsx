@@ -182,7 +182,9 @@ export function QuickCommandBar({ tab }: { tab: WorkspaceTab }) {
       ) : null}
       {pendingCommand ? (
         <ConfirmDialog
+          confirmIcon="send"
           confirmLabel={t("terminal.quickCommandsRun")}
+          icon="send"
           message={t("terminal.quickCommandsConfirm", { label: pendingCommand.label })}
           onCancel={() => setPendingCommand(null)}
           onConfirm={() => {
