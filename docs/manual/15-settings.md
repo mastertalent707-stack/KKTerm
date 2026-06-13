@@ -83,7 +83,7 @@ Settings tutorial targets:
 - Activity Rail group `settings.activityRail`:
   - Toggle `settings.connectedConnectionsRail` (hint `settings.connectedConnectionsRailHint`). When on, connected Connection icons appear on the Activity Rail; when off, connected Connection shortcuts are hidden from the Activity Rail.
 - Tabs group `settings.workspaceTabs`.
-- Toggle `settings.hideTopTabButtons` (hint `settings.hideTopTabButtonsDesc`). When on, the top `workspace.tabStrip` buttons are hidden and new Tabs opened from saved Connections become **Child Connection Tabs**. Child Connection Tabs are shown as italic rows under their parent Connection in the Connection Tree, persist across launches, open lazily when selected, can be renamed, and expose `connections.childConnectionProperties` for child icon/color edits.
+- Toggle `settings.hideTopTabButtons` (hint `settings.hideTopTabButtonsDesc`). When on, the top `workspace.tabStrip` buttons are hidden and new Tabs opened from saved Connections become **Child Connection Tabs**. Child Connection Tabs are shown as italic rows under their parent Connection in the active Workspace's Connection Tree, persist across launches, open lazily when selected, can be renamed, and expose `connections.childConnectionProperties` for child icon/color edits.
 - AI Assistant group `settings.sectionAiAssistant`.
 - Toggle `settings.submitAiAttachmentsDirectly` (hint `settings.submitAiAttachmentsDirectlyDesc`). The default is on: Workspace Send to AI Assistant actions submit the captured screenshot or terminal buffer with `ai.directAttachmentPrompt`. When off, they only attach the context to the composer.
 - Terminal backgrounds group `settings.terminalBackgrounds`.

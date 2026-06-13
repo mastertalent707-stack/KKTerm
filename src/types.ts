@@ -609,6 +609,7 @@ export interface AiProviderSettings {
 
 export interface WorkspaceTab {
   id: string;
+  workspaceId?: string;
   childConnectionId?: string;
   childConnectionGroupParentId?: string;
   title: string;
@@ -630,6 +631,7 @@ export interface WorkspaceTab {
 
 export interface WorkspaceChildConnection {
   id: string;
+  workspaceId?: string;
   parentConnectionId: string;
   name: string;
   tmuxSessionId?: string;

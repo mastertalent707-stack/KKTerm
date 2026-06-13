@@ -23,11 +23,12 @@ Tutorial targets: `workspace.tabStrip`, `workspace.canvas`, `workspace.emptyStat
 
 ## Child Connection Tabs
 
-Child Connection Tabs are the alternate Workspace tab model enabled by `settings.hideTopTabButtons`. In this mode, the top Tab Strip is hidden and each saved Tab for a Connection appears as an italic child row under that parent Connection in the Connection Tree.
+Child Connection Tabs are the alternate Workspace tab model enabled by `settings.hideTopTabButtons`. In this mode, the top Tab Strip is hidden and each saved Tab for a Connection appears as an italic child row under that parent Connection in the active Workspace's Connection Tree.
 
 A Child Connection Tab stores Workspace presentation and reopen hints:
 
 - Child Tab name, shown in the tree and as the Pane toolbar title.
+- Owning Workspace id, so switching Workspaces hides child rows and open child-tab locations that belong to another Workspace without closing their live Sessions.
 - Optional child-specific icon image and icon background.
 - Optional tmux session id for tmux-enabled SSH.
 - Optional last terminal working directory for non-tmux terminal children.
@@ -36,7 +37,7 @@ It does not duplicate the parent Connection's host, protocol, or credential meta
 
 Right-clicking a Child Connection Tab exposes `connections.rename` and `connections.properties`; the properties dialog `connections.childConnectionProperties` edits the child Tab name, icon image, and icon background. Double-clicking the child row name starts inline rename.
 
-Selecting a parent Connection that already has Child Connection Tabs opens all of its children together in one split Tab when no child Session is already open. Two children use a left/right split, three use two Panes above one Pane, and larger sets use a grid-style split for monitoring many Sessions at once. If a child or child-layout Tab is already live, KKTerm reuses the existing Tab/Pane instead of opening another SSH or terminal Session. When an existing child-layout Tab is refreshed or reselected, KKTerm restores the previously focused child Pane when that Pane is still part of the layout, clears any single-Pane maximize state, and returns terminal input focus to that Pane.
+Selecting a parent Connection that already has Child Connection Tabs for the active Workspace opens those children together in one split Tab when no child Session is already open. Two children use a left/right split, three use two Panes above one Pane, and larger sets use a grid-style split for monitoring many Sessions at once. If a child or child-layout Tab for the active Workspace is already live, KKTerm reuses the existing Tab/Pane instead of opening another SSH or terminal Session. When an existing child-layout Tab is refreshed or reselected, KKTerm restores the previously focused child Pane when that Pane is still part of the layout, clears any single-Pane maximize state, and returns terminal input focus to that Pane.
 
 ## Tab right-click menu
 

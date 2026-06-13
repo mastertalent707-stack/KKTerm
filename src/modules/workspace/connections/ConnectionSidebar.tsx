@@ -476,15 +476,19 @@ export function ConnectionSidebar({
 
   function openTabsForConnection(connectionId: string) {
     return showChildTabsInTree
-      ? tabs.filter((tab) =>
-          tab.connection?.id === connectionId,
-        )
+      ? tabs.filter((tab) => {
+          const tabWorkspaceId = tab.workspaceId ?? DEFAULT_WORKSPACE_ID;
+          return tab.connection?.id === connectionId && tabWorkspaceId === activeWorkspaceId;
+        })
       : [];
   }
 
   function childrenForConnection(connectionId: string) {
     return showChildTabsInTree
-      ? childConnections.filter((child) => child.parentConnectionId === connectionId)
+      ? childConnections.filter((child) => {
+          const childWorkspaceId = child.workspaceId ?? DEFAULT_WORKSPACE_ID;
+          return child.parentConnectionId === connectionId && childWorkspaceId === activeWorkspaceId;
+        })
       : [];
   }
 
@@ -511,6 +515,7 @@ export function ConnectionSidebar({
         : `${connection.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const child: WorkspaceChildConnection = {
       id,
+      workspaceId: activeWorkspaceId,
       parentConnectionId: connection.id,
       name,
       tmuxSessionId,
@@ -544,9 +549,11 @@ export function ConnectionSidebar({
 
   function handleOpenChildConnection(connection: Connection, child: WorkspaceChildConnection) {
     const existingChildLocation = tabs.flatMap((tab) =>
-      tab.panes
-        .filter((pane) => pane.childConnectionId === child.id)
-        .map((pane) => ({ tab, pane })),
+      (tab.workspaceId ?? DEFAULT_WORKSPACE_ID) === activeWorkspaceId
+        ? tab.panes
+            .filter((pane) => pane.childConnectionId === child.id)
+            .map((pane) => ({ tab, pane }))
+        : [],
     )[0];
     if (existingChildLocation) {
       if (existingChildLocation.tab.childConnectionGroupParentId) {

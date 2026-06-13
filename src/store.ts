@@ -1253,6 +1253,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const tab: WorkspaceTab = {
       id: `tab-${connection.id}`,
+      workspaceId: get().activeWorkspaceId,
       title: connection.name,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: terminalConnectionSubtitle(connection),
@@ -1297,6 +1298,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         connection.ftpOptions?.protocol?.toUpperCase() ?? "FTP";
       const tab: WorkspaceTab = {
         id: tabId,
+        workspaceId: get().activeWorkspaceId,
         title: `${connection.name} ${protocolLabel}`,
         toolbarTitle: toolbarTitleForConnection(connection),
         subtitle: `${connection.user || "anonymous"}@${connection.host}`,
@@ -1350,6 +1352,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       : terminalConnectionSubtitle(connection);
     const tab: WorkspaceTab = {
       id: tabId,
+      workspaceId: get().activeWorkspaceId,
       childConnectionId: options?.childConnectionId,
       title: options?.title ?? connection.name,
       toolbarTitle: options?.toolbarTitle ?? toolbarTitleForConnection(connection),
@@ -1384,6 +1387,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     };
     const tab: WorkspaceTab = {
       id: createConnectionTabId(connection.id),
+      workspaceId: get().activeWorkspaceId,
       title: options?.title ?? connection.name,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: options?.subtitle ?? urlConnectionSubtitle(tabConnection),
@@ -1418,8 +1422,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
   openChildConnectionLayout: (connection, children) => {
     const state = get();
+    const activeWorkspaceId = state.activeWorkspaceId;
     const existingGroupTab = state.tabs.find(
-      (tab) => tab.childConnectionGroupParentId === connection.id,
+      (tab) =>
+        tab.childConnectionGroupParentId === connection.id &&
+        (tab.workspaceId ?? DEFAULT_WORKSPACE_ID) === activeWorkspaceId,
     );
 
     const uniqueChildren = children.filter(
@@ -1441,6 +1448,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     >();
     for (const tab of state.tabs) {
       if (tab.id === existingGroupTab?.id) {
+        continue;
+      }
+      if ((tab.workspaceId ?? DEFAULT_WORKSPACE_ID) !== activeWorkspaceId) {
         continue;
       }
       for (const pane of tab.panes) {
@@ -1502,6 +1512,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const tab: WorkspaceTab = {
       ...existingGroupTab,
       id: tabId,
+      workspaceId: get().activeWorkspaceId,
       childConnectionGroupParentId: connection.id,
       title: connection.name,
       toolbarTitle: toolbarTitleForConnection(connection),
@@ -1642,6 +1653,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
     const tab: WorkspaceTab = {
       id: `tab-${connection.id}`,
+      workspaceId: get().activeWorkspaceId,
       title: connection.name,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: remoteDesktopSubtitle(connection),
@@ -1675,6 +1687,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const tab: WorkspaceTab = {
       id: `tab-${connection.id}`,
+      workspaceId: get().activeWorkspaceId,
       title: connection.name,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle,
@@ -1722,6 +1735,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     };
     const tab: WorkspaceTab = {
       id: tabId,
+      workspaceId: get().activeWorkspaceId,
       title,
       toolbarTitle: title,
       subtitle: `127.0.0.1:${forward.localPort} -> ${sourceConnection.host}:${forward.remotePort}`,
@@ -1755,6 +1769,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const tab: WorkspaceTab = {
       id: tabId,
+      workspaceId: get().activeWorkspaceId,
       title: `${connection.name} SFTP`,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: `${connection.user}@${connection.host}`,
@@ -1776,6 +1791,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const tabId = createConnectionTabId(`${connection.id}-sftp`);
     const tab: WorkspaceTab = {
       id: tabId,
+      workspaceId: get().activeWorkspaceId,
       title: `${connection.name} SFTP`,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: `${connection.user}@${connection.host}`,
@@ -1823,6 +1839,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       connection.ftpOptions?.protocol?.toUpperCase() ?? "FTP";
     const tab: WorkspaceTab = {
       id: tabId,
+      workspaceId: get().activeWorkspaceId,
       title: `${connection.name} ${protocolLabel}`,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: `${connection.user || "anonymous"}@${connection.host}`,
@@ -1848,6 +1865,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
     const tab: WorkspaceTab = {
       id: tabId,
+      workspaceId: get().activeWorkspaceId,
       title: connection.name,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: connection.localStartupDirectory || connection.host || "",
@@ -1865,6 +1883,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const tabId = `tab-${connection.id}-terminal-${Date.now()}`;
     const tab: WorkspaceTab = {
       id: tabId,
+      workspaceId: get().activeWorkspaceId,
       title: `${connection.name} terminal`,
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: `${connection.user}@${connection.host}:${normalizedPath}`,

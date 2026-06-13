@@ -715,10 +715,21 @@
   grid-template-columns: minmax(180px, 1fr) minmax(150px, 190px) auto;
   gap: 8px;
   align-items: end;
+  margin-bottom: 4px;
 }
 
-.new-workspace-import-search {
+.connection-dialog .new-workspace-import-search {
+  display: flex;
+  align-items: center;
   margin: 0;
+}
+
+.connection-dialog .new-workspace-import-search input[type="search"] {
+  height: auto;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .new-workspace-selection-actions {

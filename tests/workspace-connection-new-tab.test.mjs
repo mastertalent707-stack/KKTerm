@@ -73,6 +73,26 @@ test("Connection Tree supports forced new Tabs from Ctrl-click and Add to menu",
     "parent Connection rows should remain active when a focused child Pane is restored in the panorama",
   );
   assert.match(
+    storeSource,
+    /workspaceId: get\(\)\.activeWorkspaceId/,
+    "new workspace Tabs should remember the Workspace that opened them",
+  );
+  assert.match(
+    storeSource,
+    /tab\.childConnectionGroupParentId === connection\.id &&[\s\S]*?\(tab\.workspaceId \?\? DEFAULT_WORKSPACE_ID\) === activeWorkspaceId/,
+    "parent child-layout reopen should only reuse a group Tab from the active Workspace",
+  );
+  assert.match(
+    sidebarSource,
+    /const childWorkspaceId = child\.workspaceId \?\? DEFAULT_WORKSPACE_ID;[\s\S]*?childWorkspaceId === activeWorkspaceId/,
+    "Child Connection Tab rows should be scoped to the active Workspace, with legacy rows kept in Default",
+  );
+  assert.match(
+    sidebarSource,
+    /const tabWorkspaceId = tab\.workspaceId \?\? DEFAULT_WORKSPACE_ID;[\s\S]*?tabWorkspaceId === activeWorkspaceId/,
+    "open child-tab locations should only come from Tabs owned by the active Workspace",
+  );
+  assert.match(
     sidebarSource,
     /const isConnected = \(activeSessionCounts\[menu\.connection\.id\] \?\? 0\) > 0;/,
     "connected Connection rows should expose a Close Connection menu item",
