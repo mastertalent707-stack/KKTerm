@@ -58,6 +58,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("SSH connection is created")
     }
@@ -85,6 +86,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("local connection is created")
     }
@@ -150,6 +152,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("connection is created");
 
@@ -196,6 +199,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("local connection is created");
 
@@ -252,6 +256,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("RDP connection is created");
 
@@ -285,6 +290,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("VNC connection is created");
 
@@ -319,6 +325,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("Telnet connection is created");
 
@@ -350,6 +357,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("Serial connection is created");
 
@@ -386,6 +394,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("URL connection is created");
 
@@ -585,6 +594,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("SSH connection is created");
         let url = storage
@@ -609,6 +619,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("URL connection is created");
         storage
@@ -719,6 +730,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("RDP connection is created");
         let credential = storage
@@ -772,6 +784,7 @@
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Staging".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("staging folder is created");
         let connection = create_test_ssh_connection(
@@ -806,12 +819,14 @@
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Staging".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("staging folder is created");
         let production = storage
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Production".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("production folder is created");
         let connection = create_test_ssh_connection(
@@ -942,6 +957,7 @@
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Production".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("production folder is created");
         let connection = create_test_ssh_connection(
@@ -971,6 +987,7 @@
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Production".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("production folder is created");
         let connection = create_test_ssh_connection(
@@ -1012,6 +1029,7 @@
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Customer A".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("folder is created");
         assert_eq!(created.name, "Customer A");
@@ -1042,12 +1060,14 @@
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Customer A".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("parent folder is created");
         let child = storage
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Production".to_string(),
                 parent_folder_id: Some(parent.id.clone()),
+                workspace_id: None,
             })
             .expect("child folder is created");
 
@@ -1067,6 +1087,7 @@
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Ephemeral".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("folder is created");
 
@@ -1092,6 +1113,7 @@
                 rdp_options: None,
                 vnc_options: None,
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("connection is created in folder");
 
@@ -1112,12 +1134,14 @@
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Production".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("production folder is created");
         let staging = storage
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Staging".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("staging folder is created");
 
@@ -1145,12 +1169,14 @@
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Production".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("production folder is created");
         let staging = storage
             .create_connection_folder(CreateConnectionFolderRequest {
                 name: "Staging".to_string(),
                 parent_folder_id: None,
+                workspace_id: None,
             })
             .expect("staging folder is created");
         create_test_ssh_connection(
@@ -1976,6 +2002,7 @@
                     view_mode: Some("fitWidth".to_string()),
                 }),
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("RDP connection with options is created");
 
@@ -2021,6 +2048,7 @@
                     view_mode: Some("fitWidth".to_string()),
                 }),
                 ftp_options: None,
+                workspace_id: None,
             })
             .expect("VNC connection with options is created");
 
@@ -2619,6 +2647,82 @@
             updated_at: now,
         });
         assert!(oversize.is_err());
+    }
+
+    #[test]
+    fn default_workspace_is_seeded_and_scopes_the_connection_tree() {
+        let storage = Storage::open(temp_db_path("workspace-seed")).expect("storage opens");
+
+        let workspaces = storage.list_workspaces().expect("workspaces load");
+        assert_eq!(workspaces.len(), 1, "the Default Workspace is seeded");
+        let default = &workspaces[0];
+        assert!(default.is_default);
+
+        // A Connection created without an explicit Workspace lands in Default.
+        create_test_ssh_connection(&storage, "Bastion", "bastion.internal", None);
+        let default_tree = storage
+            .list_connection_tree_for_workspace(default.id.clone())
+            .expect("default tree loads");
+        assert_eq!(default_tree.connections.len(), 1);
+
+        // A fresh Workspace starts empty and isolated from Default.
+        let other = storage
+            .create_workspace(CreateWorkspaceRequest {
+                name: "Staging".to_string(),
+                icon: Some("Server".to_string()),
+                import_connection_ids: None,
+            })
+            .expect("workspace is created");
+        assert!(!other.is_default);
+        let other_tree = storage
+            .list_connection_tree_for_workspace(other.id.clone())
+            .expect("other tree loads");
+        assert!(other_tree.connections.is_empty());
+    }
+
+    #[test]
+    fn create_workspace_copy_imports_connections_independently() {
+        let storage = Storage::open(temp_db_path("workspace-import")).expect("storage opens");
+        let source = create_test_ssh_connection(&storage, "Bastion", "bastion.internal", None);
+
+        let imported = storage
+            .create_workspace(CreateWorkspaceRequest {
+                name: "Ops".to_string(),
+                icon: None,
+                import_connection_ids: Some(vec![source.id.clone()]),
+            })
+            .expect("workspace with import is created");
+
+        let imported_tree = storage
+            .list_connection_tree_for_workspace(imported.id.clone())
+            .expect("imported tree loads");
+        assert_eq!(imported_tree.connections.len(), 1);
+        let copy = &imported_tree.connections[0];
+        assert_ne!(copy.id, source.id, "the import is an independent copy");
+        assert_eq!(copy.host, source.host);
+    }
+
+    #[test]
+    fn delete_workspace_rejects_the_default_workspace() {
+        let storage = Storage::open(temp_db_path("workspace-delete")).expect("storage opens");
+        assert!(
+            storage
+                .delete_workspace(DEFAULT_WORKSPACE_ID.to_string())
+                .is_err(),
+            "the Default Workspace cannot be deleted"
+        );
+
+        let other = storage
+            .create_workspace(CreateWorkspaceRequest {
+                name: "Temp".to_string(),
+                icon: None,
+                import_connection_ids: None,
+            })
+            .expect("workspace is created");
+        storage
+            .delete_workspace(other.id.clone())
+            .expect("non-default workspace deletes");
+        assert_eq!(storage.list_workspaces().expect("workspaces load").len(), 1);
     }
 
     fn temp_db_path(name: &str) -> PathBuf {
