@@ -19,20 +19,71 @@
   margin-bottom: 0;
 }
 
-/* toolbar identity — host over status; the connected pill lives in the right
-   cluster so it anchors top-right on the same row as the host name. */
-.sftp-toolbar-id {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+/* Single-row titlebar: left = kind glyph + label + status; center = user@host;
+   right = actions (terminal / close). A 3-column grid keeps the host centered
+   regardless of the left/right group widths. */
+.sftp-toolbar.workspace-toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 2px 6px 2px 14px;
+}
+.sftp-bar-left {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
-.sftp-toolbar-id strong {
+.sftp-bar-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.sftp-bar-kind svg {
+  color: var(--accent);
+}
+.sftp-bar-center {
+  justify-self: center;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
 }
+.sftp-bar-right {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sftp-bar-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.sftp-bar-close:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
 .sftp-conn-pill {
   display: inline-flex;
   align-items: center;
@@ -48,16 +99,16 @@
   border-radius: 50%;
   background: var(--text-faint);
 }
-.sftp-conn-pill[data-connected="true"] .dot {
+.sftp-conn-pill[data-state="connected"] .dot {
   background: var(--green);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 22%, transparent);
 }
-.sftp-toolbar-sub {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-muted);
+.sftp-conn-pill[data-state="error"] {
+  color: var(--red);
+}
+.sftp-conn-pill[data-state="error"] .dot {
+  background: var(--red);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 22%, transparent);
 }
 
 /* ============================== panes row ============================== */
@@ -530,6 +581,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.sftp-xfer.has-error .sftp-xfer-bar .lead {
+  color: var(--red);
+}
+.sftp-xfer.has-error .sftp-xfer-bar .status {
+  color: var(--red);
+  font-weight: 600;
 }
 .sftp-xfer-bar .mini-track {
   flex: 0 0 120px;

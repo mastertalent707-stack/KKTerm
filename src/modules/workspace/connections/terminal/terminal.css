@@ -1684,27 +1684,13 @@
   background: var(--app-bg);
 }
 
-.sftp-popup-dialog .connection-dialog-header {
-  flex: 0 0 auto;
-  padding: 16px 56px 12px 18px;
-  border-bottom: 0;
-}
-
-.sftp-popup-dialog .connection-dialog-header h2 {
-  margin: 0;
-  font-size: 17px;
-}
-
-.sftp-popup-dialog .connection-dialog-close {
-  top: 14px;
-  right: 16px;
-}
-
+/* No separate dialog header — the SFTP titlebar (with the close button) is the
+   single top row, rendered inside the workspace below. */
 .sftp-popup-dialog-body {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
-  padding: 0 14px 14px;
+  padding: 6px 12px 12px;
 }
 
 .sftp-popup-dialog-body .sftp-workspace {

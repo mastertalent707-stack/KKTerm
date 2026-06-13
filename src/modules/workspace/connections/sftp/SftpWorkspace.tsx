@@ -1,6 +1,6 @@
 import { confirmTrustedSshHostKey, connectionToolbarTitle, uniqueRuntimeId, usesNativeSshHostKeyVerification } from "../utils";
 
-import { Terminal } from "lucide-react";
+import { FolderSync, Terminal, X } from "lucide-react";
 import { DIcon } from "../../../../app/ui/dialog";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
@@ -50,11 +50,13 @@ export function SftpWorkspace({
   tab,
   commands: commandsProp,
   inline = false,
+  onClose,
 }: {
   isActive: boolean;
   tab: WorkspaceTab;
   commands?: FileBrowserCommands;
   inline?: boolean;
+  onClose?: () => void;
 }) {
   const { t } = useTranslation();
   const appearanceSettings = useWorkspaceStore((state) => state.appearanceSettings);
@@ -74,6 +76,7 @@ export function SftpWorkspace({
     readRecentPaths("remote", connection?.id),
   );
   const [status, setStatus] = useState(t("sftp.connecting"));
+  const [remoteError, setRemoteError] = useState("");
   const [localStatus, setLocalStatus] = useState("");
   const [isLocalLoading, setIsLocalLoading] = useState(false);
   const [isRemoteLoading, setIsRemoteLoading] = useState(false);
@@ -208,6 +211,7 @@ export function SftpWorkspace({
     const requestedSessionId = uniqueRuntimeId(`${connection.id}-sftp`);
     sessionIdRef.current = requestedSessionId;
     setIsRemoteLoading(true);
+    setRemoteError("");
     setStatus(t("sftp.verifyingHost"));
 
     (async () => {
@@ -246,7 +250,9 @@ export function SftpWorkspace({
         setStatus(t("sftp.connected"));
       } catch (error) {
         if (!disposed) {
-          setStatus(String(error));
+          const message = error instanceof Error ? error.message : String(error);
+          setStatus(message);
+          setRemoteError(message);
           setRemoteFiles([]);
         }
       } finally {
@@ -922,6 +928,20 @@ export function SftpWorkspace({
     TRANSFER_HISTORY_STATES.includes(transfer.state),
   ).length;
   const toolbarTitle = tab.toolbarTitle ?? (connection ? connectionToolbarTitle(connection) : tab.title);
+  const kindLabel =
+    tab.kind === "ftp"
+      ? t("sftp.protocolFtp")
+      : tab.kind === "localFiles"
+        ? t("sftp.protocolFiles")
+        : t("sftp.protocolSftp");
+  const hasRemoteHost = tab.kind !== "localFiles" && Boolean(connection);
+  const hostLabel = tab.subtitle || toolbarTitle;
+  const connectionStatusLabel = isConnected
+    ? t("sftp.connected")
+    : remoteError
+      ? t("sftp.notConnected")
+      : t("sftp.connecting");
+  const connectionStatusState = isConnected ? "connected" : remoteError ? "error" : "connecting";
 
   useEffect(() => {
     if (!isActive || !isConnected || isTransferring || !isTauriRuntime()) {
@@ -1025,19 +1045,22 @@ export function SftpWorkspace({
       ref={workspaceRef}
     >
       <div className="workspace-toolbar sftp-toolbar" data-tutorial-id="sftp.toolbar">
-        <div className="sftp-toolbar-id">
-          <strong>{toolbarTitle}</strong>
-          <span className="sftp-toolbar-sub">
-            {status === t("sftp.connected") ? tab.subtitle : status}
+        <span className="sftp-bar-left">
+          <span className="sftp-bar-kind">
+            <FolderSync size={15} />
+            {kindLabel}
           </span>
-        </div>
-        <div className="toolbar-cluster">
-          {connection ? (
-            <span className="sftp-conn-pill" data-connected={isConnected ? "true" : "false"}>
+          {hasRemoteHost ? (
+            <span className="sftp-conn-pill" data-state={connectionStatusState}>
               <span className="dot" />
-              {isConnected ? t("sftp.connected") : t("sftp.connecting")}
+              {connectionStatusLabel}
             </span>
           ) : null}
+        </span>
+        <span className="sftp-bar-center" title={hasRemoteHost ? hostLabel : undefined}>
+          {hasRemoteHost ? hostLabel : null}
+        </span>
+        <span className="sftp-bar-right">
           {!inline && commands?.capabilities.openTerminalHere ? (
             <button
               className="toolbar-button"
@@ -1050,7 +1073,17 @@ export function SftpWorkspace({
               {t("sftp.terminal")}
             </button>
           ) : null}
-        </div>
+          {onClose ? (
+            <button
+              className="sftp-bar-close"
+              aria-label={t("common.close")}
+              onClick={onClose}
+              type="button"
+            >
+              <X size={16} />
+            </button>
+          ) : null}
+        </span>
       </div>
 
       <div className="sftp-panes">
@@ -1103,7 +1136,7 @@ export function SftpWorkspace({
           path={remotePath}
           files={remoteFiles}
           isLoading={isRemoteLoading}
-          status={status === t("sftp.connected") ? "" : status}
+          status={remoteError ? t("sftp.notConnected") : status === t("sftp.connected") ? "" : status}
           selectedNames={selectedRemoteNames}
           onRefresh={refreshRemoteDirectory}
           onGoUp={openRemoteParent}
@@ -1124,6 +1157,7 @@ export function SftpWorkspace({
       <TransferArea
         transfers={transfers}
         clearableCount={clearableTransferCount}
+        error={remoteError}
         onClear={() =>
           setTransfers((current) =>
             current.filter((transfer) => !TRANSFER_HISTORY_STATES.includes(transfer.state)),
@@ -1175,11 +1209,13 @@ export function SftpWorkspace({
 function TransferArea({
   transfers,
   clearableCount,
+  error,
   onClear,
   onCancel,
 }: {
   transfers: TransferRecord[];
   clearableCount: number;
+  error?: string;
   onClear: () => void;
   onCancel: (transfer: TransferRecord) => void;
 }) {
@@ -1200,7 +1236,9 @@ function TransferArea({
   }, [active.length]);
 
   let status: string;
-  if (active.length) {
+  if (error) {
+    status = error;
+  } else if (active.length) {
     status = t("sftp.transferringStatus", { count: active.length, percent: averageProgress });
   } else if (transfers.length) {
     status = t("sftp.transfersIdleStatus", { count: doneCount });
@@ -1209,7 +1247,7 @@ function TransferArea({
   }
 
   return (
-    <div className={`sftp-xfer${open ? " open" : ""}`} data-tutorial-id="sftp.transferQueue">
+    <div className={`sftp-xfer${open ? " open" : ""}${error ? " has-error" : ""}`} data-tutorial-id="sftp.transferQueue">
       <div
         className="sftp-xfer-bar"
         onClick={() => setOpen((value) => !value)}
@@ -1223,8 +1261,8 @@ function TransferArea({
         }}
       >
         <div className="lead">
-          <DIcon name={active.length ? "refresh" : "check"} size={15} />
-          <span className="status">{status}</span>
+          <DIcon name={error ? "alert" : active.length ? "refresh" : "check"} size={15} />
+          <span className="status" title={error || undefined}>{status}</span>
         </div>
         {active.length > 0 ? (
           <div className="mini-track">
