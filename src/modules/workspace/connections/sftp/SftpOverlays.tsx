@@ -167,6 +167,9 @@ export function SftpContextMenu({
   onTransfer,
   onOpen,
   onRename,
+  onCut,
+  onCopy,
+  onPaste,
   onDelete,
   onProperties,
   onCopyPath,
@@ -177,6 +180,9 @@ export function SftpContextMenu({
   onTransfer: (menu: SftpContextMenuState) => void;
   onOpen: (menu: SftpContextMenuState) => void;
   onRename: (menu: SftpContextMenuState) => void;
+  onCut: (menu: SftpContextMenuState) => void;
+  onCopy: (menu: SftpContextMenuState) => void;
+  onPaste: (menu: SftpContextMenuState) => void;
   onDelete: (menu: SftpContextMenuState) => void;
   onProperties: (menu: SftpContextMenuState) => void;
   onCopyPath: (menu: SftpContextMenuState) => void;
@@ -223,7 +229,9 @@ export function SftpContextMenu({
 
   const canRename = menu.mutable && menu.names.length === 1;
   const canDelete = menu.mutable && menu.names.length > 0;
+  const canCutOrCopy = menu.mutable && menu.names.length > 0;
   const canOpen = menu.names.length === 1 && menu.openable;
+  const hasSelection = menu.names.length > 0;
 
   return (
     <div
@@ -234,7 +242,7 @@ export function SftpContextMenu({
       role="menu"
     >
       {showTransfer ? (
-        <button onClick={() => onTransfer(menu)} role="menuitem" type="button">
+        <button disabled={!hasSelection} onClick={() => onTransfer(menu)} role="menuitem" type="button">
           <DIcon name={isRemote ? "download" : "upload"} size={15} />
           {isRemote ? t("sftp.download") : t("sftp.upload")}
         </button>
@@ -244,11 +252,24 @@ export function SftpContextMenu({
         {t("common.open")}
       </button>
       <div className="sftp-ctx-sep" />
+      <button disabled={!canCutOrCopy} onClick={() => onCut(menu)} role="menuitem" type="button">
+        <DIcon name="copy" size={15} />
+        {t("common.cut")}
+      </button>
+      <button disabled={!canCutOrCopy} onClick={() => onCopy(menu)} role="menuitem" type="button">
+        <DIcon name="copy" size={15} />
+        {t("common.copy")}
+      </button>
+      <button disabled={!menu.canPaste} onClick={() => onPaste(menu)} role="menuitem" type="button">
+        <DIcon name="copy" size={15} />
+        {t("common.paste")}
+      </button>
+      <div className="sftp-ctx-sep" />
       <button disabled={!canRename} onClick={() => onRename(menu)} role="menuitem" type="button">
         <DIcon name="pencil" size={15} />
         {t("sftp.renameItem")}
       </button>
-      <button onClick={() => onCopyPath(menu)} role="menuitem" type="button">
+      <button disabled={!hasSelection} onClick={() => onCopyPath(menu)} role="menuitem" type="button">
         <DIcon name="copy" size={15} />
         {t("sftp.copyPath")}
       </button>
@@ -257,7 +278,7 @@ export function SftpContextMenu({
         {t("sftp.deleteLabel")}
       </button>
       <div className="sftp-ctx-sep" />
-      <button onClick={() => onProperties(menu)} role="menuitem" type="button">
+      <button disabled={!hasSelection} onClick={() => onProperties(menu)} role="menuitem" type="button">
         <DIcon name="info" size={15} />
         {t("sftp.getInfo")}
       </button>

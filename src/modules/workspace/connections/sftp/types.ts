@@ -14,6 +14,10 @@ export type TransferRecord = {
   remotePath?: string;
   localDirectory?: string;
   openWhenDone?: string;
+  deleteSourceWhenDone?: {
+    side: FilePaneSide;
+    path: string;
+  };
 };
 
 export type TransferDirection = TransferRecord["direction"];
@@ -39,6 +43,7 @@ export type SftpContextMenuState = {
   names: string[];
   openable: boolean;
   mutable: boolean;
+  canPaste: boolean;
 };
 
 export type FilePropertiesState = {
