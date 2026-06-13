@@ -2726,6 +2726,7 @@
             .create_workspace(CreateWorkspaceRequest {
                 name: "Staging".to_string(),
                 icon: Some("Server".to_string()),
+                icon_color: None,
                 import_connection_ids: None,
             })
             .expect("workspace is created");
@@ -2745,6 +2746,7 @@
             .create_workspace(CreateWorkspaceRequest {
                 name: "Ops".to_string(),
                 icon: None,
+                icon_color: None,
                 import_connection_ids: Some(vec![source.id.clone()]),
             })
             .expect("workspace with import is created");
@@ -2768,6 +2770,7 @@
             .create_workspace(CreateWorkspaceRequest {
                 name: "Ops".to_string(),
                 icon: None,
+                icon_color: None,
                 import_connection_ids: None,
             })
             .expect("workspace is created");
@@ -2822,6 +2825,7 @@
             .create_workspace(CreateWorkspaceRequest {
                 name: "Temp".to_string(),
                 icon: None,
+                icon_color: None,
                 import_connection_ids: None,
             })
             .expect("workspace is created");
@@ -2829,6 +2833,29 @@
             .delete_workspace(other.id.clone())
             .expect("non-default workspace deletes");
         assert_eq!(storage.list_workspaces().expect("workspaces load").len(), 1);
+    }
+
+    #[test]
+    fn create_workspace_persists_icon_color() {
+        let storage = Storage::open(temp_db_path("workspace-icon-color")).expect("storage opens");
+
+        let workspace = storage
+            .create_workspace(CreateWorkspaceRequest {
+                name: "Blue Ops".to_string(),
+                icon: Some("Server".to_string()),
+                icon_color: Some("#2563eb".to_string()),
+                import_connection_ids: None,
+            })
+            .expect("workspace is created");
+        assert_eq!(workspace.icon_color.as_deref(), Some("#2563eb"));
+
+        let persisted = storage
+            .list_workspaces()
+            .expect("workspaces load")
+            .into_iter()
+            .find(|entry| entry.id == workspace.id)
+            .expect("new workspace is listed");
+        assert_eq!(persisted.icon_color.as_deref(), Some("#2563eb"));
     }
 
     fn temp_db_path(name: &str) -> PathBuf {

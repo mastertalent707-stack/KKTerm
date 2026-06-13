@@ -691,7 +691,12 @@ export function ActivityRail({
               {workspace.isDefault ? (
                 <LayoutDashboard size={18} />
               ) : (
-                <WorkspaceIcon icon={workspace.icon} name={label} size={18} />
+                <WorkspaceIcon
+                  color={workspace.iconColor}
+                  icon={workspace.icon}
+                  name={label}
+                  size={18}
+                />
               )}
               <RailTooltip label={label} />
             </button>

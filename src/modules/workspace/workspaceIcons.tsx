@@ -2,30 +2,56 @@
 // fallback. Kept small and deliberately distinct from the larger Dashboard icon
 // catalog so the New Workspace picker stays scannable.
 
+import type { CSSProperties } from "react";
 import * as Icons from "lucide-react";
 
 export const WORKSPACE_ICON_NAMES = [
   "Folder",
+  "FolderOpen",
   "Server",
   "Terminal",
+  "Command",
   "Globe",
   "Database",
   "Shield",
+  "KeyRound",
+  "Lock",
   "Briefcase",
   "Home",
   "Cloud",
   "Box",
+  "Boxes",
+  "Package",
+  "Archive",
   "Layers",
   "Rocket",
   "Cpu",
+  "Activity",
+  "Gauge",
   "Network",
+  "Route",
+  "Workflow",
+  "GitBranch",
+  "Radio",
+  "Monitor",
+  "Laptop",
+  "HardDrive",
+  "FileCode",
+  "Code2",
+  "Braces",
+  "Wrench",
+  "Settings",
+  "Building2",
+  "Factory",
+  "Warehouse",
+  "Landmark",
   "Star",
   "Zap",
 ] as const;
 
 export type WorkspaceIconName = (typeof WORKSPACE_ICON_NAMES)[number];
 
-type LucideIcon = React.ComponentType<{ size?: number }>;
+type LucideIcon = React.ComponentType<{ size?: number; style?: CSSProperties }>;
 
 function resolveIcon(name?: string | null): LucideIcon | null {
   if (!name) {
@@ -41,21 +67,24 @@ function resolveIcon(name?: string | null): LucideIcon | null {
  * unknown.
  */
 export function WorkspaceIcon({
+  color,
   icon,
   name,
   size = 18,
 }: {
+  color?: string | null;
   icon?: string | null;
   name: string;
   size?: number;
 }) {
+  const style = color ? ({ color } satisfies CSSProperties) : undefined;
   const IconCmp = resolveIcon(icon);
   if (IconCmp) {
-    return <IconCmp size={size} />;
+    return <IconCmp size={size} style={style} />;
   }
   const letter = name.trim().charAt(0).toUpperCase() || "?";
   return (
-    <span aria-hidden="true" className="workspace-icon-letter">
+    <span aria-hidden="true" className="workspace-icon-letter" style={style}>
       {letter}
     </span>
   );

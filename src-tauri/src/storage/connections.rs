@@ -1365,7 +1365,7 @@ impl Storage {
         let connection = self.lock()?;
         let mut statement = connection
             .prepare(
-                "SELECT id, name, icon, is_default, sort_order
+                "SELECT id, name, icon, icon_color, is_default, sort_order
                  FROM workspaces
                  ORDER BY sort_order, name",
             )
@@ -1376,8 +1376,9 @@ impl Storage {
                     id: row.get(0)?,
                     name: row.get(1)?,
                     icon: row.get(2)?,
-                    is_default: row.get::<_, i64>(3)? != 0,
-                    sort_order: row.get(4)?,
+                    icon_color: row.get(3)?,
+                    is_default: row.get::<_, i64>(4)? != 0,
+                    sort_order: row.get(5)?,
                 })
             })
             .map_err(to_storage_error)?
@@ -1395,6 +1396,10 @@ impl Storage {
             .icon
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty());
+        let icon_color = request
+            .icon_color
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
         let id = make_workspace_id(&name);
         let mut connection = self.lock()?;
         let transaction = connection.transaction().map_err(to_storage_error)?;
@@ -1408,9 +1413,9 @@ impl Storage {
             .map_err(to_storage_error)?;
         transaction
             .execute(
-                "INSERT INTO workspaces (id, name, icon, is_default, sort_order)
-                 VALUES (?1, ?2, ?3, 0, ?4)",
-                params![id, name, icon, next_sort_order],
+                "INSERT INTO workspaces (id, name, icon, icon_color, is_default, sort_order)
+                 VALUES (?1, ?2, ?3, ?4, 0, ?5)",
+                params![id, name, icon, icon_color, next_sort_order],
             )
             .map_err(to_storage_error)?;
 
@@ -1460,6 +1465,7 @@ impl Storage {
             id,
             name,
             icon,
+            icon_color,
             is_default: false,
             sort_order: next_sort_order,
         })
@@ -1481,15 +1487,16 @@ impl Storage {
         if updated == 0 {
             return Err("workspace was not found".to_string());
         }
-        let (icon, is_default, sort_order) = connection
+        let (icon, icon_color, is_default, sort_order) = connection
             .query_row(
-                "SELECT icon, is_default, sort_order FROM workspaces WHERE id = ?1",
+                "SELECT icon, icon_color, is_default, sort_order FROM workspaces WHERE id = ?1",
                 params![id],
                 |row| {
                     Ok((
                         row.get::<_, Option<String>>(0)?,
-                        row.get::<_, i64>(1)? != 0,
-                        row.get::<_, i64>(2)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, i64>(2)? != 0,
+                        row.get::<_, i64>(3)?,
                     ))
                 },
             )
@@ -1498,6 +1505,7 @@ impl Storage {
             id,
             name,
             icon,
+            icon_color,
             is_default,
             sort_order,
         })

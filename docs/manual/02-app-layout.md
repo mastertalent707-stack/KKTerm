@@ -2,21 +2,22 @@
 
 ## AI grep hints
 
-- Keys: `app.primaryNav`, `app.connectionRail`, `app.connectedConnectionsRail`, `app.connections`, `app.aiAssistant`, `app.resizeConnections`, `app.resizeAiAssistant`, `app.openConnectedConnection`, `app.openPinnedConnection`, `app.dontSleepEnabledTooltip`, `app.dontSleepDisabledTooltip`, `app.dontSleepStatusEnabled`, `settings.dontSleepForegroundOnly`, `workspace.workspaceSurface`, `workspace.hostUsage`, `watchdog.statusBarLabel`, `watchdog.detail.*`
-- Topics: Activity Rail, custom title-bar panel toggles, panel resize, pinned Connections on the rail, Connections panel collapse, Child Connection Tabs, universal AI Assistant panel, universal host usage status bar, Don't Sleep Status Bar indicator, Watchdog Status Bar indicator and detail panel, restored last Module on launch, tutorial targets `app.activityRailWorkspace`, `app.activityRailDashboard`, `app.connectionRail`, `app.activityRailDontSleep`, `app.activityRailInstaller`, `app.activityRailSettings`, `app.connectionsResize`, `app.aiAssistantResize`, `workspace.statusBar`, `workspace.hostUsage`
+- Keys: `app.primaryNav`, `app.connectionRail`, `app.connectedConnectionsRail`, `app.connections`, `app.aiAssistant`, `app.resizeConnections`, `app.resizeAiAssistant`, `app.openConnectedConnection`, `app.openPinnedConnection`, `app.dontSleepEnabledTooltip`, `app.dontSleepDisabledTooltip`, `app.dontSleepStatusEnabled`, `settings.dontSleepForegroundOnly`, `workspace.workspaceSwitcher`, `workspace.newWorkspace`, `workspace.workspaceDetails`, `workspace.workspaceIconColor`, `workspace.importConnections`, `workspace.importFromWorkspace`, `workspace.searchConnections`, `workspace.filterConnectionTypes`, `workspace.selectAllConnections`, `workspace.deselectAllConnections`, `workspace.workspaceSurface`, `workspace.hostUsage`, `watchdog.statusBarLabel`, `watchdog.detail.*`
+- Topics: Activity Rail, Workspace switcher, new Workspace dialog, custom title-bar panel toggles, panel resize, pinned Connections on the rail, Connections panel collapse, Child Connection Tabs, universal AI Assistant panel, universal host usage status bar, Don't Sleep Status Bar indicator, Watchdog Status Bar indicator and detail panel, restored last Module on launch, tutorial targets `app.activityRailWorkspace`, `app.activityRailDashboard`, `app.connectionRail`, `app.activityRailDontSleep`, `app.activityRailInstaller`, `app.activityRailSettings`, `app.connectionsResize`, `app.aiAssistantResize`, `workspace.statusBar`, `workspace.hostUsage`
 - Synonyms: "left bar", "sidebar", "right panel", "AI sidebar", "make panel wider", "hide the AI panel", "bottom bar", "coffee icon", "don't sleep indicator", "watchdog icon", "running watchdogs", "watchdog status", "connection tree tabs", "child tabs", "remember dashboard", "remember installer", "restore last page", "last module"
 
 ## Activity Rail (48 px, left edge)
 
 Vertical icon bar. Owned by `src/app/`. Always visible. Sections, top to bottom:
 
-1. **Built-in Modules** — Workspace, Dashboard, and Installer Helper.
-2. **Connection Rail** (`app.connectionRail`) — a divider group `app.connectedConnectionsRail` that shows:
+1. **Workspace switcher** (`workspace.workspaceSwitcher`) — the Default Workspace, user-created Workspaces, and `workspace.newWorkspace`. The New Workspace dialog uses `workspace.workspaceDetails` for the required name, icon, and `workspace.workspaceIconColor` setup. If existing Workspaces contain Connections, `workspace.importConnections` can copy selected Connections from the source chosen by `workspace.importFromWorkspace`; the import list can be narrowed with `workspace.searchConnections`, the `workspace.filterConnectionTypes` dropdown, `workspace.selectAllConnections`, and `workspace.deselectAllConnections`.
+2. **Built-in Modules** — Dashboard and Installer Helper.
+3. **Connection Rail** (`app.connectionRail`) — a divider group `app.connectedConnectionsRail` that shows:
    - Pinned Connections (kept across launches; pin from the Connection Tree right-click menu, `connections.pinToRail`).
    - Connections that currently have at least one live Session.
    Each icon's tooltip uses `app.openPinnedConnection` or `app.openConnectedConnection` with the Connection name interpolated as `{{name}}`.
-3. **Don't Sleep** (`app.activityRailDontSleep`) — the keep-awake control. The tooltip changes between `app.dontSleepEnabledTooltip` and `app.dontSleepDisabledTooltip`; toggling plays a short local SVG animation beside the icon.
-4. **Settings** — anchored to the bottom of the rail.
+4. **Don't Sleep** (`app.activityRailDontSleep`) — the keep-awake control. The tooltip changes between `app.dontSleepEnabledTooltip` and `app.dontSleepDisabledTooltip`; toggling plays a short local SVG animation beside the icon.
+5. **Settings** — anchored to the bottom of the rail.
 
 The whole rail uses `app.primaryNav` as its accessible label. Tooltips come from `RailTooltip` (delayed hover/focus). In the Windows Tauri runtime, the same helper uses a native topmost tooltip so rail labels can appear above RDP ActiveX surfaces. Native browser `title` tooltips are forbidden here.
 

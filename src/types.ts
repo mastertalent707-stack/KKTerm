@@ -21,6 +21,7 @@ export interface Workspace {
   id: string;
   name: string;
   icon?: string | null;
+  iconColor?: string | null;
   isDefault: boolean;
   sortOrder: number;
 }
@@ -28,6 +29,7 @@ export interface Workspace {
 export interface CreateWorkspaceRequest {
   name: string;
   icon?: string | null;
+  iconColor?: string | null;
   importConnectionIds?: string[];
 }
 
@@ -842,4 +844,3 @@ export interface AssistantDirectSubmitRequest {
   prompt: string;
   snippet: AssistantContextSnippet;
 }
-

@@ -1,11 +1,30 @@
-import { useEffect, useMemo, useState } from "react";
+import { Pencil, Save, Search } from "lucide-react";
+import type { CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { ariaPressed, dialogButtonAria } from "../../lib/aria";
 import { invokeCommand } from "../../lib/tauri";
 import type { Connection, Workspace } from "../../types";
 import { ConnectionIcon } from "./connections/ConnectionIcon";
 import { flattenConnections } from "./connections/treeUtils";
+import { connectionTypeLabel } from "./connections/utils";
+import {
+  filterWorkspaceImportConnections,
+  getWorkspaceImportTypeOptions,
+  nextWorkspaceImportSelection,
+  type WorkspaceImportTypeFilter,
+} from "./newWorkspaceImportModel";
 import { WORKSPACE_ICON_NAMES, WorkspaceIcon } from "./workspaceIcons";
+
+const WORKSPACE_ICON_COLOR_CHOICES = [
+  "var(--text)",
+  "var(--accent)",
+  "var(--green)",
+  "var(--amber)",
+  "var(--red)",
+  "var(--nav-toolbar-accent)",
+] as const;
 
 interface ImportGroup {
   workspaceId: string;
@@ -30,8 +49,12 @@ export function NewWorkspaceDialog({
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [icon, setIcon] = useState<string | null>(WORKSPACE_ICON_NAMES[0]);
+  const [iconColor, setIconColor] = useState<string | null>("var(--accent)");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [importGroups, setImportGroups] = useState<ImportGroup[]>([]);
+  const [selectedImportWorkspaceId, setSelectedImportWorkspaceId] = useState("");
+  const [importSearch, setImportSearch] = useState("");
+  const [importType, setImportType] = useState<WorkspaceImportTypeFilter>("all");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +92,52 @@ export function NewWorkspaceDialog({
   }, [workspaces, t]);
 
   const canCreate = useMemo(() => name.trim().length > 0 && !submitting, [name, submitting]);
+  const selectedImportGroup = useMemo(
+    () =>
+      importGroups.find((group) => group.workspaceId === selectedImportWorkspaceId) ??
+      importGroups[0] ??
+      null,
+    [importGroups, selectedImportWorkspaceId],
+  );
+  const importTypeOptions = useMemo(
+    () =>
+      selectedImportGroup
+        ? getWorkspaceImportTypeOptions(selectedImportGroup.connections)
+        : [],
+    [selectedImportGroup],
+  );
+  const visibleImportConnections = useMemo(
+    () =>
+      selectedImportGroup
+        ? filterWorkspaceImportConnections(selectedImportGroup.connections, {
+            query: importSearch,
+            type: importType,
+          })
+        : [],
+    [importSearch, importType, selectedImportGroup],
+  );
+  const visibleImportIds = useMemo(
+    () => visibleImportConnections.map((connection) => connection.id),
+    [visibleImportConnections],
+  );
+
+  useEffect(() => {
+    if (importGroups.length === 0) {
+      setSelectedImportWorkspaceId("");
+      setSelectedIds(new Set());
+      return;
+    }
+    if (!importGroups.some((group) => group.workspaceId === selectedImportWorkspaceId)) {
+      setSelectedImportWorkspaceId(importGroups[0].workspaceId);
+      setSelectedIds(new Set());
+    }
+  }, [importGroups, selectedImportWorkspaceId]);
+
+  useEffect(() => {
+    if (importTypeOptions.length > 0 && !importTypeOptions.includes(importType)) {
+      setImportType("all");
+    }
+  }, [importType, importTypeOptions]);
 
   function toggleConnection(connectionId: string) {
     setSelectedIds((current) => {
@@ -82,6 +151,19 @@ export function NewWorkspaceDialog({
     });
   }
 
+  function handleImportWorkspaceChange(workspaceId: string) {
+    setSelectedImportWorkspaceId(workspaceId);
+    setSelectedIds(new Set());
+    setImportSearch("");
+    setImportType("all");
+  }
+
+  function setVisibleSelection(select: boolean) {
+    setSelectedIds((current) =>
+      nextWorkspaceImportSelection(current, visibleImportIds, select),
+    );
+  }
+
   async function handleCreate() {
     if (!canCreate) {
       return;
@@ -93,6 +175,7 @@ export function NewWorkspaceDialog({
         request: {
           name: name.trim(),
           icon,
+          iconColor,
           importConnectionIds:
             selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
         },
@@ -117,92 +200,266 @@ export function NewWorkspaceDialog({
         </header>
 
         <div className="new-workspace-body">
-          <label className="new-workspace-field">
-            <span>{t("workspace.workspaceName")}</span>
-            <input
-              autoFocus
-              className="connection-dialog-input"
-              onChange={(event) => setName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  void handleCreate();
-                }
-              }}
-              placeholder={t("workspace.workspaceNamePlaceholder")}
-              type="text"
-              value={name}
-            />
-          </label>
-
-          <div className="new-workspace-field">
-            <span>{t("workspace.workspaceIcon")}</span>
-            <div className="new-workspace-icon-picker">
-              {WORKSPACE_ICON_NAMES.map((iconName) => (
-                <button
-                  aria-label={iconName}
-                  className={icon === iconName ? "active" : ""}
-                  key={iconName}
-                  onClick={() => setIcon(iconName)}
-                  title={iconName}
-                  type="button"
-                >
-                  <WorkspaceIcon icon={iconName} name={name || iconName} size={16} />
-                </button>
-              ))}
+          <fieldset className="new-workspace-group">
+            <legend>{t("workspace.workspaceDetails")}</legend>
+            <div className="connection-type-summary new-workspace-summary">
+              <WorkspaceIconPicker
+                color={iconColor}
+                icon={icon}
+                name={name || t("workspace.newWorkspace")}
+                onChange={setIcon}
+                onColorChange={setIconColor}
+              />
+              <span>
+                <strong>{name.trim() || t("workspace.newWorkspace")}</strong>
+                <small>{t("workspace.workspaceIcon")}</small>
+              </span>
             </div>
-          </div>
+
+            <label className="new-workspace-field">
+              <span>
+                {t("workspace.workspaceName")}
+                <span aria-hidden="true" className="required-marker">*</span>
+              </span>
+              <input
+                autoFocus
+                className="connection-dialog-input"
+                onChange={(event) => setName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    void handleCreate();
+                  }
+                }}
+                placeholder={t("workspace.workspaceNamePlaceholder")}
+                type="text"
+                value={name}
+              />
+            </label>
+          </fieldset>
 
           {importGroups.length > 0 ? (
-            <div className="new-workspace-field">
-              <span>{t("workspace.importConnections")}</span>
+            <fieldset className="new-workspace-group">
+              <legend>{t("workspace.importConnections")}</legend>
               <p className="field-hint">{t("workspace.importConnectionsHint")}</p>
-              <div className="new-workspace-import-list">
-                {importGroups.map((group) => (
-                  <div className="new-workspace-import-group" key={group.workspaceId}>
-                    <p className="new-workspace-import-group-name">
-                      {group.workspaceName}
-                    </p>
-                    {group.connections.map((connection) => (
-                      <label className="new-workspace-import-row" key={connection.id}>
-                        <input
-                          checked={selectedIds.has(connection.id)}
-                          onChange={() => toggleConnection(connection.id)}
-                          type="checkbox"
-                        />
-                        <ConnectionIcon
-                          iconBackgroundColor={connection.iconBackgroundColor}
-                          iconDataUrl={connection.iconDataUrl}
-                          localShell={connection.localShell}
-                          size={14}
-                          type={connection.type}
-                        />
-                        <span>{connection.name}</span>
-                      </label>
+              {importGroups.length > 1 ? (
+                <label className="new-workspace-field">
+                  <span>{t("workspace.importFromWorkspace")}</span>
+                  <select
+                    onChange={(event) => handleImportWorkspaceChange(event.target.value)}
+                    value={selectedImportGroup?.workspaceId ?? ""}
+                  >
+                    {importGroups.map((group) => (
+                      <option key={group.workspaceId} value={group.workspaceId}>
+                        {group.workspaceName}
+                      </option>
                     ))}
-                  </div>
-                ))}
+                  </select>
+                </label>
+              ) : null}
+
+              <div className="new-workspace-import-tools">
+                <label className="search-box new-workspace-import-search">
+                  <Search size={14} />
+                  <input
+                    aria-label={t("workspace.searchConnections")}
+                    onChange={(event) => setImportSearch(event.target.value)}
+                    placeholder={t("workspace.searchConnections")}
+                    type="search"
+                    value={importSearch}
+                  />
+                </label>
+                <label className="new-workspace-type-filter">
+                  <span>{t("workspace.filterConnectionTypes")}</span>
+                  <select
+                    onChange={(event) =>
+                      setImportType(event.target.value as WorkspaceImportTypeFilter)
+                    }
+                    value={importType}
+                  >
+                    {importTypeOptions.map((typeOption) => (
+                      <option key={typeOption} value={typeOption}>
+                        {typeOption === "all"
+                          ? t("workspace.allConnectionTypes")
+                          : connectionTypeLabel(typeOption)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="new-workspace-selection-actions">
+                  <button
+                    className="toolbar-button"
+                    disabled={visibleImportIds.length === 0}
+                    onClick={() => setVisibleSelection(true)}
+                    type="button"
+                  >
+                    {t("workspace.selectAllConnections")}
+                  </button>
+                  <button
+                    className="toolbar-button"
+                    disabled={visibleImportIds.length === 0}
+                    onClick={() => setVisibleSelection(false)}
+                    type="button"
+                  >
+                    {t("workspace.deselectAllConnections")}
+                  </button>
+                </div>
               </div>
-            </div>
+
+              <div className="new-workspace-import-list">
+                {visibleImportConnections.length > 0 ? (
+                  visibleImportConnections.map((connection) => (
+                    <label className="new-workspace-import-row" key={connection.id}>
+                      <input
+                        checked={selectedIds.has(connection.id)}
+                        onChange={() => toggleConnection(connection.id)}
+                        type="checkbox"
+                      />
+                      <ConnectionIcon
+                        iconBackgroundColor={connection.iconBackgroundColor}
+                        iconDataUrl={connection.iconDataUrl}
+                        localShell={connection.localShell}
+                        size={16}
+                        type={connection.type}
+                      />
+                      <strong>{connection.name}</strong>
+                      <small>{connectionTypeLabel(connection.type)}</small>
+                    </label>
+                  ))
+                ) : (
+                  <p className="new-workspace-import-empty">
+                    {t("workspace.noImportConnections")}
+                  </p>
+                )}
+              </div>
+            </fieldset>
           ) : null}
 
           {error ? <div className="settings-error">{error}</div> : null}
         </div>
 
-        <footer className="connection-dialog-footer">
+        <div className="dialog-actions">
           <button
-            className="toolbar-button primary"
+            className="approve-button"
             disabled={!canCreate}
             onClick={() => void handleCreate()}
             type="button"
           >
+            <Save size={15} />
             {t("workspace.createWorkspace")}
           </button>
           <button className="toolbar-button" onClick={onClose} type="button">
             {t("common.cancel")}
           </button>
-        </footer>
+        </div>
       </div>
     </div>,
     document.body,
+  );
+}
+
+function WorkspaceIconPicker({
+  color,
+  icon,
+  name,
+  onChange,
+  onColorChange,
+}: {
+  color: string | null;
+  icon: string | null;
+  name: string;
+  onChange: (icon: string | null) => void;
+  onColorChange: (color: string | null) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (rootRef.current && !rootRef.current.contains(target)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="new-workspace-icon-editor" ref={rootRef}>
+      <button
+        aria-label={t("workspace.editWorkspaceIcon")}
+        className="connection-icon-edit-button new-workspace-icon-edit-button"
+        onClick={() => setOpen((current) => !current)}
+        type="button"
+        {...dialogButtonAria(open)}
+      >
+        <WorkspaceIcon color={color} icon={icon} name={name} size={26} />
+        <span className="connection-icon-edit-glyph" aria-hidden="true">
+          <Pencil size={12} />
+        </span>
+      </button>
+      {open ? (
+        <div
+          aria-label={t("workspace.iconPickerLabel")}
+          className="connection-icon-popover new-workspace-icon-popover"
+          role="dialog"
+        >
+          <div className="connection-icon-picker-section">
+            <p>{t("workspace.workspaceIcons")}</p>
+            <div className="connection-icon-grid new-workspace-icon-grid">
+              {WORKSPACE_ICON_NAMES.map((iconName) => (
+                <button
+                  aria-label={t("workspace.selectWorkspaceIcon", { icon: iconName })}
+                  className="connection-icon-choice"
+                  key={iconName}
+                  onClick={() => {
+                    onChange(iconName);
+                    setOpen(false);
+                  }}
+                  type="button"
+                  {...ariaPressed(icon === iconName)}
+                >
+                  <WorkspaceIcon color={color} icon={iconName} name={iconName} size={19} />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="connection-icon-picker-section">
+            <p>{t("workspace.workspaceIconColor")}</p>
+            <div className="new-workspace-icon-color-grid">
+              {WORKSPACE_ICON_COLOR_CHOICES.map((choice, index) => (
+                <button
+                  aria-label={t("workspace.selectWorkspaceIconColor", {
+                    index: index + 1,
+                  })}
+                  className="new-workspace-icon-color-choice"
+                  key={choice}
+                  onClick={() => onColorChange(choice)}
+                  style={{ "--workspace-icon-choice-color": choice } as CSSProperties}
+                  type="button"
+                  {...ariaPressed(color === choice)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

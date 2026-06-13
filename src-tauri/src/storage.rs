@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 20;
+const SCHEMA_USER_VERSION: i32 = 21;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS workspaces (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     icon TEXT,
+    icon_color TEXT,
     is_default INTEGER NOT NULL DEFAULT 0,
     sort_order INTEGER NOT NULL
 );
@@ -907,6 +908,7 @@ pub struct Workspace {
     id: String,
     name: String,
     icon: Option<String>,
+    icon_color: Option<String>,
     is_default: bool,
     sort_order: i64,
 }
@@ -917,6 +919,8 @@ pub struct CreateWorkspaceRequest {
     name: String,
     #[serde(default)]
     icon: Option<String>,
+    #[serde(default)]
+    icon_color: Option<String>,
     #[serde(default)]
     import_connection_ids: Option<Vec<String>>,
 }
@@ -1477,8 +1481,6 @@ impl Storage {
             folders: list_root_folders_for_workspace(&connection, &workspace_id)?,
         })
     }
-
-
     fn initialize_schema(&self) -> Result<(), String> {
         let connection = self.lock()?;
         let stored_version: i32 = connection
@@ -1704,10 +1706,11 @@ impl Storage {
                 .map_err(to_storage_error)?;
         }
         ensure_column(&connection, "connection_folders", "workspace_id", "TEXT")?;
+        ensure_column(&connection, "workspaces", "icon_color", "TEXT")?;
         connection
             .execute(
-                "INSERT OR IGNORE INTO workspaces (id, name, icon, is_default, sort_order)
-                 VALUES (?1, 'Default', NULL, 1, 0)",
+                "INSERT OR IGNORE INTO workspaces (id, name, icon, icon_color, is_default, sort_order)
+                 VALUES (?1, 'Default', NULL, NULL, 1, 0)",
                 params![DEFAULT_WORKSPACE_ID],
             )
             .map_err(to_storage_error)?;
@@ -1730,8 +1733,6 @@ impl Storage {
             .map_err(|err| format!("dashboard seed failed: {err:?}"))?;
         Ok(())
     }
-
-
     fn temp_database_path(&self, prefix: &str) -> PathBuf {
         let parent = self.db_path.parent().unwrap_or_else(|| Path::new("."));
         parent.join(format!(
