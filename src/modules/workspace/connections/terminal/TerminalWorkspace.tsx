@@ -435,21 +435,8 @@ export function TerminalWorkspace({
             className="connection-dialog sftp-popup-dialog"
             role="dialog"
           >
-            <header className="connection-dialog-header compact">
-              <div>
-                <h2>{t("terminal.openSftp")}</h2>
-              </div>
-              <button
-                aria-label={t("common.close")}
-                className="connection-dialog-close"
-                onClick={closeSftpDialog}
-                type="button"
-              >
-                <X size={15} />
-              </button>
-            </header>
             <div className="sftp-popup-dialog-body">
-              <SftpWorkspace isActive={true} tab={sftpDialogTab} inline />
+              <SftpWorkspace isActive={true} tab={sftpDialogTab} inline onClose={closeSftpDialog} />
             </div>
           </section>
         </div>,
