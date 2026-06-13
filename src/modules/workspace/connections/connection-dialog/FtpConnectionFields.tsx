@@ -1,3 +1,4 @@
+import { Activity, ArrowLeftRight, Eye, FileType, Lock, Network, ShieldOff, Timer, Type } from "lucide-react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { Connection, SshSettings, StoredCredentialSummary } from "../../../../types";
@@ -100,6 +101,7 @@ export function FtpConnectionOptions({
         <div className="connection-specific-options-panel">
           <div className="connection-option-fields">
             <label>
+              <Network className="option-glyph" size={17} aria-hidden />
               <span>{t("connections.ftpProtocol")}</span>
               <select
                 name="ftpProtocol"
@@ -112,6 +114,7 @@ export function FtpConnectionOptions({
               </select>
             </label>
             <label>
+              <ArrowLeftRight className="option-glyph" size={17} aria-hidden />
               <span>{t("connections.ftpMode")}</span>
               <select name="ftpMode" defaultValue={initialConnection?.ftpOptions?.mode ?? "passive"}>
                 <option value="passive">{t("connections.ftpModePassive")}</option>
@@ -119,6 +122,7 @@ export function FtpConnectionOptions({
               </select>
             </label>
             <label>
+              <Lock className="option-glyph" size={17} aria-hidden />
               <span>{t("connections.ftpTlsMode")}</span>
               <select name="ftpTlsMode" defaultValue={initialConnection?.ftpOptions?.tlsMode ?? "explicit"}>
                 <option value="explicit">{t("connections.ftpTlsExplicit")}</option>
@@ -126,6 +130,7 @@ export function FtpConnectionOptions({
               </select>
             </label>
             <label>
+              <FileType className="option-glyph" size={17} aria-hidden />
               <span>{t("connections.ftpTransferType")}</span>
               <select name="ftpTransferType" defaultValue={initialConnection?.ftpOptions?.transferType ?? "binary"}>
                 <option value="binary">{t("connections.ftpTransferBinary")}</option>
@@ -133,6 +138,7 @@ export function FtpConnectionOptions({
               </select>
             </label>
             <label>
+              <Timer className="option-glyph" size={17} aria-hidden />
               <span>{t("connections.ftpConnectTimeoutSecs")}</span>
               <input
                 name="ftpConnectTimeoutSecs"
@@ -144,6 +150,7 @@ export function FtpConnectionOptions({
               />
             </label>
             <label>
+              <Activity className="option-glyph" size={17} aria-hidden />
               <span>{t("connections.ftpKeepaliveSecs")}</span>
               <input
                 name="ftpKeepaliveSecs"
@@ -158,10 +165,12 @@ export function FtpConnectionOptions({
           </div>
           <div className="connection-session-fields">
             <label className="connection-session-toggle">
+              <Type className="option-glyph" size={17} aria-hidden />
               <span>{t("connections.ftpUtf8")}</span>
               <input name="ftpUtf8" type="checkbox" defaultChecked={initialConnection?.ftpOptions?.utf8 ?? true} />
             </label>
             <label className="connection-session-toggle">
+              <Eye className="option-glyph" size={17} aria-hidden />
               <span>{t("connections.ftpShowHidden")}</span>
               <input
                 name="ftpShowHidden"
@@ -170,6 +179,7 @@ export function FtpConnectionOptions({
               />
             </label>
             <label className="connection-session-toggle">
+              <ShieldOff className="option-glyph" size={17} aria-hidden />
               <span>{t("connections.ftpIgnoreCertErrors")}</span>
               <input
                 name="ftpIgnoreCertErrors"

@@ -1,3 +1,4 @@
+import { Binary, Eye, Palette, Scaling, Settings2, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Connection, SshSettings, StoredCredentialSummary, VncSettings } from "../../../../types";
 import { defaultPortForConnectionType } from "../utils";
@@ -102,6 +103,7 @@ export function VncConnectionOptions({
         <legend>{t("connections.vncOptions")}</legend>
         <div className="connection-specific-options-panel">
           <label className="connection-session-toggle">
+            <Settings2 className="option-glyph" size={17} aria-hidden />
             <span>{t("connections.inheritSettingsDefaults")}</span>
             <input
               name="vncInheritDefaults"
@@ -112,6 +114,7 @@ export function VncConnectionOptions({
           </label>
           <div className="connection-option-fields">
             <label>
+              <Scaling className="option-glyph" size={17} aria-hidden />
               <span>{t("settings.remoteDesktopViewMode")}</span>
               <select
                 disabled={vncInheritsSettingsDefaults}
@@ -126,6 +129,7 @@ export function VncConnectionOptions({
               </select>
             </label>
             <label>
+              <Binary className="option-glyph" size={17} aria-hidden />
               <span>{t("settings.preferredEncoding")}</span>
               <select
                 disabled={vncInheritsSettingsDefaults}
@@ -138,6 +142,7 @@ export function VncConnectionOptions({
               </select>
             </label>
             <label>
+              <Palette className="option-glyph" size={17} aria-hidden />
               <span>{t("settings.colorLevel")}</span>
               <select
                 disabled={vncInheritsSettingsDefaults}
@@ -153,6 +158,7 @@ export function VncConnectionOptions({
           </div>
           <div className="connection-session-fields">
             <label className="connection-session-toggle">
+              <Users className="option-glyph" size={17} aria-hidden />
               <span>{t("settings.vncSharedSession")}</span>
               <input
                 disabled={vncInheritsSettingsDefaults}
@@ -162,6 +168,7 @@ export function VncConnectionOptions({
               />
             </label>
             <label className="connection-session-toggle">
+              <Eye className="option-glyph" size={17} aria-hidden />
               <span>{t("settings.vncViewOnly")}</span>
               <input
                 disabled={vncInheritsSettingsDefaults}

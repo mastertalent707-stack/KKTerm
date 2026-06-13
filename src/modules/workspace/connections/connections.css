@@ -816,7 +816,7 @@
   height: 52px;
   background: transparent;
   border: 0;
-  border-radius: 13px;
+  border-radius: 10px;
 }
 
 .connection-type-summary .connection-icon-edit-button:hover {
@@ -826,11 +826,11 @@
 .connection-type-summary .connection-icon-edit-button .connection-icon-shell {
   max-width: 52px;
   max-height: 52px;
-  border-radius: 13px;
+  border-radius: 10px;
 }
 
 .connection-type-summary .connection-icon-edit-button .connection-icon-image {
-  border-radius: 11px;
+  border-radius: 8px;
 }
 
 .connection-icon-edit-button .connection-icon-image {
@@ -1288,7 +1288,8 @@ fieldset.connection-specific-options > legend {
   align-items: center;
 }
 
-.connection-option-fields > label:has(.option-glyph) > select {
+.connection-option-fields > label:has(.option-glyph) > select,
+.connection-option-fields > label:has(.option-glyph) > input {
   grid-column: 3;
 }
 

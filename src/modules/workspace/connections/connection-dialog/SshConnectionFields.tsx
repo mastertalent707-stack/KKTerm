@@ -1,4 +1,4 @@
-import { KeyRound } from "lucide-react";
+import { KeyRound, Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Connection, SshSettings, StoredCredentialSummary } from "../../../../types";
 import { defaultPortForConnectionType } from "../utils";
@@ -142,6 +142,7 @@ export function SshConnectionFields({
       </div>
       <div className="connection-session-fields">
         <label className="connection-session-toggle">
+          <Layers className="option-glyph" size={17} aria-hidden />
           <span>{t("connections.useTmux")}</span>
           <input
             name="useTmuxSessions"

@@ -1,3 +1,4 @@
+import { Terminal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Connection } from "../../../../types";
 import type { LocalShellOption } from "../utils";
@@ -25,6 +26,7 @@ export function LocalConnectionFields({
       </label>
       <div className="connection-option-fields">
         <label className="option-mode-row">
+          <Terminal className="option-glyph" size={17} aria-hidden />
           <span>{t("connections.shell")}</span>
           <select name="localShell" defaultValue={initialConnection?.localShell ?? localShellOptions[0]?.value ?? ""}>
             {localShellOptions.map((option) => (

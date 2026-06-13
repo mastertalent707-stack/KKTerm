@@ -1,3 +1,4 @@
+import { Database } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Connection } from "../../../../types";
 import { PasswordField } from "./ConnectionPasswordFields";
@@ -43,6 +44,7 @@ export function UrlConnectionFields({
       </div>
       <div className="connection-option-fields">
         <label>
+          <Database className="option-glyph" size={17} aria-hidden />
           <span>{t("connections.dataPartition")}</span>
           <input
             name="dataPartition"
