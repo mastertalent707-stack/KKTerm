@@ -3,6 +3,77 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.80/kkterm-0.1.80-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.80/kkterm-0.1.80-windows-arm64-setup.exe)
+
+## Highlights
+- Redesigned SFTP browser + connection dialogs using the Apple/Finder-inspired design language (plus follow-up fixes to titlebar height, Finder glyphs, toolbar layout, and field styling).
+- Added local **File Explorer** connection type and introduced **multiple Workspaces**, so Sessions and Tab/Panes can be scoped to the active Workspace.
+- SFTP: added cut/copy/paste with local file clipboard support, plus file open actions (double-click/context menu).
+
+## New
+- Multiple Workspaces + local File Explorer connection type (PR #310, PR #309, PR #312, PR #313, PR #314, PR #315, PR #316 listed below as part of the v0.1.80 changeset).
+- SFTP: single-row titlebar inside the browser (kind glyph + centered host) and queued errors shown in the titlebar / transfer activity (PR #315).
+- SFTP: cut, copy, paste with local file clipboard support (shown in PR #?? via change list; see compare links below).
+- SFTP: file open actions for double-click and context menu.
+
+## Improved
+- Connection Add/Edit dialogs aligned to the design language (PR #317).
+- Finder-style glyphs and SFTP UI polish after the design-language merge (PR #313).
+- Connection dialog surface styling consistency improvements (PR #314).
+
+## Fixed
+- SFTP Finder glyphs, toolbar pill placement, and grey Default field (PR #313).
+- Consistent dialog backgrounds, flat status pill, and close-button margin (PR #314).
+- Reduced the single-row SFTP titlebar height (PR #316).
+- Removed screenshot/send-to-AI action from SFTP and File Explorer toolbars (PR #?).
+- SFTP: errors/Not connected presentation and queue placement after titlebar redesign (PR #315).
+
+## Internal
+- README rewrites to focus on user-facing features (PR #309).
+- i18n/localization updates and localization file cleanup for SFTP-related UI elements.
+- Windows filesystem-path opener improvements (PR #?; see change list in compare).
+- Native context-menu template icon/test updates (PR #?; see compare).
+- Refactors and structure/readability work (PR #?; see compare).
+- Connection workspace scoping tests and updates to Tab behavior for non-terminal connections (PR #?; see compare).
+- Workspace/file explorer term translations expanded across multiple languages.
+
+---
+
+## 備註（繁體中文 / Taiwan）
+
+## Highlights
+- 使用 Apple/Finder 風格的設計語言，重新打造 **SFTP 瀏覽器**與**連線對話框**；並在後續加入針對「標題列高度、Finder 圖示、工具列配置、欄位樣式」的修正。
+- 新增本機 **檔案總管（File Explorer）** 連線類型，並導入 **多個 Workspaces**：讓 Session 與 Tab / Pane 能依「目前的 Workspace」進行範圍化管理。
+- SFTP：加入支援本機剪貼簿的 cut/copy/paste，並提供檔案開啟動作（雙擊 / 內容選單）。
+
+## New
+- 多個 Workspaces + 本機檔案總管連線類型（v0.1.80 變更集中包含 PR #310、以及其他對應 PR）。
+- SFTP：瀏覽器內單列標題列（kind 圖示 + 中央主機），以及佇列中的錯誤顯示在標題列 / 傳輸活動列中（PR #315）。
+- SFTP：支援本機剪貼簿的 cut、copy、paste。
+- SFTP：支援雙擊與內容選單開啟檔案。
+
+## Improved
+- 連線新增/編輯（Add/Edit）對話框，改以設計語言一致化（PR #317）。
+- 設計語言合併後的 Finder 圖示與 SFTP 介面微調（PR #313）。
+- 對話框外觀一致性（PR #314）。
+
+## Fixed
+- 修正 SFTP 的 Finder 圖示、工具列 pill 配置、以及灰色 Default 欄位（PR #313）。
+- 修正對話框背景一致性、狀態 pill 扁平化、以及關閉按鈕邊距（PR #314）。
+- 修正單列 SFTP 標題列高度（PR #316）。
+- 移除 SFTP 與檔案總管（File Explorer）工具列中的截圖/送去 AI 動作（PR #?）。
+- SFTP：在標題列改版後，Not connected 與錯誤呈現位置調整（PR #315）。
+
+## Internal
+- README 內容重寫，聚焦使用者可見的功能（PR #309）。
+- SFTP 相關 i18n/在地化更新與清理。
+- Windows 檔案路徑開啟處理改善（PR #?；見比對清單）。
+- 原生內容選單（context menu）範本圖示與測試更新（PR #?；見比對清單）。
+- 程式結構與可讀性重構（PR #?；見比對清單）。
+- Workspaces 與檔案總管的術語翻譯補全，以及非終端連線的 Tab 行為相關測試更新（PR #?；見比對清單）。
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.79/kkterm-0.1.79-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.79/kkterm-0.1.79-windows-arm64-setup.exe)
 
