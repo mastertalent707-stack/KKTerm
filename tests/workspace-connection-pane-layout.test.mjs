@@ -70,7 +70,49 @@ test("Add To pane routes file-browser Connections to embedded browser panes", as
   );
   assert.match(
     terminalWorkspaceSource,
-    /pane\.kind === "remoteDesktop" \? \([\s\S]*?<RemoteDesktopWorkspace[\s\S]*?\) : \([\s\S]*?<SftpWorkspace[\s\S]*?commands=\{fileBrowserCommandsFor\(pane\.connection\)\}/,
+    /const fileBrowserCommands = useMemo\([\s\S]*?fileBrowserCommandsFor\(pane\.connection\)[\s\S]*?\[pane\.kind, pane\.connection\]/,
+    "embedded file-browser panes should keep a stable commands adapter while selection state changes",
+  );
+  assert.match(
+    terminalWorkspaceSource,
+    /pane\.kind === "remoteDesktop" \? \([\s\S]*?<RemoteDesktopWorkspace[\s\S]*?\) : \([\s\S]*?<SftpWorkspace[\s\S]*?commands=\{fileBrowserCommands \?\? undefined\}/,
     "embedded file-browser panes should render through SftpWorkspace with the transport adapter",
+  );
+});
+
+test("Add To pane can split standalone browser tabs", async () => {
+  const storeSource = await readFile(new URL("../src/store.ts", import.meta.url), "utf8");
+  const sidebarSource = await readFile(
+    new URL("../src/modules/workspace/connections/ConnectionSidebar.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    storeSource,
+    /function buildPaneForStandaloneTab\(tab: WorkspaceTab\): WorkspacePane \| null[\s\S]*?tab\.kind === "webview"[\s\S]*?tab\.kind === "sftp" \|\| tab\.kind === "ftp" \|\| tab\.kind === "localFiles"/,
+    "standalone URL/SFTP/FTP/File Explorer tabs should be convertible to the first layout pane",
+  );
+  assert.match(
+    storeSource,
+    /const basePane = tab\.kind === "terminal" \? null : buildPaneForStandaloneTab\(tab\);[\s\S]*?const currentPanes = tab\.kind === "terminal" \? tab\.panes : basePane \? \[basePane\] : \[\];[\s\S]*?kind: "terminal"/,
+    "adding a Connection to a standalone browser tab should convert it into a split layout tab",
+  );
+  assert.doesNotMatch(
+    sidebarSource,
+    /activeTab \|\| activeTab\.kind !== "terminal"/,
+    "Add To should not fall back to opening a new tab for standalone browser tabs",
+  );
+  assert.match(
+    sidebarSource,
+    /function supportsAddConnectionToTab\(tab: WorkspaceTab \| undefined\)[\s\S]*?tab\.kind === "webview"[\s\S]*?tab\.kind === "sftp"[\s\S]*?tab\.kind === "localFiles"/,
+    "Connection Tree menus should offer Add To directions for standalone browser tabs",
+  );
+  assert.match(
+    sidebarSource,
+    /const canAddToPane = supportsAddConnectionToTab\(tabs\.find\(\(tab\) => tab\.id === activeTabId\)\)/,
+  );
+  assert.match(
+    sidebarSource,
+    /canAddToPane=\{supportsAddConnectionToTab\(tabs\.find\(\(tab\) => tab\.id === activeTabId\)\)\}/,
   );
 });

@@ -603,6 +603,13 @@ function EmbeddedConnectionPane({
 }) {
   const closePane = useWorkspaceStore((state) => state.closePane);
   const { t } = useTranslation();
+  const fileBrowserCommands = useMemo(
+    () =>
+      pane.kind === "sftp" || pane.kind === "ftp" || pane.kind === "localFiles"
+        ? fileBrowserCommandsFor(pane.connection)
+        : null,
+    [pane.kind, pane.connection],
+  );
   const embeddedTab: WorkspaceTab = {
     id: pane.id,
     title: pane.title,
@@ -647,7 +654,7 @@ function EmbeddedConnectionPane({
         />
       ) : (
         <SftpWorkspace
-          commands={fileBrowserCommandsFor(pane.connection)}
+          commands={fileBrowserCommands ?? undefined}
           isActive={isActive}
           tab={embeddedTab}
         />

@@ -773,7 +773,7 @@ export function ConnectionSidebar({
 
   function handleAddConnectionToFocusedPane(connection: Connection, direction: SplitDirection) {
     const activeTab = tabs.find((tab) => tab.id === activeTabId);
-    if (!activeTab || activeTab.kind !== "terminal") {
+    if (!supportsAddConnectionToTab(activeTab)) {
       handleOpenConnection(connection);
       return;
     }
@@ -1629,7 +1629,7 @@ export function ConnectionSidebar({
 
     const isPinned = generalSettings.pinnedConnectionIds.includes(menu.connection.id);
     const isConnected = (activeSessionCounts[menu.connection.id] ?? 0) > 0;
-    const canAddToPane = Boolean(tabs.find((tab) => tab.id === activeTabId && tab.kind === "terminal"));
+    const canAddToPane = supportsAddConnectionToTab(tabs.find((tab) => tab.id === activeTabId));
     items.push(
       { kind: "separator" },
       {
@@ -2491,7 +2491,7 @@ export function ConnectionSidebar({
       {treeContextMenu ? (
         <TreeContextMenu
           menu={treeContextMenu}
-          canAddToPane={Boolean(tabs.find((tab) => tab.id === activeTabId && tab.kind === "terminal"))}
+          canAddToPane={supportsAddConnectionToTab(tabs.find((tab) => tab.id === activeTabId))}
           canOpenNewTab={
             treeContextMenu.kind !== "connection" ||
             !showChildTabsInTree ||
@@ -3111,6 +3111,18 @@ function isTerminalConnectionType(type: ConnectionType) {
 
 function supportsSavedConnectionLayout(type: ConnectionType) {
   return isTerminalConnectionType(type) || type === "url";
+}
+
+function supportsAddConnectionToTab(tab: WorkspaceTab | undefined): tab is WorkspaceTab {
+  return Boolean(
+    tab &&
+      (tab.kind === "terminal" ||
+        tab.kind === "webview" ||
+        tab.kind === "sftp" ||
+        tab.kind === "ftp" ||
+        tab.kind === "localFiles" ||
+        tab.kind === "remoteDesktop"),
+  );
 }
 
 function InlineTreeRenameInput({

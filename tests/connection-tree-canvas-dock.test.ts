@@ -54,7 +54,7 @@ test("addConnectionToTerminalPane accepts an explicit targetPaneId and falls bac
   );
   assert.match(
     storeSource,
-    /targetPaneId && tab\.panes\.find\(\(pane\) => pane\.id === targetPaneId\)/,
+    /targetPaneId && currentPanes\.find\(\(pane\) => pane\.id === targetPaneId\)/,
     "an explicit target should win, falling back to the focused pane",
   );
 });
