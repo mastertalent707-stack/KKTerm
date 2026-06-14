@@ -83,4 +83,13 @@ test("the Connection Tree drag wires Connections onto Workspace Canvas dock targ
   assert.match(sidebarSource, /addConnectionToTerminalPane\(zone\.tabId, connection, zone\.direction, zone\.paneId\)/);
   assert.match(sidebarSource, /completeCanvasDrop\(dragged\.connectionId, canvasZone\)/);
   assert.match(sidebarSource, /<DockOverlay zone=\{canvasDropZone\} \/>/);
+
+  // The overlay must portal to <body> so its fixed coordinates align with the
+  // panes; the host `.connection-sidebar` is a `contain: layout` block that
+  // would otherwise offset `position: fixed` children.
+  assert.match(
+    sidebarSource,
+    /function DockOverlay[\s\S]*?<DialogPortal>\s*<div className="dock-overlay"/,
+    "DockOverlay should render through DialogPortal (document.body)",
+  );
 });
