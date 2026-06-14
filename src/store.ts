@@ -1064,6 +1064,7 @@ interface WorkspaceState {
     tabId: string,
     connection: Connection,
     direction: SplitDirection,
+    targetPaneId?: string,
   ) => void;
   closePane: (tabId: string, paneId: string) => void;
   closeChildConnection: (childConnectionId: string) => void;
@@ -2091,7 +2092,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       };
     });
   },
-  addConnectionToTerminalPane: (tabId, connection, direction) => {
+  addConnectionToTerminalPane: (tabId, connection, direction, targetPaneId) => {
     set((state) => {
       const openedUrlConnectionIds: string[] = [];
       const tabs = state.tabs.map((tab) => {
@@ -2100,13 +2101,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         }
         const basePane = tab.kind === "terminal" ? null : buildPaneForStandaloneTab(tab);
         const currentPanes = tab.kind === "terminal" ? tab.panes : basePane ? [basePane] : [];
-        const focusedPane =
-          currentPanes.find((pane) => pane.id === tab.focusedPaneId) ??
+        // Prefer an explicit drop target (e.g. the pane hovered during a
+        // drag-to-dock), falling back to the focused pane for menu-driven splits.
+        const targetPane =
+          (targetPaneId && currentPanes.find((pane) => pane.id === targetPaneId)) ||
+          currentPanes.find((pane) => pane.id === tab.focusedPaneId) ||
           currentPanes[0];
-        if (!focusedPane) {
+        if (!targetPane) {
           return tab;
         }
-        const newPane = buildPaneForConnection(connection, focusedPane);
+        const newPane = buildPaneForConnection(connection, targetPane);
         if (!newPane) {
           return tab;
         }
@@ -2120,7 +2124,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         );
         const nextLayout = splitLayout(
           baseLayout,
-          focusedPane.id,
+          targetPane.id,
           direction,
           newPane.id,
           currentPanes.map((pane) => pane.id),
