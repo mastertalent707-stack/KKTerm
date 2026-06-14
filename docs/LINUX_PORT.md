@@ -117,6 +117,25 @@ before the earlier phase's criterion is met.
 **Success: `cargo check --manifest-path src-tauri/Cargo.toml` passes on Linux
 (x86_64), `npm run build` unaffected.**
 
+> **Result (2026-06-14, pb60 / Ubuntu 24.04.4, branch `8b825890`):**
+> `cargo check` **passes — 0 errors, 97 warnings.** The backend compiles on
+> Linux unchanged; the macOS `cfg(not(target_os = "windows"))` paths cover Linux
+> at the compile level. The 97 warnings are **all benign dead-code** — Windows/
+> macOS-only functions, structs, and constants that are simply unused on Linux,
+> concentrated in `mcp_bridge.rs` (35), `performance.rs` (15), `rdp.rs` (9),
+> `installer/*` (15), `screenshot.rs`/`window_state.rs`/`x_server.rs`/
+> `native_tooltip.rs`. They confirm the runtime gaps (no Linux metrics path, no
+> installer, no screenshot, etc.) rather than any compile blocker. These will be
+> resolved as Phase 2+ Linux implementations land or via targeted
+> `#[cfg]`/`#[allow]` gating in a later cleanup pass — not by editing shared or
+> Windows/macOS code now.
+>
+> Net: **Phase 0 is effectively done at the compile level.** The real work is
+> Phase 2+ runtime implementations, not getting it to build. (Note: a frontend
+> `dist/` is required for `tauri-build`; a stub `dist/index.html` was used to
+> isolate the backend check. The full AppImage build still needs `npm run
+> build` first.)
+
 - [~] Linux dev/build box: **pb60** (Ubuntu 24.04.4 LTS, x86_64, 6 cores,
       15 GiB) is the build host. SSH as `ryan` (key auth). Done in userspace:
       Rust 1.96.0 (rustup), Node 22 + npm (nvm). Repo present at
