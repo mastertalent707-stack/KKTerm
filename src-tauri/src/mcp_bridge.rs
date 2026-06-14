@@ -376,7 +376,7 @@ async fn handle_request(ctx: &BridgeContext, request: Value) -> Option<Value> {
         "tools/list" => Some(json!({
             "jsonrpc": "2.0",
             "id": id,
-            "result": {"tools": tool_descriptors()},
+            "result": {"tools": crate::mcp_tool_catalog::tool_descriptors()},
         })),
         "tools/call" => Some(handle_tool_call(ctx, id, params).await),
         "ping" => Some(json!({"jsonrpc": "2.0", "id": id, "result": {}})),
@@ -386,514 +386,6 @@ async fn handle_request(ctx: &BridgeContext, request: Value) -> Option<Value> {
             "error": {"code": -32601, "message": format!("method not found: {other}")},
         })),
     }
-}
-
-fn tool_descriptors() -> Vec<Value> {
-    vec![
-        json!({
-            "name": "kkterm.workspace.connections.list",
-            "description": "List saved Connections (folders + connections) from KKTerm storage.",
-            "inputSchema": {"type": "object", "properties": {}, "additionalProperties": false},
-        }),
-        json!({
-            "name": "kkterm.workspace.connections.create",
-            "description": "Create a saved Connection in KKTerm storage. Does not accept or store passwords or other secrets.",
-            "inputSchema": connection_create_input_schema(),
-        }),
-        json!({
-            "name": "kkterm.workspace.connections.update",
-            "description": "Update one saved Connection in KKTerm storage. Submit the full updated Connection fields. Does not accept or store passwords or other secrets.",
-            "inputSchema": connection_update_input_schema(),
-        }),
-        json!({
-            "name": "kkterm.workspace.connections.rename",
-            "description": "Rename one saved Connection by id.",
-            "inputSchema": id_name_input_schema("connectionId"),
-        }),
-        json!({
-            "name": "kkterm.workspace.connections.delete",
-            "description": "Delete one saved Connection by id.",
-            "inputSchema": id_input_schema("connectionId"),
-        }),
-        json!({
-            "name": "kkterm.workspace.connections.move",
-            "description": "Move one saved Connection to a folder and position. Use folderId null for the root list.",
-            "inputSchema": move_connection_input_schema(),
-        }),
-        json!({
-            "name": "kkterm.workspace.connection_folders.create",
-            "description": "Create a Connection folder. Use parentFolderId null for a root folder.",
-            "inputSchema": folder_create_input_schema(),
-        }),
-        json!({
-            "name": "kkterm.workspace.connection_folders.rename",
-            "description": "Rename one Connection folder by id.",
-            "inputSchema": id_name_input_schema("folderId"),
-        }),
-        json!({
-            "name": "kkterm.workspace.connection_folders.delete",
-            "description": "Delete one Connection folder by id, including contained saved Connections and nested folders.",
-            "inputSchema": id_input_schema("folderId"),
-        }),
-        json!({
-            "name": "kkterm.workspace.connection_folders.move",
-            "description": "Move one Connection folder to a parent folder and position. Use parentFolderId null for the root list.",
-            "inputSchema": move_folder_input_schema(),
-        }),
-        json!({
-            "name": "kkterm.workspace.connections.open",
-            "description": "Open a saved Connection by its id. Starts the appropriate session (terminal, SSH, URL, RDP, VNC) inside the running KKTerm app.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"connectionId": {"type": "string"}},
-                "required": ["connectionId"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.workspace.connections.screenshot",
-            "description": "Capture the visible Workspace surface for an open Connection by id. The app activates the Connection tab before capturing and returns a JPEG data URL plus dimensions.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"connectionId": {"type": "string"}},
-                "required": ["connectionId"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.workspace.sessions.list",
-            "description": "List live Sessions (terminal Panes, remote desktop targets, file browsers).",
-            "inputSchema": {"type": "object", "properties": {}, "additionalProperties": false},
-        }),
-        json!({
-            "name": "kkterm.workspace.sessions.send_input",
-            "description": "Send text/keystrokes to a live terminal Pane.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "paneId": {"type": "string"},
-                    "text": {"type": "string"},
-                    "submit": {"type": "boolean", "description": "Append a terminal Enter key (carriage return) after the text."},
-                },
-                "required": ["paneId", "text"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.workspace.sessions.read_buffer",
-            "description": "Read a snapshot of the visible terminal buffer for a live Pane.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "paneId": {"type": "string"},
-                },
-                "required": ["paneId"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.workspace.quick_commands.list",
-            "description": "List saved Quick Commands for one Connection's Quick Command Bar.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"connectionId": {"type": "string"}},
-                "required": ["connectionId"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.workspace.quick_commands.read",
-            "description": "Read one saved Quick Command from a Connection's Quick Command Bar by id.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "connectionId": {"type": "string"},
-                    "id": {"type": "string"},
-                },
-                "required": ["connectionId", "id"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.workspace.quick_commands.dangerous.create",
-            "description": "DANGEROUS: create a saved Quick Command for one Connection's Quick Command Bar. This saves a runnable shortcut but does not execute it. Requires built_in_mcp_allow_all_dangerous = true.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "connectionId": {"type": "string"},
-                    "label": {"type": "string"},
-                    "command": {"type": "string"},
-                    "iconName": {"type": "string"},
-                    "accentName": {"type": "string"},
-                    "sendEnter": {"type": "boolean"},
-                    "confirm": {"type": "boolean"},
-                },
-                "required": ["connectionId", "label", "command"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.workspace.quick_commands.dangerous.edit",
-            "description": "DANGEROUS: edit one saved Quick Command for a Connection's Quick Command Bar. This updates a runnable shortcut but does not execute it. Requires built_in_mcp_allow_all_dangerous = true.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "connectionId": {"type": "string"},
-                    "id": {"type": "string"},
-                    "label": {"type": "string"},
-                    "command": {"type": "string"},
-                    "iconName": {"type": "string"},
-                    "accentName": {"type": "string"},
-                    "sendEnter": {"type": "boolean"},
-                    "confirm": {"type": "boolean"},
-                },
-                "required": ["connectionId", "id"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.workspace.dangerous.pointer_click",
-            "description": "DANGEROUS: send a mouse click to a live RDP/VNC remote desktop surface. Requires built_in_mcp_allow_all_dangerous = true.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "paneId": {"type": "string"},
-                    "x": {"type": "integer"},
-                    "y": {"type": "integer"},
-                    "button": {"type": "string", "enum": ["left", "right", "middle"]},
-                },
-                "required": ["paneId", "x", "y"],
-                "additionalProperties": false,
-            },
-        }),
-        // -- Dashboard: views, instances, layout --------------------------
-        json!({
-            "name": "kkterm.dashboard.load_state",
-            "description": "Load full Dashboard state: views, instances, and AI-Created Widget metadata. Widget bodies are returned as `bodyMeta` (size, library hints); call read_widget_source to fetch the actual script.",
-            "inputSchema": {"type": "object", "properties": {}, "additionalProperties": false},
-        }),
-        json!({
-            "name": "kkterm.dashboard.screenshot_view",
-            "description": "Capture an entire Dashboard View. If viewId is omitted, captures the active Dashboard View. Returns a JPEG data URL plus dimensions.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"viewId": {"type": "string"}},
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.screenshot_widget",
-            "description": "Capture a single Dashboard Widget Instance region by id. The app activates the owning Dashboard View before capturing and returns a JPEG data URL plus dimensions.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"instanceId": {"type": "string"}},
-                "required": ["instanceId"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.read_widget_source",
-            "description": "Fetch the script body of a single AI-Created Widget by id.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"id": {"type": "string"}},
-                "required": ["id"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.create_view",
-            "description": "Add a new Dashboard view (tab). `gridDensity` is optional ('cozy' | 'compact'); defaults to the app default.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "title": {"type": "string"},
-                    "gridDensity": {"type": "string"},
-                },
-                "required": ["title"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.update_view",
-            "description": "Edit an existing Dashboard view. `patch` supports the same fields as create_view (title, gridDensity).",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "patch": {"type": "object"},
-                },
-                "required": ["id", "patch"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.remove_view",
-            "description": "Delete a Dashboard view and all its instances.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"id": {"type": "string"}},
-                "required": ["id"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.reorder_views",
-            "description": "Reorder Dashboard views by supplying their ids in the desired order.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "orderedIds": {"type": "array", "items": {"type": "string"}},
-                },
-                "required": ["orderedIds"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.add_instance",
-            "description": "Place a new widget instance on a view. For built-in widgets, set kind to e.g. 'connection', 'app_launcher', etc. For AI-Created Widgets, set kind = 'script' and sourceId to the widget's id. Grid coordinates are 0-11 columns wide.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "viewId": {"type": "string"},
-                    "kind": {"type": "string"},
-                    "sourceId": {"type": "string"},
-                    "preset": {"type": "string"},
-                    "accentName": {"type": "string"},
-                    "iconName": {"type": "string"},
-                    "gridX": {"type": "integer", "minimum": 0, "maximum": 11},
-                    "gridY": {"type": "integer", "minimum": 0},
-                    "gridW": {"type": "integer", "minimum": 1, "maximum": 12},
-                    "gridH": {"type": "integer", "minimum": 1},
-                },
-                "required": ["viewId", "kind"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.update_instance",
-            "description": "Change a widget instance's size, position, preset, accent, or icon. Use `patch` with any subset of: gridX, gridY, gridW, gridH, preset, accentName, iconName.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "patch": {"type": "object"},
-                },
-                "required": ["id", "patch"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.remove_instance",
-            "description": "Remove a widget instance from its view.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {"id": {"type": "string"}},
-                "required": ["id"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.apply_layout",
-            "description": "Bulk update of multiple instance positions on a single view. `layout` is an array of {id, gridX, gridY, gridW, gridH} entries.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "viewId": {"type": "string"},
-                    "layout": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "string"},
-                                "gridX": {"type": "integer"},
-                                "gridY": {"type": "integer"},
-                                "gridW": {"type": "integer"},
-                                "gridH": {"type": "integer"},
-                            },
-                            "required": ["id"],
-                        },
-                    },
-                },
-                "required": ["viewId", "layout"],
-                "additionalProperties": false,
-            },
-        }),
-        // -- Dashboard: AI-Created Widget management (executes user scripts) --
-        json!({
-            "name": "kkterm.dashboard.dangerous.create_widget",
-            "description": "DANGEROUS: create an AI-Created (script) Widget AND place it on a view in one call. `widgetArchetype` selects the generation scaffold (dataMonitor, metricChart, utilityInstrument, desktopObject, canvasToyGame, or generalWorkbench). `body` is the structured widget body (libraries, source, permissions, etc.). Requires built_in_mcp_allow_all_dangerous = true because the body runs as a sandboxed script widget.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "viewId": {"type": "string"},
-                    "widgetArchetype": {"type": "string", "enum": ["dataMonitor", "metricChart", "utilityInstrument", "desktopObject", "canvasToyGame", "generalWorkbench"]},
-                    "title": {"type": "string"},
-                    "summary": {"type": "string"},
-                    "category": {"type": "string"},
-                    "body": {"type": "object"},
-                    "settingsSchema": {"type": "object"},
-                    "preset": {"type": "string"},
-                    "accentName": {"type": "string"},
-                    "iconName": {"type": "string"},
-                    "gridX": {"type": "integer"},
-                    "gridY": {"type": "integer"},
-                    "gridW": {"type": "integer"},
-                    "gridH": {"type": "integer"},
-                },
-                "required": ["viewId", "widgetArchetype", "title", "body"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.dangerous.create_custom_widget",
-            "description": "DANGEROUS: create a reusable AI-Created Widget definition without placing it. Pass `bodyJson` as a UTF-8 JSON string matching the script body schema. Requires Allow-all.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "title": {"type": "string"},
-                    "summary": {"type": "string"},
-                    "category": {"type": "string"},
-                    "bodyJson": {"type": "string"},
-                    "settingsSchemaJson": {"type": "string"},
-                    "createdBy": {"type": "string"},
-                },
-                "required": ["title", "bodyJson"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.dangerous.update_custom_widget",
-            "description": "DANGEROUS: edit an existing AI-Created Widget. `patch` may include title, summary, category, and a structured `body` (preferred) or `bodyJson`. Requires Allow-all because changes alter executable widget code.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "patch": {"type": "object"},
-                },
-                "required": ["id", "patch"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.dangerous.remove_custom_widget",
-            "description": "DANGEROUS: delete an AI-Created Widget definition. `forceDeleteInstances` removes existing instances too; otherwise the call fails if any instance still references it.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "forceDeleteInstances": {"type": "boolean"},
-                },
-                "required": ["id"],
-                "additionalProperties": false,
-            },
-        }),
-        json!({
-            "name": "kkterm.dashboard.dangerous.reset",
-            "description": "DANGEROUS: wipe the entire Dashboard — all views, instances, and AI-Created Widgets. Irreversible. Requires Allow-all.",
-            "inputSchema": {"type": "object", "properties": {}, "additionalProperties": false},
-        }),
-    ]
-}
-
-fn connection_create_input_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "name": {"type": "string", "minLength": 1},
-            "type": {"type": "string", "enum": ["local", "ssh", "telnet", "serial", "url", "rdp", "vnc", "ftp"]},
-            "folderId": {"type": ["string", "null"]},
-            "host": {"type": "string"},
-            "user": {"type": "string"},
-            "port": {"type": ["integer", "null"], "minimum": 1, "maximum": 65535},
-            "keyPath": {"type": ["string", "null"]},
-            "proxyJump": {"type": ["string", "null"]},
-            "authMethod": {"type": ["string", "null"], "enum": ["keyFile", "password", "agent", null]},
-            "localShell": {"type": ["string", "null"]},
-            "localStartupDirectory": {"type": ["string", "null"]},
-            "localStartupScript": {"type": ["string", "null"]},
-            "url": {"type": ["string", "null"]},
-            "dataPartition": {"type": ["string", "null"]},
-            "useTmuxSessions": {"type": ["boolean", "null"]},
-            "serialLine": {"type": ["string", "null"]},
-            "serialSpeed": {"type": ["integer", "null"], "minimum": 1},
-        },
-        "required": ["name", "type"],
-        "additionalProperties": true,
-    })
-}
-
-fn connection_update_input_schema() -> Value {
-    let mut schema = connection_create_input_schema();
-    if let Some(properties) = schema.get_mut("properties").and_then(Value::as_object_mut) {
-        properties.insert(
-            "connectionId".to_string(),
-            json!({"type": "string", "description": "The id of the saved Connection to update."}),
-        );
-    }
-    if let Some(required) = schema.get_mut("required").and_then(Value::as_array_mut) {
-        required.insert(0, json!("connectionId"));
-    }
-    schema
-}
-
-fn id_input_schema(id_name: &str) -> Value {
-    json!({
-        "type": "object",
-        "properties": {(id_name): {"type": "string"}},
-        "required": [id_name],
-        "additionalProperties": false,
-    })
-}
-
-fn id_name_input_schema(id_name: &str) -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            (id_name): {"type": "string"},
-            "name": {"type": "string", "minLength": 1},
-        },
-        "required": [id_name, "name"],
-        "additionalProperties": false,
-    })
-}
-
-fn move_connection_input_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "connectionId": {"type": "string"},
-            "folderId": {"type": ["string", "null"]},
-            "targetIndex": {"type": "integer", "minimum": 0},
-        },
-        "required": ["connectionId", "folderId", "targetIndex"],
-        "additionalProperties": false,
-    })
-}
-
-fn folder_create_input_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "name": {"type": "string", "minLength": 1},
-            "parentFolderId": {"type": ["string", "null"]},
-        },
-        "required": ["name", "parentFolderId"],
-        "additionalProperties": false,
-    })
-}
-
-fn move_folder_input_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "folderId": {"type": "string"},
-            "parentFolderId": {"type": ["string", "null"]},
-            "targetIndex": {"type": "integer", "minimum": 0},
-        },
-        "required": ["folderId", "parentFolderId", "targetIndex"],
-        "additionalProperties": false,
-    })
 }
 
 fn dangerous_tool(name: &str) -> bool {
@@ -1012,7 +504,8 @@ fn redact_bridge_response(response: &Value) -> Value {
 fn redact_tool_arguments(name: &str, arguments: &Value) -> Value {
     let mut redacted = redact_sensitive_debug_value(arguments);
     match name {
-        "kkterm.workspace.sessions.send_input" => {
+        "kkterm.workspace.sessions.send_input"
+        | "kkterm.workspace.dangerous.remote_desktop_send_text" => {
             redact_object_key(&mut redacted, "text");
         }
         "kkterm.dashboard.dangerous.create_widget" => {
@@ -1489,6 +982,180 @@ async fn dispatch_tool(app: &AppHandle, name: &str, args: Value) -> Result<Value
             let raw = crate::ai::dashboard_tool(app, "dashboard_reset", json!({}));
             parse_dashboard_json(&raw)
         }
+        // -- Workspace: SFTP/FTP file browser ------------------------------
+        "kkterm.workspace.file_browser.list" => {
+            let raw = crate::ai::live_session_tool(
+                app,
+                "session_file_browser_list",
+                json!({
+                    "tabId": args.get("tabId").and_then(Value::as_str),
+                    "path": args.get("path").and_then(Value::as_str),
+                }),
+            )
+            .await;
+            parse_tool_json(&raw)
+        }
+        "kkterm.workspace.file_browser.dangerous.create_folder" => {
+            let parent_path = args
+                .get("parentPath")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "parentPath is required".to_string())?;
+            let folder_name = args
+                .get("name")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "name is required".to_string())?;
+            let raw = crate::ai::live_session_tool(
+                app,
+                "session_file_browser_create_folder",
+                json!({
+                    "tabId": args.get("tabId").and_then(Value::as_str),
+                    "parentPath": parent_path,
+                    "name": folder_name,
+                }),
+            )
+            .await;
+            parse_tool_json(&raw)
+        }
+        "kkterm.workspace.file_browser.dangerous.rename" => {
+            let path = args
+                .get("path")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "path is required".to_string())?;
+            let new_name = args
+                .get("newName")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "newName is required".to_string())?;
+            let raw = crate::ai::live_session_tool(
+                app,
+                "session_file_browser_rename",
+                json!({
+                    "tabId": args.get("tabId").and_then(Value::as_str),
+                    "path": path,
+                    "newName": new_name,
+                }),
+            )
+            .await;
+            parse_tool_json(&raw)
+        }
+        "kkterm.workspace.file_browser.dangerous.delete" => {
+            let path = args
+                .get("path")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "path is required".to_string())?;
+            let raw = crate::ai::live_session_tool(
+                app,
+                "session_file_browser_delete",
+                json!({
+                    "tabId": args.get("tabId").and_then(Value::as_str),
+                    "path": path,
+                }),
+            )
+            .await;
+            parse_tool_json(&raw)
+        }
+        // -- Workspace: remote desktop (RDP/VNC) capture and input ----------
+        "kkterm.workspace.sessions.remote_desktop_screenshot" => {
+            let raw = crate::ai::live_session_tool(
+                app,
+                "session_remote_desktop_screenshot",
+                json!({"paneId": args.get("paneId").and_then(Value::as_str)}),
+            )
+            .await;
+            parse_tool_json(&raw)
+        }
+        "kkterm.workspace.dangerous.remote_desktop_send_text" => {
+            let text = args
+                .get("text")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "text is required".to_string())?;
+            let press_enter = args
+                .get("pressEnter")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            let raw = crate::ai::live_session_tool(
+                app,
+                "session_remote_desktop_send_text",
+                json!({
+                    "paneId": args.get("paneId").and_then(Value::as_str),
+                    "text": text,
+                    "pressEnter": press_enter,
+                }),
+            )
+            .await;
+            parse_tool_json(&raw)
+        }
+        "kkterm.workspace.dangerous.remote_desktop_keypress" => {
+            let key = args
+                .get("key")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "key is required".to_string())?;
+            let raw = crate::ai::live_session_tool(
+                app,
+                "session_remote_desktop_keypress",
+                json!({
+                    "paneId": args.get("paneId").and_then(Value::as_str),
+                    "key": key,
+                }),
+            )
+            .await;
+            parse_tool_json(&raw)
+        }
+        // -- Network: read-only diagnostics. network_tool reads the same
+        // camelCase argument keys the schema publishes, so forward as-is. A
+        // failed probe is a real result (ok=false + netError), not a tool
+        // error, so use passthrough parsing.
+        "kkterm.network.ping" => {
+            parse_passthrough_json(&crate::ai::network_tool("network_ping", args).await)
+        }
+        "kkterm.network.dns" => {
+            parse_passthrough_json(&crate::ai::network_tool("network_dns", args).await)
+        }
+        "kkterm.network.tcp_check" => {
+            parse_passthrough_json(&crate::ai::network_tool("network_tcp_check", args).await)
+        }
+        "kkterm.network.port_scan" => {
+            parse_passthrough_json(&crate::ai::network_tool("network_port_scan", args).await)
+        }
+        "kkterm.network.interfaces" => {
+            parse_passthrough_json(&crate::ai::network_tool("network_interfaces", args).await)
+        }
+        "kkterm.network.wol" => {
+            parse_passthrough_json(&crate::ai::network_tool("network_wol", args).await)
+        }
+        "kkterm.network.whois" => {
+            parse_passthrough_json(&crate::ai::network_tool("network_whois", args).await)
+        }
+        // -- Watchdog: background monitors ---------------------------------
+        "kkterm.watchdog.list" => {
+            parse_tool_json(&crate::ai::watchdog_tool(app, "watchdog_list", json!({})).await)
+        }
+        "kkterm.watchdog.get_report" => {
+            let id = args
+                .get("id")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "id is required".to_string())?;
+            parse_tool_json(
+                &crate::ai::watchdog_tool(app, "watchdog_get_report", json!({"id": id})).await,
+            )
+        }
+        "kkterm.watchdog.cancel" => {
+            let id = args
+                .get("id")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "id is required".to_string())?;
+            parse_tool_json(
+                &crate::ai::watchdog_tool(app, "watchdog_cancel", json!({"id": id})).await,
+            )
+        }
+        "kkterm.watchdog.dangerous.create" => {
+            let config = args
+                .get("config")
+                .cloned()
+                .ok_or_else(|| "config is required".to_string())?;
+            parse_tool_json(
+                &crate::ai::watchdog_tool(app, "watchdog_create", json!({"config": config})).await,
+            )
+        }
         other => Err(format!("unknown tool: {other}")),
     }
 }
@@ -1521,6 +1188,15 @@ fn parse_tool_json(raw: &str) -> Result<Value, String> {
         return Err(message);
     }
     Ok(value)
+}
+
+/// Network probes report real failures (host down, port closed) as
+/// `{"ok": false, "netError": …}`. That is a legitimate diagnostic outcome,
+/// not a tool-execution failure, so pass the payload through unchanged rather
+/// than converting `ok=false` into an MCP tool error the way `parse_tool_json`
+/// does. Only a genuinely unparseable response degrades to a string Value.
+fn parse_passthrough_json(raw: &str) -> Result<Value, String> {
+    Ok(serde_json::from_str(raw).unwrap_or_else(|_| Value::String(raw.to_string())))
 }
 
 fn terminal_send_input_live_tool_args(pane_id: &str, text: &str, submit: bool) -> Value {
@@ -1593,6 +1269,13 @@ mod tests {
         );
         assert_eq!(send_input["text"], "[REDACTED]");
         assert_eq!(send_input["paneId"], "pane-1");
+
+        let remote_text = redact_tool_arguments(
+            "kkterm.workspace.dangerous.remote_desktop_send_text",
+            &json!({"paneId": "pane-2", "text": "secret", "pressEnter": true}),
+        );
+        assert_eq!(remote_text["text"], "[REDACTED]");
+        assert_eq!(remote_text["paneId"], "pane-2");
 
         let create_widget = redact_tool_arguments(
             "kkterm.dashboard.dangerous.create_widget",
@@ -1691,16 +1374,37 @@ mod tests {
         ));
         assert!(dangerous_tool("kkterm.dashboard.dangerous.create_widget"));
         assert!(dangerous_tool("kkterm.dashboard.dangerous.reset"));
+        assert!(dangerous_tool(
+            "kkterm.workspace.file_browser.dangerous.create_folder"
+        ));
+        assert!(dangerous_tool(
+            "kkterm.workspace.file_browser.dangerous.delete"
+        ));
+        assert!(dangerous_tool(
+            "kkterm.workspace.dangerous.remote_desktop_send_text"
+        ));
+        assert!(dangerous_tool(
+            "kkterm.workspace.dangerous.remote_desktop_keypress"
+        ));
+        assert!(dangerous_tool("kkterm.watchdog.dangerous.create"));
         assert!(!dangerous_tool("kkterm.workspace.sessions.send_input"));
+        assert!(!dangerous_tool("kkterm.workspace.file_browser.list"));
+        assert!(!dangerous_tool(
+            "kkterm.workspace.sessions.remote_desktop_screenshot"
+        ));
         assert!(!dangerous_tool("kkterm.workspace.quick_commands.list"));
         assert!(!dangerous_tool("kkterm.workspace.quick_commands.read"));
         assert!(!dangerous_tool("kkterm.dashboard.add_instance"));
         assert!(!dangerous_tool("kkterm.dashboard.update_view"));
+        assert!(!dangerous_tool("kkterm.network.ping"));
+        assert!(!dangerous_tool("kkterm.network.port_scan"));
+        assert!(!dangerous_tool("kkterm.watchdog.list"));
+        assert!(!dangerous_tool("kkterm.watchdog.cancel"));
     }
 
     #[test]
     fn tool_descriptors_include_published_surface() {
-        let names: Vec<String> = tool_descriptors()
+        let names: Vec<String> = crate::mcp_tool_catalog::tool_descriptors()
             .iter()
             .filter_map(|tool| tool.get("name").and_then(Value::as_str).map(str::to_string))
             .collect();
@@ -1734,6 +1438,36 @@ mod tests {
         assert!(names.contains(&"kkterm.dashboard.dangerous.create_widget".to_string()));
         assert!(names.contains(&"kkterm.dashboard.dangerous.update_custom_widget".to_string()));
         assert!(names.contains(&"kkterm.dashboard.dangerous.reset".to_string()));
+        // File browser surface
+        assert!(names.contains(&"kkterm.workspace.file_browser.list".to_string()));
+        assert!(names.contains(
+            &"kkterm.workspace.file_browser.dangerous.create_folder".to_string()
+        ));
+        assert!(names.contains(&"kkterm.workspace.file_browser.dangerous.rename".to_string()));
+        assert!(names.contains(&"kkterm.workspace.file_browser.dangerous.delete".to_string()));
+        // Remote desktop surface
+        assert!(
+            names.contains(&"kkterm.workspace.sessions.remote_desktop_screenshot".to_string())
+        );
+        assert!(
+            names.contains(&"kkterm.workspace.dangerous.remote_desktop_send_text".to_string())
+        );
+        assert!(
+            names.contains(&"kkterm.workspace.dangerous.remote_desktop_keypress".to_string())
+        );
+        // Network surface
+        assert!(names.contains(&"kkterm.network.ping".to_string()));
+        assert!(names.contains(&"kkterm.network.dns".to_string()));
+        assert!(names.contains(&"kkterm.network.tcp_check".to_string()));
+        assert!(names.contains(&"kkterm.network.port_scan".to_string()));
+        assert!(names.contains(&"kkterm.network.interfaces".to_string()));
+        assert!(names.contains(&"kkterm.network.wol".to_string()));
+        assert!(names.contains(&"kkterm.network.whois".to_string()));
+        // Watchdog surface
+        assert!(names.contains(&"kkterm.watchdog.list".to_string()));
+        assert!(names.contains(&"kkterm.watchdog.get_report".to_string()));
+        assert!(names.contains(&"kkterm.watchdog.cancel".to_string()));
+        assert!(names.contains(&"kkterm.watchdog.dangerous.create".to_string()));
         // Guard against drifting back to the pre-Option-B flat namespace.
         for name in &names {
             assert!(

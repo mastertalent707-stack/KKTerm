@@ -20,6 +20,7 @@ mod logging;
 mod manual;
 mod mcp;
 mod mcp_bridge;
+mod mcp_tool_catalog;
 mod native_tooltip;
 mod net;
 mod performance;
