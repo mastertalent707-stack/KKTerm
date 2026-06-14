@@ -952,6 +952,10 @@ type CommandMap = {
     args: { request: RenameConnectionFolderRequest };
     result: ConnectionFolder;
   };
+  update_connection_folder_icon_data_url: {
+    args: { folderId: string; iconDataUrl?: string | null };
+    result: ConnectionFolder;
+  };
   delete_connection_folder: {
     args: { folderId: string };
     result: null;

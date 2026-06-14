@@ -952,6 +952,7 @@ impl Storage {
     ) -> Result<ConnectionFolder, String> {
         let name = required_field("folder name", request.name)?;
         let parent_folder_id = normalize_optional_id(request.parent_folder_id);
+        let icon_data_url = normalize_connection_icon_data_url(request.icon_data_url)?;
         let id = make_folder_id(&name);
         let connection = self.lock()?;
         if let Some(parent_folder_id) = parent_folder_id.as_deref() {
@@ -974,14 +975,15 @@ impl Storage {
 
         connection
             .execute(
-                "INSERT INTO connection_folders (id, name, parent_folder_id, sort_order, workspace_id) VALUES (?1, ?2, ?3, ?4, ?5)",
-                params![id, name, parent_folder_id, next_sort_order, workspace_id],
+                "INSERT INTO connection_folders (id, name, icon_data_url, parent_folder_id, sort_order, workspace_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![id, name, icon_data_url, parent_folder_id, next_sort_order, workspace_id],
             )
             .map_err(to_storage_error)?;
 
         Ok(ConnectionFolder {
             id,
             name,
+            icon_data_url,
             connections: Vec::new(),
             folders: Vec::new(),
         })
@@ -994,10 +996,43 @@ impl Storage {
         let id = required_field("folder id", request.id)?;
         let name = required_field("folder name", request.name)?;
         let connection = self.lock()?;
+        let affected = if let Some(icon_data_url) = request.icon_data_url {
+            let icon_data_url = normalize_connection_icon_data_url(icon_data_url)?;
+            connection
+                .execute(
+                    "UPDATE connection_folders SET name = ?1, icon_data_url = ?2 WHERE id = ?3",
+                    params![name, icon_data_url, id],
+                )
+                .map_err(to_storage_error)?
+        } else {
+            connection
+                .execute(
+                    "UPDATE connection_folders SET name = ?1 WHERE id = ?2",
+                    params![name, id],
+                )
+                .map_err(to_storage_error)?
+        };
+
+        if affected == 0 {
+            return Err("connection folder was not found".to_string());
+        }
+
+        let icon_data_url = folder_icon_data_url(&connection, &id)?;
+        get_folder_by_id(&connection, &id, name, icon_data_url)
+    }
+
+    pub fn update_connection_folder_icon_data_url(
+        &self,
+        folder_id: String,
+        icon_data_url: Option<String>,
+    ) -> Result<ConnectionFolder, String> {
+        let folder_id = required_field("folder id", folder_id)?;
+        let icon_data_url = normalize_connection_icon_data_url(icon_data_url)?;
+        let connection = self.lock()?;
         let affected = connection
             .execute(
-                "UPDATE connection_folders SET name = ?1 WHERE id = ?2",
-                params![name, id],
+                "UPDATE connection_folders SET icon_data_url = ?1 WHERE id = ?2",
+                params![icon_data_url, folder_id],
             )
             .map_err(to_storage_error)?;
 
@@ -1005,7 +1040,8 @@ impl Storage {
             return Err("connection folder was not found".to_string());
         }
 
-        get_folder_by_id(&connection, &id, name)
+        let (name, stored_icon_data_url) = folder_name_and_icon_data_url(&connection, &folder_id)?;
+        get_folder_by_id(&connection, &folder_id, name, stored_icon_data_url)
     }
 
     pub fn delete_connection_folder(&self, folder_id: String) -> Result<(), String> {

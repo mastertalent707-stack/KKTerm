@@ -1479,6 +1479,7 @@
     "newSubfolderIn": "在…新建子文件夹",
     "newConnection": "新建连接",
     "rename": "重命名",
+    "changeIcon": "Change Icon",
     "delete": "删除",
     "pinToRail": "固定",
     "unpinFromRail": "取消固定",

@@ -1,7 +1,7 @@
 import { ConnectionGlyph, connectionSubtitle, connectionTypeSubtitle } from "./ConnectionGlyph";
 import { ConnectionIconBackgroundPicker } from "./ConnectionIconBackgroundPicker";
 import { ConnectionIconPicker } from "./ConnectionIconPicker";
-import { connectionIconSrcForConnection } from "./ConnectionIcon";
+import { ConnectionIcon, connectionIconSrcForConnection } from "./ConnectionIcon";
 import { AddConnectionMenu, QuickConnectMenu } from "./ConnectionMenus";
 import { FtpConnectionFields, FtpConnectionOptions } from "./connection-dialog/FtpConnectionFields";
 import { LocalConnectionFields } from "./connection-dialog/LocalConnectionFields";
@@ -77,6 +77,7 @@ type TreeDragPreview = {
   connectionType?: ConnectionType;
   connectionStatus?: ConnectionStatus;
   connectionCount?: number;
+  iconDataUrl?: string | null;
   x: number;
   y: number;
   offsetX: number;
@@ -138,6 +139,10 @@ type ConnectionDialogRequest = CreateConnectionRequest & {
 type ChildConnectionPropertiesState = {
   child: WorkspaceChildConnection;
   connection: Connection;
+};
+
+type FolderIconDialogState = {
+  folder: ConnectionFolder;
 };
 
 export function ConnectionSidebar({
@@ -205,6 +210,7 @@ export function ConnectionSidebar({
   const [treeContextMenu, setTreeContextMenu] = useState<TreeContextMenuState | null>(null);
   const [childConnections, setChildConnections] = useState<WorkspaceChildConnection[]>(loadStoredChildConnections);
   const [childProperties, setChildProperties] = useState<ChildConnectionPropertiesState | null>(null);
+  const [folderIconDialog, setFolderIconDialog] = useState<FolderIconDialogState | null>(null);
   const [editConnection, setEditConnection] = useState<EditConnectionState | null>(null);
   const [transferSshPublicKeyDialog, setTransferSshPublicKeyDialog] =
     useState<TransferSshPublicKeyDialogState | null>(null);
@@ -221,6 +227,11 @@ export function ConnectionSidebar({
     for (const connection of flattenConnections(tree)) {
       if (connection.iconDataUrl) {
         urls.add(connection.iconDataUrl);
+      }
+    }
+    for (const { folder } of flattenFolders(tree.folders)) {
+      if (folder.iconDataUrl) {
+        urls.add(folder.iconDataUrl);
       }
     }
     for (const child of childConnections) {
@@ -1134,6 +1145,21 @@ export function ConnectionSidebar({
     }
   }
 
+  async function handleSaveFolderIcon(folder: ConnectionFolder, iconDataUrl: string | null) {
+    try {
+      setTreeError("");
+      await invokeCommand("update_connection_folder_icon_data_url", {
+        folderId: folder.id,
+        iconDataUrl,
+      });
+      await reloadConnectionGroups();
+      notifyConnectionTreeInvalidated();
+      setFolderIconDialog(null);
+    } catch (error) {
+      setTreeError(error instanceof Error ? error.message : String(error));
+    }
+  }
+
   async function commitConnectionRename(connection: Connection, name: string) {
     const trimmedName = name.trim();
     if (!trimmedName || trimmedName === connection.name) {
@@ -1560,6 +1586,12 @@ export function ConnectionSidebar({
     );
 
     if (menu.kind !== "connection") {
+      items.splice(1, 0, {
+        kind: "item",
+        label: t("connections.changeIcon"),
+        iconSvg: nativeMenuIcons.pencil,
+        action: () => setFolderIconDialog({ folder: menu.folder }),
+      });
       return items;
     }
 
@@ -2372,6 +2404,12 @@ export function ConnectionSidebar({
           onCreateConnection={handleTreeMenuCreateConnection}
           onCreateFolder={handleTreeMenuCreateFolder}
           onDelete={() => void handleTreeMenuDelete(treeContextMenu)}
+          onChangeIcon={() => {
+            if (treeContextMenu.kind === "folder") {
+              setFolderIconDialog({ folder: treeContextMenu.folder });
+            }
+            setTreeContextMenu(null);
+          }}
           onProperties={() => handleTreeMenuProperties(treeContextMenu)}
           onRename={() => void handleTreeMenuRename(treeContextMenu)}
           onAddToPane={(direction) => handleTreeMenuAddToPane(treeContextMenu, direction)}
@@ -2454,6 +2492,18 @@ export function ConnectionSidebar({
             setFormError("");
           }}
           onSubmit={handleConnectionUpdate}
+        />
+      ) : null}
+      {folderIconDialog ? (
+        <FolderIconDialog
+          customIconDataUrls={reusableChildIconDataUrls}
+          error={treeError}
+          folder={folderIconDialog.folder}
+          onCancel={() => {
+            setFolderIconDialog(null);
+            setTreeError("");
+          }}
+          onSubmit={(iconDataUrl) => void handleSaveFolderIcon(folderIconDialog.folder, iconDataUrl)}
         />
       ) : null}
       {confirmDeleteTarget ? (
@@ -2578,6 +2628,63 @@ function ChildConnectionPropertiesDialog({
   );
 }
 
+function FolderIconDialog({
+  customIconDataUrls,
+  error,
+  folder,
+  onCancel,
+  onSubmit,
+}: {
+  customIconDataUrls: string[];
+  error: string;
+  folder: ConnectionFolder;
+  onCancel: () => void;
+  onSubmit: (iconDataUrl: string | null) => void;
+}) {
+  const { t } = useTranslation();
+  const [iconDataUrl, setIconDataUrl] = useState<string | null>(folder.iconDataUrl ?? null);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onSubmit(iconDataUrl);
+  }
+
+  return (
+    <DialogPortal>
+    <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
+      <form className="connection-dialog child-connection-properties-dialog" onSubmit={handleSubmit}>
+        <header className="connection-dialog-header compact">
+          <div>
+            <h2>{t("connections.changeIcon")}</h2>
+          </div>
+        </header>
+        <div className="connection-type-summary">
+          <ConnectionIconPicker
+            customIconDataUrls={customIconDataUrls}
+            iconDataUrl={iconDataUrl}
+            onChange={setIconDataUrl}
+            type="localFiles"
+          />
+          <span>
+            <strong>{folder.name}</strong>
+          </span>
+        </div>
+        {error ? <p className="form-error">{error}</p> : null}
+        <div className={DIALOG_ACTIONS_CLASS}>
+          <button className="approve-button" type="submit">
+            <Check size={15} />
+            {t("common.save")}
+          </button>
+          <button className="toolbar-button" onClick={onCancel} type="button">
+            {t("common.cancel")}
+          </button>
+        </div>
+      </form>
+    </div>
+    </DialogPortal>
+  );
+}
+
 function ConnectionFolderNode({
   activeTabId,
   childConnectionsForConnection,
@@ -2690,6 +2797,7 @@ function ConnectionFolderNode({
               kind: "folder",
               title: folder.name,
               connectionCount,
+              iconDataUrl: folder.iconDataUrl,
             },
           )
         }
@@ -2710,7 +2818,7 @@ function ConnectionFolderNode({
           >
             {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
           </button>
-          <Folder size={13} />
+          <ConnectionIcon iconDataUrl={folder.iconDataUrl} size={18} type="localFiles" />
           {isRenamingFolder ? (
             <InlineTreeRenameInput
               ariaLabel={t("connections.renameFolder")}
@@ -2978,6 +3086,7 @@ function TreeContextMenu({
   onClose,
   onCreateConnection,
   onCreateFolder,
+  onChangeIcon,
   onDelete,
   onProperties,
   onRename,
@@ -2995,6 +3104,7 @@ function TreeContextMenu({
   onClose: () => void;
   onCreateConnection: () => void;
   onCreateFolder: () => void;
+  onChangeIcon: () => void;
   onDelete: () => void;
   onProperties: () => void;
   onRename: () => void;
@@ -3074,6 +3184,12 @@ function TreeContextMenu({
             <Pencil className="menu-item-icon" size={15} />
             <span>{t("connections.rename")}</span>
           </button>
+          {menu.kind === "folder" ? (
+            <button onClick={onChangeIcon} role="menuitem" type="button">
+              <Pencil className="menu-item-icon" size={15} />
+              <span>{t("connections.changeIcon")}</span>
+            </button>
+          ) : null}
           <button onClick={onDelete} role="menuitem" type="button">
             <Trash2 className="menu-item-icon" size={15} />
             <span>{t("connections.delete")}</span>
@@ -4017,7 +4133,7 @@ function TreeDragPreview({ preview }: { preview: TreeDragPreview }) {
   return (
     <div className={`tree-drag-preview ${preview.kind}`} ref={previewRef}>
       {preview.kind === "folder" ? (
-        <Folder size={15} />
+        <ConnectionIcon iconDataUrl={preview.iconDataUrl} size={15} type="localFiles" />
       ) : (
         <ConnectionGlyph size={15} type={preview.connectionType ?? "ssh"} />
       )}

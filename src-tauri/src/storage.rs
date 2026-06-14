@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 21;
+const SCHEMA_USER_VERSION: i32 = 22;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS workspaces (
 CREATE TABLE IF NOT EXISTS connection_folders (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    icon_data_url TEXT,
     parent_folder_id TEXT REFERENCES connection_folders(id) ON DELETE CASCADE,
     workspace_id TEXT REFERENCES workspaces(id) ON DELETE CASCADE,
     sort_order INTEGER NOT NULL
@@ -947,6 +948,7 @@ pub struct ReorderWorkspacesRequest {
 pub struct ConnectionFolder {
     id: String,
     name: String,
+    icon_data_url: Option<String>,
     connections: Vec<SavedConnection>,
     folders: Vec<ConnectionFolder>,
 }
@@ -1099,6 +1101,8 @@ pub struct CreateConnectionFolderRequest {
     parent_folder_id: Option<String>,
     #[serde(default)]
     workspace_id: Option<String>,
+    #[serde(default)]
+    icon_data_url: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -1106,6 +1110,8 @@ pub struct CreateConnectionFolderRequest {
 pub struct RenameConnectionFolderRequest {
     id: String,
     name: String,
+    #[serde(default)]
+    icon_data_url: Option<Option<String>>,
 }
 
 #[derive(Deserialize)]
@@ -1567,6 +1573,7 @@ impl Storage {
         ensure_column(&connection, "connections", "ftp_options", "TEXT")?;
         ensure_column(&connection, "connections", "icon_data_url", "TEXT")?;
         ensure_column(&connection, "connections", "icon_background_color", "TEXT")?;
+        ensure_column(&connection, "connection_folders", "icon_data_url", "TEXT")?;
         ensure_column(&connection, "connections", "terminal_opacity", "INTEGER")?;
         ensure_column(
             &connection,
@@ -2470,6 +2477,32 @@ fn folder_workspace_id(
     Ok(normalize_workspace_id(stored.flatten().unwrap_or_default()))
 }
 
+fn folder_icon_data_url(
+    connection: &SqliteConnection,
+    folder_id: &str,
+) -> Result<Option<String>, String> {
+    connection
+        .query_row(
+            "SELECT icon_data_url FROM connection_folders WHERE id = ?1",
+            params![folder_id],
+            |row| row.get::<_, Option<String>>(0),
+        )
+        .map_err(to_storage_error)
+}
+
+fn folder_name_and_icon_data_url(
+    connection: &SqliteConnection,
+    folder_id: &str,
+) -> Result<(String, Option<String>), String> {
+    connection
+        .query_row(
+            "SELECT name, icon_data_url FROM connection_folders WHERE id = ?1",
+            params![folder_id],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+        )
+        .map_err(to_storage_error)
+}
+
 /// Resolve the Workspace a Connection belongs to, defaulting to Default.
 fn connection_workspace_id(
     connection: &SqliteConnection,
@@ -2525,7 +2558,7 @@ fn list_root_folders_for_workspace(
 ) -> Result<Vec<ConnectionFolder>, String> {
     let mut statement = connection
         .prepare(
-            "SELECT id, name
+            "SELECT id, name, icon_data_url
              FROM connection_folders
              WHERE parent_folder_id IS NULL AND workspace_id = ?1
              ORDER BY sort_order, name",
@@ -2533,13 +2566,17 @@ fn list_root_folders_for_workspace(
         .map_err(to_storage_error)?;
     let rows = statement
         .query_map(params![workspace_id], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+            ))
         })
         .map_err(to_storage_error)?
         .collect::<Result<Vec<_>, _>>()
         .map_err(to_storage_error)?;
     rows.into_iter()
-        .map(|(id, name)| get_folder_by_id(connection, &id, name))
+        .map(|(id, name, icon_data_url)| get_folder_by_id(connection, &id, name, icon_data_url))
         .collect()
 }
 
@@ -2595,14 +2632,14 @@ fn list_folders_for_parent(
     folder_ids
         .into_iter()
         .map(|folder_id| {
-            let name = connection
+            let (name, icon_data_url) = connection
                 .query_row(
-                    "SELECT name FROM connection_folders WHERE id = ?1",
+                    "SELECT name, icon_data_url FROM connection_folders WHERE id = ?1",
                     params![folder_id],
-                    |row| row.get::<_, String>(0),
+                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
                 )
                 .map_err(to_storage_error)?;
-            get_folder_by_id(connection, &folder_id, name)
+            get_folder_by_id(connection, &folder_id, name, icon_data_url)
         })
         .collect()
 }
@@ -2611,10 +2648,12 @@ fn get_folder_by_id(
     connection: &SqliteConnection,
     id: &str,
     name: String,
+    icon_data_url: Option<String>,
 ) -> Result<ConnectionFolder, String> {
     Ok(ConnectionFolder {
         id: id.to_string(),
         name,
+        icon_data_url,
         connections: list_connections_for_folder(connection, Some(id))?,
         folders: list_folders_for_parent(connection, Some(id))?,
     })

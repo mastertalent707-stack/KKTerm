@@ -83,6 +83,7 @@ export interface Connection {
 export interface ConnectionFolder {
   id: string;
   name: string;
+  iconDataUrl?: string | null;
   connections: Connection[];
   folders: ConnectionFolder[];
 }
@@ -120,11 +121,13 @@ export interface CreateConnectionFolderRequest {
   name: string;
   parentFolderId?: string;
   workspaceId?: string;
+  iconDataUrl?: string | null;
 }
 
 export interface RenameConnectionFolderRequest {
   id: string;
   name: string;
+  iconDataUrl?: string | null;
 }
 
 export interface RenameConnectionRequest {

@@ -484,6 +484,15 @@ fn rename_connection_folder(
 }
 
 #[tauri::command]
+fn update_connection_folder_icon_data_url(
+    storage: tauri::State<'_, storage::Storage>,
+    folder_id: String,
+    icon_data_url: Option<String>,
+) -> Result<storage::ConnectionFolder, String> {
+    storage.update_connection_folder_icon_data_url(folder_id, icon_data_url)
+}
+
+#[tauri::command]
 fn delete_connection_folder(
     storage: tauri::State<'_, storage::Storage>,
     folder_id: String,
@@ -3069,6 +3078,7 @@ pub fn run() {
             create_connection,
             create_connection_folder,
             rename_connection_folder,
+            update_connection_folder_icon_data_url,
             delete_connection_folder,
             rename_connection,
             update_connection,

@@ -881,6 +881,7 @@
                 name: "Staging".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("staging folder is created");
         let connection = create_test_ssh_connection(
@@ -916,6 +917,7 @@
                 name: "Staging".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("staging folder is created");
         let production = storage
@@ -923,6 +925,7 @@
                 name: "Production".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("production folder is created");
         let connection = create_test_ssh_connection(
@@ -1054,6 +1057,7 @@
                 name: "Production".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("production folder is created");
         let connection = create_test_ssh_connection(
@@ -1084,6 +1088,7 @@
                 name: "Production".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("production folder is created");
         let connection = create_test_ssh_connection(
@@ -1126,18 +1131,31 @@
                 name: "Customer A".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: Some("material:folder-server".to_string()),
             })
             .expect("folder is created");
         assert_eq!(created.name, "Customer A");
+        assert_eq!(created.icon_data_url.as_deref(), Some("material:folder-server"));
         assert!(created.connections.is_empty());
 
         let renamed = storage
             .rename_connection_folder(RenameConnectionFolderRequest {
                 id: created.id.clone(),
                 name: "Customer A Production".to_string(),
+                icon_data_url: None,
             })
             .expect("folder is renamed");
         assert_eq!(renamed.name, "Customer A Production");
+        assert_eq!(renamed.icon_data_url.as_deref(), Some("material:folder-server"));
+
+        let icon_changed = storage
+            .rename_connection_folder(RenameConnectionFolderRequest {
+                id: created.id.clone(),
+                name: "Customer A Production".to_string(),
+                icon_data_url: Some(Some("material:folder-open".to_string())),
+            })
+            .expect("folder icon is changed");
+        assert_eq!(icon_changed.icon_data_url.as_deref(), Some("material:folder-open"));
 
         storage
             .delete_connection_folder(created.id.clone())
@@ -1157,6 +1175,7 @@
                 name: "Customer A".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("parent folder is created");
         let child = storage
@@ -1164,6 +1183,7 @@
                 name: "Production".to_string(),
                 parent_folder_id: Some(parent.id.clone()),
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("child folder is created");
 
@@ -1184,6 +1204,7 @@
                 name: "Ephemeral".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("folder is created");
 
@@ -1231,6 +1252,7 @@
                 name: "Production".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("production folder is created");
         let staging = storage
@@ -1238,6 +1260,7 @@
                 name: "Staging".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("staging folder is created");
 
@@ -1266,6 +1289,7 @@
                 name: "Production".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("production folder is created");
         let staging = storage
@@ -1273,6 +1297,7 @@
                 name: "Staging".to_string(),
                 parent_folder_id: None,
                 workspace_id: None,
+                icon_data_url: None,
             })
             .expect("staging folder is created");
         create_test_ssh_connection(
