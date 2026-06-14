@@ -718,6 +718,42 @@ function buildPaneForConnection(
   };
 }
 
+function buildPaneForStandaloneTab(tab: WorkspaceTab): WorkspacePane | null {
+  if (!tab.connection) {
+    return null;
+  }
+  if (tab.kind === "webview" && tab.url) {
+    return {
+      kind: "webview",
+      id: tab.id,
+      title: tab.title,
+      toolbarTitle: tab.toolbarTitle ?? toolbarTitleForConnection(tab.connection),
+      connection: tab.connection,
+      url: tab.url,
+      dataPartition: tab.dataPartition,
+    };
+  }
+  if (tab.kind === "remoteDesktop") {
+    return {
+      kind: "remoteDesktop",
+      id: tab.id,
+      title: tab.title,
+      toolbarTitle: tab.toolbarTitle ?? toolbarTitleForConnection(tab.connection),
+      connection: tab.connection,
+    };
+  }
+  if (tab.kind === "sftp" || tab.kind === "ftp" || tab.kind === "localFiles") {
+    return {
+      kind: tab.kind,
+      id: tab.id,
+      title: tab.title,
+      toolbarTitle: tab.toolbarTitle ?? toolbarTitleForConnection(tab.connection),
+      connection: tab.connection,
+    };
+  }
+  return null;
+}
+
 function connectionForChild(connection: Connection, child: WorkspaceChildConnection): Connection {
   return {
     ...connection,
@@ -829,6 +865,9 @@ function refreshTerminalPaneConnection(
 }
 
 function urlConnectionIdsForTab(tab: WorkspaceTab) {
+  if (tab.kind === "webview" && tab.connection?.type === "url") {
+    return [tab.connection.id];
+  }
   return tab.panes.flatMap((pane) =>
     pane.kind === "webview" && pane.connection.type === "url"
       ? [pane.connection.id]
@@ -2056,12 +2095,14 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set((state) => {
       const openedUrlConnectionIds: string[] = [];
       const tabs = state.tabs.map((tab) => {
-        if (tab.id !== tabId || tab.kind !== "terminal") {
+        if (tab.id !== tabId) {
           return tab;
         }
+        const basePane = tab.kind === "terminal" ? null : buildPaneForStandaloneTab(tab);
+        const currentPanes = tab.kind === "terminal" ? tab.panes : basePane ? [basePane] : [];
         const focusedPane =
-          tab.panes.find((pane) => pane.id === tab.focusedPaneId) ??
-          tab.panes[0];
+          currentPanes.find((pane) => pane.id === tab.focusedPaneId) ??
+          currentPanes[0];
         if (!focusedPane) {
           return tab;
         }
@@ -2072,20 +2113,28 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         if (newPane.kind === "webview") {
           openedUrlConnectionIds.push(newPane.connection.id);
         }
-        const nextPanes = [...tab.panes, newPane];
-        const baseLayout = ensureLayout(tab.layout, tab.panes);
+        const nextPanes = [...currentPanes, newPane];
+        const baseLayout = ensureLayout(
+          tab.kind === "terminal" ? tab.layout : undefined,
+          currentPanes,
+        );
         const nextLayout = splitLayout(
           baseLayout,
           focusedPane.id,
           direction,
           newPane.id,
-          tab.panes.map((pane) => pane.id),
+          currentPanes.map((pane) => pane.id),
         );
         return {
           ...tab,
+          kind: "terminal" as const,
           panes: nextPanes,
           layout: nextLayout,
           focusedPaneId: newPane.id,
+          quickCommandBarVisible:
+            tab.kind === "terminal"
+              ? tab.quickCommandBarVisible
+              : loadStoredQuickCommandBarVisible(tab.connection?.id),
         };
       });
       return {
