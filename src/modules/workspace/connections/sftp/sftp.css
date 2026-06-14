@@ -27,9 +27,9 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 12px;
-  min-height: 34px;
+  min-height: 22px;
   /* Even top/bottom padding keeps the kind glyph + title vertically centered. */
-  padding: 5px 6px 5px 14px;
+  padding: 2px 6px 2px 14px;
 }
 /* Slim the action controls so they don't force the half-height titlebar taller. */
 .sftp-toolbar .toolbar-button {

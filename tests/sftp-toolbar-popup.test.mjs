@@ -99,6 +99,39 @@ test("SFTP workspace carries the selected app color scheme on its own surface", 
   );
 });
 
+test("SFTP-over-FTP Connections keep the SFTP runtime adapter after metadata refresh", async () => {
+  const storeSource = await readFile(new URL("../src/store.ts", import.meta.url), "utf8");
+
+  assert.match(
+    storeSource,
+    /function sftpBrowserConnectionFromFtpConnection\(connection: Connection\): Connection/,
+    "FTP Connections with the SFTP protocol should be converted to an SSH-shaped runtime Connection",
+  );
+  assert.match(
+    storeSource,
+    /tab\.kind === "sftp" && connection\.type === "ftp" && connection\.ftpOptions\?\.protocol === "sftp"[\s\S]*?\? sftpBrowserConnectionFromFtpConnection\(connection\)[\s\S]*?: connection/,
+    "refreshing an open SFTP browser after editing its durable Connection should not switch it to FTP commands",
+  );
+  assert.match(
+    storeSource,
+    /connection: refreshedConnection/,
+    "the refreshed SFTP tab should retain the converted runtime Connection",
+  );
+});
+
+test("SFTP titlebar stays compact with equal vertical padding", async () => {
+  const sftpStyles = await readFile(
+    new URL("../src/modules/workspace/connections/sftp/sftp.css", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    sftpStyles,
+    /\.sftp-toolbar\.workspace-toolbar\s*\{[^}]*min-height:\s*22px;[^}]*padding:\s*2px 6px 2px 14px;/s,
+    "the SFTP titlebar should be compact while preserving equal top and bottom padding",
+  );
+});
+
 test("SFTP popup close button is anchored to the dialog top right", async () => {
   const terminalStyles = await readFile(
     new URL("../src/modules/workspace/connections/terminal/terminal.css", import.meta.url),

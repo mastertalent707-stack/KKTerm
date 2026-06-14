@@ -1296,20 +1296,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     if (connection.type === "ftp") {
       if (connection.ftpOptions?.protocol === "sftp") {
-        const sshConnection: Connection = {
-          ...connection,
-          type: "ssh",
-          authMethod: "password",
-          port: connection.port ?? 22,
-          keyPath: undefined,
-          proxyJump: undefined,
-          ftpOptions: undefined,
-          // Keep the file-browser identity for the rail/tab glyph instead of the
-          // default SSH terminal icon (this connection opens a file browser). Use
-          // a catalog icon ref (not an imported asset) so non-Vite consumers of
-          // the store, like the test runner, don't choke on a .svg import.
-          iconDataUrl: connection.iconDataUrl ?? "material:folder-server",
-        };
+        const sshConnection = sftpBrowserConnectionFromFtpConnection(connection);
         get().openSftpBrowserInNewTab(sshConnection);
         return;
       }
@@ -1836,20 +1823,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     // port and hand it to openSftpBrowser. Same SftpWorkspace component,
     // same sftp_* Tauri commands, same SftpSessionManager.
     if (connection.ftpOptions?.protocol === "sftp") {
-      const sshConnection: Connection = {
-        ...connection,
-        type: "ssh",
-        authMethod: "password",
-        port: connection.port ?? 22,
-        keyPath: undefined,
-        proxyJump: undefined,
-        ftpOptions: undefined,
-        // Keep the file-browser identity for the rail/tab glyph instead of the
-        // default SSH terminal icon (this connection opens a file browser). Use
-        // a catalog icon ref (not an imported asset) so non-Vite consumers of
-        // the store, like the test runner, don't choke on a .svg import.
-        iconDataUrl: connection.iconDataUrl ?? "material:folder-server",
-      };
+      const sshConnection = sftpBrowserConnectionFromFtpConnection(connection);
       get().openSftpBrowser(sshConnection);
       return;
     }
@@ -2693,12 +2667,16 @@ function updateTabTerminalAppearance(
 
 function refreshTabConnectionMetadata(tab: WorkspaceTab, connection: Connection): WorkspaceTab {
   const tabConnectionMatches = tab.connection?.id === connection.id;
-  const toolbarTitle = toolbarTitleForConnection(connection);
+  const refreshedConnection =
+    tab.kind === "sftp" && connection.type === "ftp" && connection.ftpOptions?.protocol === "sftp"
+      ? sftpBrowserConnectionFromFtpConnection(connection)
+      : connection;
+  const toolbarTitle = toolbarTitleForConnection(refreshedConnection);
   const panes = tab.panes.map((pane) => {
     if (!isTerminalPane(pane) || pane.connection?.id !== connection.id) {
       return pane;
     }
-    return refreshTerminalPaneConnection(pane, connection, toolbarTitle);
+    return refreshTerminalPaneConnection(pane, refreshedConnection, toolbarTitle);
   });
   const panesChanged = panes.some((pane, index) => pane !== tab.panes[index]);
   if (!tabConnectionMatches && !panesChanged) {
@@ -2711,11 +2689,28 @@ function refreshTabConnectionMetadata(tab: WorkspaceTab, connection: Connection)
 
   return {
     ...tab,
-    connection,
-    title: refreshedTabTitle(tab, connection),
+    connection: refreshedConnection,
+    title: refreshedTabTitle(tab, refreshedConnection),
     toolbarTitle,
-    subtitle: refreshedTabSubtitle(tab, connection),
+    subtitle: refreshedTabSubtitle(tab, refreshedConnection),
     panes,
+  };
+}
+
+function sftpBrowserConnectionFromFtpConnection(connection: Connection): Connection {
+  return {
+    ...connection,
+    type: "ssh",
+    authMethod: "password",
+    port: connection.port ?? 22,
+    keyPath: undefined,
+    proxyJump: undefined,
+    ftpOptions: undefined,
+    // Keep the file-browser identity for the rail/tab glyph instead of the
+    // default SSH terminal icon (this connection opens a file browser). Use a
+    // catalog icon ref so non-Vite consumers, like the test runner, don't import
+    // an SVG asset from the store.
+    iconDataUrl: connection.iconDataUrl ?? "material:folder-server",
   };
 }
 
