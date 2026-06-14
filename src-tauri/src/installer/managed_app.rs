@@ -20,6 +20,7 @@ pub fn is_managed_app(tool_id: &str) -> bool {
             | "langflow"
             | "hermes-agent"
             | "excalidraw"
+            | "bentopdf"
             | "openclaw"
     )
 }
@@ -60,6 +61,7 @@ mod tests {
             "langflow",
             "hermes-agent",
             "excalidraw",
+            "bentopdf",
             "openclaw",
         ] {
             assert!(

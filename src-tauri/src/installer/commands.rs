@@ -541,7 +541,9 @@ pub async fn installer_install_service(tool_id: String) -> Result<(), String> {
             .ok_or_else(|| format!("tool `{tool_id}` does not expose a managed web UI"))?;
         let service = service_affordance(&tool_id)
             .ok_or_else(|| format!("tool `{tool_id}` does not expose a managed service helper"))?;
-        stop_port_listener(affordance.port)?;
+        if let Some(port) = port_to_stop_before_service(&affordance) {
+            stop_port_listener(port)?;
+        }
         run_elevated_cmd_script(
             &service_install_script(&service),
             &format!("install service {}", service.service_name),
@@ -650,6 +652,7 @@ struct WebUiAffordance {
     working_dir: String,
     url: &'static str,
     port: u16,
+    dynamic_port_file: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -669,6 +672,7 @@ pub struct ManagedWebUiStatus {
     service_installed: bool,
     service_state: Option<String>,
     startup: Option<String>,
+    url: String,
 }
 
 fn web_ui_affordance(tool_id: &str) -> Option<WebUiAffordance> {
@@ -694,6 +698,7 @@ fn web_ui_affordance(tool_id: &str) -> Option<WebUiAffordance> {
                 .into_owned(),
             url: "http://localhost:5678",
             port: 5678,
+            dynamic_port_file: None,
         }),
         "ollama" => Some(WebUiAffordance {
             program: managed_ollama_program(),
@@ -710,6 +715,7 @@ fn web_ui_affordance(tool_id: &str) -> Option<WebUiAffordance> {
                 .into_owned(),
             url: "http://localhost:11434",
             port: 11434,
+            dynamic_port_file: None,
         }),
         "flowise" => Some(WebUiAffordance {
             program: npm_program().into(),
@@ -729,6 +735,7 @@ fn web_ui_affordance(tool_id: &str) -> Option<WebUiAffordance> {
                 .into_owned(),
             url: "http://localhost:3000",
             port: 3000,
+            dynamic_port_file: None,
         }),
         "open-webui" => Some(WebUiAffordance {
             program: managed_uv_pip_script("open-webui", "open-webui"),
@@ -750,6 +757,7 @@ fn web_ui_affordance(tool_id: &str) -> Option<WebUiAffordance> {
                 .into_owned(),
             url: "http://localhost:8080",
             port: 8080,
+            dynamic_port_file: None,
         }),
         "langflow" => Some(WebUiAffordance {
             program: managed_uv_pip_script("langflow", "langflow"),
@@ -771,6 +779,7 @@ fn web_ui_affordance(tool_id: &str) -> Option<WebUiAffordance> {
                 .into_owned(),
             url: "http://localhost:7860",
             port: 7860,
+            dynamic_port_file: None,
         }),
         "excalidraw" => Some(WebUiAffordance {
             program: npm_program().into(),
@@ -793,6 +802,27 @@ fn web_ui_affordance(tool_id: &str) -> Option<WebUiAffordance> {
                 .into_owned(),
             url: "http://localhost:3021",
             port: 3021,
+            dynamic_port_file: None,
+        }),
+        "bentopdf" => Some(WebUiAffordance {
+            program: "node".into(),
+            args: vec![
+                "kkterm-web-ui-server.mjs".into(),
+                "--preferred-port".into(),
+                "3022".into(),
+            ],
+            env: vec![],
+            working_dir: managed_app_install_dir("bentopdf")
+                .to_string_lossy()
+                .into_owned(),
+            url: "http://localhost:3022",
+            port: 3022,
+            dynamic_port_file: Some(
+                managed_app_install_dir("bentopdf")
+                    .join(".kkterm-web-ui-port")
+                    .to_string_lossy()
+                    .into_owned(),
+            ),
         }),
         _ => None,
     }
@@ -967,6 +997,20 @@ fn service_affordance(tool_id: &str) -> Option<ManagedServiceAffordance> {
                 .to_string_lossy()
                 .into_owned(),
         }),
+        "bentopdf" => Some(ManagedServiceAffordance {
+            service_name: "KKTerm-BentoPDF".into(),
+            display_name: "KKTerm BentoPDF".into(),
+            program: "node".into(),
+            args: vec![
+                "kkterm-web-ui-server.mjs".into(),
+                "--preferred-port".into(),
+                "3022".into(),
+            ],
+            env: vec![],
+            working_dir: managed_app_install_dir("bentopdf")
+                .to_string_lossy()
+                .into_owned(),
+        }),
         "ollama" => Some(ManagedServiceAffordance {
             service_name: "KKTerm-Ollama".into(),
             display_name: "KKTerm Ollama".into(),
@@ -1080,6 +1124,23 @@ fn service_log_path(service: &ManagedServiceAffordance, stream: &str) -> String 
 }
 
 fn service_program_for_install_script(program: &str) -> (Vec<String>, String, Vec<String>) {
+    if cfg!(target_os = "windows")
+        && (program.eq_ignore_ascii_case("node") || program.eq_ignore_ascii_case("node.exe"))
+    {
+        return (
+            vec![
+                "set \"KKTERM_SERVICE_NODE=\"".to_string(),
+                "for %%I in (node.exe) do set \"KKTERM_SERVICE_NODE=%%~$PATH:I\"".to_string(),
+                "if not defined KKTERM_SERVICE_NODE (".to_string(),
+                "  echo node.exe is required. Install Node.js from KKTerm Installer Helper first."
+                    .to_string(),
+                "  exit /b 2".to_string(),
+                ")".to_string(),
+            ],
+            "\"%KKTERM_SERVICE_NODE%\"".to_string(),
+            Vec::new(),
+        );
+    }
     if cfg!(target_os = "windows") && program.eq_ignore_ascii_case(npm_program()) {
         return (
             vec![
@@ -1151,8 +1212,11 @@ fn web_ui_status(tool_id: &str, affordance: &WebUiAffordance) -> ManagedWebUiSta
         .as_ref()
         .and_then(|service| query_service_state(&service.service_name));
     let service_installed = service_state.is_some();
+    let effective_port = effective_web_ui_port(affordance);
     let running = matches!(service_state.as_deref(), Some("RUNNING"))
-        || is_local_port_listening(affordance.port);
+        || effective_port
+            .map(is_local_port_listening)
+            .unwrap_or(false);
     let startup = service
         .as_ref()
         .and_then(|service| query_service_startup(&service.service_name));
@@ -1161,6 +1225,9 @@ fn web_ui_status(tool_id: &str, affordance: &WebUiAffordance) -> ManagedWebUiSta
         service_installed,
         service_state,
         startup,
+        url: effective_port
+            .map(|port| format!("http://localhost:{port}"))
+            .unwrap_or_else(|| affordance.url.to_string()),
     }
 }
 
@@ -1178,7 +1245,39 @@ fn stop_web_ui_for_tool(tool_id: &str) -> Result<(), String> {
             &format!("stop service {}", service.service_name),
         );
     }
-    stop_port_listener(affordance.port)
+    effective_web_ui_port(&affordance)
+        .ok_or_else(|| format!("tool `{tool_id}` does not have a recorded web UI port"))
+        .and_then(stop_port_listener)
+}
+
+fn effective_web_ui_port(affordance: &WebUiAffordance) -> Option<u16> {
+    affordance
+        .dynamic_port_file
+        .as_deref()
+        .and_then(read_managed_web_ui_port)
+        .or_else(|| {
+            if affordance.dynamic_port_file.is_some() {
+                None
+            } else {
+                Some(affordance.port)
+            }
+        })
+}
+
+fn port_to_stop_before_service(affordance: &WebUiAffordance) -> Option<u16> {
+    if affordance.dynamic_port_file.is_some() {
+        affordance
+            .dynamic_port_file
+            .as_deref()
+            .and_then(read_managed_web_ui_port)
+    } else {
+        Some(affordance.port)
+    }
+}
+
+fn read_managed_web_ui_port(path: &str) -> Option<u16> {
+    let raw = std::fs::read_to_string(path).ok()?;
+    raw.trim().parse::<u16>().ok()
 }
 
 fn is_local_port_listening(port: u16) -> bool {
@@ -1645,6 +1744,7 @@ mod tests {
             ("open-webui", "http://localhost:8080", "open-webui"),
             ("langflow", "http://localhost:7860", "langflow"),
             ("excalidraw", "http://localhost:3021", "vite"),
+            ("bentopdf", "http://localhost:3022", "node"),
         ];
 
         for (tool_id, url, command_name) in cases {
@@ -1682,6 +1782,7 @@ mod tests {
             working_dir: r"C:\Users\Ryan User\AppData\Local\KKTerm\installer\apps\ollama".into(),
             url: "http://localhost:11434",
             port: 11434,
+            dynamic_port_file: None,
         };
 
         assert_eq!(
@@ -1748,7 +1849,14 @@ mod tests {
 
     #[test]
     fn managed_web_ui_affordances_run_from_app_local_working_dir() {
-        for tool_id in ["open-webui", "langflow", "excalidraw", "n8n", "flowise"] {
+        for tool_id in [
+            "open-webui",
+            "langflow",
+            "excalidraw",
+            "bentopdf",
+            "n8n",
+            "flowise",
+        ] {
             let affordance =
                 web_ui_affordance(tool_id).unwrap_or_else(|| panic!("{tool_id} should run"));
 
@@ -1802,6 +1910,7 @@ mod tests {
             "flowise",
             "langflow",
             "excalidraw",
+            "bentopdf",
         ] {
             assert!(
                 service_affordance(tool_id).is_some(),
@@ -1885,6 +1994,26 @@ mod tests {
             script.contains(r#"nssm start "KKTerm-Test""#),
             "the command handler clears the normal localhost run before registration, so the service can start in the background"
         );
+    }
+
+    #[test]
+    fn bentopdf_service_runs_dynamic_port_server() {
+        let service =
+            service_affordance("bentopdf").expect("BentoPDF should expose a Windows service helper");
+
+        assert_eq!(service.service_name, "KKTerm-BentoPDF");
+        assert_eq!(service.display_name, "KKTerm BentoPDF");
+        assert_eq!(service.program, "node");
+        assert!(service
+            .args
+            .iter()
+            .any(|arg| arg == "kkterm-web-ui-server.mjs"));
+
+        let script = service_install_script(&service);
+        assert!(script.contains(r#"for %%I in (node.exe) do set "KKTERM_SERVICE_NODE=%%~$PATH:I""#));
+        assert!(script.contains(
+            r#"nssm install "KKTerm-BentoPDF" "%KKTERM_SERVICE_NODE%" kkterm-web-ui-server.mjs --preferred-port 3022"#
+        ));
     }
 
     #[test]

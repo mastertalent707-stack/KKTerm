@@ -625,6 +625,18 @@
       "options": ["version"]
     },
     {
+      "id": "bentopdf",
+      "name": "BentoPDF",
+      "descriptionEn": "Privacy-first browser PDF toolkit hosted from a KKTerm app-local web project.",
+      "category": "utilities",
+      "icon": "File",
+      "needs": ["node-bundle", "nssm"],
+      "homepage": "https://www.bentopdf.com/",
+      "releaseNotesUrl": "https://github.com/alam00000/bentopdf/releases",
+      "provider": { "kind": "npm", "pkg": "github:alam00000/bentopdf" },
+      "options": []
+    },
+    {
       "id": "openclaw",
       "name": "OpenClaw",
       "descriptionEn": "Open-source AI coding agent CLI.",

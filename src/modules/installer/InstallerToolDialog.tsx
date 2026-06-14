@@ -225,11 +225,12 @@ function InstalledInfoBody({ recipe }: { recipe: Recipe }) {
 
   function handleOpenWebUi() {
     if (!webUi) return;
+    const url = webUiStatus?.url ?? webUi.url;
     if (!isTauriRuntime()) {
-      window.open(webUi.url, "_blank", "noopener,noreferrer");
+      window.open(url, "_blank", "noopener,noreferrer");
       return;
     }
-    void openExternalUrl(webUi.url).catch((error) => {
+    void openExternalUrl(url).catch((error) => {
       const message = error instanceof Error ? error.message : String(error);
       showStatusBarNotice(message, { tone: "error" });
     });
@@ -1198,6 +1199,8 @@ function webUiAffordanceForRecipe(recipe: Recipe): { url: string } | null {
       return { url: "http://localhost:7860" };
     case "excalidraw":
       return { url: "http://localhost:3021" };
+    case "bentopdf":
+      return { url: "http://localhost:3022" };
     default:
       return null;
   }
@@ -1287,6 +1290,8 @@ function serviceAffordanceForRecipe(recipe: Recipe): { name: string } | null {
       return { name: "KKTerm-Langflow" };
     case "excalidraw":
       return { name: "KKTerm-Excalidraw" };
+    case "bentopdf":
+      return { name: "KKTerm-BentoPDF" };
     default:
       return null;
   }

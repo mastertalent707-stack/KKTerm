@@ -71,6 +71,15 @@ test("installer latest-version UI only treats versioned providers as supported",
     }),
     true,
   );
+  assert.equal(
+    recipeSupportsLatestVersion({
+      id: "bentopdf",
+      name: "BentoPDF",
+      descriptionEn: "",
+      provider: { kind: "npm", pkg: "github:alam00000/bentopdf" },
+    }),
+    false,
+  );
 });
 
 test("installer latest-version UI supports one-step bundles only", async () => {

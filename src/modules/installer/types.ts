@@ -104,6 +104,7 @@ export interface ManagedWebUiStatus {
   serviceInstalled: boolean;
   serviceState: string | null;
   startup: string | null;
+  url?: string | null;
 }
 
 export interface InstallOptions {

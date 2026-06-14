@@ -48,6 +48,24 @@ test("installed Ollama dialog exposes its local server endpoint", async () => {
   );
 });
 
+test("installed BentoPDF dialog exposes its local PDF tools endpoint", async () => {
+  const source = await readFile(
+    new URL("../src/modules/installer/InstallerToolDialog.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    source,
+    /case "bentopdf":\s*return \{ url: "http:\/\/localhost:3022" \}/,
+    "BentoPDF should advertise its default local server endpoint",
+  );
+  assert.match(
+    source,
+    /webUiStatus\?\.url \?\? webUi\.url/,
+    "Open web UI should use the backend-reported URL when BentoPDF picked another free port",
+  );
+});
+
 test("managed web UI tools expose Windows service helper actions", async () => {
   const source = await readFile(
     new URL("../src/modules/installer/InstallerToolDialog.tsx", import.meta.url),

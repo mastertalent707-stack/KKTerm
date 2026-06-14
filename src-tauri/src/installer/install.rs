@@ -11,7 +11,7 @@
 
 use std::collections::BTreeMap;
 use std::io::{BufReader, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
@@ -60,6 +60,12 @@ pub fn install_recipe(
     } else if recipe.id == "excalidraw" {
         if let Provider::Npm { pkg } = &recipe.provider {
             install_managed_excalidraw(&recipe.id, pkg, options, cancel, emit)
+        } else {
+            install_recipe_by_provider(recipe, options, cancel, emit)
+        }
+    } else if recipe.id == "bentopdf" {
+        if let Provider::Npm { pkg } = &recipe.provider {
+            install_managed_bentopdf(&recipe.id, pkg, cancel, emit)
         } else {
             install_recipe_by_provider(recipe, options, cancel, emit)
         }
@@ -221,6 +227,76 @@ fn install_managed_excalidraw(
     Ok(version)
 }
 
+fn install_managed_bentopdf(
+    tool_id: &str,
+    pkg: &str,
+    cancel: Arc<AtomicBool>,
+    emit: &EventSink,
+) -> Result<Option<String>, String> {
+    let install_dir = managed_app_install_dir(tool_id);
+    let source_dir = install_dir.join("source");
+    let download_path = std::env::temp_dir()
+        .join("kkterm-installer-downloads")
+        .join("bentopdf-main.zip");
+    std::fs::create_dir_all(download_path.parent().ok_or("invalid temp path")?)
+        .map_err(|error| error.to_string())?;
+    std::fs::create_dir_all(&install_dir).map_err(|error| error.to_string())?;
+    if source_dir.exists() {
+        std::fs::remove_dir_all(&source_dir).map_err(|error| error.to_string())?;
+    }
+    std::fs::create_dir_all(&source_dir).map_err(|error| error.to_string())?;
+
+    let repo = pkg.strip_prefix("github:").unwrap_or("alam00000/bentopdf");
+    let archive_url = format!("https://github.com/{repo}/archive/refs/heads/main.zip");
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("Downloading {archive_url}"),
+    });
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("KKTerm Installer Helper")
+        .build()
+        .map_err(|error| error.to_string())?;
+    download_with_progress(&client, &archive_url, &download_path, tool_id, &cancel, emit)?;
+    extract_zip(&download_path, &source_dir)?;
+    std::fs::remove_file(&download_path).ok();
+
+    let project_dir = single_child_dir(&source_dir).unwrap_or(source_dir.clone());
+    write_bentopdf_server_file(&install_dir, &project_dir)?;
+
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("npm install --prefix {}", project_dir.display()),
+    });
+    run_streamed_with_refreshed_path_public(
+        npm_program(),
+        &["install".into(), "--prefix".into(), project_dir.to_string_lossy().into_owned()],
+        tool_id,
+        cancel.clone(),
+        emit,
+    )?;
+
+    emit(ProgressEvent::Step {
+        tool_id: tool_id.into(),
+        message: format!("npm run build:docker --prefix {}", project_dir.display()),
+    });
+    run_streamed_with_refreshed_path_public(
+        npm_program(),
+        &[
+            "run".into(),
+            "build:docker".into(),
+            "--prefix".into(),
+            project_dir.to_string_lossy().into_owned(),
+        ],
+        tool_id,
+        cancel,
+        emit,
+    )?;
+
+    let version = read_package_json_version(&project_dir.join("package.json"));
+    write_managed_app_marker(tool_id, version.clone())?;
+    Ok(version)
+}
+
 fn install_managed_ollama(
     tool_id: &str,
     winget_id: &str,
@@ -281,6 +357,108 @@ fn write_excalidraw_host_files(install_dir: &PathBuf) -> Result<(), String> {
         "import React from 'react';\nimport { createRoot } from 'react-dom/client';\nimport { Excalidraw } from '@excalidraw/excalidraw';\nimport '@excalidraw/excalidraw/index.css';\n\ncreateRoot(document.getElementById('root')).render(\n  <React.StrictMode>\n    <div style={{ height: '100vh', width: '100vw' }}>\n      <Excalidraw />\n    </div>\n  </React.StrictMode>,\n);\n",
     )
     .map_err(|e| e.to_string())
+}
+
+fn write_bentopdf_server_file(install_dir: &Path, project_dir: &Path) -> Result<(), String> {
+    let dist_dir = project_dir.join("dist").to_string_lossy().replace('\\', "\\\\");
+    let port_file = install_dir
+        .join(".kkterm-web-ui-port")
+        .to_string_lossy()
+        .replace('\\', "\\\\");
+    std::fs::write(
+        install_dir.join("kkterm-web-ui-server.mjs"),
+        format!(
+            r#"import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+
+const args = process.argv.slice(2);
+const preferredPortIndex = args.indexOf("--preferred-port");
+const preferredPort = preferredPortIndex >= 0 ? Number(args[preferredPortIndex + 1]) : 3022;
+const distDir = "{dist_dir}";
+const portFile = "{port_file}";
+
+function contentType(filePath) {{
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".html") return "text/html; charset=utf-8";
+  if (ext === ".js" || ext === ".mjs") return "text/javascript; charset=utf-8";
+  if (ext === ".css") return "text/css; charset=utf-8";
+  if (ext === ".json") return "application/json; charset=utf-8";
+  if (ext === ".wasm") return "application/wasm";
+  if (ext === ".svg") return "image/svg+xml";
+  if (ext === ".png") return "image/png";
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  return "application/octet-stream";
+}}
+
+const server = http.createServer((request, response) => {{
+  const parsed = new URL(request.url ?? "/", "http://localhost");
+  const decodedPath = decodeURIComponent(parsed.pathname);
+  const relativePath = decodedPath === "/" ? "index.html" : decodedPath.replace(/^\/+/, "");
+  const candidate = path.normalize(path.join(distDir, relativePath));
+  const safeRoot = path.resolve(distDir);
+  const safeCandidate = path.resolve(candidate);
+  const filePath = safeCandidate.startsWith(safeRoot) && fs.existsSync(safeCandidate)
+    ? safeCandidate
+    : path.join(distDir, "index.html");
+  fs.readFile(filePath, (error, data) => {{
+    if (error) {{
+      response.writeHead(404);
+      response.end("Not found");
+      return;
+    }}
+    response.writeHead(200, {{ "Content-Type": contentType(filePath) }});
+    response.end(data);
+  }});
+}});
+
+function listen(port) {{
+  server.listen(port, "127.0.0.1", () => {{
+    const address = server.address();
+    const actualPort = typeof address === "object" && address ? address.port : port;
+    fs.writeFileSync(portFile, String(actualPort));
+    console.log(`BentoPDF is available at http://localhost:${{actualPort}}`);
+  }});
+}}
+
+server.on("error", (error) => {{
+  if (error.code === "EADDRINUSE" && server.__triedPreferred !== true) {{
+    server.__triedPreferred = true;
+    listen(0);
+    return;
+  }}
+  throw error;
+}});
+
+listen(Number.isFinite(preferredPort) ? preferredPort : 3022);
+"#
+        ),
+    )
+    .map_err(|error| error.to_string())
+}
+
+fn single_child_dir(parent: &Path) -> Option<PathBuf> {
+    let mut dirs = std::fs::read_dir(parent)
+        .ok()?
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            let path = entry.path();
+            if path.is_dir() { Some(path) } else { None }
+        })
+        .collect::<Vec<_>>();
+    if dirs.len() == 1 {
+        dirs.pop()
+    } else {
+        None
+    }
+}
+
+fn read_package_json_version(path: &Path) -> Option<String> {
+    let raw = std::fs::read_to_string(path).ok()?;
+    let json = serde_json::from_str::<serde_json::Value>(&raw).ok()?;
+    json.get("version")
+        .and_then(|value| value.as_str())
+        .map(ToOwned::to_owned)
 }
 
 fn managed_uv_pip_python(tool_id: &str) -> PathBuf {

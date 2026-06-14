@@ -89,8 +89,37 @@ test("FFmpeg is visible in the Installer Helper Utilities section", async () => 
   );
 });
 
+test("BentoPDF is a Utilities managed web app with service support", () => {
+  const bentopdf = byId.get("bentopdf");
+
+  assert.ok(bentopdf, "BentoPDF should be present in the installer catalog");
+  assert.equal(bentopdf.category, "utilities");
+  assert.ok(
+    bentopdf.needs?.includes("node-bundle"),
+    "BentoPDF should install Node before building the managed web app",
+  );
+  assert.ok(
+    bentopdf.needs?.includes("nssm"),
+    "BentoPDF should install NSSM before exposing service registration",
+  );
+  assert.deepEqual(bentopdf.provider, { kind: "npm", pkg: "github:alam00000/bentopdf" });
+});
+
+test("BentoPDF is visible in the Installer Helper Utilities section", async () => {
+  const source = await readFile(
+    new URL("../src/modules/installer/InstallerPage.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    source,
+    /titleKey:\s*"installer\.section\.utilities"[\s\S]*ids:\s*\[[^\]]*"bentopdf"/,
+    "BentoPDF should be listed in the visible Utilities section",
+  );
+});
+
 test("managed server apps depend on NSSM for service registration", () => {
-  for (const id of ["n8n", "ollama"]) {
+  for (const id of ["n8n", "ollama", "bentopdf"]) {
     const recipe = byId.get(id);
     assert.ok(recipe, `${id} should be present in the installer catalog`);
     assert.ok(

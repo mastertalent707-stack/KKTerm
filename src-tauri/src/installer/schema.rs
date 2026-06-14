@@ -599,6 +599,7 @@ mod tests {
             "sharex",
             "ffmpeg",
             "excalidraw",
+            "bentopdf",
         ] {
             assert!(ids.contains(id), "catalog should include {id}");
         }

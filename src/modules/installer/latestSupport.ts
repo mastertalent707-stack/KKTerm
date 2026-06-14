@@ -3,10 +3,11 @@ import type { Provider, Recipe } from "./types";
 export function providerSupportsLatestVersion(provider: Provider): boolean {
   switch (provider.kind) {
     case "winget":
-    case "npm":
     case "uvPip":
     case "githubRelease":
       return true;
+    case "npm":
+      return !provider.pkg.startsWith("github:");
     case "bundle":
       return provider.steps.length === 1;
     case "downloadInstaller":
