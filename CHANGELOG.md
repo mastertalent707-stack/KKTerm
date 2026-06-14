@@ -3,6 +3,69 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.82/kkterm-0.1.82-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.82/kkterm-0.1.82-windows-arm64-setup.exe)
+
+## Highlights
+- **Drag-and-drop docking for Connection layouts**: drop a Connection onto the Workspace Canvas and dock it with an animated overlay.  
+- **File Browser polish**: Explorer sidebar improvements, including collapsible sections and current-folder search.
+- **Docking fixes for SFTP / FTP / Pane behavior**: docked/saved SFTP panes now rehydrate as file browsers, and embedded file-browser panes correctly fill their space (no more “half-empty Split Cell” vibes).
+
+## New
+- **Drag-and-drop docking for connection layouts** (PR #329, by @ryantsai / Claude Opus 4.8): drag a Connection from the Connection Tree onto the Workspace Canvas to dock and split Panes; dropping on empty canvas opens a new Tab.  
+- **Collapsible explorer sidebar + current-folder search** (PR #326, by @ryantsai / Claude Opus 4.8): Finder/Explorer-style sidebar with Favorites, Common, Locations, plus a search box scoped to the current folder.
+
+## Improved
+- **File Browser remote search, status bar, connected explorer, and icon fixes** (PR #328, by @ryantsai / Claude Opus 4.8)
+- **Explorer sidebar adjustments**: rename “Common Folders” → “Common”, favorites drop-to-add, and remove the incorrect hide/show hover hint (PR #327, by @ryantsai / Claude Opus 4.8)
+
+## Fixed
+- **Settings dialog height**: fixed 80% height so it doesn’t over-stretch on larger screens (PR #323, by @ryantsai / Claude Opus 4.8)
+- **Icon Search layout**: keep the icon-search input beside the magnifier (PR #325, by @ryantsai / Claude Opus 4.8)
+- **Connection tree icon alignment & search consistency** (PR #324, by @ryantsai / Claude Opus 4.8)
+- **Dock overlay alignment with panes**: dragging to dock now highlights the correct Pane target (PR #330, by @ryantsai / Claude Opus 4.8)
+- **Rehydrating docked/saved SFTP panes**: SFTP panes reopen as **file browsers**, not SSH terminals (PR #331, by @ryantsai / Claude Opus 4.8)
+- **Embedded file-browser width**: embedded SFTP/FTP/File Explorer sub-Panes stretch to full pane width (PR #332, by @ryantsai / Claude Opus 4.8) — your Split Cell finally got fed.
+
+## Internal
+- docs(linux): Linux/AppImage port plan + manual-trigger release CD (PR #322, by @ryantsai / Claude Opus 4.8)
+- i18n updates (including Traditional Chinese consistency) and various translation/localization follow-ups (e.g., i18n changes for settings/UI strings)
+- Test coverage and docs updates related to docking and file-browser/Panes behavior
+- Linux packaging/release-script and updater-related internal improvements
+- Dependency/version and translation cleanups
+
+
+---
+
+## 精選重點
+- **支援拖放停靠（Connection 佈局）**：把 Connection 從 Connection Tree 拖到 Workspace Canvas，並在停靠時顯示動畫提示。
+- **檔案瀏覽器細節打磨**：Explorer 側欄調整、可折疊區塊與「目前資料夾」搜尋。
+- **Docking 相關修正（SFTP / FTP / Pane 行為）**：停靠/儲存後的 SFTP Pane 現會正確以「檔案瀏覽器」重新載入，且內嵌的檔案瀏覽器子 Pane 會填滿空間（終於不再出現 Split Cell 像半碗空氣的情況）。
+
+## 新增
+- **拖放停靠 Connection 佈局**（PR #329，@ryantsai / Claude Opus 4.8）：把 Connection 從 Connection Tree 拖到 Workspace Canvas 來停靠與分割 Pane；拖到空白區則會開啟新的 Tab。
+- **可折疊的瀏覽器側欄 + 目前資料夾搜尋**（PR #326，@ryantsai / Claude Opus 4.8）：Finder/Explorer 風格側欄（Favorites / Common / Locations），並提供僅針對目前資料夾的搜尋框。
+
+## 改進
+- **檔案瀏覽器：遠端搜尋、狀態列、已連線的 Explorer 與圖示修正**（PR #328，@ryantsai / Claude Opus 4.8）
+- **Explorer 側欄調整**：把「Common Folders」改為「Common」、Favorites 支援拖曳放入新增，以及移除錯誤的隱藏/顯示懸浮提示（PR #327，@ryantsai / Claude Opus 4.8）
+
+## 修正
+- **設定視窗高度**：固定為 80% 高度，避免大螢幕上過度拉高（PR #323，@ryantsai / Claude Opus 4.8）
+- **圖示搜尋配置**：讓 icon-search 輸入框維持在放大鏡**旁邊**（PR #325，@ryantsai / Claude Opus 4.8）
+- **連線樹（Connection tree）圖示對齊與搜尋一致性**（PR #324，@ryantsai / Claude Opus 4.8）
+- **拖放停靠覆蓋層（Dock overlay）對齊 Pane**：拖曳停靠時的高亮現在會對到正確的目標 Pane（PR #330，@ryantsai / Claude Opus 4.8）
+- **停靠/儲存後 SFTP Pane 重新載入**：SFTP Pane 現會以**檔案瀏覽器**重新開啟，而不是 SSH Terminal（PR #331，@ryantsai / Claude Opus 4.8）
+- **內嵌檔案瀏覽器寬度**：嵌入式 SFTP/FTP/檔案瀏覽器子 Pane 會填滿到完整 Pane 寬度（PR #332，@ryantsai / Claude Opus 4.8）— Split Cell 這次終於吃飽了。
+
+## Internal
+- docs(linux)：Linux/AppImage 佈署計畫 + 手動觸發的釋出 CD（PR #322，@ryantsai / Claude Opus 4.8）
+- 多國語系（含繁中一致性）與各種在地化/翻譯後續整理（例如設定/介面字串）
+- 與拖放停靠、檔案瀏覽器與 Pane 行為相關的測試與文件更新
+- Linux 打包/釋出腳本與更新器（updater）相關內部改進
+- 依賴版本更新與翻譯清理等內部變更
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.81/kkterm-0.1.81-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.81/kkterm-0.1.81-windows-arm64-setup.exe)
 
