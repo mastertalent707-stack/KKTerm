@@ -4318,27 +4318,33 @@ function DockOverlay({ zone }: { zone: CanvasDropZone | null }) {
     zone.kind === "split"
       ? `dock-overlay-highlight dock-overlay-${zone.direction}`
       : "dock-overlay-highlight dock-overlay-empty";
+  // Portal to <body>: the host `.connection-sidebar` declares `contain: layout`,
+  // which makes it the containing block for `position: fixed` descendants. Left
+  // inline, the overlay would resolve its viewport coordinates against the
+  // sidebar box and render misaligned with the panes it points at.
   return (
-    <div className="dock-overlay" aria-hidden="true">
-      <div
-        className="dock-overlay-outline"
-        style={{
-          left: `${rect.left}px`,
-          top: `${rect.top}px`,
-          width: `${rect.width}px`,
-          height: `${rect.height}px`,
-        }}
-      />
-      <div
-        className={highlightClass}
-        style={{
-          left: `${highlight.left}px`,
-          top: `${highlight.top}px`,
-          width: `${highlight.width}px`,
-          height: `${highlight.height}px`,
-        }}
-      />
-    </div>
+    <DialogPortal>
+      <div className="dock-overlay" aria-hidden="true">
+        <div
+          className="dock-overlay-outline"
+          style={{
+            left: `${rect.left}px`,
+            top: `${rect.top}px`,
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+          }}
+        />
+        <div
+          className={highlightClass}
+          style={{
+            left: `${highlight.left}px`,
+            top: `${highlight.top}px`,
+            width: `${highlight.width}px`,
+            height: `${highlight.height}px`,
+          }}
+        />
+      </div>
+    </DialogPortal>
   );
 }
 
