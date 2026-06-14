@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec bash "$0" "$@"
+fi
 set -euo pipefail
 
 # Build the Linux AppImage bundle.
@@ -19,4 +22,4 @@ TARGET_TRIPLE="${LINUX_TARGET_TRIPLE:-x86_64-unknown-linux-gnu}"
 # runtime. CI containers usually lack FUSE, so extract-and-run instead.
 export APPIMAGE_EXTRACT_AND_RUN="${APPIMAGE_EXTRACT_AND_RUN:-1}"
 
-npm exec tauri -- build --target "$TARGET_TRIPLE" --bundles appimage "$@"
+"./node_modules/.bin/tauri" build --target "$TARGET_TRIPLE" --bundles appimage "$@"
