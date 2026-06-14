@@ -185,7 +185,7 @@ For operational measurement records see `docs/PERFORMANCE.md`. For packaging and
 
 ### Recording
 
-- [ ] RDP/VNC screen recording.
+- [ ] RDP/VNC screen recording using ffmpeg
 
 ### Additional Protocols
 
@@ -205,3 +205,4 @@ For operational measurement records see `docs/PERFORMANCE.md`. For packaging and
 
 - [ ] Team sharing/sync (major product-scope decision before implementation).
 - [ ] Mobile apps (major platform-scope decision after desktop architecture proves itself).
+- [ ] Git Browser(like STFTP browser)
