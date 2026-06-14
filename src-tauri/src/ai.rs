@@ -4425,7 +4425,7 @@ fn valid_secret_field_key(value: &str) -> bool {
     value.len() <= 64 && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
 }
 
-async fn network_tool(name: &str, args: Value) -> String {
+pub(crate) async fn network_tool(name: &str, args: Value) -> String {
     use crate::net::{dns, interfaces, ping, scan, whois, wol};
     use tokio_util::sync::CancellationToken;
     fn net_err(e: &crate::net::NetError) -> Value {
@@ -4545,7 +4545,7 @@ async fn network_tool(name: &str, args: Value) -> String {
     }
 }
 
-async fn watchdog_tool(app: &tauri::AppHandle, name: &str, args: Value) -> String {
+pub(crate) async fn watchdog_tool(app: &tauri::AppHandle, name: &str, args: Value) -> String {
     use crate::watchdog::registry::{WatchdogRegistry, validate_config};
     use crate::watchdog::types::{WatchdogAction, WatchdogConfig};
     let Some(registry) = app.try_state::<std::sync::Arc<WatchdogRegistry>>() else {

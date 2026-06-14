@@ -20,12 +20,21 @@ safety gate applies uniformly:
   widget code, click into remote desktops); gated by
   `built_in_mcp_allow_all_dangerous`.
 
-Module namespaces in this build:
+Namespaces in this build:
 
 - `kkterm.workspace.*` — Workspace Module: saved Connections, live
-  Sessions, and remote-desktop interaction.
+  Sessions, remote-desktop capture/interaction, and the SFTP/FTP file
+  browser.
 - `kkterm.dashboard.*` — Dashboard Module: views, widget instances,
   AI-Created Widgets.
+- `kkterm.network.*` — Network capability: read-only diagnostics (ping,
+  DNS, TCP check, port scan, interfaces, Wake-on-LAN, WHOIS).
+- `kkterm.watchdog.*` — Watchdog capability: background monitors that poll
+  a target and fire when a predicate is met.
+
+`network` and `watchdog` are assistant *capabilities*, not Activity-Rail
+Modules (see `CONTEXT.md`); they get their own top-level namespace so the
+same `kkterm.<group>.*` + optional `dangerous` convention applies uniformly.
 
 ## Architecture
 
@@ -43,7 +52,10 @@ Module namespaces in this build:
 
 - `initialize`, `tools/list`, `ping`, and `notifications/initialized` are
   answered locally by `kkterm-cli` so MCP clients can introspect the
-  surface even when KKTerm.exe is not running.
+  surface even when KKTerm.exe is not running. The `tools/list` descriptors
+  come from one shared catalog (`src-tauri/src/mcp_tool_catalog.rs`) used by
+  both `kkterm-cli` and the in-app bridge, so offline discovery always
+  matches the live surface.
 - `tools/call` always forwards to the live app over the named pipe. When
   KKTerm.exe is not running (or the user has disabled the built-in MCP
   server), the binary returns a structured JSON-RPC error with
@@ -149,6 +161,29 @@ The Workspace Module owns saved Connections and live Sessions
 | `kkterm.workspace.quick_commands.dangerous.create` | Create a saved Quick Command for a Connection's Quick Command Bar. Requires `built_in_mcp_allow_all_dangerous = true`. Backed by `quick_command_create`; it saves a runnable shortcut but does not execute the command. |
 | `kkterm.workspace.quick_commands.dangerous.edit` | Edit one saved Quick Command for a Connection's Quick Command Bar. Requires `built_in_mcp_allow_all_dangerous = true`. Backed by `quick_command_edit`; it updates a runnable shortcut but does not execute the command. |
 
+### Workspace Module — SFTP/FTP file browser (`kkterm.workspace.file_browser.*`)
+
+Backed by the frontend live-tool bridge (`session_file_browser_*`), so MCP and
+the in-app assistant drive the same active file browser Session.
+
+| Name | Description |
+|---|---|
+| `kkterm.workspace.file_browser.list` | List entries in an active SFTP/FTP file browser Session. Defaults to the browser's current remote path. Safe (read-only). Backed by `session_file_browser_list`. |
+| `kkterm.workspace.file_browser.dangerous.create_folder` | Create a folder in an active file browser Session. Requires `built_in_mcp_allow_all_dangerous = true`. Backed by `session_file_browser_create_folder`. |
+| `kkterm.workspace.file_browser.dangerous.rename` | Rename a path in an active file browser Session. Requires Allow-all. Backed by `session_file_browser_rename`. |
+| `kkterm.workspace.file_browser.dangerous.delete` | Delete a path in an active file browser Session. Requires Allow-all. Backed by `session_file_browser_delete`. |
+
+### Workspace Module — remote desktop capture/input
+
+The safe screenshot tool lives under `kkterm.workspace.sessions.*`; the
+input tools join `pointer_click` under `kkterm.workspace.dangerous.*`.
+
+| Name | Description |
+|---|---|
+| `kkterm.workspace.sessions.remote_desktop_screenshot` | Capture the active RDP/VNC remote desktop surface as a PNG data URL. Safe (read-only); the image may include sensitive remote screen content. Backed by `session_remote_desktop_screenshot`. |
+| `kkterm.workspace.dangerous.remote_desktop_send_text` | Type text into a live RDP/VNC remote desktop Session (`pressEnter` submits). Requires Allow-all. Backed by `session_remote_desktop_send_text`. |
+| `kkterm.workspace.dangerous.remote_desktop_keypress` | Send a named key press to a live RDP/VNC remote desktop Session. Requires Allow-all. Backed by `session_remote_desktop_keypress`. |
+
 ### Dashboard Module (`kkterm.dashboard.*`)
 
 Safe view/instance/layout operations. Backed by the same `dashboard_*` AI
@@ -186,6 +221,38 @@ same protection without any per-Module gate code.
 | `kkterm.dashboard.dangerous.remove_custom_widget` | Delete an AI-Created Widget definition (use `forceDeleteInstances` to also remove placements). |
 | `kkterm.dashboard.dangerous.reset` | Wipe the entire Dashboard. Irreversible. |
 
+### Network capability (`kkterm.network.*`)
+
+Read-only network diagnostics. Backed by `crate::ai::network_tool`, the same
+implementation the in-app assistant uses. A failed probe (host down, port
+closed) is returned as a normal result payload (`ok: false` with a `netError`),
+not an MCP tool error, so callers can read the diagnostic outcome. All safe.
+
+| Name | Description |
+|---|---|
+| `kkterm.network.ping` | Ping a host (ICMP with TCP fallback). Returns per-packet RTT replies and availability. |
+| `kkterm.network.dns` | Resolve a hostname via DNS. Returns records and resolver RTT. |
+| `kkterm.network.tcp_check` | Check whether a TCP port is open on a host. Returns open/closed status and RTT. |
+| `kkterm.network.port_scan` | Scan a list of TCP ports on a host. Returns open/closed status per port. |
+| `kkterm.network.interfaces` | List local network interfaces with their IP and MAC addresses. |
+| `kkterm.network.wol` | Send a Wake-on-LAN magic packet to a MAC address. |
+| `kkterm.network.whois` | Run a WHOIS lookup for a domain name or IP address. |
+
+### Watchdog capability (`kkterm.watchdog.*`)
+
+Background monitors that poll a target and fire when a predicate is met.
+Backed by `crate::ai::watchdog_tool`. Creating a watchdog is gated because a
+watchdog can carry an `aiIntervene` action that grants standing permission to
+run other tools; that path additionally prompts for in-app approval at the
+KKTerm window before the watchdog is created.
+
+| Name | Description |
+|---|---|
+| `kkterm.watchdog.list` | List all background watchdogs known to this app session (id, name, state, lastValue, triggerCount, pollCount). |
+| `kkterm.watchdog.get_report` | Fetch the full report for one watchdog by id: config, current state, recent tick history, and the trigger event log. |
+| `kkterm.watchdog.cancel` | Cancel a running watchdog by id; stops polling and marks it canceled. |
+| `kkterm.watchdog.dangerous.create` | Create a background watchdog from a structured `config`. Requires `built_in_mcp_allow_all_dangerous = true`; an `aiIntervene` action also prompts for in-app approval. Backed by `watchdog_create`. |
+
 All tool inputs use JSON schemas published in `tools/list`. The handler in
 the bridge translates the curated `kkterm.<module>.*` names into the
 existing AI assistant tool functions in `src-tauri/src/ai.rs`, so MCP and
@@ -208,16 +275,19 @@ not need per-Module changes — only schema and dispatch arms.
 When adding a new built-in MCP function/tool, update all of the following
 in the same PR:
 
-1. `src-tauri/src/mcp_bridge.rs`
-   - add an entry to `tool_descriptors()` (schema)
+1. `src-tauri/src/mcp_tool_catalog.rs`
+   - add the tool's descriptor (name, description, schema) to
+     `tool_descriptors()`. This is the single source of truth for the
+     published `tools/list` surface: the in-app bridge
+     (`mcp_bridge.rs`) and the offline `kkterm-cli` forwarder both read it
+     (the binary includes the same file with `#[path]`), so their surfaces
+     stay identical without a second hand-maintained list.
+2. `src-tauri/src/mcp_bridge.rs`
    - add a match arm in `dispatch_tool()` translating to the appropriate
      `crate::ai::connection_tool` / `crate::ai::live_session_tool` /
      `crate::ai::dashboard_tool` call
    - if the tool is sensitive, put it in a `*.dangerous.*` namespace so
      the existing `dangerous_tool()` gate catches it without changes
-2. `src-tauri/src/bin/kkterm-cli.rs`
-   - mirror the descriptor in `static_tool_descriptors()` so offline
-     introspection still works
 3. `docs/MCP.md`
    - add the tool to the namespace list above
    - document risk level and confirmation behavior
@@ -283,8 +353,8 @@ Debug builds write built-in and remote MCP request/response records to
 when Settings → General → Debug → Advanced Debugging is enabled; enabling the
 setting writes an `advanced_debugging.enabled` marker so the release logging
 path is visible before the next MCP request. Built-in MCP debug records redact
-terminal send input, terminal buffer reads, Dashboard widget source/body JSON,
-and secret-looking argument fields before writing.
+terminal and remote-desktop send-text input, terminal buffer reads, Dashboard
+widget source/body JSON, and secret-looking argument fields before writing.
 
 ## Platform support
 
