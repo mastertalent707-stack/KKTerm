@@ -6,10 +6,12 @@ import { CronBuilderBody } from "../cron-builder/CronBuilderWidget";
 import { DnsLookupBody } from "../dns-lookup/DnsLookupWidget";
 import { HashWorkbenchBody } from "../hash-workbench/HashWorkbenchWidget";
 import { PasswordGeneratorBody } from "../password-generator/PasswordGeneratorWidget";
+import { PingToolBody } from "../ping-tool/PingToolWidget";
 import { QrCodeBody } from "../qr-code/QrCodeWidget";
 import { SpeedtestBody } from "../speedtest/SpeedtestWidget";
 import { SubnetCalculatorBody } from "../subnet-calculator/SubnetCalculatorWidget";
 import { TimeConverterBody } from "../time-converter/TimeConverterWidget";
+import { WhoisLookupBody } from "../whois-lookup/WhoisLookupWidget";
 
 interface ToolDefinition {
   id: string;
@@ -36,6 +38,18 @@ const NETWORK_TOOLS: ToolDefinition[] = [
     labelKey: "dashboard.networkToolsTab.speedtest",
     titleKey: "dashboard.speedtestTitle",
     Body: SpeedtestBody,
+  },
+  {
+    id: "ping",
+    labelKey: "dashboard.networkToolsTab.ping",
+    titleKey: "dashboard.pingTitle",
+    Body: PingToolBody,
+  },
+  {
+    id: "whois",
+    labelKey: "dashboard.networkToolsTab.whois",
+    titleKey: "dashboard.whoisTitle",
+    Body: WhoisLookupBody,
   },
 ];
 

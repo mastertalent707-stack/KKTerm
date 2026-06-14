@@ -259,7 +259,7 @@ The full architecture lives in `docs/DASHBOARD.md`. Summary of the durable shape
 
 App Launcher is rendered as a `builtIn` widget hosted by Dashboard; its data model and management UI remain in `src/modules/dashboard/widgets/builtin/app-launcher/`. App Launcher is intentionally not a peer Activity Rail entry.
 
-Current built-in widgets are App Launcher, Connection, Notes, and AI Coding Usage; each ships as a TypeScript Body component registered in `src/modules/dashboard/registry/builtInRegistry.ts`. Dashboard AI Created Widgets remain the extension point for user-specific script widgets.
+Current built-in widgets are App Launcher, Connection, Notes, AI Coding Usage, Network Tools, Generators, and Converters; each ships as a TypeScript Body component registered in `src/modules/dashboard/registry/builtInRegistry.ts`. Dashboard AI Created Widgets remain the extension point for user-specific script widgets.
 
 When `docs/ARCHITECTURE.md` and `docs/DASHBOARD.md` conflict on Dashboard-internal concerns, `docs/DASHBOARD.md` wins.
 

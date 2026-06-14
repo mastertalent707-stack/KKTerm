@@ -1,0 +1,107 @@
+.dw-converters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.dw-converters-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  align-self: flex-start;
+}
+
+.dw-converters-tabs button {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.dw-converters-tabs button.is-active {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.dw-converter-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.dw-converter-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(88px, auto);
+  gap: 6px;
+  align-items: center;
+}
+
+.dw-converter-panel input,
+.dw-converter-panel select,
+.dw-converter-panel output {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.dw-converter-panel input {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+.dw-converter-panel output {
+  color: var(--w-accent, var(--accent));
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 18px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.dw-converter-equals {
+  grid-column: 1 / -1;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.dw-currency-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.dw-currency-footer button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.dw-currency-spin {
+  animation: dw-currency-spin 720ms linear infinite;
+}
+
+@keyframes dw-currency-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

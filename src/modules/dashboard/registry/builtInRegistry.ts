@@ -3,6 +3,7 @@ import type { AccentName, IconName, WidgetPreset } from "../types";
 import { AiCodingUsageBody } from "../widgets/AiCodingUsageBody";
 import { AppLauncherBody } from "../widgets/AppLauncherBody";
 import { ConnectionWidgetBody } from "../widgets/ConnectionWidgetBody";
+import { ConvertersBody } from "../widgets/ConvertersBody";
 import { GeneratorToolsBody } from "../widgets/GeneratorToolsBody";
 import { NetworkToolsBody } from "../widgets/NetworkToolsBody";
 import { NotesBody } from "../widgets/NotesBody";
@@ -92,6 +93,17 @@ export const BUILT_IN_WIDGETS: BuiltInWidgetEntry[] = [
     defaultIcon: "Hammer",
     defaultSize: { w: 4, h: 5 },
     Body: GeneratorToolsBody,
+  },
+  {
+    id: "converters",
+    titleKey: "dashboard.convertersTitle",
+    summaryKey: "dashboard.convertersSummary",
+    category: "utility",
+    defaultPreset: "panel",
+    defaultAccent: "emerald",
+    defaultIcon: "Gauge",
+    defaultSize: { w: 4, h: 4 },
+    Body: ConvertersBody,
   },
 ];
 

@@ -49,7 +49,7 @@ if (!builtInIds.includes("aiCodingUsage")) {
 
 // Utility widgets shipped as built-ins. Keep this list in sync with
 // builtInRegistry.ts so a dropped registration fails loudly.
-const requiredUtilityIds = ["networkTools", "generatorTools"];
+const requiredUtilityIds = ["networkTools", "generatorTools", "converters"];
 for (const requiredId of requiredUtilityIds) {
   if (!builtInIds.includes(requiredId)) {
     throw new Error(`Dashboard built-in registry is missing the ${requiredId} widget.`);

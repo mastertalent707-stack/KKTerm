@@ -23,5 +23,8 @@
 @import "./modules/dashboard/widgets/builtin/password-generator/password-generator.css";
 @import "./modules/dashboard/widgets/builtin/dns-lookup/dns-lookup.css";
 @import "./modules/dashboard/widgets/builtin/speedtest/speedtest.css";
+@import "./modules/dashboard/widgets/builtin/ping-tool/ping-tool.css";
+@import "./modules/dashboard/widgets/builtin/whois-lookup/whois-lookup.css";
+@import "./modules/dashboard/widgets/builtin/converters/converters.css";
 @import "./modules/dashboard/widgets/builtin/tool-group/tool-group.css";
 @import "./watchdog/watchdog.css";

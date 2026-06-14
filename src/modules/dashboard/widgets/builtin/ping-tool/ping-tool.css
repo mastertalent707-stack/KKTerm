@@ -1,0 +1,124 @@
+.dw-ping {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.dw-ping-targets {
+  min-height: 54px;
+  resize: vertical;
+}
+
+.dw-ping-targets,
+.dw-ping-controls input {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+}
+
+.dw-ping-targets:focus-visible,
+.dw-ping-controls input:focus-visible {
+  outline: none;
+  border-color: var(--w-accent, var(--accent));
+  box-shadow: 0 0 0 2px var(--w-accent-soft, var(--accent-soft));
+}
+
+.dw-ping-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: end;
+}
+
+.dw-ping-controls label {
+  display: grid;
+  gap: 3px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.dw-ping-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.dw-ping-meta {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+.dw-ping-results {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.dw-ping-row {
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--surface) 76%, transparent);
+}
+
+.dw-ping-host,
+.dw-ping-stats,
+.dw-ping-labels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  align-items: baseline;
+}
+
+.dw-ping-host {
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 5px;
+}
+
+.dw-ping-host span:first-child,
+.dw-ping-stats span {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.dw-ping-host span:last-child {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.dw-ping-stats span {
+  color: var(--w-accent, var(--accent));
+  font-weight: 650;
+}
+
+.dw-ping-labels {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+.dw-ping-error {
+  margin-top: 4px;
+  color: var(--red);
+  font-size: 10px;
+}
+
+.dw-ping-empty {
+  display: grid;
+  flex: 1 1 auto;
+  place-content: center;
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
