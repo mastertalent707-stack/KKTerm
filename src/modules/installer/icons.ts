@@ -13,12 +13,14 @@ import sevenZip from "../../assets/installer-icons/7zip.svg?url";
 import anthropic from "../../assets/installer-icons/anthropic.svg?url";
 import antigravity from "../../assets/installer-icons/antigravity.svg?url";
 import astral from "../../assets/installer-icons/astral.svg?url";
+import bentopdf from "../../assets/installer-icons/bentopdf.svg?url";
 import bruno from "../../assets/installer-icons/bruno.svg?url";
 import cursor from "../../assets/installer-icons/cursor.svg?url";
 import ditto from "../../assets/installer-icons/ditto.png?url";
 import docker from "../../assets/installer-icons/docker.svg?url";
 import everything from "../../assets/installer-icons/everything.png?url";
 import excalidraw from "../../assets/installer-icons/excalidraw.svg?url";
+import ffmpeg from "../../assets/installer-icons/ffmpeg.svg?url";
 import flowise from "../../assets/installer-icons/flowise.png?url";
 import git from "../../assets/installer-icons/git.svg?url";
 import github from "../../assets/installer-icons/github.svg?url";
@@ -84,8 +86,9 @@ const RECIPE_ICON_URLS: Record<string, string> = {
   rustdesk,
   "7zip": sevenZip,
   sharex,
-  ffmpeg: defaultIcon,
+  ffmpeg,
   excalidraw,
+  bentopdf,
   openclaw,
 };
 

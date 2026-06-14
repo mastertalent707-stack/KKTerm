@@ -20,9 +20,9 @@ limited to small app-identification assets.
 
 ## Sources
 
-- `7zip.svg`, `anthropic.svg`, `cursor.svg`, `excalidraw.svg`, `langflow.svg`,
-  `n8n.svg`, `notepadpp.svg`, `ollama.svg`, `rust.svg`, `rustdesk.svg`,
-  `sharex.svg`, `tailscale.svg`: Simple Icons CDN.
+- `7zip.svg`, `anthropic.svg`, `cursor.svg`, `excalidraw.svg`, `ffmpeg.svg`,
+  `langflow.svg`, `n8n.svg`, `notepadpp.svg`, `ollama.svg`, `rust.svg`,
+  `rustdesk.svg`, `sharex.svg`, `tailscale.svg`: Simple Icons CDN.
 - `openai.svg`: Simple Icons npm package.
 - `open-webui.png`: `open-webui/open-webui`, `backend/open_webui/static/favicon-96x96.png`.
 - `flowise.png`: `FlowiseAI/Flowise`, `packages/ui/public/favicon-32x32.png`.
@@ -38,4 +38,7 @@ limited to small app-identification assets.
 - `antigravity.svg`: compact app tile mark based on Google Antigravity's
   simple geometric/text logo from `https://antigravity.google/`, cross-checked
   against Wikimedia Commons `File:Google Antigravity Logo.svg` (PD textlogo,
+  trademark notice applies).
+- `bentopdf.svg`: `goodtab/bentopdf`,
+  `public/images/favicon.svg`, Apache License 2.0 (copyright Abdullah Alam;
   trademark notice applies).
