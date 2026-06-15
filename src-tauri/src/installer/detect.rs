@@ -1000,6 +1000,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn managed_app_marker_reports_app_local_install_location() {
         let location = managed_app_install_dir("n8n");
 
@@ -1007,6 +1008,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn antigravity_cli_install_path_matches_google_installer_location() {
         let base = PathBuf::from(r"C:\Users\Ryan\AppData\Local");
         let path = antigravity_cli_exe_path_from_local_data(&base);

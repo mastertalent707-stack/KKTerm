@@ -279,6 +279,7 @@
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn cli_backend_discovery_prefers_path_candidates_before_common_bins() {
         let path_candidates = bin_candidates_from_roots(
             vec![PathBuf::from("C:\\nvm4w\\nodejs")],

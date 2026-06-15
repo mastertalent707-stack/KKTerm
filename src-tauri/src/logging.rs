@@ -325,25 +325,23 @@ mod tests {
 
     #[test]
     fn runtime_log_dir_uses_executable_directory_with_spaces() {
-        let exe_path = Path::new(r"C:\Program Files\KK Term\kkterm.exe");
+        // Build paths from components so the test exercises the same
+        // parent/join logic on Windows, macOS, and Linux.
+        let exe_dir = PathBuf::from("Program Files").join("KK Term");
+        let exe_path = exe_dir.join("kkterm.exe");
 
-        let path = runtime_log_dir_for(Some(exe_path), None).expect("log dir");
+        let path = runtime_log_dir_for(Some(&exe_path), None).expect("log dir");
 
-        assert_eq!(
-            path,
-            PathBuf::from(r"C:\Program Files\KK Term").join("Logs")
-        );
+        assert_eq!(path, exe_dir.join("Logs"));
     }
 
     #[test]
     fn runtime_log_dir_falls_back_to_local_app_data() {
-        let path = runtime_log_dir_for(None, Some(Path::new(r"C:\Users\Ryan\AppData\Local")))
-            .expect("log dir");
+        let local_app_data = PathBuf::from("AppData").join("Local");
 
-        assert_eq!(
-            path,
-            PathBuf::from(r"C:\Users\Ryan\AppData\Local\KKTerm\Logs")
-        );
+        let path = runtime_log_dir_for(None, Some(&local_app_data)).expect("log dir");
+
+        assert_eq!(path, local_app_data.join("KKTerm").join("Logs"));
     }
 
     #[test]

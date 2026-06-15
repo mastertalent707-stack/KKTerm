@@ -1723,6 +1723,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn n8n_web_ui_affordance_runs_start_and_opens_localhost() {
         let affordance = web_ui_affordance("n8n").expect("n8n should expose a web UI");
 
@@ -1758,6 +1759,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn ollama_web_ui_affordance_runs_server_with_app_local_models() {
         let affordance = web_ui_affordance("ollama").expect("Ollama should expose a local server");
 
@@ -1846,6 +1848,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn managed_web_ui_affordances_run_from_app_local_working_dir() {
         for tool_id in [
             "open-webui",
@@ -1873,6 +1876,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn n8n_service_affordance_uses_managed_app_command_and_data_dir() {
         let service =
             service_affordance("n8n").expect("n8n should expose a Windows service helper");
@@ -1888,6 +1892,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn ollama_service_affordance_uses_app_local_models_dir() {
         let service =
             service_affordance("ollama").expect("Ollama should expose a Windows service helper");
@@ -1918,6 +1923,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn service_install_script_uses_nssm_and_quoted_command() {
         let service = ManagedServiceAffordance {
             service_name: "KKTerm-Test".into(),
@@ -2010,6 +2016,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn bentopdf_service_runs_dynamic_port_server() {
         let service =
             service_affordance("bentopdf").expect("BentoPDF should expose a Windows service helper");
