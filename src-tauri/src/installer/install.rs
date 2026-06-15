@@ -2284,17 +2284,16 @@ mod tests {
 
     #[test]
     fn github_release_path_subdir_supports_release_tag_placeholder() {
+        let install_dir = PathBuf::from("installer").join("bin").join("ffmpeg");
         let dir = github_release_path_dir(
-            &PathBuf::from(r"C:\Users\Ryan\AppData\Local\KKTerm\installer\bin\ffmpeg"),
+            &install_dir,
             Some("ffmpeg-{tag}-full_build/bin"),
             Some("8.1.1"),
         );
 
         assert_eq!(
             dir,
-            PathBuf::from(
-                r"C:\Users\Ryan\AppData\Local\KKTerm\installer\bin\ffmpeg\ffmpeg-8.1.1-full_build\bin"
-            )
+            install_dir.join("ffmpeg-8.1.1-full_build").join("bin")
         );
     }
 
@@ -2323,12 +2322,12 @@ mod tests {
 
     #[test]
     fn winget_links_dir_uses_local_app_data() {
-        let dir =
-            winget_links_dir_from_local_app_data(PathBuf::from(r"C:\Users\Ryan\AppData\Local"));
+        let local_app_data = PathBuf::from("AppData").join("Local");
+        let dir = winget_links_dir_from_local_app_data(local_app_data.clone());
 
         assert_eq!(
             dir,
-            PathBuf::from(r"C:\Users\Ryan\AppData\Local\Microsoft\WinGet\Links")
+            local_app_data.join("Microsoft").join("WinGet").join("Links")
         );
     }
 
@@ -2350,6 +2349,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn managed_ollama_install_targets_app_local_location() {
         let args = managed_ollama_winget_args(&InstallOptions::default());
 
@@ -2487,12 +2487,15 @@ mod tests {
 
     #[test]
     fn winget_log_dir_points_at_diag_output_dir() {
-        let dir = winget_log_dir_from_local_app_data(PathBuf::from(r"C:\Users\Ryan\AppData\Local"));
+        let local_app_data = PathBuf::from("AppData").join("Local");
+        let dir = winget_log_dir_from_local_app_data(local_app_data.clone());
         assert_eq!(
             dir,
-            PathBuf::from(
-                r"C:\Users\Ryan\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir"
-            )
+            local_app_data
+                .join("Packages")
+                .join("Microsoft.DesktopAppInstaller_8wekyb3d8bbwe")
+                .join("LocalState")
+                .join("DiagOutputDir")
         );
     }
 

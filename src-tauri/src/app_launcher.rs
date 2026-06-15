@@ -598,6 +598,7 @@ fn wide_string(value: &str) -> Vec<u16> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn launch_plan_allows_normal_for_arbitrary_files() {
@@ -659,10 +660,15 @@ mod tests {
 
     #[test]
     fn launch_plan_open_folder_uses_containing_folder() {
-        let plan = plan_launch("C:\\Tools\\tool.exe", AppLauncherLaunchMode::OpenFolder)
+        // Build the path from components so the parent-folder logic is
+        // exercised with native separators on every OS.
+        let folder = PathBuf::from("Tools");
+        let exe = folder.join("tool.exe");
+
+        let plan = plan_launch(&exe.to_string_lossy(), AppLauncherLaunchMode::OpenFolder)
             .expect("open folder should target the parent folder");
 
-        assert_eq!(plan.target, "C:\\Tools");
+        assert_eq!(plan.target, folder.to_string_lossy());
         assert_eq!(plan.parameters, None);
         assert_eq!(plan.operation, None);
     }

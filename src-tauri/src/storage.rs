@@ -4276,14 +4276,22 @@ fn validate_app_launcher_sort_state(mut sort: AppLauncherSortState) -> AppLaunch
 }
 
 pub(crate) fn app_launcher_name_from_path(path: &str) -> String {
-    Path::new(path)
-        .file_stem()
-        .and_then(|name| name.to_str())
-        .or_else(|| Path::new(path).file_name().and_then(|name| name.to_str()))
-        .map(str::trim)
-        .filter(|name| !name.is_empty())
-        .unwrap_or("Application")
-        .to_string()
+    // Derive the display name from the file base name with its extension
+    // stripped. Split on both separators explicitly so a Windows path (or a
+    // Unix path) yields the same name regardless of the host OS — `Path` only
+    // recognizes the host separator, which would mis-parse foreign paths.
+    let trimmed = path.trim().trim_end_matches(['/', '\\']);
+    let base = trimmed.rsplit(['/', '\\']).next().unwrap_or(trimmed);
+    let stem = match base.rsplit_once('.') {
+        Some((name, _ext)) if !name.is_empty() => name,
+        _ => base,
+    };
+    let name = stem.trim();
+    if name.is_empty() {
+        "Application".to_string()
+    } else {
+        name.to_string()
+    }
 }
 
 fn validate_dashboard_settings(
