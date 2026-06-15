@@ -43,6 +43,11 @@ export const OS_ICON_ENTRIES: OsIconEntry[] = [
   { id: "zorin", label: "Zorin OS", keywords: ["zorin", "ubuntu", "debian", "linux", "os"] },
   { id: "freebsd", label: "FreeBSD", keywords: ["freebsd", "bsd", "unix", "os"] },
   { id: "openbsd", label: "OpenBSD", keywords: ["openbsd", "bsd", "unix", "os"] },
+  { id: "netbsd", label: "NetBSD", keywords: ["netbsd", "bsd", "unix", "os"] },
+  { id: "openwrt", label: "OpenWrt", keywords: ["openwrt", "router", "linux", "embedded", "os"] },
+  { id: "proxmox", label: "Proxmox VE", keywords: ["proxmox", "pve", "hypervisor", "debian", "linux", "os"] },
+  { id: "truenas", label: "TrueNAS", keywords: ["truenas", "freenas", "nas", "storage", "bsd", "linux", "os"] },
+  { id: "pfsense", label: "pfSense", keywords: ["pfsense", "firewall", "router", "freebsd", "bsd", "os"] },
   { id: "apple", label: "macOS", keywords: ["macos", "mac", "apple", "osx", "darwin", "unix", "os"] },
   { id: "windows", label: "Windows", keywords: ["windows", "microsoft", "win", "os"] },
   { id: "linux", label: "Linux", keywords: ["linux", "gnu", "tux", "generic", "unix", "os"] },
@@ -78,6 +83,11 @@ export type DetectedRemoteOs = {
   idLike?: string | null;
   /** `uname -s` kernel name (e.g. "Linux", "Darwin", "FreeBSD"). */
   kernel?: string | null;
+  /** Device-tree hardware model (e.g. "Raspberry Pi 5 Model B"). */
+  model?: string | null;
+  /** Detected appliance distribution from distinctive on-disk markers
+   *  (e.g. "proxmox", "truenas", "pfsense") that share a generic os-release. */
+  app?: string | null;
 };
 
 // `/etc/os-release` ID (and ID_LIKE token) -> bundled OS icon id.
@@ -119,8 +129,11 @@ const OS_RELEASE_ID_TO_ICON: Record<string, string> = {
   gentoo: "gentoo",
   nixos: "nixos",
   void: "voidlinux",
+  openwrt: "openwrt",
+  truenas: "truenas",
   freebsd: "freebsd",
   openbsd: "openbsd",
+  netbsd: "netbsd",
 };
 
 function osIconIdFromKernel(kernel: string): string | null {
@@ -134,6 +147,9 @@ function osIconIdFromKernel(kernel: string): string | null {
   if (value.includes("openbsd")) {
     return "openbsd";
   }
+  if (value.includes("netbsd")) {
+    return "netbsd";
+  }
   if (value.includes("cygwin") || value.includes("mingw") || value.includes("msys") || value.includes("windows")) {
     return "windows";
   }
@@ -144,12 +160,22 @@ function osIconIdFromKernel(kernel: string): string | null {
 }
 
 /**
- * Resolve detected remote-OS facts to a bundled OS icon id. Prefers the exact
- * `/etc/os-release` ID, then its ID_LIKE parents, then the kernel name. Unknown
- * Linux distributions fall back to the generic Tux icon so a host still gets a
- * recognizable platform glyph.
+ * Resolve detected remote-OS facts to a bundled OS icon id. Priority: a
+ * distinctive appliance marker (Proxmox/TrueNAS/pfSense, which share a generic
+ * os-release), then Raspberry Pi hardware (64-bit Pi OS reports ID=debian), then
+ * the exact `/etc/os-release` ID, its ID_LIKE parents, and finally the kernel
+ * name. Unknown Linux distributions fall back to the generic Tux icon so a host
+ * still gets a recognizable platform glyph.
  */
 export function osIconIdForDetection(detected: DetectedRemoteOs): string | null {
+  const app = detected.app?.trim().toLowerCase();
+  if (app && isKnownOsIconId(app)) {
+    return app;
+  }
+  const model = detected.model?.trim().toLowerCase();
+  if (model && model.includes("raspberry pi")) {
+    return "raspberrypi";
+  }
   const id = detected.id?.trim().toLowerCase();
   if (id && OS_RELEASE_ID_TO_ICON[id]) {
     return OS_RELEASE_ID_TO_ICON[id];

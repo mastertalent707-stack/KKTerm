@@ -176,6 +176,8 @@ export interface DetectedRemoteOs {
   id?: string | null;
   idLike?: string | null;
   kernel?: string | null;
+  model?: string | null;
+  app?: string | null;
 }
 
 export interface SshPortForwardStarted {

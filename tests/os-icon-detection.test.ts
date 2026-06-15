@@ -44,8 +44,28 @@ test("kernel name maps non-linux platforms", () => {
   assert.equal(osIconIdForDetection({ kernel: "Darwin" }), "apple");
   assert.equal(osIconIdForDetection({ kernel: "FreeBSD" }), "freebsd");
   assert.equal(osIconIdForDetection({ kernel: "OpenBSD" }), "openbsd");
+  assert.equal(osIconIdForDetection({ kernel: "NetBSD" }), "netbsd");
   assert.equal(osIconIdForDetection({ kernel: "Linux" }), "linux");
   assert.equal(osIconIdForDetection({}), null);
+});
+
+test("freebsd is detected from os-release and openwrt from id", () => {
+  assert.equal(osIconIdForDetection({ id: "freebsd", kernel: "FreeBSD" }), "freebsd");
+  assert.equal(osIconIdForDetection({ id: "openwrt", kernel: "Linux" }), "openwrt");
+});
+
+test("raspberry pi hardware wins over a debian os-release", () => {
+  // 64-bit Raspberry Pi OS reports ID=debian; the device-tree model rescues it.
+  assert.equal(
+    osIconIdForDetection({ id: "debian", kernel: "Linux", model: "Raspberry Pi 5 Model B Rev 1.0" }),
+    "raspberrypi",
+  );
+});
+
+test("appliance markers win over the shared base os", () => {
+  assert.equal(osIconIdForDetection({ id: "debian", app: "proxmox" }), "proxmox");
+  assert.equal(osIconIdForDetection({ kernel: "FreeBSD", app: "pfsense" }), "pfsense");
+  assert.equal(osIconIdForDetection({ id: "debian", app: "truenas" }), "truenas");
 });
 
 test("every detection result resolves to a bundled icon entry", () => {

@@ -175,6 +175,8 @@ pub struct DetectedRemoteOs {
     pub id: Option<String>,
     pub id_like: Option<String>,
     pub kernel: Option<String>,
+    pub model: Option<String>,
+    pub app: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -1969,14 +1971,29 @@ fn tmux_capture_pane_command(tmux_session_id: &str, buffer_lines: u32) -> String
 }
 
 fn remote_os_detect_command() -> String {
-    // Lightweight, POSIX-sh probe: the os-release ID/ID_LIKE plus the kernel
-    // name are enough for the frontend to pick a bundled distro/OS logo.
+    // Lightweight, POSIX-sh probe: the os-release ID/ID_LIKE and kernel name pick
+    // a bundled distro/OS logo for the common case. A device-tree MODEL catches
+    // Raspberry Pi hardware (64-bit Pi OS reports ID=debian), and a few
+    // distinctive markers identify appliance distributions (Proxmox, TrueNAS,
+    // pfSense) that otherwise share a generic os-release / FreeBSD kernel.
     r#"if [ -r /etc/os-release ]; then
   . /etc/os-release
   printf 'ID=%s\n' "${ID:-}"
   printf 'ID_LIKE=%s\n' "${ID_LIKE:-}"
 fi
 printf 'KERNEL=%s\n' "$(uname -s 2>/dev/null)"
+if [ -r /proc/device-tree/model ]; then
+  printf 'MODEL=%s\n' "$(tr -d '\0' < /proc/device-tree/model 2>/dev/null)"
+elif [ -r /sys/firmware/devicetree/base/model ]; then
+  printf 'MODEL=%s\n' "$(tr -d '\0' < /sys/firmware/devicetree/base/model 2>/dev/null)"
+fi
+if [ -d /etc/pve ]; then
+  printf 'APP=proxmox\n'
+elif [ -r /etc/version ] && grep -qi truenas /etc/version 2>/dev/null; then
+  printf 'APP=truenas\n'
+elif [ -x /usr/local/sbin/pfSsh.php ]; then
+  printf 'APP=pfsense\n'
+fi
 "#
     .to_string()
 }
@@ -1999,6 +2016,16 @@ fn parse_detected_remote_os(output: &str) -> DetectedRemoteOs {
             let value = value.trim();
             if !value.is_empty() {
                 detected.kernel = Some(value.to_string());
+            }
+        } else if let Some(value) = line.strip_prefix("MODEL=") {
+            let value = value.trim();
+            if !value.is_empty() {
+                detected.model = Some(value.to_string());
+            }
+        } else if let Some(value) = line.strip_prefix("APP=") {
+            let value = value.trim();
+            if !value.is_empty() {
+                detected.app = Some(value.to_ascii_lowercase());
             }
         }
     }
@@ -2446,6 +2473,16 @@ mod tests {
         assert_eq!(detected.id, None);
         assert_eq!(detected.id_like, None);
         assert_eq!(detected.kernel.as_deref(), Some("Darwin"));
+    }
+
+    #[test]
+    fn parse_detected_remote_os_reads_model_and_app_markers() {
+        let detected = parse_detected_remote_os(
+            "ID=debian\nKERNEL=Linux\nMODEL=Raspberry Pi 5 Model B Rev 1.0\n",
+        );
+        assert_eq!(detected.model.as_deref(), Some("Raspberry Pi 5 Model B Rev 1.0"));
+        let appliance = parse_detected_remote_os("ID=debian\nKERNEL=Linux\nAPP=Proxmox\n");
+        assert_eq!(appliance.app.as_deref(), Some("proxmox"));
     }
 
     fn local_request() -> StartTerminalSessionRequest {
