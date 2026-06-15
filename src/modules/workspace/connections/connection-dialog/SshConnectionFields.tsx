@@ -186,6 +186,9 @@ export function SshConnectionOptions({
   const [sshSocksProxyDraft, setSshSocksProxyDraft] = useState(
     initialConnection?.sshSocksProxy ?? sshSettings.defaultSshSocksProxy ?? "",
   );
+  const [sshSocksProxyUsernameDraft, setSshSocksProxyUsernameDraft] = useState(
+    initialConnection?.sshSocksProxyUsername ?? sshSettings.defaultSshSocksProxyUsername ?? "",
+  );
   const [proxyJumpDraft, setProxyJumpDraft] = useState(
     initialConnection?.proxyJump ?? sshSettings.defaultProxyJump ?? "",
   );
@@ -195,6 +198,9 @@ export function SshConnectionOptions({
   const displayedSshSocksProxy = sshInheritsSettingsDefaults
     ? sshSettings.defaultSshSocksProxy ?? ""
     : sshSocksProxyDraft;
+  const displayedSshSocksProxyUsername = sshInheritsSettingsDefaults
+    ? sshSettings.defaultSshSocksProxyUsername ?? ""
+    : sshSocksProxyUsernameDraft;
   const displayedProxyJump = sshInheritsSettingsDefaults ? sshSettings.defaultProxyJump ?? "" : proxyJumpDraft;
   const displayedUseTmuxSessions = sshInheritsSettingsDefaults
     ? sshSettings.defaultUseTmuxSessions
@@ -225,6 +231,26 @@ export function SshConnectionOptions({
               onChange={(event) => setSshSocksProxyDraft(event.currentTarget.value)}
               placeholder={t("settings.sshSocksProxyPlaceholder")}
               value={displayedSshSocksProxy}
+            />
+          </label>
+          <label className="connection-proxy-row">
+            <span>{t("connections.sshSocksProxyUsernameOptional")}</span>
+            <input
+              autoComplete="username"
+              disabled={sshInheritsSettingsDefaults || hasProxyJumpOverride}
+              name="sshSocksProxyUsername"
+              onChange={(event) => setSshSocksProxyUsernameDraft(event.currentTarget.value)}
+              value={displayedSshSocksProxyUsername}
+            />
+          </label>
+          <label className="connection-proxy-row">
+            <span>{t("connections.sshSocksProxyPasswordOptional")}</span>
+            <input
+              autoComplete="new-password"
+              disabled={sshInheritsSettingsDefaults || hasProxyJumpOverride}
+              name="sshSocksProxyPassword"
+              placeholder={t("connections.sshSocksProxyPasswordPlaceholder")}
+              type="password"
             />
           </label>
           <label className="connection-proxy-row">
