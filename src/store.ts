@@ -888,6 +888,30 @@ function refreshTerminalPaneConnection(
   };
 }
 
+function refreshChildPaneConnection(
+  pane: TerminalPane,
+  parentBefore: Connection | undefined,
+  parentAfter: Connection,
+): Connection {
+  const current = pane.connection;
+  if (!current || !pane.childConnectionId) {
+    return parentAfter;
+  }
+  return {
+    ...parentAfter,
+    iconBackgroundColor:
+      current.iconBackgroundColor !== parentBefore?.iconBackgroundColor
+        ? current.iconBackgroundColor
+        : parentAfter.iconBackgroundColor,
+    iconDataUrl:
+      current.iconDataUrl !== parentBefore?.iconDataUrl
+        ? current.iconDataUrl
+        : parentAfter.iconDataUrl,
+    terminalOpacity: current.terminalOpacity,
+    terminalBackground: current.terminalBackground,
+  };
+}
+
 function urlConnectionIdsForTab(tab: WorkspaceTab) {
   if (tab.kind === "webview" && tab.connection?.type === "url") {
     return [tab.connection.id];
@@ -2856,7 +2880,12 @@ function refreshTabConnectionMetadata(tab: WorkspaceTab, connection: Connection)
     if (!isTerminalPane(pane) || pane.connection?.id !== connection.id) {
       return pane;
     }
-    return refreshTerminalPaneConnection(pane, refreshedConnection, toolbarTitle);
+    const paneConnection = refreshChildPaneConnection(pane, tab.connection, refreshedConnection);
+    return refreshTerminalPaneConnection(
+      pane,
+      pane.childConnectionId ? paneConnection : refreshedConnection,
+      pane.childConnectionId ? pane.toolbarTitle : toolbarTitle,
+    );
   });
   const panesChanged = panes.some((pane, index) => pane !== tab.panes[index]);
   if (!tabConnectionMatches && !panesChanged) {

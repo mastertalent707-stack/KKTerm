@@ -624,8 +624,6 @@ export function ConnectionSidebar({
       cwd: connection.type === "local" ? connection.localStartupDirectory?.trim() || "." : "~",
       terminalOpacity: appearance?.terminalOpacity,
       terminalBackground: appearance?.terminalBackground,
-      iconBackgroundColor: connection.iconBackgroundColor ?? null,
-      iconDataUrl: connection.iconDataUrl ?? null,
     };
     setChildConnections((current) => [...current, child]);
     return child;

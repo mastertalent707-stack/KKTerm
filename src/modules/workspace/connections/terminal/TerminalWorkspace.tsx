@@ -1392,7 +1392,7 @@ async function maybeAutoDetectOsIcon(connection: Connection) {
     const iconId = osIconIdForDetection(detected);
     if (!iconId) {
       // No usable result (unreachable, non-POSIX shell, unknown OS): leave the
-      // default icon and allow a retry on a later connect.
+      // default icon in place.
       return;
     }
     // Re-check: the user may have chosen an icon while we probed.
@@ -1407,16 +1407,19 @@ async function maybeAutoDetectOsIcon(connection: Connection) {
       connectionId: connection.id,
       iconDataUrl: osIconRefForId(iconId),
     });
-    // Auto-detection resolved an icon: never probe this Connection again.
-    markOsIconAutoDetectDone(connection.id);
     if (updated) {
       useWorkspaceStore.getState().refreshOpenConnectionMetadata(updated);
       notifyConnectionTreeInvalidated();
     }
   } catch {
-    // Detection is best-effort: an unreachable probe or transient error leaves
-    // the default connection icon in place and retries on a later connect.
+    // Detection is best-effort: a transient error leaves the default connection
+    // icon in place. Since this runs after an SSH Connection is established, the
+    // in-flight guard still keeps concurrent pane opens from multiplying probes.
   } finally {
+    // The remote probe was attempted for this established SSH Connection.
+    // Whether or not it maps to a bundled logo, do not probe this Connection
+    // again on later opens.
+    markOsIconAutoDetectDone(connection.id);
     osDetectInFlight.delete(connection.id);
   }
 }
