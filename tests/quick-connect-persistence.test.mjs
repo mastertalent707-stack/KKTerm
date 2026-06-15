@@ -7,6 +7,10 @@ test("Quick Connect persists connections and rename guards non-persisted ids", a
     new URL("../src/modules/workspace/connections/ConnectionSidebar.tsx", import.meta.url),
     "utf8",
   );
+  const menuModelSource = await readFile(
+    new URL("../src/modules/workspace/connections/quickConnectMenuModel.ts", import.meta.url),
+    "utf8",
+  );
 
   // Quick Connect routes through the persist-or-reuse orchestrator.
   assert.match(
@@ -17,7 +21,7 @@ test("Quick Connect persists connections and rename guards non-persisted ids", a
   assert.match(
     sidebarSource,
     /findMatchingConnection\(currentConnections, candidate\)/,
-    "quickConnect should reuse an identical existing connection before creating",
+    "quickConnect should reuse an identical existing SSH connection before creating",
   );
   assert.match(
     sidebarSource,
@@ -28,6 +32,11 @@ test("Quick Connect persists connections and rename guards non-persisted ids", a
     sidebarSource,
     /nextQuickConnectName\(currentConnections, candidate\.name\)/,
     "quickConnect should avoid duplicate saved Connection names when creating a new target",
+  );
+  assert.doesNotMatch(
+    menuModelSource,
+    /candidate\.type === "local"/,
+    "local terminal Quick Connect targets should create a new saved Connection instead of reusing by shell",
   );
 
   // The ephemeral upsert path is gone.
