@@ -1,0 +1,2 @@
+data: {"choices":[{"delta":{"role":"assistant","tool_calls":[{"extra_content":{"google":{"thought_signature":"sig"}},"function":{"arguments":"{\"targetId\":\"app.activityRailNewWorkspace\",\"navigation\":{\"page\":\"workspace\"},\"title\":\"新增工作區\",\"body\":\"點擊這裡即可建立新的工作區。\"}","name":"tutorial_highlight"},"id":"koHFF4xd","type":"function"}]}}],"created":1781537673,"id":"iBswavL8Jp-fvr0P97yz4AQ","model":"gemini-3.1-flash-lite","object":"chat.completion.chunk"}
+data: [DONE]

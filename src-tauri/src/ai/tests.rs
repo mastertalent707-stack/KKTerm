@@ -3422,6 +3422,81 @@
             replay_chat_stream(include_str!("fixtures/chat_reasoning_and_tool_call.sse")),
             include_str!("fixtures/chat_reasoning_and_tool_call.expected.json"),
         );
+        assert_replay(
+            "gemini_tool_call_missing_index",
+            replay_chat_stream(include_str!("fixtures/gemini_tool_call_missing_index.sse")),
+            include_str!("fixtures/gemini_tool_call_missing_index.expected.json"),
+        );
+    }
+
+    #[test]
+    fn chat_stream_matches_missing_index_fragments_by_tool_call_id() {
+        let mut state = ChatStreamState::default();
+        let first: ChatSseChunk = serde_json::from_value(json!({
+            "choices": [{
+                "delta": {
+                    "tool_calls": [{
+                        "id": "call_same",
+                        "function": {
+                            "name": "current_time",
+                            "arguments": "{"
+                        }
+                    }]
+                }
+            }]
+        }))
+        .expect("first chunk parses");
+        let second: ChatSseChunk = serde_json::from_value(json!({
+            "choices": [{
+                "delta": {
+                    "tool_calls": [{
+                        "id": "call_same",
+                        "function": {
+                            "arguments": "}"
+                        }
+                    }]
+                }
+            }]
+        }))
+        .expect("second chunk parses");
+
+        state.apply_chunk(first);
+        state.apply_chunk(second);
+
+        let tool_calls = state.into_tool_calls();
+        assert_eq!(tool_calls.len(), 1);
+        assert_eq!(tool_calls[0].id, "call_same");
+        assert_eq!(tool_calls[0].function.name, "current_time");
+        assert_eq!(tool_calls[0].function.arguments, "{}");
+    }
+
+    #[test]
+    fn chat_stream_accepts_json_argument_values_and_synthesizes_missing_id() {
+        let mut state = ChatStreamState::default();
+        let chunk: ChatSseChunk = serde_json::from_value(json!({
+            "choices": [{
+                "delta": {
+                    "tool_calls": [{
+                        "function": {
+                            "name": "connection_list",
+                            "arguments": {"workspaceId": "default"}
+                        }
+                    }]
+                }
+            }]
+        }))
+        .expect("chunk parses");
+
+        state.apply_chunk(chunk);
+
+        let tool_calls = state.into_tool_calls();
+        assert_eq!(tool_calls.len(), 1);
+        assert_eq!(tool_calls[0].id, "call_0");
+        assert_eq!(tool_calls[0].function.name, "connection_list");
+        assert_eq!(
+            tool_calls[0].function.arguments,
+            r#"{"workspaceId":"default"}"#
+        );
     }
 
     #[test]

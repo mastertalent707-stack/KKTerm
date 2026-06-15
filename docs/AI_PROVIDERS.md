@@ -17,6 +17,15 @@ or streaming format, do **not** force it into the OpenAI-compatible adapter. Add
 proper `AgentProvider` implementation in Rust and document the new runtime shape.
 That is intentionally more than a one-file provider addition.
 
+Some OpenAI-compatible providers emit small Chat Completions streaming variants.
+For example, Gemini's OpenAI-compatible SSE tool-call deltas may omit
+`tool_calls[].index` even though OpenAI includes it; other compatible services
+may vary harmlessly in SSE `data:` spacing, whether argument fragments arrive as
+strings or JSON values, or when a tool-call id appears. Keep these compatibility
+normalizations in `src-tauri/src/ai/streaming.rs` and lock them with recorded
+SSE fixtures under `src-tauri/src/ai/fixtures/` instead of scattering
+provider-specific request or parser code through provider metadata files.
+
 GitHub Copilot uses `github-copilot-sdk` only as a runtime bridge to an installed
 or path-resolved Copilot CLI. KKTerm must never bundle the Copilot CLI into the
 app binary or installer. Keep the Cargo dependency on `github-copilot-sdk`

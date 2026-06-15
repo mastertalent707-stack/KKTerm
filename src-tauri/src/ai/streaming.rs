@@ -9,6 +9,7 @@ pub(crate) struct ChatSseChunk {
 
 #[derive(Deserialize, Default)]
 pub(crate) struct ChatSseChoice {
+    #[serde(default)]
     pub(crate) delta: ChatSseDelta,
     #[serde(default)]
     pub(crate) finish_reason: Option<String>,
@@ -38,8 +39,9 @@ pub(crate) struct ReasoningDetail {
 
 #[derive(Deserialize)]
 pub(crate) struct SseToolCallDelta {
-    index: u32,
     #[serde(default)]
+    index: Option<u32>,
+    #[serde(default, deserialize_with = "optional_json_string")]
     id: Option<String>,
     #[serde(default)]
     function: Option<SseToolCallFunctionDelta>,
@@ -47,9 +49,9 @@ pub(crate) struct SseToolCallDelta {
 
 #[derive(Deserialize, Default)]
 pub(crate) struct SseToolCallFunctionDelta {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "optional_json_string")]
     name: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "optional_json_string")]
     arguments: Option<String>,
 }
 
@@ -58,6 +60,17 @@ pub(crate) struct ToolCallAccumulator {
     id: String,
     name: String,
     arguments: String,
+}
+
+fn optional_json_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = Option::<Value>::deserialize(deserializer)?;
+    Ok(value.map(|value| match value {
+        Value::String(s) => s,
+        other => serde_json::to_string(&other).unwrap_or_default(),
+    }))
 }
 
 pub(crate) fn ai_http_client(allow_insecure_tls: bool) -> Result<reqwest::Client, String> {
@@ -454,8 +467,18 @@ impl ChatStreamState {
                     reasoning_delta.push_str(&r);
                 }
             }
-            for tc in &choice.delta.tool_calls {
-                let acc = self.tool_call_builders.entry(tc.index).or_default();
+            for (position, tc) in choice.delta.tool_calls.iter().enumerate() {
+                let index = tc
+                    .index
+                    .or_else(|| {
+                        tc.id.as_ref().and_then(|id| {
+                            self.tool_call_builders
+                                .iter()
+                                .find_map(|(idx, acc)| (acc.id == *id).then_some(*idx))
+                        })
+                    })
+                    .unwrap_or(position as u32);
+                let acc = self.tool_call_builders.entry(index).or_default();
                 if let Some(id) = &tc.id {
                     acc.id.clone_from(id);
                 }
@@ -496,7 +519,11 @@ impl ChatStreamState {
             if let Some(acc) = builders.remove(&idx) {
                 if !acc.name.is_empty() {
                     tool_calls.push(OpenAiToolCall {
-                        id: acc.id,
+                        id: if acc.id.is_empty() {
+                            format!("call_{idx}")
+                        } else {
+                            acc.id
+                        },
                         function: OpenAiToolCallFunction {
                             name: acc.name,
                             arguments: acc.arguments,
@@ -507,6 +534,34 @@ impl ChatStreamState {
         }
         tool_calls
     }
+}
+
+fn apply_chat_stream_data(
+    state: &mut ChatStreamState,
+    channel: &Channel<Value>,
+    data: &str,
+) -> Result<bool, String> {
+    if data == "[DONE]" {
+        ai_interaction_debug!(
+            "provider.stream_data",
+            json!({ "api": "chat_completions", "data": data })
+        );
+        return Ok(true);
+    }
+    ai_interaction_debug!(
+        "provider.stream_data",
+        json!({ "api": "chat_completions", "data": data })
+    );
+    let chunk: ChatSseChunk =
+        serde_json::from_str(data).map_err(|e| format!("SSE parse error: {e}"))?;
+    let deltas = state.apply_chunk(chunk);
+    if let Some(delta) = deltas.content_delta {
+        emit_stream(channel, &AiStreamEvent::ContentDelta { delta })?;
+    }
+    if let Some(delta) = deltas.reasoning_delta {
+        emit_stream(channel, &AiStreamEvent::ReasoningDelta { delta })?;
+    }
+    Ok(false)
 }
 
 pub(crate) async fn stream_chat_completions(
@@ -528,29 +583,21 @@ pub(crate) async fn stream_chat_completions(
             if line.is_empty() || line.starts_with(':') {
                 continue;
             }
-            let data = match line.strip_prefix("data: ") {
+            let data = match sse_field_value(&line, "data") {
                 Some(d) => d,
                 None => continue,
             };
-            if data == "[DONE]" {
-                ai_interaction_debug!(
-                    "provider.stream_data",
-                    json!({ "api": "chat_completions", "data": data })
-                );
+            if apply_chat_stream_data(&mut state, channel, data)? {
                 break;
             }
-            ai_interaction_debug!(
-                "provider.stream_data",
-                json!({ "api": "chat_completions", "data": data })
-            );
-            let chunk: ChatSseChunk =
-                serde_json::from_str(data).map_err(|e| format!("SSE parse error: {e}"))?;
-            let deltas = state.apply_chunk(chunk);
-            if let Some(delta) = deltas.content_delta {
-                emit_stream(channel, &AiStreamEvent::ContentDelta { delta })?;
-            }
-            if let Some(delta) = deltas.reasoning_delta {
-                emit_stream(channel, &AiStreamEvent::ReasoningDelta { delta })?;
+        }
+    }
+
+    let trailing_line = buf.trim();
+    if !trailing_line.is_empty() {
+        if let Some(data) = sse_field_value(trailing_line, "data") {
+            if data != "[DONE]" {
+                apply_chat_stream_data(&mut state, channel, data)?;
             }
         }
     }

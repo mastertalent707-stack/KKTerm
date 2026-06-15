@@ -1,0 +1,10 @@
+{
+  "content": "",
+  "reasoning": "",
+  "toolCalls": [
+    {
+      "name": "tutorial_highlight",
+      "arguments": "{\"targetId\":\"app.activityRailNewWorkspace\",\"navigation\":{\"page\":\"workspace\"},\"title\":\"新增工作區\",\"body\":\"點擊這裡即可建立新的工作區。\"}"
+    }
+  ]
+}
