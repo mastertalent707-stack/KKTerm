@@ -19,7 +19,7 @@ import {
   type FileBrowserController,
 } from "../../paneRegistry";
 import { useWorkspaceStore } from "../../../../store";
-import type { FileEntry, SftpSettings, WorkspaceTab } from "../../../../types";
+import type { FileBrowserViewOptions, FileEntry, SftpSettings, WorkspaceTab } from "../../../../types";
 import type { DashboardBackground } from "../../../dashboard/types";
 import { FILE_PANE_ZOOM_DEFAULT, FilePane } from "./SftpFilePane";
 import { fileBrowserConnectionIconSrc } from "../fileBrowserConnectionIcons";
@@ -48,22 +48,53 @@ const WINDOWS_DRIVES_PATH = "__KKTERM_WINDOWS_DRIVES__";
 const FILE_BROWSER_RECENT_PATHS_STORAGE_KEY = "kkterm.fileBrowserRecentPaths.v1";
 const FILE_BROWSER_FAVORITES_STORAGE_KEY = "kkterm.fileBrowserFavorites.v1";
 const FILE_BROWSER_SIDEBAR_STORAGE_KEY = "kkterm.fileBrowserSidebarCollapsed.v1";
-const FILE_BROWSER_VIEW_OPTIONS_STORAGE_KEY = "kkterm.fileBrowserViewOptions.v1";
 const RECENT_PATH_LIMIT = 5;
 
-// Per-pane zoom + content-view background. Persisted per Connection (keyed by
-// connection id, falling back to the tab id) and per pane side, except for the
+// Per-pane zoom + content-view background. Persisted durably on the Connection
+// (DB) so the look survives restarts and follows the Connection, except for the
 // ephemeral terminal-spawned SFTP browser (`inline`), which keeps these settings
 // in memory only so they are forgotten when the popup closes.
-type FileBrowserViewOptions = {
+type PaneViewOptions = {
   zoom: number;
   background: DashboardBackground | null;
 };
 
-const DEFAULT_FILE_BROWSER_VIEW_OPTIONS: FileBrowserViewOptions = {
+type PaneViewOptionsState = {
+  local: PaneViewOptions;
+  remote: PaneViewOptions;
+};
+
+const DEFAULT_PANE_VIEW_OPTIONS: PaneViewOptions = {
   zoom: FILE_PANE_ZOOM_DEFAULT,
   background: null,
 };
+
+function paneViewOptionsFromConnection(
+  side: FilePaneSide,
+  connection: WorkspaceTab["connection"],
+): PaneViewOptions {
+  const stored = connection?.fileBrowserViewOptions?.[side];
+  return {
+    zoom:
+      typeof stored?.zoom === "number" && Number.isFinite(stored.zoom)
+        ? stored.zoom
+        : FILE_PANE_ZOOM_DEFAULT,
+    background: stored?.background ?? null,
+  };
+}
+
+function initialViewOptionsState(
+  connection: WorkspaceTab["connection"],
+  ephemeral: boolean,
+): PaneViewOptionsState {
+  if (ephemeral) {
+    return { local: { ...DEFAULT_PANE_VIEW_OPTIONS }, remote: { ...DEFAULT_PANE_VIEW_OPTIONS } };
+  }
+  return {
+    local: paneViewOptionsFromConnection("local", connection),
+    remote: paneViewOptionsFromConnection("remote", connection),
+  };
+}
 
 type FileClipboard = {
   operation: LocalFileClipboardOperation;
@@ -110,12 +141,10 @@ export function SftpWorkspace({
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() =>
     readSidebarCollapsed(sidebarConnectionKey, isLocalFilesBrowser),
   );
-  const [localViewOptions, setLocalViewOptions] = useState<FileBrowserViewOptions>(() =>
-    readViewOptions(sidebarConnectionKey, "local", inline),
+  const [viewOptions, setViewOptions] = useState<PaneViewOptionsState>(() =>
+    initialViewOptionsState(connection, inline),
   );
-  const [remoteViewOptions, setRemoteViewOptions] = useState<FileBrowserViewOptions>(() =>
-    readViewOptions(sidebarConnectionKey, "remote", inline),
-  );
+  const viewOptionsRef = useRef(viewOptions);
   const [status, setStatus] = useState(t("sftp.connecting"));
   const [remoteError, setRemoteError] = useState("");
   const [localStatus, setLocalStatus] = useState("");
@@ -151,6 +180,9 @@ export function SftpWorkspace({
   );
   const markConnectionSessionEnded = useWorkspaceStore(
     (state) => state.markConnectionSessionEnded,
+  );
+  const updateOpenConnectionFileBrowserViewOptions = useWorkspaceStore(
+    (state) => state.updateOpenConnectionFileBrowserViewOptions,
   );
 
   useEffect(() => {
@@ -235,10 +267,15 @@ export function SftpWorkspace({
     setSidebarCollapsed(readSidebarCollapsed(sidebarConnectionKey, isLocalFilesBrowser));
   }, [sidebarConnectionKey, isLocalFilesBrowser]);
 
+  // Re-seed the in-memory view options from the durable Connection only when the
+  // browser switches identity (not on our own round-tripped updates, which keep
+  // the same connection id).
   useEffect(() => {
-    setLocalViewOptions(readViewOptions(sidebarConnectionKey, "local", inline));
-    setRemoteViewOptions(readViewOptions(sidebarConnectionKey, "remote", inline));
-  }, [sidebarConnectionKey, inline]);
+    const next = initialViewOptionsState(connection, inline);
+    viewOptionsRef.current = next;
+    setViewOptions(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connection?.id, inline]);
 
   const toggleSidebar = () => {
     setSidebarCollapsed((collapsed) => {
@@ -248,13 +285,43 @@ export function SftpWorkspace({
     });
   };
 
-  const updateViewOptions = (side: FilePaneSide, patch: Partial<FileBrowserViewOptions>) => {
-    const setOptions = side === "local" ? setLocalViewOptions : setRemoteViewOptions;
-    setOptions((current) => {
-      const next = { ...current, ...patch };
-      writeViewOptions(sidebarConnectionKey, side, inline, next);
-      return next;
-    });
+  const persistViewOptions = (next: PaneViewOptionsState) => {
+    const connectionId = connection?.id;
+    // Ephemeral popup and transient (non-DB) connections stay in memory only.
+    if (inline || !connectionId || isTransientFileBrowserConnectionId(connectionId)) {
+      return;
+    }
+    const payload: FileBrowserViewOptions = {
+      local: { zoom: next.local.zoom, background: next.local.background },
+      remote: { zoom: next.remote.zoom, background: next.remote.background },
+    };
+    updateOpenConnectionFileBrowserViewOptions(connectionId, payload);
+    if (!isTauriRuntime()) {
+      return;
+    }
+    void invokeCommand("update_connection_file_browser_view_options", {
+      connectionId,
+      viewOptions: payload,
+    })
+      .then((updated) => {
+        if (updated) {
+          updateOpenConnectionFileBrowserViewOptions(
+            connectionId,
+            updated.fileBrowserViewOptions ?? payload,
+          );
+        }
+      })
+      .catch((error) => {
+        console.warn("file browser view options update failed.", error);
+      });
+  };
+
+  const updateViewOptions = (side: FilePaneSide, patch: Partial<PaneViewOptions>) => {
+    const prev = viewOptionsRef.current;
+    const next: PaneViewOptionsState = { ...prev, [side]: { ...prev[side], ...patch } };
+    viewOptionsRef.current = next;
+    setViewOptions(next);
+    persistViewOptions(next);
   };
 
   const addFavorite = (place: { label: string; path: string; icon: string; kind?: "file" | "folder" }) => {
@@ -1605,9 +1672,9 @@ export function SftpWorkspace({
           enableSearch
           showFooter
           availableBytes={isLocalDrivePicker ? undefined : localAvailableBytes}
-          zoom={localViewOptions.zoom}
+          zoom={viewOptions.local.zoom}
           onZoomChange={(zoom) => updateViewOptions("local", { zoom })}
-          background={localViewOptions.background}
+          background={viewOptions.local.background}
           onBackgroundChange={(background) => updateViewOptions("local", { background })}
           backgroundActive={isActive}
         />
@@ -1661,9 +1728,9 @@ export function SftpWorkspace({
               renameRequest={renameRequest?.side === "remote" ? renameRequest : undefined}
               enableSearch
               showFooter
-              zoom={remoteViewOptions.zoom}
+              zoom={viewOptions.remote.zoom}
               onZoomChange={(zoom) => updateViewOptions("remote", { zoom })}
-              background={remoteViewOptions.background}
+              background={viewOptions.remote.background}
               onBackgroundChange={(background) => updateViewOptions("remote", { background })}
               backgroundActive={isActive}
             />
@@ -2029,65 +2096,10 @@ function writeSidebarCollapsed(connectionKey: string, collapsed: boolean) {
   window.localStorage.setItem(FILE_BROWSER_SIDEBAR_STORAGE_KEY, JSON.stringify(state));
 }
 
-function viewOptionsKey(connectionKey: string, side: FilePaneSide) {
-  return `${connectionKey} ${side}`;
-}
-
-function normalizeViewOptions(value: unknown): FileBrowserViewOptions {
-  if (!value || typeof value !== "object") {
-    return { ...DEFAULT_FILE_BROWSER_VIEW_OPTIONS };
-  }
-  const record = value as { zoom?: unknown; background?: unknown };
-  const zoom =
-    typeof record.zoom === "number" && Number.isFinite(record.zoom)
-      ? record.zoom
-      : DEFAULT_FILE_BROWSER_VIEW_OPTIONS.zoom;
-  const background =
-    record.background && typeof record.background === "object"
-      ? (record.background as DashboardBackground)
-      : null;
-  return { zoom, background };
-}
-
-function readViewOptions(
-  connectionKey: string,
-  side: FilePaneSide,
-  ephemeral: boolean,
-): FileBrowserViewOptions {
-  // Ephemeral (terminal-spawned) browsers never read persisted options.
-  if (ephemeral || typeof window === "undefined") {
-    return { ...DEFAULT_FILE_BROWSER_VIEW_OPTIONS };
-  }
-  try {
-    const state = JSON.parse(
-      window.localStorage.getItem(FILE_BROWSER_VIEW_OPTIONS_STORAGE_KEY) || "{}",
-    ) as Record<string, unknown>;
-    return normalizeViewOptions(state[viewOptionsKey(connectionKey, side)]);
-  } catch {
-    return { ...DEFAULT_FILE_BROWSER_VIEW_OPTIONS };
-  }
-}
-
-function writeViewOptions(
-  connectionKey: string,
-  side: FilePaneSide,
-  ephemeral: boolean,
-  options: FileBrowserViewOptions,
-) {
-  // Ephemeral browsers keep view options in memory only.
-  if (ephemeral || typeof window === "undefined") {
-    return;
-  }
-  let state: Record<string, unknown> = {};
-  try {
-    state = JSON.parse(
-      window.localStorage.getItem(FILE_BROWSER_VIEW_OPTIONS_STORAGE_KEY) || "{}",
-    ) as Record<string, unknown>;
-  } catch {
-    state = {};
-  }
-  state[viewOptionsKey(connectionKey, side)] = options;
-  window.localStorage.setItem(FILE_BROWSER_VIEW_OPTIONS_STORAGE_KEY, JSON.stringify(state));
+// Transient terminal-local Connections (e.g. `local-123…`) are not durable DB
+// rows, so view-option writes for them are skipped.
+function isTransientFileBrowserConnectionId(connectionId: string) {
+  return /^local-\d+$/u.test(connectionId);
 }
 
 function normalizeRecentPaths(paths: unknown) {

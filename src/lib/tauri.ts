@@ -27,6 +27,7 @@ import type {
   CustomFont,
   DashboardSettings,
   DatabaseBackupInfo,
+  FileBrowserViewOptions,
   FtpConnectionOptions,
   GeneralSettings,
   HostUsageSnapshot,
@@ -1012,6 +1013,10 @@ type CommandMap = {
   };
   update_connection_terminal_appearance: {
     args: { connectionId: string; terminalOpacity?: number | null; terminalBackground?: DashboardBackground | null };
+    result: Connection | null;
+  };
+  update_connection_file_browser_view_options: {
+    args: { connectionId: string; viewOptions?: FileBrowserViewOptions | null };
     result: Connection | null;
   };
   delete_connection: {
