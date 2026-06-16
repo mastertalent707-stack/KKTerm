@@ -21,8 +21,9 @@ limited to small app-identification assets.
 ## Sources
 
 - `7zip.svg`, `anthropic.svg`, `cursor.svg`, `excalidraw.svg`, `ffmpeg.svg`,
-  `langflow.svg`, `n8n.svg`, `notepadpp.svg`, `ollama.svg`, `rust.svg`,
-  `rustdesk.svg`, `sharex.svg`, `tailscale.svg`: Simple Icons CDN.
+  `git.svg`, `langflow.svg`, `n8n.svg`, `notepadpp.svg`, `ollama.svg`,
+  `rust.svg`, `rustdesk.svg`, `sharex.svg`, `tailscale.svg`: Simple Icons CDN
+  (`git.svg` uses the official Git brand color `#F05032`).
 - `openai.svg`: Simple Icons npm package.
 - `open-webui.png`: `open-webui/open-webui`, `backend/open_webui/static/favicon-96x96.png`.
 - `flowise.png`: `FlowiseAI/Flowise`, `packages/ui/public/favicon-32x32.png`.
