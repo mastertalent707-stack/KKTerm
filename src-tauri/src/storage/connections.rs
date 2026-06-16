@@ -162,6 +162,7 @@ impl Storage {
             icon_background_color: None,
             terminal_opacity: Some(DEFAULT_TERMINAL_OPACITY),
             terminal_background: None,
+            file_browser_view_options: None,
             connection_type,
             tags,
             status: "idle".to_string(),
@@ -503,6 +504,35 @@ impl Storage {
             .execute(
                 "UPDATE connections SET terminal_opacity = ?1, terminal_background_json = ?2 WHERE id = ?3",
                 params![i64::from(terminal_opacity), terminal_background_json, &connection_id],
+            )
+            .map_err(to_storage_error)?;
+        get_connection_by_id(&connection, &connection_id).map(Some)
+    }
+
+    pub fn update_connection_file_browser_view_options(
+        &self,
+        connection_id: String,
+        view_options: Option<FileBrowserViewOptions>,
+    ) -> Result<Option<SavedConnection>, String> {
+        let connection_id = required_field("connection id", connection_id)?;
+        let view_options_json = file_browser_view_options_to_json(&view_options)?;
+        let connection = self.lock()?;
+        let current = connection
+            .query_row(
+                "SELECT file_browser_view_options_json FROM connections WHERE id = ?1",
+                params![&connection_id],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .optional()
+            .map_err(to_storage_error)?
+            .ok_or_else(|| "connection was not found".to_string())?;
+        if current == view_options_json {
+            return Ok(None);
+        }
+        connection
+            .execute(
+                "UPDATE connections SET file_browser_view_options_json = ?1 WHERE id = ?2",
+                params![view_options_json, &connection_id],
             )
             .map_err(to_storage_error)?;
         get_connection_by_id(&connection, &connection_id).map(Some)
@@ -1140,7 +1170,7 @@ impl Storage {
 
         let source = transaction
             .query_row(
-                "SELECT folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, workspace_id
+                "SELECT folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, workspace_id, file_browser_view_options_json
                  FROM connections
                  WHERE id = ?1",
                 params![source_id],
@@ -1172,6 +1202,7 @@ impl Storage {
                         normalize_loaded_terminal_opacity(row.get::<_, Option<i64>>(23)?),
                         terminal_background_from_json(row.get::<_, Option<String>>(24)?),
                         row.get::<_, Option<String>>(25)?,
+                        file_browser_view_options_from_json(row.get::<_, Option<String>>(26)?),
                     ))
                 },
             )
@@ -1205,6 +1236,7 @@ impl Storage {
             terminal_opacity,
             terminal_background,
             workspace_id,
+            file_browser_view_options,
         ) = source;
         let workspace_id = normalize_workspace_id(workspace_id.unwrap_or_default());
         let duplicate_name = request
@@ -1226,8 +1258,8 @@ impl Storage {
         transaction
             .execute(
                 "INSERT INTO connections (
-                    id, folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, status, sort_order, workspace_id
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, 'idle', ?28, ?29)",
+                    id, folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, file_browser_view_options_json, status, sort_order, workspace_id
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, 'idle', ?29, ?30)",
                 params![
                     duplicate_id,
                     folder_id,
@@ -1256,6 +1288,7 @@ impl Storage {
                     icon_background_color,
                     terminal_opacity.map(i64::from),
                     terminal_background_to_json(&terminal_background)?,
+                    file_browser_view_options_to_json(&file_browser_view_options)?,
                     next_sort_order,
                     workspace_id
                 ],
