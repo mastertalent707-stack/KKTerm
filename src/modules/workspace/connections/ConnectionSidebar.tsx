@@ -1046,7 +1046,6 @@ export function ConnectionSidebar({
           await upsertUrlCredential(connection.id, urlCredentialUsername);
         }
         await handleConnectionSaved();
-        showConnectionSuccessStatus(t("connections.createConnectionComplete", { name: connection.name }));
       } catch (error) {
         setFormError(error instanceof Error ? error.message : String(error));
       }
