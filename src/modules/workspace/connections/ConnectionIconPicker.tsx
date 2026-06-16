@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { IconLibraryPicker, type IconLibraryStaticOption } from "../../../app/IconLibraryPicker";
+import { BRAND_ICON_ENTRIES, brandIconRefForId } from "../../../lib/brandIcons";
 import { lucideIconRefForName } from "../../../lib/iconCatalog";
 import { OS_ICON_ENTRIES, osIconRefForId } from "../../../lib/osIcons";
 import {
@@ -226,6 +227,12 @@ function connectionPredefinedIconOptions(
       keywords: ["linux", "shell", "wsl"],
       icon: <ConnectionIcon localShell="wsl.exe" size={22} type="local" />,
     },
+    ...BRAND_ICON_ENTRIES.map((entry) => ({
+      value: brandIconRefForId(entry.id),
+      label: entry.label,
+      keywords: entry.keywords,
+      icon: <ConnectionIcon iconDataUrl={brandIconRefForId(entry.id)} size={22} type={type} />,
+    })),
     ...OS_ICON_ENTRIES.map((entry) => ({
       value: osIconRefForId(entry.id),
       label: entry.label,
