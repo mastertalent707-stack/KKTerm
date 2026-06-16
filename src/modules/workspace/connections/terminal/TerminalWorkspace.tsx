@@ -102,6 +102,7 @@ export function TerminalWorkspace({
   const setTerminalSettings = useWorkspaceStore((state) => state.setTerminalSettings);
   const generalSettings = useWorkspaceStore((state) => state.generalSettings);
   const setFocusedPane = useWorkspaceStore((state) => state.setFocusedPane);
+  const updateOpenTerminalPaneFontSize = useWorkspaceStore((state) => state.updateOpenTerminalPaneFontSize);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const usePaneTerminalBackgrounds =
     generalSettings.separateSplitTerminalBackgrounds &&
@@ -217,9 +218,13 @@ export function TerminalWorkspace({
 
   function applyFontSizeToPanes(size: number) {
     for (const pane of tab.panes) {
-      const renderer = getPaneRenderer(pane.id);
-      renderer?.setFontSize(size);
+      applyFontSizeToPane(pane.id, size);
     }
+  }
+
+  function applyFontSizeToPane(paneId: string, size: number) {
+    const renderer = getPaneRenderer(paneId);
+    renderer?.setFontSize(size);
   }
 
   function currentFontSize() {
@@ -391,6 +396,12 @@ export function TerminalWorkspace({
   function handleFontChange(delta: number | "reset") {
     const next = delta === "reset" ? defaultFontSize : currentFontSize() + delta;
     const clamped = Math.min(Math.max(Math.round(next), 6), 64);
+    if (focusedTerminalPane?.childConnectionId) {
+      const persisted = Math.min(Math.max(clamped, 8), 32);
+      applyFontSizeToPane(focusedTerminalPane.id, clamped);
+      updateOpenTerminalPaneFontSize(tab.id, focusedTerminalPane.id, persisted);
+      return;
+    }
     applyFontSizeToPanes(clamped);
     void persistTerminalFontSize(clamped);
   }
@@ -1738,10 +1749,14 @@ function TerminalPaneView({
       connection.type === "ssh"
         ? {
             ...terminalSettings,
+            fontSize: pane.fontSize ?? terminalSettings.fontSize,
             scrollbackLines: sshSettings.bufferLines,
             allowOsc52Clipboard: sshSettings.allowOsc52Clipboard,
           }
-        : terminalSettings;
+        : {
+            ...terminalSettings,
+            fontSize: pane.fontSize ?? terminalSettings.fontSize,
+          };
     const terminalHost = element;
     const terminal = createTerminalRenderer(rendererSettings, terminalOpacity);
     terminalRendererRef.current = terminal;

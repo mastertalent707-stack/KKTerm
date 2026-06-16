@@ -587,6 +587,7 @@ function buildPaneFromStoredLayoutPane(
     cwd: storedPane.cwd?.trim() || defaultTerminalCwdForConnection(connection),
     buffer: "",
     connection,
+    fontSize: storedPane.fontSize,
     terminalBackground: storedPane.terminalBackground,
     tmuxSessionId: storedPane.tmuxSessionId,
   };
@@ -658,6 +659,7 @@ function buildPaneForConnection(
   options?: {
     childConnectionId?: string;
     cwd?: string;
+    fontSize?: number;
     terminalOpacity?: number | null;
     terminalBackground?: TerminalPane["terminalBackground"];
     title?: string;
@@ -726,6 +728,7 @@ function buildPaneForConnection(
     toolbarTitle: options?.toolbarTitle ?? toolbarTitleForConnection(connection),
     cwd: options?.cwd?.trim() || inheritedTerminalCwdForConnection(connection, focusedPane),
     buffer: "",
+    fontSize: options?.fontSize,
     connection: options?.terminalOpacity !== undefined || options?.terminalBackground !== undefined
       ? {
           ...connection,
@@ -1073,6 +1076,7 @@ interface WorkspaceState {
       cwd?: string;
       iconBackgroundColor?: string | null;
       iconDataUrl?: string | null;
+      fontSize?: number;
       terminalOpacity?: number | null;
       terminalBackground?: TerminalPane["terminalBackground"];
       title?: string;
@@ -1154,6 +1158,7 @@ interface WorkspaceState {
   refreshOpenConnectionMetadata: (connection: Connection) => void;
   updateOpenConnectionTerminalAppearance: (connectionId: string, appearance: Pick<Connection, "terminalOpacity" | "terminalBackground">) => void;
   updateOpenTerminalPaneAppearance: (tabId: string, paneId: string, appearance: Pick<Connection, "terminalOpacity" | "terminalBackground">) => void;
+  updateOpenTerminalPaneFontSize: (tabId: string, paneId: string, fontSize: number) => void;
   updateOpenTerminalPaneBackground: (tabId: string, paneId: string, terminalBackground: TerminalPane["terminalBackground"]) => void;
   updateOpenTerminalPaneX11ForwardingStatus: (
     tabId: string,
@@ -1535,6 +1540,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const pane = buildPaneForConnection(paneConnection, undefined, {
       childConnectionId: options?.childConnectionId,
       cwd: options?.cwd,
+      fontSize: options?.fontSize,
       terminalOpacity: options?.terminalOpacity,
       terminalBackground: options?.terminalBackground,
       title: options?.tmuxSessionId ?? options?.title,
@@ -1612,6 +1618,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       cwd: child.cwd,
       iconBackgroundColor: child.iconBackgroundColor,
       iconDataUrl: child.iconDataUrl,
+      fontSize: child.fontSize,
       terminalOpacity: child.terminalOpacity,
       terminalBackground: child.terminalBackground,
       title: child.name,
@@ -1671,6 +1678,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           return {
             ...groupPane,
             childConnectionId: child.id,
+            fontSize: child.fontSize ?? (isTerminalPane(groupPane) ? groupPane.fontSize : undefined),
             connection: connectionForChild(connection, child),
             title: child.tmuxSessionId ?? child.name,
             toolbarTitle: child.name,
@@ -1682,6 +1690,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           return {
             ...existing.pane,
             childConnectionId: child.id,
+            fontSize: child.fontSize ?? (isTerminalPane(existing.pane) ? existing.pane.fontSize : undefined),
             connection: connectionForChild(connection, child),
             title: child.tmuxSessionId ?? child.name,
             toolbarTitle: child.name,
@@ -1691,6 +1700,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         const pane = buildPaneForConnection(childConnection, undefined, {
           childConnectionId: child.id,
           cwd: child.cwd,
+          fontSize: child.fontSize,
           terminalOpacity: child.terminalOpacity,
           terminalBackground: child.terminalBackground,
           title: child.tmuxSessionId ?? child.name,
@@ -2745,6 +2755,34 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           return tab;
         }
         return { ...tab, panes };
+      }),
+    }));
+  },
+  updateOpenTerminalPaneFontSize: (tabId, paneId, fontSize) => {
+    set((state) => ({
+      tabs: state.tabs.map((tab) => {
+        if (tab.id !== tabId || tab.kind !== "terminal") {
+          return tab;
+        }
+        let changed = false;
+        const panes = tab.panes.map((pane) => {
+          if (!isTerminalPane(pane) || pane.id !== paneId) {
+            return pane;
+          }
+          changed = true;
+          return { ...pane, fontSize };
+        });
+        if (!changed) {
+          return tab;
+        }
+        const nextTab = { ...tab, panes };
+        if (nextTab.connection) {
+          const layout = ensureLayout(nextTab.layout, nextTab.panes);
+          if (layout) {
+            persistLayout(nextTab.connection.id, serializeLayout(layout, nextTab.panes));
+          }
+        }
+        return nextTab;
       }),
     }));
   },

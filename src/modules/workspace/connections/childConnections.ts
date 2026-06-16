@@ -1,5 +1,5 @@
 import type { DashboardBackground } from "../../dashboard/types";
-import type { WorkspaceChildConnection, WorkspacePane, WorkspaceTab } from "../../../types";
+import type { TerminalPane, WorkspaceChildConnection, WorkspacePane, WorkspaceTab } from "../../../types";
 
 export const CHILD_CONNECTIONS_STORAGE_KEY = "kkterm.workspace.childConnections.v1";
 
@@ -41,7 +41,7 @@ function isStoredChildConnection(value: unknown): value is WorkspaceChildConnect
   );
 }
 
-function isTerminalWorkspacePane(pane: WorkspacePane): pane is WorkspacePane & { cwd: string } {
+function isTerminalWorkspacePane(pane: WorkspacePane): pane is TerminalPane {
   return pane.kind === undefined || pane.kind === "terminal";
 }
 
@@ -73,16 +73,18 @@ export function syncChildConnectionsFromTabs(
     }
 
     const cwd = pane.cwd.trim();
+    const fontSize = pane.fontSize;
     const terminalOpacity = pane.connection?.terminalOpacity;
     const terminalBackground =
       "terminalBackground" in pane && pane.terminalBackground !== undefined
         ? pane.terminalBackground
         : pane.connection?.terminalBackground;
     const cwdChanged = Boolean(cwd) && child.cwd !== cwd;
+    const fontSizeChanged = child.fontSize !== fontSize;
     const opacityChanged = child.terminalOpacity !== terminalOpacity;
     const backgroundChanged = !backgroundsEqual(child.terminalBackground, terminalBackground);
 
-    if (!cwdChanged && !opacityChanged && !backgroundChanged) {
+    if (!cwdChanged && !fontSizeChanged && !opacityChanged && !backgroundChanged) {
       return child;
     }
 
@@ -90,6 +92,7 @@ export function syncChildConnectionsFromTabs(
     return {
       ...child,
       cwd: cwdChanged ? cwd : child.cwd,
+      fontSize,
       terminalOpacity,
       terminalBackground,
     };
