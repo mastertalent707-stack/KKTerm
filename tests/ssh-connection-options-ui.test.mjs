@@ -66,6 +66,24 @@ assert.match(
 
 assert.match(
   optionsSection,
+  /const hasDisplayedSocksProxy = displayedSshSocksProxy\.trim\(\)\.length > 0;/,
+  "SOCKS credential fields should track whether the displayed SOCKS server has a value.",
+);
+
+assert.match(
+  optionsSection,
+  /disabled=\{sshInheritsSettingsDefaults \|\| hasProxyJumpOverride \|\| !hasDisplayedSocksProxy\}[\s\S]*name="sshSocksProxyUsername"/,
+  "SOCKS proxy username should only be enabled when the SOCKS server field has a value.",
+);
+
+assert.match(
+  optionsSection,
+  /disabled=\{sshInheritsSettingsDefaults \|\| hasProxyJumpOverride \|\| !hasDisplayedSocksProxy\}[\s\S]*name="sshSocksProxyPassword"/,
+  "SOCKS proxy password should only be enabled when the SOCKS server field has a value.",
+);
+
+assert.match(
+  optionsSection,
   /const displayedProxyJump = sshInheritsSettingsDefaults[\s\S]*sshSettings\.defaultProxyJump/,
   "ProxyJump should display the Settings default while Default Options is on.",
 );

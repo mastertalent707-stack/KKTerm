@@ -206,6 +206,7 @@ export function SshConnectionOptions({
     : useTmuxSessionsDraft;
   const hasProxyJumpOverride = !sshInheritsSettingsDefaults && proxyJumpDraft.trim().length > 0;
   const hasSocksProxyOverride = !sshInheritsSettingsDefaults && sshSocksProxyDraft.trim().length > 0;
+  const hasDisplayedSocksProxy = displayedSshSocksProxy.trim().length > 0;
 
   return (
     <fieldset className="connection-session-fields connection-specific-options">
@@ -236,7 +237,7 @@ export function SshConnectionOptions({
             <span>{t("connections.sshSocksProxyUsernameOptional")}</span>
             <input
               autoComplete="username"
-              disabled={sshInheritsSettingsDefaults || hasProxyJumpOverride}
+              disabled={sshInheritsSettingsDefaults || hasProxyJumpOverride || !hasDisplayedSocksProxy}
               name="sshSocksProxyUsername"
               onChange={(event) => setSshSocksProxyUsernameDraft(event.currentTarget.value)}
               value={displayedSshSocksProxyUsername}
@@ -246,7 +247,7 @@ export function SshConnectionOptions({
             <span>{t("connections.sshSocksProxyPasswordOptional")}</span>
             <input
               autoComplete="new-password"
-              disabled={sshInheritsSettingsDefaults || hasProxyJumpOverride}
+              disabled={sshInheritsSettingsDefaults || hasProxyJumpOverride || !hasDisplayedSocksProxy}
               name="sshSocksProxyPassword"
               placeholder={t("connections.sshSocksProxyPasswordPlaceholder")}
               type="password"
