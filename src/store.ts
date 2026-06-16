@@ -1157,6 +1157,7 @@ interface WorkspaceState {
   ) => void;
   refreshOpenConnectionMetadata: (connection: Connection) => void;
   updateOpenConnectionTerminalAppearance: (connectionId: string, appearance: Pick<Connection, "terminalOpacity" | "terminalBackground">) => void;
+  updateOpenConnectionFileBrowserViewOptions: (connectionId: string, fileBrowserViewOptions: Connection["fileBrowserViewOptions"]) => void;
   updateOpenTerminalPaneAppearance: (tabId: string, paneId: string, appearance: Pick<Connection, "terminalOpacity" | "terminalBackground">) => void;
   updateOpenTerminalPaneFontSize: (tabId: string, paneId: string, fontSize: number) => void;
   updateOpenTerminalPaneBackground: (tabId: string, paneId: string, terminalBackground: TerminalPane["terminalBackground"]) => void;
@@ -2731,6 +2732,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   updateOpenConnectionTerminalAppearance: (connectionId, appearance) => {
     set((state) => ({
       tabs: state.tabs.map((tab) => updateTabTerminalAppearance(tab, connectionId, appearance)),
+    }));
+  },
+  updateOpenConnectionFileBrowserViewOptions: (connectionId, fileBrowserViewOptions) => {
+    set((state) => ({
+      tabs: state.tabs.map((tab) =>
+        tab.connection?.id === connectionId
+          ? { ...tab, connection: { ...tab.connection, fileBrowserViewOptions } }
+          : tab,
+      ),
     }));
   },
   updateOpenTerminalPaneAppearance: (tabId, paneId, appearance) => {

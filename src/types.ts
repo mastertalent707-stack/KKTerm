@@ -46,6 +46,17 @@ export interface ReorderWorkspacesRequest {
 export type ConnectionStatus = "connected" | "idle" | "offline";
 export type SshAuthMethod = "keyFile" | "password" | "agent";
 
+/** Per-pane File Explorer / SFTP browser view options (item zoom + content-view
+ * background), persisted durably on the Connection. */
+export interface FileBrowserPaneViewOptions {
+  zoom?: number;
+  background?: DashboardBackground | null;
+}
+export interface FileBrowserViewOptions {
+  local?: FileBrowserPaneViewOptions;
+  remote?: FileBrowserPaneViewOptions;
+}
+
 export interface Connection {
   id: string;
   name: string;
@@ -76,6 +87,7 @@ export interface Connection {
   iconBackgroundColor?: string | null;
   terminalOpacity?: number | null;
   terminalBackground?: DashboardBackground | null;
+  fileBrowserViewOptions?: FileBrowserViewOptions | null;
   rdpOptions?: RdpConnectionOptions;
   vncOptions?: VncConnectionOptions;
   ftpOptions?: FtpConnectionOptions;
