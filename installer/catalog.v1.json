@@ -6,7 +6,7 @@
       "id": "git",
       "name": "Git for Windows",
       "descriptionEn": "Distributed version control. Implicit prerequisite for many AI coding tools.",
-      "category": "development",
+      "category": "vcs",
       "icon": "GitBranch",
       "needs": ["winget"],
       "detection": {

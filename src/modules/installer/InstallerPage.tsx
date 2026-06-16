@@ -421,7 +421,7 @@ const INSTALLER_CATEGORY_SECTIONS: Array<{
 }> = [
   {
     titleKey: "installer.section.essentials",
-    ids: ["winget", "node-bundle", "python-bundle"],
+    ids: ["winget", "node-bundle", "python-bundle", "git"],
   },
   {
     titleKey: "installer.section.aiAgents",
@@ -443,7 +443,6 @@ const INSTALLER_CATEGORY_SECTIONS: Array<{
   {
     titleKey: "installer.section.development",
     ids: [
-      "git",
       "vscode",
       "cursor",
       "docker-desktop",
