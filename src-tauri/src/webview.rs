@@ -951,6 +951,7 @@ fn position_webview_window(
     let hwnd = webview_hwnd(window)?;
     let hwnd = HWND(hwnd);
     configure_webview_window_client_chrome(hwnd)?;
+    // Establish the native screen rect first so the web content covers the request.
     unsafe {
         SetWindowPos(
             hwnd,
@@ -971,6 +972,51 @@ fn position_webview_window(
     Ok(())
 }
 
+/// Subclass ID for our `WM_NCCALCSIZE` override. Combined with the callback
+/// address, this uniquely identifies the subclass in comctl32's chain.
+#[cfg(target_os = "windows")]
+const WEBVIEW_NCCALCSIZE_SUBCLASS_ID: usize = 0x4B4B_544F;
+
+/// Subclass callback for URL overlay windows. Returns 0 for `WM_NCCALCSIZE` to
+/// force the client area to fill the entire window rect, eliminating the invisible
+/// DWM resize border that Windows 10/11 adds to borderless windows. All other
+/// messages are forwarded to the next handler via `DefSubclassProc`.
+#[cfg(target_os = "windows")]
+unsafe extern "system" fn webview_subclass_proc(
+    hwnd: windows::Win32::Foundation::HWND,
+    msg: u32,
+    wparam: windows::Win32::Foundation::WPARAM,
+    lparam: windows::Win32::Foundation::LPARAM,
+    _uidsubclass: usize,
+    _dwrefdata: usize,
+) -> windows::Win32::Foundation::LRESULT {
+    use windows::Win32::UI::Shell::DefSubclassProc;
+    use windows::Win32::UI::WindowsAndMessaging::WM_NCCALCSIZE;
+
+    if msg == WM_NCCALCSIZE {
+        return windows::Win32::Foundation::LRESULT(0);
+    }
+    unsafe { DefSubclassProc(hwnd, msg, wparam, lparam) }
+}
+
+/// Install a comctl32 subclass on the overlay HWND to intercept `WM_NCCALCSIZE`.
+/// `SetWindowSubclass` properly chains with any existing wndproc (winit's, etc.)
+/// and `DefSubclassProc` always forwards to the correct next handler — no manual
+/// bookkeeping, no risk of infinite recursion.
+#[cfg(target_os = "windows")]
+fn install_webview_nccalcsize_subclass(hwnd: windows::Win32::Foundation::HWND) {
+    use windows::Win32::UI::Shell::SetWindowSubclass;
+
+    unsafe {
+        let _ = SetWindowSubclass(
+            hwnd,
+            Some(webview_subclass_proc),
+            WEBVIEW_NCCALCSIZE_SUBCLASS_ID,
+            0,
+        );
+    }
+}
+
 #[cfg(target_os = "windows")]
 fn configure_webview_window_client_chrome(
     hwnd: windows::Win32::Foundation::HWND,
@@ -980,6 +1026,8 @@ fn configure_webview_window_client_chrome(
         SWP_NOZORDER, SetWindowLongPtrW, SetWindowPos, WS_BORDER, WS_CAPTION, WS_DLGFRAME,
         WS_MAXIMIZEBOX, WS_MINIMIZEBOX, WS_SYSMENU, WS_THICKFRAME,
     };
+
+    install_webview_nccalcsize_subclass(hwnd);
 
     let removable_style = (WS_CAPTION
         | WS_THICKFRAME
