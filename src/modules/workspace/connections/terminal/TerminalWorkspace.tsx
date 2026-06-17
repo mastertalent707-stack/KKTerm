@@ -6,6 +6,7 @@ import { ScreenshotMenu } from "../../ScreenshotMenu";
 
 import { RemoteDesktopWorkspace } from "../remote-desktop/RemoteDesktopWorkspace";
 import { SftpWorkspace } from "../sftp/SftpWorkspace";
+import { FileViewerWorkspace } from "../file-viewer/FileViewerWorkspace";
 import { WebViewWorkspace } from "../webview/WebViewWorkspace";
 import { ConnectionGlyph } from "../ConnectionGlyph";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Check, FileText, Folder, FolderOpen, Mouse, ChevronRight, Circle, ClipboardPaste, Copy, Globe2, Menu, Monitor, Network, PanelBottom, Pencil, RefreshCw, Save, Search, SplitSquareHorizontal, Square, Type, X } from "lucide-react";
@@ -689,6 +690,8 @@ function EmbeddedConnectionPane({
           onOpenAssistant={onOpenAssistant}
           tab={embeddedTab}
         />
+      ) : pane.kind === "fileViewer" ? (
+        <FileViewerWorkspace isActive={isActive} tab={embeddedTab} />
       ) : (
         <SftpWorkspace
           commands={fileBrowserCommands ?? undefined}
