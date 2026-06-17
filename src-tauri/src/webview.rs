@@ -851,12 +851,44 @@ impl WebviewSessionManager {
 
     pub fn close_session(&self, request: WebviewSimpleRequest) -> Result<(), String> {
         let mut sessions = self.lock()?;
-        if let Some(session) = sessions.remove(&request.session_id) {
-            session
-                .window
-                .close()
-                .map_err(|error| format!("failed to close webview: {error}"))?;
+        logging::url_connection_debug(
+            "backend.session.close.request",
+            &json!({
+                "sessionId": request.session_id,
+                "activeSessionCount": sessions.len(),
+            }),
+        );
+        let Some(session) = sessions.remove(&request.session_id) else {
+            logging::url_connection_debug(
+                "backend.session.close.missing",
+                &json!({
+                    "sessionId": request.session_id,
+                    "activeSessionCount": sessions.len(),
+                }),
+            );
+            return Ok(());
+        };
+
+        if let Err(error) = session.window.close() {
+            let message = format!("failed to close webview: {error}");
+            logging::url_connection_debug(
+                "backend.session.close.error",
+                &json!({
+                    "sessionId": request.session_id,
+                    "error": message,
+                    "activeSessionCount": sessions.len(),
+                }),
+            );
+            sessions.insert(request.session_id, session);
+            return Err(message);
         }
+        logging::url_connection_debug(
+            "backend.session.close.ok",
+            &json!({
+                "sessionId": request.session_id,
+                "activeSessionCount": sessions.len(),
+            }),
+        );
         Ok(())
     }
 

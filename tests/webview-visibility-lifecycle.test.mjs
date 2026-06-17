@@ -186,6 +186,24 @@ test("frontend marks URL Connections live as soon as the WebView Session starts 
   assert.match(startupEffect, /releaseWebviewSession\(sessionId\);[\s\S]*?markWebviewConnectionEnded\(\);/);
 });
 
+test("URL WebView release logs include frontend and backend close lifecycle", async () => {
+  const frontend = await readFile(
+    new URL("../src/modules/workspace/connections/webview/WebViewWorkspace.tsx", import.meta.url),
+    "utf8",
+  );
+  const backend = await readFile(new URL("../src-tauri/src/webview.rs", import.meta.url), "utf8");
+
+  assert.match(frontend, /frontend\.session\.release\.requested/);
+  assert.match(frontend, /frontend\.session\.release\.deferred/);
+  assert.match(frontend, /frontend\.session\.release\.close_request/);
+  assert.match(frontend, /frontend\.session\.release\.closed/);
+  assert.match(frontend, /frontend\.session\.release\.close_error/);
+  assert.match(backend, /backend\.session\.close\.request/);
+  assert.match(backend, /backend\.session\.close\.missing/);
+  assert.match(backend, /backend\.session\.close\.ok/);
+  assert.match(backend, /backend\.session\.close\.error/);
+});
+
 test("frontend repushes URL overlay bounds on native window move", async () => {
   const source = await readFile(
     new URL("../src/modules/workspace/connections/webview/WebViewWorkspace.tsx", import.meta.url),

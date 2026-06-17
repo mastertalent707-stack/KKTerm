@@ -92,13 +92,34 @@ function acquireWebviewSession(sessionId: string, start: () => Promise<WebviewSe
   return lease;
 }
 
+function releaseLogPayload(sessionId: string, lease?: WebviewSessionLease) {
+  return {
+    sessionId,
+    lease: lease
+      ? {
+          refCount: lease.refCount,
+          started: lease.started,
+          closed: lease.closed,
+          closeTimerPending: lease.closeTimer !== null,
+        }
+      : null,
+  };
+}
+
+function releaseErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function releaseWebviewSession(sessionId: string) {
   const lease = webviewSessionLeases.get(sessionId);
   if (!lease) {
+    logUrlConnectionDebug("frontend.session.release.missing", releaseLogPayload(sessionId));
     return;
   }
+  logUrlConnectionDebug("frontend.session.release.requested", releaseLogPayload(sessionId, lease));
   lease.refCount = Math.max(0, lease.refCount - 1);
   if (lease.refCount > 0) {
+    logUrlConnectionDebug("frontend.session.release.deferred", releaseLogPayload(sessionId, lease));
     return;
   }
   if (lease.closeTimer !== null) {
@@ -106,20 +127,38 @@ function releaseWebviewSession(sessionId: string) {
   }
   lease.closeTimer = window.setTimeout(() => {
     if (lease.refCount > 0 || webviewSessionLeases.get(sessionId) !== lease) {
+      logUrlConnectionDebug("frontend.session.release.cancelled", releaseLogPayload(sessionId, lease));
       return;
     }
     lease.closed = true;
     void lease.promise
       .then(
-        () =>
-          invokeCommand("close_webview_session", {
+        () => {
+          logUrlConnectionDebug("frontend.session.release.close_request", releaseLogPayload(sessionId, lease));
+          return invokeCommand("close_webview_session", {
             request: { sessionId },
-          }).catch(() => undefined),
-        () => undefined,
+          })
+            .then(() => {
+              logUrlConnectionDebug("frontend.session.release.closed", releaseLogPayload(sessionId, lease));
+            })
+            .catch((error) => {
+              logUrlConnectionDebug("frontend.session.release.close_error", {
+                ...releaseLogPayload(sessionId, lease),
+                error: releaseErrorMessage(error),
+              });
+            });
+        },
+        (error) => {
+          logUrlConnectionDebug("frontend.session.release.start_failed", {
+            ...releaseLogPayload(sessionId, lease),
+            error: releaseErrorMessage(error),
+          });
+        },
       )
       .finally(() => {
         if (webviewSessionLeases.get(sessionId) === lease) {
           webviewSessionLeases.delete(sessionId);
+          logUrlConnectionDebug("frontend.session.release.removed", releaseLogPayload(sessionId, lease));
         }
       });
   }, 50);
