@@ -912,6 +912,7 @@ pub(crate) fn shell_quote(value: &str) -> String {
 }
 
 pub(crate) fn build_cli_agent_prompt(
+    provider_kind: &str,
     settings: &AiProviderSettings,
     request: AgentRunRequest,
 ) -> Result<String, String> {
@@ -936,9 +937,14 @@ pub(crate) fn build_cli_agent_prompt(
         normalize_agent_intent(request.intent).as_str(),
         settings.reasoning_effort()
     ));
-    if !request.messages.is_empty() {
+    let history = compact_agent_history(provider_kind, settings.model(), request.messages);
+    if !history.messages.is_empty() {
+        if history.omitted_messages > 0 {
+            out.push_str(&history.compaction_notice());
+            out.push_str("\n\n");
+        }
         out.push_str("Recent chat history:\n");
-        for message in request.messages {
+        for message in history.messages {
             let role = message.role.trim();
             let content = message.content.trim();
             if !role.is_empty() && !content.is_empty() {
@@ -956,7 +962,7 @@ pub(crate) fn build_cli_agent_prompt(
         .filter(|value| !value.is_empty())
     {
         out.push_str("SSH target system context:\n```text\n");
-        out.push_str(&system_context);
+        out.push_str(&truncate_prompt_section(&system_context, 12_000));
         out.push_str("\n```\n\n");
     }
     if let Some(selected_output) = request
@@ -965,14 +971,14 @@ pub(crate) fn build_cli_agent_prompt(
         .filter(|value| !value.is_empty())
     {
         out.push_str("Selected terminal output:\n```text\n");
-        out.push_str(&selected_output);
+        out.push_str(&truncate_prompt_section(&selected_output, 16_000));
         out.push_str("\n```\n\n");
     }
     if let Some(page_context) = normalize_page_context(request.page_context) {
         out.push_str("Active page context: ");
         out.push_str(&page_context.source_label);
         out.push_str("\n```text\n");
-        out.push_str(&page_context.text);
+        out.push_str(&truncate_prompt_section(&page_context.text, 12_000));
         out.push_str("\n```\n\n");
     }
     if !request.files.is_empty() || request.screenshot.is_some() || !request.screenshots.is_empty()

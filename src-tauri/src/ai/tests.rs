@@ -121,7 +121,7 @@ fn cli_agent_prompt_allows_acp_kkterm_tools() {
         active_connection_id: None,
     };
 
-    let prompt = build_cli_agent_prompt(&settings, request).expect("prompt builds");
+    let prompt = build_cli_agent_prompt("anthropic", &settings, request).expect("prompt builds");
 
     assert!(!prompt.contains("KKTerm tool calling disabled"));
     assert!(prompt.contains("KKTerm tools are available through the attached kkterm MCP server"));
@@ -837,7 +837,7 @@ fn copilot_prompt_history_includes_tool_transcripts() {
         page_context: None,
         active_connection_id: None,
     };
-    let prompt = build_copilot_prompt(request, None, Vec::new());
+    let prompt = build_copilot_prompt(request, "github-copilot", "gpt-4o", None, Vec::new());
     assert!(prompt.contains("assistant: Checked the dashboard."));
     assert!(prompt.contains("[Tools used in this turn: dashboard_load_state (ok)]"));
 }
@@ -906,6 +906,131 @@ fn bounded_history_keeps_newest_messages_within_budget() {
     assert_eq!(kept.len(), 1);
     assert!(kept[0].content.chars().count() <= HISTORY_MESSAGE_MAX_CHARS + 20);
     assert!(kept[0].content.ends_with("[truncated]"));
+}
+
+#[test]
+fn cli_agent_prompt_compacts_old_history_and_keeps_newest_turns() {
+    let settings: AiProviderSettings = serde_json::from_value(json!({
+        "baseUrl": "https://api.anthropic.com",
+        "model": "claude-opus-4.8"
+    }))
+    .expect("provider settings deserialize");
+    let history: Vec<AgentChatMessage> = (0..20)
+        .map(|i| AgentChatMessage {
+            role: "user".to_string(),
+            content: format!(
+                "{} {}",
+                if i == 0 {
+                    "oldest-marker"
+                } else if i == 19 {
+                    "newest-marker"
+                } else {
+                    "middle-marker"
+                },
+                "x".repeat(7_000)
+            ),
+            reasoning_content: None,
+            tool_calls: Vec::new(),
+        })
+        .collect();
+    let request = AgentRunRequest {
+        prompt: "continue".to_string(),
+        context_label: "Workspace".to_string(),
+        intent: Some("chat".to_string()),
+        allow_tools: true,
+        allowed_tools: Vec::new(),
+        selected_output: None,
+        screenshot: None,
+        screenshots: Vec::new(),
+        files: Vec::new(),
+        system_context: None,
+        messages: history,
+        output_language: None,
+        page_context: None,
+        active_connection_id: None,
+    };
+
+    let prompt = build_cli_agent_prompt("anthropic", &settings, request).expect("prompt builds");
+
+    assert!(prompt.contains("Earlier conversation history was compacted"));
+    assert!(!prompt.contains("oldest-marker"));
+    assert!(prompt.contains("newest-marker"));
+}
+
+#[test]
+fn openai_agent_messages_include_context_compaction_notice() {
+    let history: Vec<AgentChatMessage> = (0..10)
+        .map(|i| AgentChatMessage {
+            role: "user".to_string(),
+            content: format!("turn-{i} {}", "x".repeat(7_000)),
+            reasoning_content: None,
+            tool_calls: Vec::new(),
+        })
+        .collect();
+
+    let messages = build_agent_messages_for_provider(
+        "openai",
+        "gpt-4",
+        "continue".to_string(),
+        "Workspace".to_string(),
+        None,
+        "medium".to_string(),
+        None,
+        None,
+        None,
+        false,
+        None,
+        vec![],
+        history,
+        None,
+        None,
+        Vec::new(),
+        false,
+        Vec::new(),
+    );
+
+    let system = text_content(messages.first().expect("system message"));
+    assert!(system.contains("Earlier conversation history was compacted"));
+    assert!(system.contains("Provider context limit estimate: 8000 tokens"));
+    assert!(
+        messages
+            .iter()
+            .filter(|message| message.role == "user")
+            .any(|message| text_content(message).contains("turn-9"))
+    );
+    assert!(
+        messages
+            .iter()
+            .all(|message| !text_content(message).contains("turn-0"))
+    );
+}
+
+#[test]
+fn model_context_limit_tracks_current_large_context_families() {
+    assert_eq!(
+        model_context_limit_tokens("openai", "gpt-5.5"),
+        (1_050_000, false)
+    );
+    assert_eq!(
+        model_context_limit_tokens("openai", "gpt-5"),
+        (400_000, false)
+    );
+    assert_eq!(
+        model_context_limit_tokens("openai", "gpt-5.4-mini"),
+        (400_000, false)
+    );
+    assert_eq!(
+        model_context_limit_tokens("anthropic", "claude-opus-4.8"),
+        (1_000_000, false)
+    );
+    assert_eq!(
+        model_context_limit_tokens("anthropic", "claude-sonnet-4.5"),
+        (200_000, false)
+    );
+    assert_eq!(
+        model_context_limit_tokens("openai-compatible", "custom-local-model"),
+        (32_000, true)
+    );
 }
 
 #[test]

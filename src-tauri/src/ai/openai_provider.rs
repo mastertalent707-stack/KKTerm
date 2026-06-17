@@ -67,7 +67,9 @@ impl OpenAiCompatibleProvider {
             settings.disabled_skill_names(),
             settings.custom_skills_enabled(),
         )?;
-        let messages = build_agent_messages(
+        let messages = build_agent_messages_for_provider(
+            self.provider_kind,
+            settings.model(),
             prompt,
             context_label,
             request.intent,
