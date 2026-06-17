@@ -1,8 +1,8 @@
-// Installer Helper Module page. Finder/SFTP-style shell + section grouping +
+// Install Helper Module page. Finder/SFTP-style shell + section grouping +
 // lifecycle.
 //
 // Shell (house style, mirrors the SFTP file browser): a slim top bar
-// (kind glyph + "Installer Helper" + a Checked/Checking status pill, no macOS
+// (kind glyph + "Install Helper" + a Checked/Checking status pill, no macOS
 // window chrome), a toolbar (sidebar toggle + current-filter crumb + search +
 // List/Gallery switch + Refresh + Update All), a left category rail
 // (InstallerSidebar) and a List or Gallery content view, with a footer status
@@ -14,7 +14,7 @@
 //     the background. Subsequent visits use the in-memory cache.
 //   * Activation (switching to the Module from another Module): run an
 //     interval-gated latest-version check. The check only fetches when the
-//     configured interval (General Settings → Installer Helper, default once
+//     configured interval (General Settings → Install Helper, default once
 //     per day) has elapsed since the last successful check; the last-check
 //     timestamp is persisted per tool in SQLite and survives app launches.
 //     Otherwise the persisted check state is reused without a network fetch.
@@ -114,6 +114,7 @@ export function InstallerPage({ active }: { active: boolean }) {
   const applyProgress = useInstallerStore((s) => s.applyProgress);
   const beginInFlight = useInstallerStore((s) => s.beginInFlight);
   const openStepperDialog = useInstallerStore((s) => s.openStepperDialog);
+  const setSummary = useInstallerStore((s) => s.setSummary);
 
   const [nav, setNav] = useState<InstallerNav>("all");
   const [query, setQuery] = useState("");
@@ -293,7 +294,7 @@ export function InstallerPage({ active }: { active: boolean }) {
     }
   }
 
-  // Catalog recipes, ordered and filtered to the visible Installer Helper set
+  // Catalog recipes, ordered and filtered to the visible Install Helper set
   // (section order, then per-section order). One ordered list drives counts,
   // grouping, and the flat List/Gallery views.
   const recipesById = useMemo(
@@ -394,6 +395,17 @@ export function InstallerPage({ active }: { active: boolean }) {
       : t("installer.status.neverChecked"),
   });
   const checkInProgress = scanning || checking;
+
+  // Mirror the footer roll-up into the store so the global app status bar can
+  // render it while this Module is the visible page.
+  useEffect(() => {
+    setSummary({
+      all: counts.all,
+      installed: counts.installed,
+      updates: counts.updates,
+      lastCheckedAt,
+    });
+  }, [setSummary, counts.all, counts.installed, counts.updates, lastCheckedAt]);
 
   const crumb = navCrumb(nav, t);
 
@@ -602,23 +614,6 @@ export function InstallerPage({ active }: { active: boolean }) {
               viewMode={viewMode}
             />
           )}
-          <div className="installer-foot">
-            <span>{t("installer.footer.tools", { count: counts.all })}</span>
-            <span className="installer-foot__dot" />
-            <span>
-              {t("installer.footer.installed", { count: counts.installed })}
-            </span>
-            {counts.updates > 0 ? (
-              <>
-                <span className="installer-foot__dot" />
-                <span className="installer-foot__updates">
-                  {t("installer.footer.updates", { count: counts.updates })}
-                </span>
-              </>
-            ) : null}
-            <span className="installer-foot__spacer" />
-            <span>{lastCheckedText}</span>
-          </div>
         </div>
       </div>
 

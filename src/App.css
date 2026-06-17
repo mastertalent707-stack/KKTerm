@@ -9,6 +9,7 @@
 @import "./modules/workspace/workspace.css";
 @import "./modules/workspace/connections/terminal/terminal.css";
 @import "./modules/workspace/connections/sftp/sftp.css";
+@import "./modules/workspace/connections/file-viewer/file-viewer.css";
 @import "./ai/assistant.css";
 @import "./modules/workspace/connections/remote-desktop/remote-desktop.css";
 @import "./modules/settings/settings.css";

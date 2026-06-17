@@ -9,7 +9,8 @@ export type ConnectionType =
   | "rdp"
   | "vnc"
   | "ftp"
-  | "localFiles";
+  | "localFiles"
+  | "fileView";
 
 /**
  * A named, isolated container of Connections. The first Workspace ("Default")
@@ -221,7 +222,27 @@ export interface FileBrowserPane {
   connection: Connection;
 }
 
-export type WorkspacePane = TerminalPane | UrlPane | RemoteDesktopPane | FileBrowserPane;
+/**
+ * A Document Pane (kind `fileViewer`) renders a single local file in the
+ * universal viewer/light-editor surface. The target file path is carried on
+ * `connection.localStartupDirectory` (the Document reuses that non-secret
+ * local-path slot for its file path), so no separate pane field is needed.
+ */
+export interface FileViewerPane {
+  kind: "fileViewer";
+  id: string;
+  childConnectionId?: string;
+  title: string;
+  toolbarTitle?: string;
+  connection: Connection;
+}
+
+export type WorkspacePane =
+  | TerminalPane
+  | UrlPane
+  | RemoteDesktopPane
+  | FileBrowserPane
+  | FileViewerPane;
 
 export interface QuickCommand {
   id: string;
@@ -497,9 +518,11 @@ export interface SshSettings {
 }
 
 export type SftpOverwriteBehavior = "fail" | "overwrite";
+export type FileExplorerOpenMode = "external" | "inlineEditor";
 
 export interface SftpSettings {
   overwriteBehavior: SftpOverwriteBehavior;
+  fileExplorerOpenMode: FileExplorerOpenMode;
 }
 
 export interface UrlSettings {
@@ -692,7 +715,7 @@ export interface WorkspaceTab {
   displayTitle?: string | null;
   toolbarTitle?: string;
   subtitle: string;
-  kind: "terminal" | "sftp" | "webview" | "remoteDesktop" | "ftp" | "localFiles";
+  kind: "terminal" | "sftp" | "webview" | "remoteDesktop" | "ftp" | "localFiles" | "fileViewer";
   panes: WorkspacePane[];
   layout?: LayoutNode;
   focusedPaneId?: string;

@@ -23,3 +23,23 @@ declare module "qrcode" {
   };
   export default QRCode;
 }
+
+// The `papaparse` package's bundled types are not installed; declare the small
+// synchronous parse surface the Document's CSV/TSV table mode uses.
+declare module "papaparse" {
+  interface ParseConfig {
+    delimiter?: string;
+    skipEmptyLines?: boolean | "greedy";
+    header?: boolean;
+  }
+  interface ParseResult<T> {
+    data: T[];
+    errors: unknown[];
+    meta: { delimiter: string; aborted: boolean; truncated: boolean };
+  }
+  const Papa: {
+    parse<T>(input: string, config?: ParseConfig): ParseResult<T>;
+  };
+  export default Papa;
+}
+
