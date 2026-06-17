@@ -266,6 +266,48 @@ export interface SftpTransferResult {
   bytes: number;
 }
 
+export interface FileViewProbe {
+  totalSize: number;
+  mtimeMs: number;
+  isText: boolean;
+  magic: string | null;
+}
+
+export interface FileViewText {
+  text: string;
+  totalSize: number;
+  bytesRead: number;
+  truncated: boolean;
+  fromEnd: boolean;
+  mtimeMs: number;
+}
+
+export interface FileViewBytes {
+  base64: string;
+  totalSize: number;
+  offset: number;
+  bytesRead: number;
+  eof: boolean;
+  mtimeMs: number;
+}
+
+export interface FileViewWriteResult {
+  mtimeMs: number;
+  size: number;
+}
+
+export interface PdfViewStatus {
+  available: boolean;
+  source: string | null;
+  toolId: string;
+}
+
+export interface PdfRender {
+  base64: string;
+  page: number;
+  pageCount: number;
+}
+
 export interface SftpTransferProgress {
   transferId: string;
   transferredBytes: number;
@@ -1850,6 +1892,32 @@ type CommandMap = {
     args: { request: { path: string } };
     result: SftpPathProperties;
   };
+  probe_file_view: {
+    args: { request: { path: string } };
+    result: FileViewProbe;
+  };
+  read_file_view_text: {
+    args: { request: { path: string; maxBytes: number; fromEnd?: boolean } };
+    result: FileViewText;
+  };
+  read_file_view_bytes: {
+    args: { request: { path: string; offset: number; length: number } };
+    result: FileViewBytes;
+  };
+  write_file_view: {
+    args: {
+      request: { path: string; content: string; expectedMtimeMs?: number; force?: boolean };
+    };
+    result: FileViewWriteResult;
+  };
+  file_view_pdf_status: {
+    args: undefined;
+    result: PdfViewStatus;
+  };
+  render_pdf_view: {
+    args: { request: { path: string; page: number; scale: number } };
+    result: PdfRender;
+  };
   open_filesystem_path: {
     args: { path: string };
     result: null;
@@ -2588,6 +2656,21 @@ export async function selectKeyFile(defaultPath?: string) {
     directory: false,
     multiple: false,
     title: i18next.t("terminal.selectKeyFile"),
+  });
+
+  return typeof selectedPath === "string" ? selectedPath : null;
+}
+
+export async function selectFileViewPath(options: { title: string; defaultPath?: string }) {
+  if (!isTauriRuntime()) {
+    return null;
+  }
+
+  const selectedPath = await openDialog({
+    defaultPath: options.defaultPath,
+    directory: false,
+    multiple: false,
+    title: options.title,
   });
 
   return typeof selectedPath === "string" ? selectedPath : null;

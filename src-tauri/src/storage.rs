@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 24;
+const SCHEMA_USER_VERSION: i32 = 25;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS connections (
     terminal_opacity INTEGER,
     terminal_background_json TEXT,
     file_browser_view_options_json TEXT,
-    connection_type TEXT NOT NULL CHECK (connection_type IN ('local', 'ssh', 'telnet', 'serial', 'url', 'rdp', 'vnc', 'ftp', 'localFiles')),
+    connection_type TEXT NOT NULL CHECK (connection_type IN ('local', 'ssh', 'telnet', 'serial', 'url', 'rdp', 'vnc', 'ftp', 'localFiles', 'fileView')),
     status TEXT NOT NULL CHECK (status IN ('connected', 'idle', 'offline')),
     sort_order INTEGER NOT NULL
 );
@@ -554,6 +554,8 @@ impl SshSettings {
 #[serde(rename_all = "camelCase")]
 pub struct SftpSettings {
     overwrite_behavior: String,
+    #[serde(default = "default_file_explorer_open_mode")]
+    file_explorer_open_mode: String,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -1805,6 +1807,7 @@ impl Storage {
                         icon_background_color TEXT,
                         terminal_opacity INTEGER,
                         terminal_background_json TEXT,
+                        file_browser_view_options_json TEXT,
                         connection_type TEXT NOT NULL CHECK (connection_type IN ('local', 'ssh', 'telnet', 'serial', 'url', 'rdp', 'vnc', 'ftp', 'localFiles')),
                         status TEXT NOT NULL CHECK (status IN ('connected', 'idle', 'offline')),
                         sort_order INTEGER NOT NULL
@@ -1816,7 +1819,8 @@ impl Storage {
                         local_startup_script, url, data_partition, use_tmux_sessions,
                         tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
                         ftp_options, password_credential_id, icon_data_url, icon_background_color,
-                        terminal_opacity, terminal_background_json, connection_type, status, sort_order
+                        terminal_opacity, terminal_background_json, file_browser_view_options_json,
+                        connection_type, status, sort_order
                     )
                     SELECT
                         id, folder_id, name, tab_title, host, username, port, key_path,
@@ -1825,7 +1829,8 @@ impl Storage {
                         local_startup_script, url, data_partition, use_tmux_sessions,
                         tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
                         ftp_options, password_credential_id, icon_data_url, icon_background_color,
-                        terminal_opacity, terminal_background_json, connection_type, status, sort_order
+                        terminal_opacity, terminal_background_json, file_browser_view_options_json,
+                        connection_type, status, sort_order
                     FROM connections_pre_v20;
                     DROP TABLE connections_pre_v20;
                     COMMIT;
@@ -1858,6 +1863,88 @@ impl Storage {
                 params![DEFAULT_WORKSPACE_ID],
             )
             .map_err(to_storage_error)?;
+        // v25: File Viewer Connection kind. The connections table predates the
+        // `fileView` connection_type, and SQLite can't alter a CHECK constraint
+        // in place, so rebuild the table so the connection_type CHECK accepts the
+        // new kind. By this point every upgrade path has the full current column
+        // set (CURRENT_SCHEMA on fresh installs, ensure_column/v20 rebuild on
+        // upgrades), so a full explicit-column copy is safe.
+        if stored_version < 25 && table_exists(&connection, "connections")? {
+            connection
+                .pragma_update(None, "legacy_alter_table", "ON")
+                .map_err(to_storage_error)?;
+            connection
+                .execute_batch(
+                    r#"
+                    BEGIN;
+                    ALTER TABLE connections RENAME TO connections_pre_v25;
+                    CREATE TABLE connections (
+                        id TEXT PRIMARY KEY,
+                        folder_id TEXT REFERENCES connection_folders(id) ON DELETE CASCADE,
+                        workspace_id TEXT REFERENCES workspaces(id) ON DELETE CASCADE,
+                        name TEXT NOT NULL,
+                        tab_title TEXT,
+                        host TEXT NOT NULL,
+                        username TEXT NOT NULL,
+                        port INTEGER,
+                        key_path TEXT,
+                        proxy_jump TEXT,
+                        ssh_socks_proxy TEXT,
+                        ssh_socks_proxy_username TEXT,
+                        ssh_socks_proxy_inherit_defaults INTEGER NOT NULL DEFAULT 1,
+                        auth_method TEXT NOT NULL DEFAULT 'keyFile',
+                        local_shell TEXT,
+                        local_startup_directory TEXT,
+                        local_startup_script TEXT,
+                        url TEXT,
+                        data_partition TEXT,
+                        use_tmux_sessions INTEGER NOT NULL DEFAULT 1,
+                        tmux_connection_id TEXT,
+                        serial_line TEXT,
+                        serial_speed INTEGER,
+                        rdp_options TEXT,
+                        vnc_options TEXT,
+                        ftp_options TEXT,
+                        password_credential_id TEXT REFERENCES connection_password_credentials(id) ON DELETE SET NULL,
+                        icon_data_url TEXT,
+                        icon_background_color TEXT,
+                        terminal_opacity INTEGER,
+                        terminal_background_json TEXT,
+                        file_browser_view_options_json TEXT,
+                        connection_type TEXT NOT NULL CHECK (connection_type IN ('local', 'ssh', 'telnet', 'serial', 'url', 'rdp', 'vnc', 'ftp', 'localFiles', 'fileView')),
+                        status TEXT NOT NULL CHECK (status IN ('connected', 'idle', 'offline')),
+                        sort_order INTEGER NOT NULL
+                    );
+                    INSERT INTO connections (
+                        id, folder_id, workspace_id, name, tab_title, host, username, port, key_path,
+                        proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults,
+                        auth_method, local_shell, local_startup_directory,
+                        local_startup_script, url, data_partition, use_tmux_sessions,
+                        tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
+                        ftp_options, password_credential_id, icon_data_url, icon_background_color,
+                        terminal_opacity, terminal_background_json, file_browser_view_options_json,
+                        connection_type, status, sort_order
+                    )
+                    SELECT
+                        id, folder_id, workspace_id, name, tab_title, host, username, port, key_path,
+                        proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults,
+                        auth_method, local_shell, local_startup_directory,
+                        local_startup_script, url, data_partition, use_tmux_sessions,
+                        tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
+                        ftp_options, password_credential_id, icon_data_url, icon_background_color,
+                        terminal_opacity, terminal_background_json, file_browser_view_options_json,
+                        connection_type, status, sort_order
+                    FROM connections_pre_v25;
+                    DROP TABLE connections_pre_v25;
+                    COMMIT;
+                    "#,
+                )
+                .map_err(to_storage_error)?;
+            connection
+                .pragma_update(None, "legacy_alter_table", "OFF")
+                .map_err(to_storage_error)?;
+        }
+        repair_connections_pre_v25_references(&connection)?;
         connection
             .execute_batch(&format!("PRAGMA user_version = {SCHEMA_USER_VERSION}"))
             .map_err(to_storage_error)?;
@@ -2086,15 +2173,25 @@ fn ensure_column(
 }
 
 fn repair_connections_pre_v20_references(connection: &SqliteConnection) -> Result<(), String> {
+    repair_connections_scratch_references(connection, "connections_pre_v20", "pre_v20")
+}
+
+fn repair_connections_pre_v25_references(connection: &SqliteConnection) -> Result<(), String> {
+    repair_connections_scratch_references(connection, "connections_pre_v25", "pre_v25")
+}
+
+fn repair_connections_scratch_references(
+    connection: &SqliteConnection,
+    scratch_table: &str,
+    suffix: &str,
+) -> Result<(), String> {
     let table_names = [
         "connection_tags",
         "url_credentials",
         "connection_password_credentials",
     ];
     let needs_repair = table_names.iter().try_fold(false, |needs_repair, table| {
-        Ok::<bool, String>(
-            needs_repair || table_sql_mentions(connection, table, "connections_pre_v20")?,
-        )
+        Ok::<bool, String>(needs_repair || table_sql_mentions(connection, table, scratch_table)?)
     })?;
     if !needs_repair {
         return Ok(());
@@ -2109,11 +2206,11 @@ fn repair_connections_pre_v20_references(connection: &SqliteConnection) -> Resul
     connection
         .pragma_update(None, "legacy_alter_table", "ON")
         .map_err(to_storage_error)?;
-    let repair_result = connection.execute_batch(
+    let repair_sql = format!(
         r#"
         BEGIN;
 
-        ALTER TABLE connection_tags RENAME TO connection_tags_pre_v20_fk_fix;
+        ALTER TABLE connection_tags RENAME TO connection_tags_{suffix}_fk_fix;
         CREATE TABLE connection_tags (
             connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
             tag TEXT NOT NULL,
@@ -2122,13 +2219,13 @@ fn repair_connections_pre_v20_references(connection: &SqliteConnection) -> Resul
         );
         INSERT INTO connection_tags (connection_id, tag, sort_order)
         SELECT connection_id, tag, sort_order
-        FROM connection_tags_pre_v20_fk_fix
+        FROM connection_tags_{suffix}_fk_fix
         WHERE EXISTS (
-            SELECT 1 FROM connections WHERE connections.id = connection_tags_pre_v20_fk_fix.connection_id
+            SELECT 1 FROM connections WHERE connections.id = connection_tags_{suffix}_fk_fix.connection_id
         );
-        DROP TABLE connection_tags_pre_v20_fk_fix;
+        DROP TABLE connection_tags_{suffix}_fk_fix;
 
-        ALTER TABLE url_credentials RENAME TO url_credentials_pre_v20_fk_fix;
+        ALTER TABLE url_credentials RENAME TO url_credentials_{suffix}_fk_fix;
         CREATE TABLE url_credentials (
             connection_id TEXT PRIMARY KEY REFERENCES connections(id) ON DELETE CASCADE,
             username TEXT NOT NULL,
@@ -2145,13 +2242,13 @@ fn repair_connections_pre_v20_references(connection: &SqliteConnection) -> Resul
         SELECT
             connection_id, username, page_url, username_selector, password_selector,
             field_values, updated_at
-        FROM url_credentials_pre_v20_fk_fix
+        FROM url_credentials_{suffix}_fk_fix
         WHERE EXISTS (
-            SELECT 1 FROM connections WHERE connections.id = url_credentials_pre_v20_fk_fix.connection_id
+            SELECT 1 FROM connections WHERE connections.id = url_credentials_{suffix}_fk_fix.connection_id
         );
-        DROP TABLE url_credentials_pre_v20_fk_fix;
+        DROP TABLE url_credentials_{suffix}_fk_fix;
 
-        ALTER TABLE connection_password_credentials RENAME TO connection_password_credentials_pre_v20_fk_fix;
+        ALTER TABLE connection_password_credentials RENAME TO connection_password_credentials_{suffix}_fk_fix;
         CREATE TABLE connection_password_credentials (
             id TEXT PRIMARY KEY,
             connection_type TEXT NOT NULL CHECK (connection_type IN ('ssh', 'telnet', 'rdp', 'vnc', 'ftp')),
@@ -2172,13 +2269,13 @@ fn repair_connections_pre_v20_references(connection: &SqliteConnection) -> Resul
                 WHEN created_from_connection_id IS NULL THEN NULL
                 WHEN EXISTS (
                     SELECT 1 FROM connections
-                    WHERE connections.id = connection_password_credentials_pre_v20_fk_fix.created_from_connection_id
+                    WHERE connections.id = connection_password_credentials_{suffix}_fk_fix.created_from_connection_id
                 ) THEN created_from_connection_id
                 ELSE NULL
             END,
             created_at, updated_at
-        FROM connection_password_credentials_pre_v20_fk_fix;
-        DROP TABLE connection_password_credentials_pre_v20_fk_fix;
+        FROM connection_password_credentials_{suffix}_fk_fix;
+        DROP TABLE connection_password_credentials_{suffix}_fk_fix;
 
         CREATE INDEX IF NOT EXISTS idx_connection_tags_connection_sort
             ON connection_tags(connection_id, sort_order);
@@ -2190,6 +2287,7 @@ fn repair_connections_pre_v20_references(connection: &SqliteConnection) -> Resul
         COMMIT;
         "#,
     );
+    let repair_result = connection.execute_batch(&repair_sql);
     let reset_legacy_result = connection.pragma_update(None, "legacy_alter_table", "OFF");
     let reset_fk_result = connection.pragma_update(None, "foreign_keys", "ON");
 
@@ -3304,13 +3402,15 @@ fn ensure_folder_exists(
 fn normalize_connection_type(value: &str) -> Result<String, String> {
     match value.trim() {
         "localFiles" => Ok("localFiles".to_string()),
+        "fileView" => Ok("fileView".to_string()),
         value => match value.to_lowercase().as_str() {
             "local" | "ssh" | "telnet" | "serial" | "url" | "rdp" | "vnc" | "ftp" => {
                 Ok(value.to_lowercase())
             }
             "localfiles" => Ok("localFiles".to_string()),
+            "fileview" => Ok("fileView".to_string()),
             _ => Err(
-                "connection type must be local, ssh, telnet, serial, url, rdp, vnc, ftp, or localFiles"
+                "connection type must be local, ssh, telnet, serial, url, rdp, vnc, ftp, localFiles, or fileView"
                     .to_string(),
             ),
         },
@@ -3351,7 +3451,7 @@ fn extract_url_host(value: &str) -> Option<String> {
 
 fn normalize_connection_user(value: String, connection_type: &str) -> Result<String, String> {
     match connection_type {
-        "serial" | "url" | "localFiles" => Ok(String::new()),
+        "serial" | "url" | "localFiles" | "fileView" => Ok(String::new()),
         "vnc" => Ok(value.trim().to_string()),
         _ => required_field("user", value),
     }
@@ -3473,7 +3573,10 @@ fn normalize_local_startup_directory(
     value: Option<String>,
     connection_type: &str,
 ) -> Result<Option<String>, String> {
-    if connection_type != "local" && connection_type != "localFiles" {
+    // For `fileView` Connections this column stores the target file path rather
+    // than a starting directory; both reuse the same non-secret local path slot.
+    if connection_type != "local" && connection_type != "localFiles" && connection_type != "fileView"
+    {
         return Ok(None);
     }
 
@@ -4020,7 +4123,12 @@ fn default_x_server_args() -> String {
 fn default_sftp_settings() -> SftpSettings {
     SftpSettings {
         overwrite_behavior: "fail".to_string(),
+        file_explorer_open_mode: default_file_explorer_open_mode(),
     }
+}
+
+fn default_file_explorer_open_mode() -> String {
+    "external".to_string()
 }
 
 fn default_url_settings() -> UrlSettings {
@@ -4519,6 +4627,16 @@ fn validate_sftp_settings(mut settings: SftpSettings) -> Result<SftpSettings, St
         "fail" | "error" | "never" => "fail".to_string(),
         "overwrite" | "replace" => "overwrite".to_string(),
         _ => return Err("SFTP overwrite behavior must be fail or overwrite".to_string()),
+    };
+    settings.file_explorer_open_mode = match settings
+        .file_explorer_open_mode
+        .trim()
+        .to_lowercase()
+        .as_str()
+    {
+        "external" => "external".to_string(),
+        "inlineeditor" | "inline_editor" | "inline-editor" => "inlineEditor".to_string(),
+        _ => return Err("File Explorer open mode must be external or inlineEditor".to_string()),
     };
     Ok(settings)
 }

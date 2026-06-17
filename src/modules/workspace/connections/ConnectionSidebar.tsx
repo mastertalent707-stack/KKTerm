@@ -6,6 +6,7 @@ import { AddConnectionMenu, QuickConnectMenu } from "./ConnectionMenus";
 import { FtpConnectionFields, FtpConnectionOptions } from "./connection-dialog/FtpConnectionFields";
 import { LocalConnectionFields } from "./connection-dialog/LocalConnectionFields";
 import { LocalFilesConnectionFields } from "./connection-dialog/LocalFilesConnectionFields";
+import { FileViewConnectionFields } from "./connection-dialog/FileViewConnectionFields";
 import { RdpConnectionFields, RdpConnectionOptions } from "./connection-dialog/RdpConnectionFields";
 import { SerialConnectionFields } from "./connection-dialog/SerialConnectionFields";
 import { SshConnectionFields, SshConnectionOptions } from "./connection-dialog/SshConnectionFields";
@@ -43,7 +44,7 @@ import { isMacPlatform } from "../../../lib/platform";
 import { nativeMenuIcons } from "../../../lib/nativeMenuIcons";
 import { lockOsIconAutoDetect } from "../../../lib/osIcons";
 import { showNativeContextMenu, type NativeContextMenuItem } from "../../../lib/nativeContextMenu";
-import { confirmNativeDialog, invokeCommand, isTauriRuntime, selectAppLauncherFolder, selectKeyFile, type TmuxSession } from "../../../lib/tauri";
+import { confirmNativeDialog, invokeCommand, isTauriRuntime, selectAppLauncherFolder, selectFileViewPath, selectKeyFile, type TmuxSession } from "../../../lib/tauri";
 import { connectionTree } from "../../../app-defaults";
 import { DeleteConfirmationDialog } from "../../../app/DeleteConfirmationDialog";
 import { DialogPortal } from "../../../app/DialogPortal";
@@ -131,6 +132,15 @@ function localFilesDefaultNameForDirectory(directory: string, t: TFunction, home
   }
   const parts = normalized.split(/[\\/]+/).filter(Boolean);
   return parts[parts.length - 1] || t("connections.localFiles");
+}
+
+function fileViewDefaultNameForPath(filePath: string, t: TFunction) {
+  const normalized = normalizeLocalPathForNameComparison(filePath);
+  if (!normalized) {
+    return t("connections.fileView");
+  }
+  const parts = normalized.split(/[\\/]+/).filter(Boolean);
+  return parts[parts.length - 1] || t("connections.fileView");
 }
 
 function connectionTreeDisplayName(connection: Connection, t: TFunction) {
@@ -1479,6 +1489,7 @@ export function ConnectionSidebar({
       "vnc",
       "ftp",
       "localFiles",
+      "fileView",
     ];
     return [
       ...connectionTypes.map((connectionType) => ({
@@ -3745,7 +3756,9 @@ function ConnectionDialog({
     const rawUrl = String(form.get("url") ?? "").trim();
     const serialLine = String(form.get("serialLine") ?? "COM1").trim() || "COM1";
     const host =
-      connectionType === "local" || connectionType === "localFiles"
+      connectionType === "local" ||
+      connectionType === "localFiles" ||
+      connectionType === "fileView"
         ? "localhost"
         : connectionType === "serial"
           ? serialLine
@@ -3758,6 +3771,8 @@ function ConnectionDialog({
         ? requestedName || selectedLocalShellLabel
         : connectionType === "localFiles"
           ? requestedName || localFilesDefaultNameForDirectory(localStartupDirectory, t, localFilesHomeDirectory)
+        : connectionType === "fileView"
+          ? requestedName || fileViewDefaultNameForPath(localStartupDirectory, t)
         : connectionType === "serial"
           ? requestedName || serialLine
         : requestedName || host;
@@ -3796,7 +3811,9 @@ function ConnectionDialog({
       name,
       host,
       user:
-        connectionType === "local" || connectionType === "localFiles"
+        connectionType === "local" ||
+        connectionType === "localFiles" ||
+        connectionType === "fileView"
           ? "local"
           : connectionType === "serial"
             ? ""
@@ -3818,7 +3835,9 @@ function ConnectionDialog({
       localStartupDirectory:
         connectionType === "local" || connectionType === "localFiles"
           ? String(form.get("localStartupDirectory") ?? "").trim() || undefined
-          : undefined,
+          : connectionType === "fileView"
+            ? localStartupDirectory.trim() || undefined
+            : undefined,
       localStartupScript:
         connectionType === "local"
           ? String(form.get("localStartupScript") ?? "").trim() || undefined
@@ -3952,6 +3971,16 @@ function ConnectionDialog({
     setLocalFilesNameEdited(Boolean(value.trim()));
   }
 
+  async function handleBrowseFileViewPath() {
+    const selectedPath = await selectFileViewPath({
+      title: t("connections.fileViewPickerTitle"),
+      defaultPath: localStartupDirectory || undefined,
+    });
+    if (selectedPath) {
+      setLocalStartupDirectory(selectedPath);
+    }
+  }
+
   function handleOpenKeyEmailDialog() {
     setKeyGenerationError("");
     setKeyEmailDraft("");
@@ -4010,6 +4039,20 @@ function ConnectionDialog({
             nameValue={localFilesNameValue}
             onBrowseLocalStartupDirectory={() => void handleBrowseLocalStartupDirectory()}
             onLocalStartupDirectoryChange={setLocalStartupDirectory}
+            onNameChange={handleLocalFilesNameChange}
+          />
+        );
+      case "fileView":
+        return (
+          <FileViewConnectionFields
+            filePath={localStartupDirectory}
+            nameValue={
+              isEditMode || localFilesNameEdited
+                ? localFilesNameDraft
+                : fileViewDefaultNameForPath(localStartupDirectory, t)
+            }
+            onBrowseFilePath={() => void handleBrowseFileViewPath()}
+            onFilePathChange={setLocalStartupDirectory}
             onNameChange={handleLocalFilesNameChange}
           />
         );

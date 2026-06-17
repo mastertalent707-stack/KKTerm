@@ -1334,6 +1334,11 @@
     "hideTopTabButtonsDesc": "사용하면 상단 탭 스트립이 숨겨지고 저장된 하위 연결 탭이 부모 연결 아래에 기울임꼴 행으로 표시됩니다.",
     "doubleClickOpensConnection": "두 번 클릭하여 Connection 열기",
     "doubleClickOpensConnectionDesc": "활성화하면 Connection Tree에서 Connection을 한 번 클릭할 때는 선택만 하고, 두 번 클릭하면 엽니다. Connection 이름을 바꾸려면 오른쪽 클릭의 이름 바꾸기 동작을 사용하세요.",
+    "fileExplorer": "File Explorer",
+    "fileExplorerOpenMode": "Open files",
+    "fileExplorerOpenModeHint": "Choose whether File Explorer opens local files inside KKTerm or with the operating system's default app.",
+    "fileExplorerOpenModeExternal": "External app",
+    "fileExplorerOpenModeInlineEditor": "Inline editor",
     "submitAiAttachmentsDirectly": "스크린샷/텍스트를 AI Assistant에 바로 제출",
     "submitAiAttachmentsDirectlyDesc": "활성화하면 AI Assistant로 보내기가 첨부된 스크린샷 또는 터미널 버퍼를 기본 도움 요청과 함께 제출합니다. 비활성화하면 직접 질문을 입력할 수 있도록 컨텍스트만 첨부합니다.",
     "terminalBackgrounds": "터미널 배경",
@@ -1791,7 +1796,11 @@
     "homeDirectory": "홈 디렉터리",
     "localFilesSubtitle": "로컬 파일 브라우저",
     "localFilesRootDirectory": "시작 폴더",
-    "localFilesRootDirectoryPlaceholder": "홈 폴더"
+    "localFilesRootDirectoryPlaceholder": "홈 폴더",
+    "fileView": "File Viewer",
+    "fileViewPath": "File",
+    "fileViewPathPlaceholder": "Select a file to view",
+    "fileViewPickerTitle": "Select a file to view"
   },
   "terminal": {
     "openSftp": "SFTP 브라우저 열기",
@@ -3166,7 +3175,50 @@
     "editWorkspace": "Workspace 편집",
     "deleteWorkspace": "작업 영역 삭제",
     "deleteWorkspaceConfirm": "\"{{name}}\" 작업 영역과 모든 연결을 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
-    "workspaceCreated": "\"{{name}}\" 작업 영역이 생성되었습니다"
+    "workspaceCreated": "\"{{name}}\" 작업 영역이 생성되었습니다",
+    "fileViewer": {
+      "loading": "Loading…",
+      "noFile": "No file selected for this File Viewer Connection.",
+      "truncated": "This file is large; showing a partial preview.",
+      "invalidJson": "Invalid JSON — showing raw text.",
+      "imageTooLarge": "This image is too large to preview.",
+      "filterRows": "Filter rows…",
+      "filterLines": "Filter lines…",
+      "rowCount": "{{count}} rows",
+      "tableTruncated": "Showing the first {{count}} rows.",
+      "follow": "Follow",
+      "kind": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "csv": "Table",
+        "json": "JSON",
+        "image": "Image",
+        "log": "Log",
+        "hex": "Hex",
+        "pdf": "PDF"
+      },
+      "level": {
+        "error": "Error",
+        "warn": "Warn",
+        "info": "Info",
+        "debug": "Debug",
+        "trace": "Trace"
+      },
+      "retry": "Retry",
+      "pdfPage": "{{page}} / {{count}}",
+      "dependencyNeededTitle": "Preview needs an add-on",
+      "dependencyNeededBody": "Previewing this file type uses {{tool}}, a small add-on KKTerm downloads on demand instead of bundling it.",
+      "dependencyInstall": "Install {{tool}}",
+      "dependencyInstalling": "Installing {{tool}}…",
+      "dependencyManualHint": "Install {{tool}} and make sure it is on your PATH, then retry.",
+      "dep": {
+        "poppler": "Poppler"
+      },
+      "save": "Save",
+      "saving": "Saving…",
+      "discardConfirm": "Discard unsaved changes?",
+      "saveConflictConfirm": "This file changed on disk since you opened it. Overwrite it with your changes?"
+    }
   },
   "common": {
     "save": "저장",

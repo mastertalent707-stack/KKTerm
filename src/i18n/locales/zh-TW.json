@@ -1334,6 +1334,11 @@
     "hideTopTabButtonsDesc": "啟用後會隱藏上方分頁列，已儲存的子連線分頁會以斜體列顯示在父連線底下。",
     "doubleClickOpensConnection": "按兩下以開啟連線",
     "doubleClickOpensConnectionDesc": "啟用後，在連線樹中按一下連線只會選取它，按兩下才會開啟它。請使用右鍵選單中的重新命名動作來重新命名連線。",
+    "fileExplorer": "File Explorer",
+    "fileExplorerOpenMode": "Open files",
+    "fileExplorerOpenModeHint": "Choose whether File Explorer opens local files inside KKTerm or with the operating system's default app.",
+    "fileExplorerOpenModeExternal": "External app",
+    "fileExplorerOpenModeInlineEditor": "Inline editor",
     "submitAiAttachmentsDirectly": "將螢幕截圖/文字直接提交給 AI 助理",
     "submitAiAttachmentsDirectlyDesc": "啟用時，「傳送到 AI 助理」會將附加的螢幕截圖或終端緩衝區與預設求助要求一起提交。停用時，它只會附加脈絡，讓你輸入自己的問題。",
     "terminalBackgrounds": "終端機背景",
@@ -1791,7 +1796,11 @@
     "homeDirectory": "個人目錄",
     "localFilesSubtitle": "本機檔案瀏覽器",
     "localFilesRootDirectory": "起始資料夾",
-    "localFilesRootDirectoryPlaceholder": "個人資料夾"
+    "localFilesRootDirectoryPlaceholder": "個人資料夾",
+    "fileView": "File Viewer",
+    "fileViewPath": "File",
+    "fileViewPathPlaceholder": "Select a file to view",
+    "fileViewPickerTitle": "Select a file to view"
   },
   "terminal": {
     "openSftp": "開啟 SFTP 瀏覽器",
@@ -3166,7 +3175,50 @@
     "editWorkspace": "編輯 Workspace",
     "deleteWorkspace": "刪除工作區",
     "deleteWorkspaceConfirm": "要刪除「{{name}}」及其所有連線嗎？此動作無法復原。",
-    "workspaceCreated": "已建立工作區「{{name}}」"
+    "workspaceCreated": "已建立工作區「{{name}}」",
+    "fileViewer": {
+      "loading": "Loading…",
+      "noFile": "No file selected for this File Viewer Connection.",
+      "truncated": "This file is large; showing a partial preview.",
+      "invalidJson": "Invalid JSON — showing raw text.",
+      "imageTooLarge": "This image is too large to preview.",
+      "filterRows": "Filter rows…",
+      "filterLines": "Filter lines…",
+      "rowCount": "{{count}} rows",
+      "tableTruncated": "Showing the first {{count}} rows.",
+      "follow": "Follow",
+      "kind": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "csv": "Table",
+        "json": "JSON",
+        "image": "Image",
+        "log": "Log",
+        "hex": "Hex",
+        "pdf": "PDF"
+      },
+      "level": {
+        "error": "Error",
+        "warn": "Warn",
+        "info": "Info",
+        "debug": "Debug",
+        "trace": "Trace"
+      },
+      "retry": "Retry",
+      "pdfPage": "{{page}} / {{count}}",
+      "dependencyNeededTitle": "Preview needs an add-on",
+      "dependencyNeededBody": "Previewing this file type uses {{tool}}, a small add-on KKTerm downloads on demand instead of bundling it.",
+      "dependencyInstall": "Install {{tool}}",
+      "dependencyInstalling": "Installing {{tool}}…",
+      "dependencyManualHint": "Install {{tool}} and make sure it is on your PATH, then retry.",
+      "dep": {
+        "poppler": "Poppler"
+      },
+      "save": "Save",
+      "saving": "Saving…",
+      "discardConfirm": "Discard unsaved changes?",
+      "saveConflictConfirm": "This file changed on disk since you opened it. Overwrite it with your changes?"
+    }
   },
   "common": {
     "save": "儲存",

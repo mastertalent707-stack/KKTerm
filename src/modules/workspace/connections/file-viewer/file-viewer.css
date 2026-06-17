@@ -1,0 +1,415 @@
+.file-viewer-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--app-bg);
+  color: var(--text);
+}
+
+.file-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--surface);
+}
+
+.file-viewer-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40%;
+}
+
+.file-viewer-size {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.file-viewer-toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.file-viewer-mode-switch {
+  display: flex;
+  gap: 4px;
+}
+
+.file-viewer-dirty-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.file-viewer-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.file-viewer-save:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.file-viewer-mode-switch .toolbar-button.is-active {
+  background: var(--sel-soft);
+  color: var(--accent);
+}
+
+.file-viewer-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+}
+
+.file-viewer-status {
+  padding: 24px;
+  color: var(--text-muted);
+}
+
+.file-viewer-status-error {
+  color: var(--red);
+  white-space: pre-wrap;
+}
+
+.file-viewer-notice {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.file-viewer-notice-warn {
+  color: var(--red);
+}
+
+/* Pre/JSON */
+.file-viewer-pre {
+  margin: 0;
+  padding: 12px 14px;
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* Markdown */
+.file-viewer-markdown {
+  padding: 16px 22px;
+  max-width: 860px;
+  line-height: 1.6;
+}
+
+.file-viewer-markdown pre {
+  background: var(--surface-muted);
+  padding: 10px 12px;
+  border-radius: 6px;
+  overflow: auto;
+}
+
+.file-viewer-markdown code {
+  font-family: var(--mono, ui-monospace, monospace);
+}
+
+/* CodeMirror host */
+.file-viewer-codemirror {
+  height: 100%;
+}
+
+.file-viewer-codemirror .cm-editor {
+  height: 100%;
+}
+
+/* Sub-toolbar shared by csv/log */
+.file-viewer-subtoolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.file-viewer-filter {
+  flex: 0 1 280px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--app-bg);
+  color: var(--text);
+}
+
+.file-viewer-rowcount {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* CSV table */
+.file-viewer-table-scroll {
+  overflow: auto;
+}
+
+.file-viewer-table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 12.5px;
+}
+
+.file-viewer-table th,
+.file-viewer-table td {
+  border: 1px solid var(--hairline);
+  padding: 3px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.file-viewer-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-muted);
+  font-weight: 600;
+}
+
+.file-viewer-rownum {
+  color: var(--text-faint);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Log viewer */
+.file-viewer-log {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.file-viewer-level-chips {
+  display: flex;
+  gap: 4px;
+}
+
+.file-viewer-level-chip {
+  border: 1px solid var(--border);
+  background: var(--app-bg);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.file-viewer-level-chip.is-off {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.file-viewer-follow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.file-viewer-log-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.file-viewer-log-line {
+  display: flex;
+  gap: 10px;
+  padding: 0 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.file-viewer-log-line:hover {
+  background: var(--hover);
+}
+
+.file-viewer-log-gutter {
+  flex: 0 0 auto;
+  width: 56px;
+  text-align: right;
+  color: var(--text-faint);
+  user-select: none;
+}
+
+.file-viewer-log-text {
+  flex: 1 1 auto;
+}
+
+.file-viewer-log-line.level-error {
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+}
+
+.file-viewer-log-line.level-error .file-viewer-log-text {
+  color: var(--red);
+}
+
+.file-viewer-log-line.level-warn .file-viewer-log-text {
+  color: var(--accent);
+}
+
+.file-viewer-level-chip.level-error {
+  border-color: var(--red);
+}
+
+.file-viewer-level-chip.level-warn {
+  border-color: var(--accent);
+}
+
+/* Image */
+.file-viewer-image {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.file-viewer-image-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--surface);
+}
+
+.file-viewer-image-zoom {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 44px;
+  text-align: center;
+}
+
+.file-viewer-image-canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background:
+    repeating-conic-gradient(var(--surface-muted) 0% 25%, transparent 0% 50%) 50% / 20px 20px;
+}
+
+.file-viewer-image-canvas img {
+  transform-origin: center;
+  max-width: none;
+}
+
+/* PDF — reuses the image canvas/toolbar styling for page rendering. */
+.file-viewer-pdf {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.file-viewer-pdf-page {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 64px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.file-viewer-pdf .file-viewer-image-canvas {
+  background: var(--surface-muted);
+}
+
+.file-viewer-pdf .file-viewer-image-canvas img {
+  max-width: 100%;
+  box-shadow: var(--shadow);
+}
+
+/* External-dependency install gate (Phase 2). */
+.file-viewer-dependency-gate {
+  max-width: 520px;
+  margin: 48px auto;
+  padding: 24px;
+  text-align: center;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.file-viewer-dependency-gate h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.file-viewer-dependency-gate p {
+  margin: 0 0 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.file-viewer-dependency-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.file-viewer-dependency-install {
+  background: var(--accent);
+  color: var(--app-bg);
+  border-color: var(--accent);
+}
+
+.file-viewer-dependency-hint {
+  margin: 0;
+  font-size: 12px;
+}
+
+/* Hex */
+.file-viewer-hex {
+  padding: 8px 10px;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.file-viewer-hex-row {
+  display: flex;
+  gap: 16px;
+  white-space: pre;
+}
+
+.file-viewer-hex-offset {
+  color: var(--text-faint);
+}
+
+.file-viewer-hex-bytes {
+  color: var(--text);
+}
+
+.file-viewer-hex-ascii {
+  color: var(--text-muted);
+}

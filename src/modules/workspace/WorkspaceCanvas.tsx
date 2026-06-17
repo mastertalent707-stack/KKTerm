@@ -6,6 +6,7 @@ import {
 import { ftpBrowserCommands, localBrowserCommands } from "../../lib/fileBrowserCommands";
 import { RemoteDesktopWorkspace } from "./connections/remote-desktop/RemoteDesktopWorkspace";
 import { SftpWorkspace } from "./connections/sftp/SftpWorkspace";
+import { FileViewerWorkspace } from "./connections/file-viewer/FileViewerWorkspace";
 import { TerminalWorkspace } from "./connections/terminal/TerminalWorkspace";
 import { WebViewWorkspace } from "./connections/webview/WebViewWorkspace";
 import { ConnectionIcon } from "./connections/ConnectionIcon";
@@ -345,6 +346,17 @@ export function WorkspaceCanvas({
           return (
             <SftpWorkspace
               commands={localBrowserCommands()}
+              isActive={workspaceActive && tab.id === activeTabId}
+              key={tab.id}
+              tab={tab}
+            />
+          );
+        }
+        if (tab.kind === "fileViewer") {
+          // File Viewer Connection: open a single local file in the universal
+          // viewer / light editor (no network session).
+          return (
+            <FileViewerWorkspace
               isActive={workspaceActive && tab.id === activeTabId}
               key={tab.id}
               tab={tab}

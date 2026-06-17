@@ -1334,6 +1334,11 @@
     "hideTopTabButtonsDesc": "Wenn aktiviert, wird die obere Tab-Leiste ausgeblendet und gespeicherte untergeordnete Verbindungs-Tabs erscheinen kursiv unter ihrer übergeordneten Verbindung.",
     "doubleClickOpensConnection": "Connections per Doppelklick öffnen",
     "doubleClickOpensConnectionDesc": "Wenn aktiviert, wählt ein einfacher Klick auf eine Connection im Connection Tree sie nur aus; ein Doppelklick öffnet sie. Verwenden Sie die Rechtsklick-Aktion Umbenennen, um Connections umzubenennen.",
+    "fileExplorer": "File Explorer",
+    "fileExplorerOpenMode": "Open files",
+    "fileExplorerOpenModeHint": "Choose whether File Explorer opens local files inside KKTerm or with the operating system's default app.",
+    "fileExplorerOpenModeExternal": "External app",
+    "fileExplorerOpenModeInlineEditor": "Inline editor",
     "submitAiAttachmentsDirectly": "Screenshot/Text direkt an den AI Assistant senden",
     "submitAiAttachmentsDirectlyDesc": "Wenn aktiviert, sendet \"An AI Assistant senden\" den angehängten Screenshot oder Terminalpuffer mit einer Standard-Hilfeanfrage. Wenn deaktiviert, wird der Kontext nur angehängt, damit du deine eigene Frage eingeben kannst.",
     "terminalBackgrounds": "Terminal-Hintergründe",
@@ -1791,7 +1796,11 @@
     "homeDirectory": "Home-Verzeichnis",
     "localFilesSubtitle": "Lokaler Dateibrowser",
     "localFilesRootDirectory": "Startordner",
-    "localFilesRootDirectoryPlaceholder": "Persönlicher Ordner"
+    "localFilesRootDirectoryPlaceholder": "Persönlicher Ordner",
+    "fileView": "File Viewer",
+    "fileViewPath": "File",
+    "fileViewPathPlaceholder": "Select a file to view",
+    "fileViewPickerTitle": "Select a file to view"
   },
   "terminal": {
     "openSftp": "SFTP-Browser öffnen",
@@ -3166,7 +3175,50 @@
     "editWorkspace": "Workspace bearbeiten",
     "deleteWorkspace": "Arbeitsbereich löschen",
     "deleteWorkspaceConfirm": "\"{{name}}\" und alle zugehörigen Verbindungen löschen? Dies kann nicht rückgängig gemacht werden.",
-    "workspaceCreated": "Arbeitsbereich \"{{name}}\" erstellt"
+    "workspaceCreated": "Arbeitsbereich \"{{name}}\" erstellt",
+    "fileViewer": {
+      "loading": "Loading…",
+      "noFile": "No file selected for this File Viewer Connection.",
+      "truncated": "This file is large; showing a partial preview.",
+      "invalidJson": "Invalid JSON — showing raw text.",
+      "imageTooLarge": "This image is too large to preview.",
+      "filterRows": "Filter rows…",
+      "filterLines": "Filter lines…",
+      "rowCount": "{{count}} rows",
+      "tableTruncated": "Showing the first {{count}} rows.",
+      "follow": "Follow",
+      "kind": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "csv": "Table",
+        "json": "JSON",
+        "image": "Image",
+        "log": "Log",
+        "hex": "Hex",
+        "pdf": "PDF"
+      },
+      "level": {
+        "error": "Error",
+        "warn": "Warn",
+        "info": "Info",
+        "debug": "Debug",
+        "trace": "Trace"
+      },
+      "retry": "Retry",
+      "pdfPage": "{{page}} / {{count}}",
+      "dependencyNeededTitle": "Preview needs an add-on",
+      "dependencyNeededBody": "Previewing this file type uses {{tool}}, a small add-on KKTerm downloads on demand instead of bundling it.",
+      "dependencyInstall": "Install {{tool}}",
+      "dependencyInstalling": "Installing {{tool}}…",
+      "dependencyManualHint": "Install {{tool}} and make sure it is on your PATH, then retry.",
+      "dep": {
+        "poppler": "Poppler"
+      },
+      "save": "Save",
+      "saving": "Saving…",
+      "discardConfirm": "Discard unsaved changes?",
+      "saveConflictConfirm": "This file changed on disk since you opened it. Overwrite it with your changes?"
+    }
   },
   "common": {
     "save": "Speichern",

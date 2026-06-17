@@ -13,6 +13,7 @@ mod dashboard_validation;
 mod debug_heartbeat;
 mod diagnostics;
 mod favicon;
+mod file_viewer;
 mod ftp;
 mod github_copilot;
 mod import;
@@ -2268,6 +2269,49 @@ async fn copy_local_path(
 }
 
 #[tauri::command]
+async fn probe_file_view(
+    request: file_viewer::FileViewProbeRequest,
+) -> Result<file_viewer::FileViewProbe, String> {
+    run_blocking_command("probe file view", move || file_viewer::probe(request)).await
+}
+
+#[tauri::command]
+async fn read_file_view_text(
+    request: file_viewer::FileViewTextRequest,
+) -> Result<file_viewer::FileViewText, String> {
+    run_blocking_command("read file view text", move || file_viewer::read_text(request)).await
+}
+
+#[tauri::command]
+async fn read_file_view_bytes(
+    request: file_viewer::FileViewBytesRequest,
+) -> Result<file_viewer::FileViewBytes, String> {
+    run_blocking_command("read file view bytes", move || {
+        file_viewer::read_bytes(request)
+    })
+    .await
+}
+
+#[tauri::command]
+async fn file_view_pdf_status() -> Result<file_viewer::PdfViewStatus, String> {
+    run_blocking_command("file view pdf status", || Ok(file_viewer::pdf_status())).await
+}
+
+#[tauri::command]
+async fn write_file_view(
+    request: file_viewer::FileViewWriteRequest,
+) -> Result<file_viewer::FileViewWriteResult, String> {
+    run_blocking_command("write file view", move || file_viewer::write_text(request)).await
+}
+
+#[tauri::command]
+async fn render_pdf_view(
+    request: file_viewer::PdfRenderRequest,
+) -> Result<file_viewer::PdfRender, String> {
+    run_blocking_command("render pdf view", move || file_viewer::render_pdf(request)).await
+}
+
+#[tauri::command]
 async fn move_local_path(
     request: sftp::MoveLocalPathRequest,
 ) -> Result<sftp::SftpTransferResult, String> {
@@ -3385,6 +3429,12 @@ pub fn run() {
             rename_local_path,
             delete_local_path,
             local_path_properties,
+            probe_file_view,
+            read_file_view_text,
+            read_file_view_bytes,
+            file_view_pdf_status,
+            write_file_view,
+            render_pdf_view,
             open_filesystem_path,
             copy_local_path,
             move_local_path,

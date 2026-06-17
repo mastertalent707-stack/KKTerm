@@ -425,6 +425,64 @@
     }
 
     #[test]
+    fn file_view_connection_persists_file_path_and_no_host() {
+        let storage = Storage::open(temp_db_path("file-view-connection")).expect("storage opens");
+
+        let created = storage
+            .create_connection(CreateConnectionRequest {
+                name: "syslog".to_string(),
+                host: String::new(),
+                user: String::new(),
+                connection_type: "fileView".to_string(),
+                folder_id: None,
+                port: None,
+                key_path: None,
+                proxy_jump: None,
+                ssh_socks_proxy: None,
+                ssh_socks_proxy_username: None,
+                ssh_socks_proxy_inherit_defaults: None,
+                auth_method: None,
+                local_shell: None,
+                // The File Viewer reuses the local-path slot to store the target
+                // file path.
+                local_startup_directory: Some("  /var/log/syslog  ".to_string()),
+                local_startup_script: None,
+                url: None,
+                data_partition: None,
+                use_tmux_sessions: None,
+                serial_line: None,
+                serial_speed: None,
+                rdp_options: None,
+                vnc_options: None,
+                ftp_options: None,
+                workspace_id: None,
+            })
+            .expect("File Viewer connection is created");
+
+        assert_eq!(created.connection_type, "fileView");
+        assert_eq!(created.host, "localhost");
+        assert_eq!(created.user, "");
+        assert_eq!(
+            created.local_startup_directory.as_deref(),
+            Some("/var/log/syslog")
+        );
+
+        // The new kind must round-trip through the connection tree listing,
+        // which exercises the CHECK constraint and row deserialization.
+        let listed = storage
+            .list_connection_tree()
+            .expect("connection tree lists");
+        assert!(
+            listed
+                .connections
+                .iter()
+                .any(|connection| connection.id == created.id
+                    && connection.connection_type == "fileView"),
+            "File Viewer connection should appear in the tree"
+        );
+    }
+
+    #[test]
     fn create_connection_can_persist_remote_desktop_connections() {
         let storage = Storage::open(temp_db_path("remote-desktop-create")).expect("storage opens");
 
@@ -2178,17 +2236,21 @@
 
         let defaults = storage.sftp_settings().expect("default SFTP settings load");
         assert_eq!(defaults.overwrite_behavior, "fail");
+        assert_eq!(defaults.file_explorer_open_mode, "external");
 
         let updated = storage
             .update_sftp_settings(SftpSettings {
                 overwrite_behavior: "  REPLACE  ".to_string(),
+                file_explorer_open_mode: "inline-editor".to_string(),
             })
             .expect("SFTP settings update");
 
         assert_eq!(updated.overwrite_behavior, "overwrite");
+        assert_eq!(updated.file_explorer_open_mode, "inlineEditor");
 
         let reloaded = storage.sftp_settings().expect("SFTP settings reload");
         assert_eq!(reloaded.overwrite_behavior, "overwrite");
+        assert_eq!(reloaded.file_explorer_open_mode, "inlineEditor");
     }
 
     #[test]
