@@ -70,7 +70,7 @@ interface DashboardStoreState {
   }) => Promise<DashboardCustomWidget | null>;
   updateCustomWidget: (id: string, patch: CustomWidgetPatch) => Promise<void>;
   removeCustomWidget: (id: string, forceDeleteInstances: boolean) => Promise<void>;
-  importCustomWidgets: (path: string) => Promise<DashboardCustomWidget[]>;
+  importCustomWidgetsFromJson: (rawJson: string) => Promise<DashboardCustomWidget[]>;
   clearAgentCreatedReveal: (id: string) => void;
   resetDashboard: () => Promise<void>;
 }
@@ -310,8 +310,8 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
     } catch (e) { set({ lastError: String(e) }); }
   },
 
-  importCustomWidgets: async (path) => {
-    const imported = await persistence.importCustomWidgets(path);
+  importCustomWidgetsFromJson: async (rawJson) => {
+    const imported = await persistence.importCustomWidgetsFromJson(rawJson);
     set((s) => ({ customWidgets: [...s.customWidgets, ...imported] }));
     return imported;
   },

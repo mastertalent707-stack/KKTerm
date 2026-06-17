@@ -2,8 +2,8 @@
 
 ## AI grep hints
 
-- Keys: `settings.exportSettings`, `settings.exportSettingsComplete`, `settings.importSettings`, `settings.importSettingsConfirm`, `settings.importSettingsComplete`, `settings.selectiveExport`, `settings.selectiveImport`, `settings.includeCredentials`, `settings.includeCredentialsWarning`, `settings.importActionAdd`, `settings.importActionReplace`, `settings.resetAllSettings`, `settings.resetAllSettingsConfirm`, `settings.resetAllSettingsComplete`, `settings.sectionCredentials`, `settings.credentialStorage`, `settings.credentialsStored`, `settings.deleteCredential`
-- Topics: SQLite store, OS keychain, encrypted SQLite secret store, settings export ZIP, selective `.kkbackup` export/import, startup backups, import / restore, reset all, where my data lives
+- Keys: `settings.exportSettings`, `settings.importSettings`, `settings.includeCredentials`, `settings.includeCredentialsWarning`, `settings.importActionAdd`, `settings.importActionReplace`, `settings.resetAllSettings`, `settings.resetAllSettingsConfirm`, `settings.resetAllSettingsComplete`, `settings.sectionCredentials`, `settings.credentialStorage`, `settings.credentialsStored`, `settings.deleteCredential`
+- Topics: SQLite store, OS keychain, encrypted SQLite secret store, settings Import/Export `.kkbackup`, startup backup ZIP snapshots, import / restore, reset all, where my data lives
 - Synonyms: "where is my data", "back up settings", "restore", "factory reset", "uninstall", "API key storage", "export connections without passwords", "share connections", "selective backup"
 
 ## Storage model
@@ -17,27 +17,29 @@ Terminal contents are **not** logged by default. There is no telemetry and no cl
 
 Do **not** put live session state (open Tabs, focused Pane, in-flight Sessions) into the SQLite Connection model. Live state belongs to the frontend workspace layer.
 
-## Export ZIP
+## Export `.kkbackup`
 
-`settings.exportSettings` opens a save-file dialog and produces an importable ZIP using the same shape consumed by `settings.importSettings`. The default filename follows the generated backup filename pattern. Status on success: `settings.exportSettingsComplete`.
+`settings.exportSettings` opens the category-aware export dialog and produces a `.kkbackup` bundle (a ZIP holding `manifest.json`, `data.json`, and an optional `secrets.enc`). The export dialog offers a switch per segment — `settings.segment_connections`, `settings.segment_workspaces`, `settings.segment_dashboards`, `settings.segment_settings`, `settings.segment_mcpServers`.
 
-Backups may run at:
+## Automatic backup snapshots
+
+Full database snapshot backups may run at:
 
 - App startup (configured).
 
-Backups must **not** run from app-window close.
+Automatic backups must **not** run from app-window close.
 
 ## Import / restore
 
-`settings.importSettings` opens a file picker. The confirmation prompt (`settings.importSettingsConfirm`) names the import as destructive — it replaces current settings and (where the ZIP includes them) Connections and Dashboard state. Status `settings.importSettingsComplete`.
+`settings.importSettings` opens the category-aware import dialog, then inspects the chosen `.kkbackup` before applying anything.
 
 ## Selective export / import
 
-`settings.selectiveExport` and `settings.selectiveImport` produce and consume a `.kkbackup` bundle (a ZIP holding `manifest.json`, `data.json`, and an optional `secrets.enc`). Unlike the whole-database ZIP, this is category-aware: the export dialog offers a switch per segment — `settings.segment_connections`, `settings.segment_workspaces`, `settings.segment_dashboards`, `settings.segment_settings`, `settings.segment_mcpServers`.
+The Settings data Import and Export buttons are the selective `.kkbackup` flow; the old whole-database single-file import/export buttons are no longer shown.
 
 By default the bundle carries **no passwords**, which is the safe way to share Connections with a colleague. Turning on `settings.includeCredentials` (only available when Connections is selected) requires a passphrase; Connection, URL, and SOCKS proxy passwords are then encrypted into `secrets.enc` (Argon2id + AES-256-GCM) and can only be imported by someone who knows the passphrase (`settings.includeCredentialsWarning`). Other secrets — widget secrets, AI/email/MCP keys — are **not** carried.
 
-On import, `settings.selectiveImport` first inspects the bundle, then lets the user choose an action per segment present: `settings.importActionSkip`, `settings.importActionAdd` (keep existing items and add the imported ones with fresh ids), or `settings.importActionReplace` (clear that category first). A safety database backup runs before any change (`settings.selectiveImportWarning`); importing the Settings segment reloads the app to re-read preferences. See [docs/ADR/0010-selective-export-import.md](../ADR/0010-selective-export-import.md) for the merge and secret-handling decisions.
+On import, KKTerm lets the user choose an action per segment present: `settings.importActionSkip`, `settings.importActionAdd` (keep existing items and add the imported ones with fresh ids), or `settings.importActionReplace` (clear that category first). A safety database backup runs before any change (`settings.selectiveImportWarning`); importing the Settings segment reloads the app to re-read preferences. See [docs/ADR/0010-selective-export-import.md](../ADR/0010-selective-export-import.md) for the merge and secret-handling decisions.
 
 ## Reset all settings
 

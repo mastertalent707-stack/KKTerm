@@ -275,6 +275,10 @@ export async function importCustomWidgets(path: string): Promise<DashboardCustom
   return invokeCommand("import_dashboard_widgets", { path });
 }
 
+export async function importCustomWidgetsFromJson(rawJson: string): Promise<DashboardCustomWidget[]> {
+  return invokeCommand("import_dashboard_widgets_json", { rawJson });
+}
+
 export async function resetDashboard(): Promise<void> {
   if (!isTauriRuntime()) {
     previewState = null;

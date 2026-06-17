@@ -2570,7 +2570,10 @@ mod tests {
         let detected = parse_detected_remote_os(
             "ID=debian\nKERNEL=Linux\nMODEL=Raspberry Pi 5 Model B Rev 1.0\n",
         );
-        assert_eq!(detected.model.as_deref(), Some("Raspberry Pi 5 Model B Rev 1.0"));
+        assert_eq!(
+            detected.model.as_deref(),
+            Some("Raspberry Pi 5 Model B Rev 1.0")
+        );
         let appliance = parse_detected_remote_os("ID=debian\nKERNEL=Linux\nAPP=Proxmox\n");
         assert_eq!(appliance.app.as_deref(), Some("proxmox"));
     }

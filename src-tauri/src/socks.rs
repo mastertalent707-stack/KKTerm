@@ -137,7 +137,12 @@ pub async fn connect_via_socks5(
     let proxy = parse_socks_proxy(proxy)?;
     let mut stream = TcpStream::connect(proxy.endpoint.as_str())
         .await
-        .map_err(|error| format!("failed to connect to SOCKS proxy {}: {error}", proxy.endpoint))?;
+        .map_err(|error| {
+            format!(
+                "failed to connect to SOCKS proxy {}: {error}",
+                proxy.endpoint
+            )
+        })?;
     let _ = stream.set_nodelay(true);
 
     // Greeting: offer username/password (RFC 1929) alongside no-authentication

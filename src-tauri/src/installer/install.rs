@@ -256,7 +256,14 @@ fn install_managed_bentopdf(
         .user_agent("KKTerm Install Helper")
         .build()
         .map_err(|error| error.to_string())?;
-    download_with_progress(&client, &archive_url, &download_path, tool_id, &cancel, emit)?;
+    download_with_progress(
+        &client,
+        &archive_url,
+        &download_path,
+        tool_id,
+        &cancel,
+        emit,
+    )?;
     extract_zip(&download_path, &source_dir)?;
     std::fs::remove_file(&download_path).ok();
 
@@ -269,7 +276,11 @@ fn install_managed_bentopdf(
     });
     run_streamed_with_refreshed_path_public(
         npm_program(),
-        &["install".into(), "--prefix".into(), project_dir.to_string_lossy().into_owned()],
+        &[
+            "install".into(),
+            "--prefix".into(),
+            project_dir.to_string_lossy().into_owned(),
+        ],
         tool_id,
         cancel.clone(),
         emit,
@@ -360,7 +371,10 @@ fn write_excalidraw_host_files(install_dir: &PathBuf) -> Result<(), String> {
 }
 
 fn write_bentopdf_server_file(install_dir: &Path, project_dir: &Path) -> Result<(), String> {
-    let dist_dir = project_dir.join("dist").to_string_lossy().replace('\\', "\\\\");
+    let dist_dir = project_dir
+        .join("dist")
+        .to_string_lossy()
+        .replace('\\', "\\\\");
     let port_file = install_dir
         .join(".kkterm-web-ui-port")
         .to_string_lossy()
@@ -446,11 +460,7 @@ fn single_child_dir(parent: &Path) -> Option<PathBuf> {
             if path.is_dir() { Some(path) } else { None }
         })
         .collect::<Vec<_>>();
-    if dirs.len() == 1 {
-        dirs.pop()
-    } else {
-        None
-    }
+    if dirs.len() == 1 { dirs.pop() } else { None }
 }
 
 fn read_package_json_version(path: &Path) -> Option<String> {
@@ -2291,10 +2301,7 @@ mod tests {
             Some("8.1.1"),
         );
 
-        assert_eq!(
-            dir,
-            install_dir.join("ffmpeg-8.1.1-full_build").join("bin")
-        );
+        assert_eq!(dir, install_dir.join("ffmpeg-8.1.1-full_build").join("bin"));
     }
 
     #[test]
@@ -2327,7 +2334,10 @@ mod tests {
 
         assert_eq!(
             dir,
-            local_app_data.join("Microsoft").join("WinGet").join("Links")
+            local_app_data
+                .join("Microsoft")
+                .join("WinGet")
+                .join("Links")
         );
     }
 

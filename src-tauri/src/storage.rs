@@ -3581,7 +3581,9 @@ fn normalize_local_startup_directory(
 ) -> Result<Option<String>, String> {
     // For `fileView` Connections this column stores the target file path rather
     // than a starting directory; both reuse the same non-secret local path slot.
-    if connection_type != "local" && connection_type != "localFiles" && connection_type != "fileView"
+    if connection_type != "local"
+        && connection_type != "localFiles"
+        && connection_type != "fileView"
     {
         return Ok(None);
     }

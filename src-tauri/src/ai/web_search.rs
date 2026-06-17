@@ -168,7 +168,11 @@ pub(crate) async fn web_search_scraper(query: &str, allow_insecure_tls: bool) ->
     }
 }
 
-pub(crate) async fn web_search_brave(query: &str, api_key: &str, allow_insecure_tls: bool) -> String {
+pub(crate) async fn web_search_brave(
+    query: &str,
+    api_key: &str,
+    allow_insecure_tls: bool,
+) -> String {
     let client = match build_web_client(allow_insecure_tls) {
         Ok(c) => c,
         Err(e) => return e,
@@ -205,7 +209,11 @@ pub(crate) async fn web_search_brave(query: &str, api_key: &str, allow_insecure_
     }
 }
 
-pub(crate) async fn web_search_tavily(query: &str, api_key: &str, allow_insecure_tls: bool) -> String {
+pub(crate) async fn web_search_tavily(
+    query: &str,
+    api_key: &str,
+    allow_insecure_tls: bool,
+) -> String {
     let client = match build_web_client(allow_insecure_tls) {
         Ok(c) => c,
         Err(e) => return e,
@@ -246,7 +254,11 @@ pub(crate) async fn web_search_tavily(query: &str, api_key: &str, allow_insecure
     }
 }
 
-pub(crate) async fn web_search_searxng(query: &str, instance_url: &str, allow_insecure_tls: bool) -> String {
+pub(crate) async fn web_search_searxng(
+    query: &str,
+    instance_url: &str,
+    allow_insecure_tls: bool,
+) -> String {
     let client = match build_web_client(allow_insecure_tls) {
         Ok(c) => c,
         Err(e) => return e,

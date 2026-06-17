@@ -819,7 +819,11 @@ pub fn list_custom_widgets_for_export(
         })?
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
-        .filter(|widget| wanted.as_ref().is_none_or(|set| set.contains(widget.id.as_str())))
+        .filter(|widget| {
+            wanted
+                .as_ref()
+                .is_none_or(|set| set.contains(widget.id.as_str()))
+        })
         .collect();
     Ok(widgets)
 }

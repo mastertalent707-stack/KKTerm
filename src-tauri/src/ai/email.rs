@@ -118,7 +118,10 @@ pub(crate) fn email_http_client(settings: &AiProviderSettings) -> Result<reqwest
     build_web_client(settings.allow_insecure_tls())
 }
 
-pub(crate) async fn send_email_resend(settings: &AiProviderSettings, request: &EmailToolRequest) -> String {
+pub(crate) async fn send_email_resend(
+    settings: &AiProviderSettings,
+    request: &EmailToolRequest,
+) -> String {
     let api_key = match require_email_secret(settings, "Resend API key") {
         Ok(key) => key,
         Err(error) => return json!({"ok": false, "error": error}).to_string(),
@@ -143,7 +146,10 @@ pub(crate) async fn send_email_resend(settings: &AiProviderSettings, request: &E
     .await
 }
 
-pub(crate) async fn send_email_sendgrid(settings: &AiProviderSettings, request: &EmailToolRequest) -> String {
+pub(crate) async fn send_email_sendgrid(
+    settings: &AiProviderSettings,
+    request: &EmailToolRequest,
+) -> String {
     let api_key = match require_email_secret(settings, "SendGrid API key") {
         Ok(key) => key,
         Err(error) => return json!({"ok": false, "error": error}).to_string(),
@@ -199,7 +205,10 @@ pub(crate) async fn send_email_sendgrid(settings: &AiProviderSettings, request: 
     .await
 }
 
-pub(crate) async fn send_email_mailgun(settings: &AiProviderSettings, request: &EmailToolRequest) -> String {
+pub(crate) async fn send_email_mailgun(
+    settings: &AiProviderSettings,
+    request: &EmailToolRequest,
+) -> String {
     let api_key = match require_email_secret(settings, "Mailgun API key") {
         Ok(key) => key,
         Err(error) => return json!({"ok": false, "error": error}).to_string(),
@@ -244,7 +253,10 @@ pub(crate) async fn send_email_mailgun(settings: &AiProviderSettings, request: &
     .await
 }
 
-pub(crate) async fn send_email_postmark(settings: &AiProviderSettings, request: &EmailToolRequest) -> String {
+pub(crate) async fn send_email_postmark(
+    settings: &AiProviderSettings,
+    request: &EmailToolRequest,
+) -> String {
     let api_key = match require_email_secret(settings, "Postmark server token") {
         Ok(key) => key,
         Err(error) => return json!({"ok": false, "error": error}).to_string(),
@@ -302,7 +314,10 @@ pub(crate) fn insert_optional_email_fields(body: &mut Value, request: &EmailTool
     }
 }
 
-pub(crate) async fn send_email_http_request(builder: reqwest::RequestBuilder, provider: &str) -> String {
+pub(crate) async fn send_email_http_request(
+    builder: reqwest::RequestBuilder,
+    provider: &str,
+) -> String {
     match builder.send().await {
         Ok(response) => {
             let status = response.status();
@@ -371,7 +386,10 @@ pub(crate) fn send_email_smtp(settings: &AiProviderSettings, request: &EmailTool
     }
 }
 
-pub(crate) fn build_smtp_message(from: &str, request: &EmailToolRequest) -> Result<Message, String> {
+pub(crate) fn build_smtp_message(
+    from: &str,
+    request: &EmailToolRequest,
+) -> Result<Message, String> {
     let mut builder = Message::builder()
         .from(parse_mailbox(from)?)
         .subject(&request.subject);

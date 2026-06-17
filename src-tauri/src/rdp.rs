@@ -322,10 +322,7 @@ mod platform {
             // The pane only gives us logical/native pixel bounds, so send an
             // invalid small value and let the server ignore the physical-size
             // hint instead of deriving scale/input transforms from bogus mm.
-            (
-                RDP_UNKNOWN_PHYSICAL_SIZE_MM,
-                RDP_UNKNOWN_PHYSICAL_SIZE_MM,
-            )
+            (RDP_UNKNOWN_PHYSICAL_SIZE_MM, RDP_UNKNOWN_PHYSICAL_SIZE_MM)
         }
 
         fn desktop_scale_factor(&self, scale_factor: f64) -> i32 {
@@ -2011,14 +2008,7 @@ mod platform {
         height: f64,
         force: bool,
     ) -> Result<(), String> {
-        let rect = show_rdp_for_session(
-            session,
-            scale_factor,
-            x,
-            y,
-            width,
-            height,
-        )?;
+        let rect = show_rdp_for_session(session, scale_factor, x, y, width, height)?;
         if !session.resolution_mode.tracks_pane_size() {
             return Ok(());
         }
@@ -2074,8 +2064,7 @@ mod platform {
         let resize_method = match resize_remote_desktop(&session.dispatch, display_settings) {
             Ok(method) => method,
             Err(error) => {
-                session.dynamic_resize_failures =
-                    session.dynamic_resize_failures.saturating_add(1);
+                session.dynamic_resize_failures = session.dynamic_resize_failures.saturating_add(1);
                 rdp_debug(
                     "display.resize.error",
                     &json!({

@@ -79,8 +79,8 @@ the merged rows.
   carried — widget secrets and AI/email/MCP keys are not, so widgets/servers
   that depend on them prompt for re-entry after import. `is_default` is cleared
   on merged Workspaces to avoid two defaults.
-- The whole-database export/import remains for full disaster-recovery snapshots;
-  the selective path is the sharing/partial-restore tool, not a replacement.
+- Whole-database snapshot commands remain for internal backup/recovery paths,
+  but the visible Settings Import/Export buttons now use the selective path.
 - A generic row engine trades the repo's usual typed-struct style for compactness
   in this one subsystem; the per-table metadata is the single place to update if
   the schema of an exported table changes.

@@ -167,7 +167,10 @@ impl Storage {
         Ok(settings)
     }
 
-    pub(crate) fn record_last_backup_at(&self, created_at: &str) -> Result<GeneralSettings, String> {
+    pub(crate) fn record_last_backup_at(
+        &self,
+        created_at: &str,
+    ) -> Result<GeneralSettings, String> {
         let mut settings = self.general_settings()?;
         settings.last_backup_at = Some(created_at.to_string());
         self.update_general_settings(settings)

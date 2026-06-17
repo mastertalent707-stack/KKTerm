@@ -213,21 +213,24 @@ impl ResponsesStreamState {
                 continue;
             };
             if !item.name.is_empty() && !item.call_id.is_empty() {
-                    tool_calls.push(OpenAiToolCall {
-                        id: item.call_id,
-                        function: OpenAiToolCallFunction {
-                            name: item.name,
-                            arguments: item.arguments,
-                        },
-                        extra_content: None,
-                    });
+                tool_calls.push(OpenAiToolCall {
+                    id: item.call_id,
+                    function: OpenAiToolCallFunction {
+                        name: item.name,
+                        arguments: item.arguments,
+                    },
+                    extra_content: None,
+                });
             }
         }
         tool_calls
     }
 }
 
-pub(crate) fn append_completed_responses_text(state: &mut ResponsesStreamState, text: &str) -> Option<String> {
+pub(crate) fn append_completed_responses_text(
+    state: &mut ResponsesStreamState,
+    text: &str,
+) -> Option<String> {
     let text = text.trim();
     if text.is_empty() {
         return None;

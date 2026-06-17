@@ -1,10 +1,18 @@
 import * as Icons from "lucide-react";
-import { Download, Trash2, Upload, X } from "lucide-react";
+import { Download, FileJson, Trash2, Upload, X } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DeleteConfirmationDialog } from "../../../app/DeleteConfirmationDialog";
-import { selectWidgetExportFile, selectWidgetImportFile } from "../../../lib/tauri";
+import {
+  Actions,
+  Btn,
+  DialogShell,
+  Field,
+  Sheet,
+  TextArea,
+} from "../../../app/ui/dialog";
+import { selectAndReadWidgetImportFile, selectWidgetExportFile } from "../../../lib/tauri";
 import { useWorkspaceStore } from "../../../store";
 import { exportCustomWidgets } from "../state/persistence";
 import { useDashboardStore } from "../state/dashboardStore";
@@ -14,6 +22,7 @@ import { resolveAccent } from "../registry/palette";
 import { randomNotesSettings } from "../widgets/builtin/notes/NotesWidget";
 import type { AccentName, IconName, WidgetKind, WidgetPreset } from "../types";
 import { CATALOG_GROUPS, getCatalogGroup } from "./catalogModel";
+import { parseWidgetImportPreview, type WidgetImportPreview } from "./widgetImportPreview";
 
 export interface CatalogOverlayProps { viewId: string; onClose: () => void; }
 
@@ -37,11 +46,12 @@ export function CatalogOverlay({ viewId, onClose }: CatalogOverlayProps) {
   const instances = useDashboardStore((s) => s.instances);
   const addInstance = useDashboardStore((s) => s.addInstance);
   const removeCustomWidget = useDashboardStore((s) => s.removeCustomWidget);
-  const importCustomWidgets = useDashboardStore((s) => s.importCustomWidgets);
+  const importCustomWidgetsFromJson = useDashboardStore((s) => s.importCustomWidgetsFromJson);
   const showStatusBarNotice = useWorkspaceStore((s) => s.showStatusBarNotice);
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState<(typeof CATALOG_GROUPS)[number]>("builtIn");
   const [deleteTarget, setDeleteTarget] = useState<CatalogEntry | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const entries: CatalogEntry[] = useMemo(() => {
     const builtIns: CatalogEntry[] = BUILT_IN_WIDGETS.map((w) => ({
@@ -130,21 +140,6 @@ export function CatalogOverlay({ viewId, onClose }: CatalogOverlayProps) {
     }
   }
 
-  async function handleImport() {
-    try {
-      const path = await selectWidgetImportFile({
-        title: t("dashboard.importWidget"),
-        filterName: t("dashboard.widgetFileFilter"),
-      });
-      if (!path) return;
-      const imported = await importCustomWidgets(path);
-      showStatusBarNotice(t("dashboard.importWidgetsComplete", { count: imported.length }), { tone: "success" });
-      setGroup("custom");
-    } catch (error) {
-      showStatusBarNotice(error instanceof Error ? error.message : String(error), { tone: "error" });
-    }
-  }
-
   return (
     <div className="dw-catalog-backdrop" onClick={onClose}>
       <div className="dw-catalog" onClick={(e) => e.stopPropagation()}>
@@ -173,7 +168,7 @@ export function CatalogOverlay({ viewId, onClose }: CatalogOverlayProps) {
         </nav>
         {group === "custom" && (
           <div className="dw-catalog-actions">
-            <button type="button" className="dw-catalog-action" onClick={() => void handleImport()}>
+            <button type="button" className="dw-catalog-action" onClick={() => setImportDialogOpen(true)}>
               <Upload width={13} height={13} /> {t("dashboard.importWidget")}
             </button>
             <button
@@ -269,7 +264,128 @@ export function CatalogOverlay({ viewId, onClose }: CatalogOverlayProps) {
             title={t("dashboard.deleteCustomWidgetTitle")}
           />
         )}
+        {importDialogOpen && (
+          <WidgetImportDialog
+            onClose={() => setImportDialogOpen(false)}
+            onImport={async (rawJson) => {
+              const imported = await importCustomWidgetsFromJson(rawJson);
+              showStatusBarNotice(t("dashboard.importWidgetsComplete", { count: imported.length }), { tone: "success" });
+              setGroup("custom");
+              setImportDialogOpen(false);
+            }}
+            onError={(message) => showStatusBarNotice(message, { tone: "error" })}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+function WidgetImportDialog({
+  onClose,
+  onImport,
+  onError,
+}: {
+  onClose: () => void;
+  onImport: (rawJson: string) => Promise<void>;
+  onError: (message: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [rawJson, setRawJson] = useState("");
+  const [sourceName, setSourceName] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const preview = rawJson.trim().length > 0 ? parseWidgetImportPreview(rawJson) : null;
+  const canImport = Boolean(preview?.ok) && !busy;
+
+  async function handleLoadFile() {
+    setBusy(true);
+    try {
+      const loaded = await selectAndReadWidgetImportFile({
+        title: t("dashboard.importWidget"),
+        filterName: t("dashboard.widgetFileFilter"),
+      });
+      if (loaded) {
+        setRawJson(loaded.text);
+        setSourceName(loaded.name);
+      }
+    } catch (error) {
+      onError(error instanceof Error ? error.message : String(error));
+    }
+    setBusy(false);
+  }
+
+  async function handleImport() {
+    if (!preview?.ok || busy) return;
+    setBusy(true);
+    try {
+      await onImport(rawJson);
+    } catch (error) {
+      onError(error instanceof Error ? error.message : String(error));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <DialogShell onBackdrop={onClose}>
+      <Sheet
+        width={560}
+        title={t("dashboard.importWidget")}
+        footer={
+          <Actions
+            primary={
+              <Btn kind="primary" icon="upload" onClick={() => void handleImport()} disabled={!canImport}>
+                {t("dashboard.importWidget")}
+              </Btn>
+            }
+            cancel={<Btn onClick={onClose}>{t("common.cancel")}</Btn>}
+          />
+        }
+      >
+        <div className="dw-widget-import-source">
+          <Btn icon="folder" onClick={() => void handleLoadFile()} disabled={busy}>
+            {t("dashboard.importWidgetFromFile")}
+          </Btn>
+          {sourceName ? <span>{sourceName}</span> : null}
+        </div>
+        <Field label={t("dashboard.importWidgetPasteLabel")} hint={t("dashboard.importWidgetPasteHint")}>
+          <TextArea
+            rows={9}
+            value={rawJson}
+            onChange={(event) => {
+              setRawJson(event.currentTarget.value);
+              setSourceName(null);
+            }}
+            placeholder={t("dashboard.importWidgetPastePlaceholder")}
+          />
+        </Field>
+        <WidgetImportPreviewPanel preview={preview} />
+      </Sheet>
+    </DialogShell>
+  );
+}
+
+function WidgetImportPreviewPanel({ preview }: { preview: WidgetImportPreview | null }) {
+  const { t } = useTranslation();
+  if (!preview) {
+    return <p className="dw-widget-import-empty">{t("dashboard.importWidgetPreviewEmpty")}</p>;
+  }
+  if (!preview.ok) {
+    return <p className="dw-widget-import-error">{t("dashboard.importWidgetPreviewInvalid")}</p>;
+  }
+  return (
+    <div className="dw-widget-import-preview">
+      <div>
+        <FileJson size={16} />
+        <strong>{t("dashboard.importWidgetPreviewTitle", { count: preview.count })}</strong>
+      </div>
+      <ul>
+        {preview.titles.slice(0, 5).map((title, index) => (
+          <li key={`${title}-${index}`}>{title}</li>
+        ))}
+      </ul>
+      {preview.titles.length > 5 ? (
+        <p>{t("dashboard.importWidgetPreviewMore", { count: preview.titles.length - 5 })}</p>
+      ) : null}
     </div>
   );
 }

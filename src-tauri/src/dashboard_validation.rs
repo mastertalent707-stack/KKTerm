@@ -340,11 +340,7 @@ fn is_safe_material_icon_ref(value: &str) -> bool {
         return false;
     }
     chars.all(|ch| {
-        ch.is_ascii_lowercase()
-            || ch.is_ascii_digit()
-            || ch == '.'
-            || ch == '_'
-            || ch == '-'
+        ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '.' || ch == '_' || ch == '-'
     })
 }
 
@@ -617,7 +613,10 @@ const PLACEHOLDER_ACTIVITY_MARKERS: &[&str] = &[
 /// a real widget is not.
 fn detect_placeholder_widget(source: &str, libraries: Option<&Vec<String>>) -> Option<String> {
     let lower = source.to_ascii_lowercase();
-    if !PLACEHOLDER_PHRASES.iter().any(|phrase| lower.contains(*phrase)) {
+    if !PLACEHOLDER_PHRASES
+        .iter()
+        .any(|phrase| lower.contains(*phrase))
+    {
         return None;
     }
     let declares_library = libraries.is_some_and(|libs| !libs.is_empty());
@@ -2171,7 +2170,10 @@ mod tests {
         let applied = normalize_script_body(&mut body);
         assert!(applied.contains(&"stripped markdown code fence from source".to_string()));
         assert!(applied.contains(&"stripped markdown code fence from htmlShim".to_string()));
-        assert_eq!(body["htmlShim"], serde_json::json!("<div id=\"root\"></div>"));
+        assert_eq!(
+            body["htmlShim"],
+            serde_json::json!("<div id=\"root\"></div>")
+        );
         assert!(validate_script_body_json(&body.to_string()).is_ok());
     }
 

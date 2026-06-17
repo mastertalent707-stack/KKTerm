@@ -29,7 +29,7 @@ pub fn apply_title_bar_mode<R: tauri::Runtime>(window: &tauri::WebviewWindow<R>)
 fn neutralize_drag_resize_focus<R: tauri::Runtime>(window: &tauri::WebviewWindow<R>) {
     use windows::Win32::Foundation::HWND;
     use windows::Win32::UI::WindowsAndMessaging::{
-        GWL_EXSTYLE, GW_CHILD, GW_HWNDNEXT, GetWindow, GetWindowLongPtrW, GetWindowTextW,
+        GW_CHILD, GW_HWNDNEXT, GWL_EXSTYLE, GetWindow, GetWindowLongPtrW, GetWindowTextW,
         SetWindowLongPtrW, WS_EX_NOACTIVATE,
     };
 

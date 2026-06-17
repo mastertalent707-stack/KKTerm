@@ -25,9 +25,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tokio::sync::oneshot;
 use tokio::time::timeout;
 
+mod openai_provider;
 mod prompt_contracts;
 mod providers;
-mod openai_provider;
 #[allow(unused_imports)]
 pub(crate) use openai_provider::*;
 mod streaming;
@@ -1252,7 +1252,6 @@ impl AgentProvider for CliAgentProvider {
     }
 }
 
-
 #[derive(Clone, Copy)]
 enum OpenAiEndpointStyle {
     ChatCompletions,
@@ -1317,8 +1316,6 @@ impl AgentProvider for OpenAiCompatibleProvider {
             .await
     }
 }
-
-
 
 #[derive(Serialize)]
 struct OpenAiCompatibleChatRequest {
@@ -3536,11 +3533,19 @@ fn update_plan_tool(args: Value, stream_channel: Option<&Channel<Value>>) -> Str
     let mut steps = Vec::new();
     for raw in raw_steps.iter().take(8) {
         let id = raw.get("id").and_then(Value::as_str).unwrap_or("").trim();
-        let label = raw.get("label").and_then(Value::as_str).unwrap_or("").trim();
+        let label = raw
+            .get("label")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .trim();
         if id.is_empty() || label.is_empty() {
             continue;
         }
-        let status = match raw.get("status").and_then(Value::as_str).unwrap_or("pending") {
+        let status = match raw
+            .get("status")
+            .and_then(Value::as_str)
+            .unwrap_or("pending")
+        {
             status @ ("pending" | "running" | "completed" | "blocked") => status,
             _ => "pending",
         };
@@ -3615,15 +3620,13 @@ pub(crate) fn connection_tool(app: &tauri::AppHandle, name: &str, args: Value) -
                         .map(|connection| serde_json::to_value(connection).unwrap_or(Value::Null))
                 })
         }
-        "connection_move" => {
-            serde_json::from_value::<crate::storage::MoveConnectionRequest>(args)
-                .map_err(|error| format!("invalid connection_move request: {error}"))
-                .and_then(|request| {
-                    storage
-                        .move_connection(request)
-                        .map(|tree| serde_json::to_value(tree).unwrap_or(Value::Null))
-                })
-        }
+        "connection_move" => serde_json::from_value::<crate::storage::MoveConnectionRequest>(args)
+            .map_err(|error| format!("invalid connection_move request: {error}"))
+            .and_then(|request| {
+                storage
+                    .move_connection(request)
+                    .map(|tree| serde_json::to_value(tree).unwrap_or(Value::Null))
+            }),
         "connection_open" => {
             let id = arg_string(&args, "id");
             if id.is_empty() {
@@ -4264,7 +4267,11 @@ fn memory_scopes_for(active_connection_scope: Option<&str>) -> Vec<String> {
 }
 
 fn memory_scope_label(scope: &str) -> &str {
-    if scope == "global" { "global" } else { "connection" }
+    if scope == "global" {
+        "global"
+    } else {
+        "connection"
+    }
 }
 
 fn rfc3339_now() -> String {
@@ -4789,7 +4796,6 @@ fn shell_command_tool(root: &Path, args: Value) -> String {
     }
 }
 
-
 fn collect_file_matches(root: &Path, dir: &Path, query: &str, matches: &mut Vec<String>) {
     if matches.len() >= 50 {
         return;
@@ -5184,7 +5190,6 @@ fn has_unquoted_redirection(command: &str) -> bool {
     }
     false
 }
-
 
 #[derive(Deserialize)]
 struct OpenAiCompatibleChatResponse {

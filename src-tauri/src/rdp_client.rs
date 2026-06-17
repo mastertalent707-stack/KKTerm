@@ -76,7 +76,6 @@ const DEFAULT_RDP_PORT: u16 = 3389;
 const DEFAULT_RDP_WIDTH: u16 = 1280;
 const DEFAULT_RDP_HEIGHT: u16 = 800;
 
-
 // ── Session manager ───────────────────────────────────────────────────────────
 
 pub struct RdpClientSessionManager {
@@ -93,8 +92,15 @@ struct RdpClientSession {
 /// Input operations queued from the frontend, translated to IronRDP input in
 /// the event loop (Task 4/5).
 enum RdpInput {
-    Pointer { x: u16, y: u16, button_mask: u8 },
-    Key { scancode: u16, down: bool },
+    Pointer {
+        x: u16,
+        y: u16,
+        button_mask: u8,
+    },
+    Key {
+        scancode: u16,
+        down: bool,
+    },
     /// Composed text (IME / printable characters) sent as RDP Unicode keyboard
     /// events — layout- and IME-independent, unlike scancodes.
     Text(String),
@@ -120,13 +126,20 @@ pub struct StartRdpClientSessionRequest {
 
 impl StartRdpClientSessionRequest {
     fn desktop_width(&self) -> u16 {
-        self.desktop_width.filter(|v| *v > 0).unwrap_or(DEFAULT_RDP_WIDTH)
+        self.desktop_width
+            .filter(|v| *v > 0)
+            .unwrap_or(DEFAULT_RDP_WIDTH)
     }
     fn desktop_height(&self) -> u16 {
-        self.desktop_height.filter(|v| *v > 0).unwrap_or(DEFAULT_RDP_HEIGHT)
+        self.desktop_height
+            .filter(|v| *v > 0)
+            .unwrap_or(DEFAULT_RDP_HEIGHT)
     }
     pub(crate) fn secret_owner_id(&self) -> Option<&str> {
-        self.secret_owner_id.as_deref().map(str::trim).filter(|v| !v.is_empty())
+        self.secret_owner_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
     }
     pub(crate) fn password(&self) -> Option<&str> {
         self.password.as_deref().filter(|v| !v.is_empty())
@@ -182,14 +195,44 @@ pub struct RdpClientSimpleRequest {
 }
 
 #[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "kind")]
+#[serde(
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    tag = "kind"
+)]
 enum RdpCanvasEvent {
-    Connected { session_id: String, name: String },
-    Resolution { session_id: String, width: u16, height: u16 },
-    RawImage { session_id: String, x: u16, y: u16, width: u16, height: u16, rgba: String },
-    SetCursor { session_id: String, width: u16, height: u16, hot_x: u16, hot_y: u16, rgba: String },
-    Error { session_id: String, message: String },
-    Disconnected { session_id: String },
+    Connected {
+        session_id: String,
+        name: String,
+    },
+    Resolution {
+        session_id: String,
+        width: u16,
+        height: u16,
+    },
+    RawImage {
+        session_id: String,
+        x: u16,
+        y: u16,
+        width: u16,
+        height: u16,
+        rgba: String,
+    },
+    SetCursor {
+        session_id: String,
+        width: u16,
+        height: u16,
+        hot_x: u16,
+        hot_y: u16,
+        rgba: String,
+    },
+    Error {
+        session_id: String,
+        message: String,
+    },
+    Disconnected {
+        session_id: String,
+    },
 }
 
 impl RdpClientSessionManager {
@@ -303,20 +346,31 @@ impl RdpClientSessionManager {
             },
         );
 
-        Ok(RdpClientSessionStarted { session_id, host, port })
+        Ok(RdpClientSessionStarted {
+            session_id,
+            host,
+            port,
+        })
     }
 
     pub fn pointer_event(&self, request: RdpClientPointerEventRequest) -> Result<(), String> {
         self.queue_input(
             &request.session_id,
-            RdpInput::Pointer { x: request.x, y: request.y, button_mask: request.button_mask },
+            RdpInput::Pointer {
+                x: request.x,
+                y: request.y,
+                button_mask: request.button_mask,
+            },
         )
     }
 
     pub fn key_event(&self, request: RdpClientKeyEventRequest) -> Result<(), String> {
         self.queue_input(
             &request.session_id,
-            RdpInput::Key { scancode: request.scancode, down: request.down },
+            RdpInput::Key {
+                scancode: request.scancode,
+                down: request.down,
+            },
         )
     }
 
@@ -341,13 +395,19 @@ impl RdpClientSessionManager {
         Ok(())
     }
 
-    pub fn session_status(&self, request: RdpClientSimpleRequest) -> Result<RdpClientSessionStatus, String> {
+    pub fn session_status(
+        &self,
+        request: RdpClientSimpleRequest,
+    ) -> Result<RdpClientSessionStatus, String> {
         let sessions = self.lock_sessions()?;
         let connected = sessions
             .get(&request.session_id)
             .map(|s| s.connected)
             .unwrap_or(false);
-        Ok(RdpClientSessionStatus { session_id: request.session_id, connected })
+        Ok(RdpClientSessionStatus {
+            session_id: request.session_id,
+            connected,
+        })
     }
 
     fn queue_input(&self, session_id: &str, input: RdpInput) -> Result<(), String> {
@@ -361,7 +421,9 @@ impl RdpClientSessionManager {
     }
 
     fn lock_sessions(&self) -> Result<MutexGuard<'_, HashMap<String, RdpClientSession>>, String> {
-        self.sessions.lock().map_err(|_| "RDP session lock is poisoned".to_string())
+        self.sessions
+            .lock()
+            .map_err(|_| "RDP session lock is poisoned".to_string())
     }
 }
 
@@ -602,8 +664,7 @@ async fn rdp_connect(
     height: u16,
 ) -> Result<(ironrdp::connector::ConnectionResult, UpgradedFramed), String> {
     use ironrdp::connector::{
-        ClientConnector, Config, Credentials, DesktopSize, ServerName,
-        credssp::KerberosConfig,
+        ClientConnector, Config, Credentials, DesktopSize, ServerName, credssp::KerberosConfig,
     };
     use ironrdp::pdu::gcc::KeyboardType;
     use ironrdp::pdu::rdp::capability_sets::MajorPlatformType;
@@ -1111,7 +1172,8 @@ async fn send_rdp_input(
 
     let pdu = ironrdp::pdu::input::fast_path::FastPathInput::new(events.to_vec())
         .map_err(|e| format!("failed to build RDP input PDU: {e}"))?;
-    let bytes = ironrdp::core::encode_vec(&pdu).map_err(|e| format!("failed to encode RDP input: {e}"))?;
+    let bytes =
+        ironrdp::core::encode_vec(&pdu).map_err(|e| format!("failed to encode RDP input: {e}"))?;
     framed
         .write_all(&bytes)
         .await
@@ -1151,7 +1213,10 @@ fn required_id(value: String) -> Result<String, String> {
     if trimmed.len() > 96 {
         return Err("RDP session id must be 96 characters or fewer".to_string());
     }
-    if !trimmed.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_')) {
+    if !trimmed
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_'))
+    {
         return Err("RDP session id may only contain letters, digits, '-' or '_'".to_string());
     }
     Ok(trimmed.to_string())
@@ -1159,14 +1224,7 @@ fn required_id(value: String) -> Result<String, String> {
 
 /// Copy the `(x, y, w, h)` sub-rectangle out of a full-frame RGBA buffer
 /// (`stride = full_width * 4`) into a tightly packed RGBA buffer.
-fn extract_rgba_rect(
-    full_rgba: &[u8],
-    full_width: u16,
-    x: u16,
-    y: u16,
-    w: u16,
-    h: u16,
-) -> Vec<u8> {
+fn extract_rgba_rect(full_rgba: &[u8], full_width: u16, x: u16, y: u16, w: u16, h: u16) -> Vec<u8> {
     let stride = full_width as usize * 4;
     let mut out = Vec::with_capacity(w as usize * h as usize * 4);
     for row in 0..h as usize {
@@ -1229,10 +1287,7 @@ mod tests {
     fn extracts_rgba_rect_from_framebuffer() {
         // 2x2 RGBA image, extract the bottom-right 1x1 pixel.
         let width = 2u16;
-        let full = vec![
-            0, 0, 0, 255,        1, 1, 1, 255,
-            2, 2, 2, 255,        3, 3, 3, 255,
-        ];
+        let full = vec![0, 0, 0, 255, 1, 1, 1, 255, 2, 2, 2, 255, 3, 3, 3, 255];
         let rect = extract_rgba_rect(&full, width, 1, 1, 1, 1);
         assert_eq!(rect, vec![3, 3, 3, 255]);
     }

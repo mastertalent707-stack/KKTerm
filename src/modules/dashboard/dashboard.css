@@ -2410,6 +2410,65 @@ button.dashboard-pill-dot:focus-visible {
   cursor: default;
 }
 
+.dw-widget-import-source {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dw-widget-import-source span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dw-widget-import-empty,
+.dw-widget-import-error,
+.dw-widget-import-preview {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.dw-widget-import-error {
+  border-color: color-mix(in srgb, var(--red) 28%, var(--border));
+  background: color-mix(in srgb, var(--red) 8%, var(--surface-muted));
+  color: var(--red);
+}
+
+.dw-widget-import-preview {
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+}
+
+.dw-widget-import-preview > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dw-widget-import-preview ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 22px;
+  color: var(--text-muted);
+}
+
+.dw-widget-import-preview p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
 .dw-catalog-export {
   position: absolute;
   bottom: 6px;

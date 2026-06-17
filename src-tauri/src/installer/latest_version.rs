@@ -421,7 +421,9 @@ mod tests {
             Some("alam00000/bentopdf".to_string())
         );
         assert_eq!(
-            github_releases_repo_from_url("https://github.com/alam00000/bentopdf/releases/tag/v2.8.5"),
+            github_releases_repo_from_url(
+                "https://github.com/alam00000/bentopdf/releases/tag/v2.8.5"
+            ),
             Some("alam00000/bentopdf".to_string())
         );
         assert_eq!(
@@ -434,7 +436,10 @@ mod tests {
     fn github_release_tag_normalizes_common_v_prefix() {
         assert_eq!(normalize_github_release_tag("v2.8.5"), "2.8.5");
         assert_eq!(normalize_github_release_tag("V2.8.5"), "2.8.5");
-        assert_eq!(normalize_github_release_tag("release-2.8.5"), "release-2.8.5");
+        assert_eq!(
+            normalize_github_release_tag("release-2.8.5"),
+            "release-2.8.5"
+        );
     }
 
     #[test]

@@ -1440,21 +1440,15 @@ mod tests {
         assert!(names.contains(&"kkterm.dashboard.dangerous.reset".to_string()));
         // File browser surface
         assert!(names.contains(&"kkterm.workspace.file_browser.list".to_string()));
-        assert!(names.contains(
-            &"kkterm.workspace.file_browser.dangerous.create_folder".to_string()
-        ));
+        assert!(
+            names.contains(&"kkterm.workspace.file_browser.dangerous.create_folder".to_string())
+        );
         assert!(names.contains(&"kkterm.workspace.file_browser.dangerous.rename".to_string()));
         assert!(names.contains(&"kkterm.workspace.file_browser.dangerous.delete".to_string()));
         // Remote desktop surface
-        assert!(
-            names.contains(&"kkterm.workspace.sessions.remote_desktop_screenshot".to_string())
-        );
-        assert!(
-            names.contains(&"kkterm.workspace.dangerous.remote_desktop_send_text".to_string())
-        );
-        assert!(
-            names.contains(&"kkterm.workspace.dangerous.remote_desktop_keypress".to_string())
-        );
+        assert!(names.contains(&"kkterm.workspace.sessions.remote_desktop_screenshot".to_string()));
+        assert!(names.contains(&"kkterm.workspace.dangerous.remote_desktop_send_text".to_string()));
+        assert!(names.contains(&"kkterm.workspace.dangerous.remote_desktop_keypress".to_string()));
         // Network surface
         assert!(names.contains(&"kkterm.network.ping".to_string()));
         assert!(names.contains(&"kkterm.network.dns".to_string()));

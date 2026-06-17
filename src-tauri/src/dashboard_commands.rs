@@ -399,8 +399,23 @@ pub fn import_dashboard_widgets(
     let raw = fs::read_to_string(&path).map_err(|error| DashboardCommandError::Internal {
         message: format!("failed to read widget file {path}: {error}"),
     })?;
+    import_dashboard_widgets_from_json(app, raw)
+}
+
+#[tauri::command]
+pub fn import_dashboard_widgets_json(
+    app: AppHandle,
+    raw_json: String,
+) -> Result<Vec<DashboardCustomWidget>, DashboardCommandError> {
+    import_dashboard_widgets_from_json(app, raw_json)
+}
+
+fn import_dashboard_widgets_from_json(
+    app: AppHandle,
+    raw_json: String,
+) -> Result<Vec<DashboardCustomWidget>, DashboardCommandError> {
     let parsed: WidgetExportFile =
-        serde_json::from_str(&raw).map_err(|error| DashboardCommandError::Validation {
+        serde_json::from_str(&raw_json).map_err(|error| DashboardCommandError::Validation {
             reason: "InvalidWidgetFile".to_string(),
             detail: Some(error.to_string()),
         })?;

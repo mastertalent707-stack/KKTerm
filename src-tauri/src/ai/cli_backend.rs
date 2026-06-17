@@ -1,6 +1,6 @@
+use super::ai_interaction_debug;
 #[allow(unused_imports)]
 use super::*;
-use super::ai_interaction_debug;
 
 pub(crate) struct AcpCommandSpec {
     pub(crate) program: String,
@@ -366,9 +366,7 @@ pub(crate) fn acp_permission_approved(
     // ACP tool calls carry CLI-defined shapes we can't classify, so no risk
     // notes here; session-allow behavior is unchanged for ACP.
     match app.try_state::<AssistantToolApprovalBridge>() {
-        Some(bridge) => {
-            tauri::async_runtime::block_on(bridge.request(app, &tool_name, &args, &[]))
-        }
+        Some(bridge) => tauri::async_runtime::block_on(bridge.request(app, &tool_name, &args, &[])),
         None => false,
     }
 }
@@ -482,7 +480,10 @@ pub(crate) fn default_cli_command(provider: AiCliBackendKind) -> &'static str {
     }
 }
 
-pub(crate) fn resolve_cli_backend_command(provider: AiCliBackendKind, configured: Option<String>) -> String {
+pub(crate) fn resolve_cli_backend_command(
+    provider: AiCliBackendKind,
+    configured: Option<String>,
+) -> String {
     if let Some(path) = configured
         .map(|value| normalize_configured_cli_command(&value))
         .filter(|value| !value.is_empty())
@@ -618,7 +619,10 @@ pub(crate) fn codex_extension_arch_dirs() -> &'static [&'static str] {
     }
 }
 
-pub(crate) fn cli_backend_status(provider: AiCliBackendKind, command: String) -> AiCliBackendStatus {
+pub(crate) fn cli_backend_status(
+    provider: AiCliBackendKind,
+    command: String,
+) -> AiCliBackendStatus {
     let version_result = run_cli_capture(&command, &["--version"], None);
     let (installed, version, mut error) = match version_result {
         Ok(output) => (
@@ -860,11 +864,7 @@ pub(crate) fn cli_process_invocation(command: &str, args: &[&str]) -> (String, V
     {
         let lower = command.to_ascii_lowercase();
         if lower.ends_with(".cmd") || lower.ends_with(".bat") {
-            let mut process_args = vec![
-                "/D".to_string(),
-                "/C".to_string(),
-                command.to_string(),
-            ];
+            let mut process_args = vec!["/D".to_string(), "/C".to_string(), command.to_string()];
             process_args.extend(args.iter().map(|arg| (*arg).to_string()));
             return ("cmd.exe".to_string(), process_args);
         }

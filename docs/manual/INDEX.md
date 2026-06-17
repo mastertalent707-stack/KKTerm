@@ -34,7 +34,7 @@ When a doc says "right-click on X", the implementation is a Tauri native context
 | 14 | [14-screenshots.md](14-screenshots.md) | Region / window / full-screen capture, screenshot library | `screenshots`, `workspace` |
 | 15 | [15-settings.md](15-settings.md) | Every Settings section: General, Appearance, Dashboard, Install Helper, Credentials, AI, SSH, Terminal, URL, RDP, VNC, About | `settings` |
 | 16 | [16-localization.md](16-localization.md) | Switching language, supported locales | `settings`, `languages` |
-| 17 | [17-data-backup-secrets.md](17-data-backup-secrets.md) | SQLite store, OS keychain, settings import/export, backup ZIP, selective `.kkbackup` export/import, sharing connections without passwords | `settings`, `common` |
+| 17 | [17-data-backup-secrets.md](17-data-backup-secrets.md) | SQLite store, OS keychain, settings Import/Export `.kkbackup`, startup backup ZIP snapshots, sharing connections without passwords | `settings`, `common` |
 | 18 | [18-installer.md](18-installer.md) | Install Helper Module — Windows dev-tool catalog, install/update/uninstall, bundled catalog, UAC and WSL behaviour | `installer` |
 
 ## How this manual is maintained

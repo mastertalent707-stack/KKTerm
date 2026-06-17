@@ -1043,11 +1043,7 @@ fn service_affordance(tool_id: &str) -> Option<ManagedServiceAffordance> {
     }
 }
 
-fn ensure_nssm_installed(
-    catalog: &Catalog,
-    tool_id: &str,
-    emit: &EventSink,
-) -> Result<(), String> {
+fn ensure_nssm_installed(catalog: &Catalog, tool_id: &str, emit: &EventSink) -> Result<(), String> {
     let nssm_recipe = find_recipe(catalog, "nssm")
         .ok_or_else(|| "catalog is missing the NSSM service helper recipe".to_string())?;
     if detect_one(nssm_recipe).installed {
@@ -1250,9 +1246,7 @@ fn web_ui_status(tool_id: &str, affordance: &WebUiAffordance) -> ManagedWebUiSta
     let service_installed = service_state.is_some();
     let effective_port = effective_web_ui_port(affordance);
     let running = matches!(service_state.as_deref(), Some("RUNNING"))
-        || effective_port
-            .map(is_local_port_listening)
-            .unwrap_or(false);
+        || effective_port.map(is_local_port_listening).unwrap_or(false);
     let startup = service
         .as_ref()
         .and_then(|service| query_service_startup(&service.service_name));
@@ -1522,9 +1516,12 @@ fn spawn_web_ui_affordance(affordance: &WebUiAffordance) -> Result<(), String> {
     if let Some(path) = super::install::refreshed_path_public() {
         command.env("PATH", path);
     }
-    command
-        .spawn()
-        .map_err(|error| format!("failed to run `{}`: {error}", web_ui_command_line(affordance)))?;
+    command.spawn().map_err(|error| {
+        format!(
+            "failed to run `{}`: {error}",
+            web_ui_command_line(affordance)
+        )
+    })?;
     Ok(())
 }
 
@@ -2054,19 +2051,23 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn bentopdf_service_runs_dynamic_port_server() {
-        let service =
-            service_affordance("bentopdf").expect("BentoPDF should expose a Windows service helper");
+        let service = service_affordance("bentopdf")
+            .expect("BentoPDF should expose a Windows service helper");
 
         assert_eq!(service.service_name, "KKTerm-BentoPDF");
         assert_eq!(service.display_name, "KKTerm BentoPDF");
         assert_eq!(service.program, "node");
-        assert!(service
-            .args
-            .iter()
-            .any(|arg| arg == "kkterm-web-ui-server.mjs"));
+        assert!(
+            service
+                .args
+                .iter()
+                .any(|arg| arg == "kkterm-web-ui-server.mjs")
+        );
 
         let script = service_install_script(&service);
-        assert!(script.contains(r#"for %%I in (node.exe) do set "KKTERM_SERVICE_NODE=%%~$PATH:I""#));
+        assert!(
+            script.contains(r#"for %%I in (node.exe) do set "KKTERM_SERVICE_NODE=%%~$PATH:I""#)
+        );
         assert!(script.contains(
             r#"nssm install "KKTerm-BentoPDF" "%KKTERM_SERVICE_NODE%" kkterm-web-ui-server.mjs --preferred-port 3022"#
         ));

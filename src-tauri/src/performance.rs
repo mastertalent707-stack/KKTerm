@@ -307,7 +307,12 @@ fn host_usage_counters(
     let network_transfer_rates =
         macos_network_rates(&mut state.macos_networks, &mut state.macos_net_sampled_at);
 
-    (cpu_percent, ram_percent, network_transfer_rates, "macos-sysinfo")
+    (
+        cpu_percent,
+        ram_percent,
+        network_transfer_rates,
+        "macos-sysinfo",
+    )
 }
 
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]

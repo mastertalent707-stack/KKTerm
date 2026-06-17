@@ -34,8 +34,6 @@ import {
   invokeCommand,
   isTauriRuntime,
   openFilesystemPath,
-  selectSettingsExportFile,
-  selectSettingsImportFile,
 } from "../../lib/tauri";
 import { isWindowsPlatform } from "../../lib/platform";
 import { useWorkspaceStore } from "../../store";
@@ -109,7 +107,6 @@ export function GeneralSettings() {
   );
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const [draft, setDraft] = useState(generalSettings);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [selectiveExportOpen, setSelectiveExportOpen] = useState(false);
   const [selectiveImportOpen, setSelectiveImportOpen] = useState(false);
@@ -135,23 +132,6 @@ export function GeneralSettings() {
     }
   }
 
-  async function handleExportSettings() {
-    try {
-      const path = await selectSettingsExportFile({
-        title: t("settings.exportSettings"),
-        filterName: t("settings.settingsExportFilter"),
-        defaultFilename: defaultSettingsExportFilename(),
-      });
-      if (!path) {
-        return;
-      }
-      const exported = await invokeCommand("export_settings_database", { path });
-      showStatusBarNotice(t("settings.exportSettingsComplete", { filename: exported.filename }), { tone: "success" });
-    } catch (exportError) {
-      showStatusBarNotice(exportError instanceof Error ? exportError.message : String(exportError), { tone: "error" });
-    }
-  }
-
   async function handleOpenDatabaseFolder() {
     try {
       const path = await invokeCommand("get_database_folder");
@@ -168,42 +148,6 @@ export function GeneralSettings() {
       showStatusBarNotice(openError instanceof Error ? openError.message : String(openError), {
         tone: "error",
       });
-    }
-  }
-
-  async function handleImportSettings() {
-    try {
-      const path = await selectSettingsImportFile({
-        title: t("settings.importSettings"),
-        filterName: t("settings.settingsExportFilter"),
-      });
-      if (!path) {
-        setImportDialogOpen(false);
-        return;
-      }
-      closeAllTabs();
-      const snapshot = await invokeCommand("import_settings_database", {
-        path,
-      });
-      setGeneralSettings(snapshot.generalSettings);
-      setCredentialSettings(snapshot.credentialSettings);
-      setTerminalSettings(snapshot.terminalSettings);
-      setDashboardSettings(snapshot.dashboardSettings);
-      setAppearanceSettings(snapshot.appearanceSettings);
-      setSshSettings(snapshot.sshSettings);
-      setSftpSettings(snapshot.sftpSettings);
-      setUrlSettings(snapshot.urlSettings);
-      setRdpSettings(snapshot.rdpSettings);
-      setVncSettings(snapshot.vncSettings);
-      setAiProviderSettings(snapshot.aiProviderSettings);
-      window.dispatchEvent(
-        new CustomEvent("kkterm:connection-tree-invalidated"),
-      );
-      showStatusBarNotice(t("settings.importSettingsComplete", { filename: snapshot.backup.filename }), { tone: "success" });
-      setImportDialogOpen(false);
-      window.setTimeout(() => window.location.reload(), 250);
-    } catch (importError) {
-      showStatusBarNotice(importError instanceof Error ? importError.message : String(importError), { tone: "error" });
     }
   }
 
@@ -546,7 +490,7 @@ export function GeneralSettings() {
           <button
             className="secondary-button"
             type="button"
-            onClick={() => void handleExportSettings()}
+            onClick={() => setSelectiveExportOpen(true)}
           >
             <Download size={16} />
             {t("settings.exportSettings")}
@@ -554,26 +498,10 @@ export function GeneralSettings() {
           <button
             className="secondary-button"
             type="button"
-            onClick={() => setImportDialogOpen(true)}
-          >
-            <Upload size={16} />
-            {t("settings.importSettings")}
-          </button>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => setSelectiveExportOpen(true)}
-          >
-            <Download size={16} />
-            {t("settings.selectiveExport")}
-          </button>
-          <button
-            className="secondary-button"
-            type="button"
             onClick={() => setSelectiveImportOpen(true)}
           >
             <Upload size={16} />
-            {t("settings.selectiveImport")}
+            {t("settings.importSettings")}
           </button>
           <button
             className="secondary-button"
@@ -642,41 +570,6 @@ export function GeneralSettings() {
         </div>
       </fieldset>
 
-      {importDialogOpen ? (
-        <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
-          <div
-            aria-label={t("settings.importSettings")}
-            aria-modal="true"
-            className="connection-dialog settings-reset-dialog"
-            role="dialog"
-          >
-            <header className="connection-dialog-header compact">
-              <div>
-                <p className="panel-label">{t("settings.sectionGeneral")}</p>
-                <h2>{t("settings.importSettings")}</h2>
-              </div>
-            </header>
-            <p className="field-hint">{t("settings.importSettingsConfirm")}</p>
-            <div className="dialog-actions">
-              <button
-                className="approve-button"
-                onClick={() => void handleImportSettings()}
-                type="button"
-              >
-                <Upload size={15} />
-                {t("settings.importSettings")}
-              </button>
-              <button
-                className="toolbar-button"
-                onClick={() => setImportDialogOpen(false)}
-                type="button"
-              >
-                {t("common.cancel")}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
       {resetDialogOpen ? (
         <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
           <div
@@ -720,18 +613,4 @@ export function GeneralSettings() {
       ) : null}
     </section>
   );
-}
-
-function defaultSettingsExportFilename() {
-  const now = new Date();
-  const timestamp = [
-    now.getUTCFullYear(),
-    String(now.getUTCMonth() + 1).padStart(2, "0"),
-    String(now.getUTCDate()).padStart(2, "0"),
-    "-",
-    String(now.getUTCHours()).padStart(2, "0"),
-    String(now.getUTCMinutes()).padStart(2, "0"),
-    String(now.getUTCSeconds()).padStart(2, "0"),
-  ].join("");
-  return `kkterm-${timestamp}-001.zip`;
 }

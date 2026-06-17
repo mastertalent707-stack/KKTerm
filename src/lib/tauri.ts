@@ -8,7 +8,7 @@ import {
   save as saveDialog,
 } from "@tauri-apps/plugin-dialog";
 import type { ConfirmDialogOptions } from "@tauri-apps/plugin-dialog";
-import { readFile, writeFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { readFile, readTextFile, writeFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import i18next from "../i18n/config";
 import type {
@@ -2294,6 +2294,10 @@ type CommandMap = {
     args: { path: string };
     result: DashboardCustomWidget[];
   };
+  import_dashboard_widgets_json: {
+    args: { rawJson: string };
+    result: DashboardCustomWidget[];
+  };
   dashboard_reset: {
     args: undefined;
     result: null;
@@ -2645,6 +2649,19 @@ export async function selectWidgetImportFile(options: {
   });
 
   return typeof selectedPath === "string" ? selectedPath : null;
+}
+
+export async function selectAndReadWidgetImportFile(options: {
+  title: string;
+  filterName: string;
+}): Promise<{ path: string; name: string; text: string } | null> {
+  const path = await selectWidgetImportFile(options);
+  if (!path) {
+    return null;
+  }
+  const text = await readTextFile(path);
+  const name = path.split(/[/\\]/).pop() ?? path;
+  return { path, name, text };
 }
 
 export async function selectSelectiveExportFile(options: {

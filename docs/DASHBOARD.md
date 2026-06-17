@@ -351,7 +351,7 @@ Each Dashboard View carries an optional background, stored as a nullable `backgr
 
 The background renders on a dedicated layer behind the widget grid and does not affect the topbar or widget chrome. A missing image file, unknown dynamic id, or unparseable `background_json` falls back to theme default rather than erroring.
 
-Background image files are **not** included in the settings export ZIP — an imported database may reference a missing image, which is handled by the theme-default fallback.
+Background image files are **not** included in Settings `.kkbackup` exports — an imported Dashboard segment may reference a missing image, which is handled by the theme-default fallback.
 
 ## Settings → Dashboard
 

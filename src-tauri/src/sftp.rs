@@ -1024,9 +1024,18 @@ fn windows_local_drives() -> Vec<LocalDrivePlace> {
         let mut total: u64 = 0;
         let mut total_free: u64 = 0;
         let ok = unsafe {
-            GetDiskFreeSpaceExW(wide.as_ptr(), &mut free_available, &mut total, &mut total_free)
+            GetDiskFreeSpaceExW(
+                wide.as_ptr(),
+                &mut free_available,
+                &mut total,
+                &mut total_free,
+            )
         };
-        let (total_bytes, free_bytes) = if ok != 0 { (total, free_available) } else { (0, 0) };
+        let (total_bytes, free_bytes) = if ok != 0 {
+            (total, free_available)
+        } else {
+            (0, 0)
+        };
         let drive_type = unsafe { GetDriveTypeW(wide.as_ptr()) };
         drives.push(LocalDrivePlace {
             id: format!("drive-{root}"),
@@ -1411,9 +1420,9 @@ mod windows_file_clipboard {
                 CloseClipboard, EmptyClipboard, GetClipboardData, IsClipboardFormatAvailable,
                 OpenClipboard, RegisterClipboardFormatW, SetClipboardData,
             },
-            Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE},
+            Memory::{GMEM_MOVEABLE, GlobalAlloc, GlobalLock, GlobalUnlock},
         },
-        UI::Shell::{DragQueryFileW, DROPFILES},
+        UI::Shell::{DROPFILES, DragQueryFileW},
     };
 
     const CF_HDROP: u32 = 15;
@@ -1493,9 +1502,8 @@ mod windows_file_clipboard {
                 continue;
             }
             let mut buffer = vec![0u16; len as usize + 1];
-            let copied = unsafe {
-                DragQueryFileW(handle, index, buffer.as_mut_ptr(), buffer.len() as u32)
-            };
+            let copied =
+                unsafe { DragQueryFileW(handle, index, buffer.as_mut_ptr(), buffer.len() as u32) };
             if copied > 0 {
                 paths.push(String::from_utf16_lossy(&buffer[..copied as usize]));
             }
