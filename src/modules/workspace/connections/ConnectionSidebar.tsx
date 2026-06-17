@@ -30,15 +30,15 @@ import {
 } from "./connectionTabContextMenu";
 import { buildFileViewConnectionDraftFromPath } from "./fileViewConnectionDraft";
 import { buildLocalFilesConnectionDraftFromPath } from "./localFilesConnectionDraft";
+import { dragHasConnectionPaths, readConnectionPathsDrag } from "./connectionPathsDrag";
 import { confirmTrustedSshHostKey, connectionPasswordOwnerId, connectionSshSocksProxyPasswordOwnerId, defaultPortForConnectionType, connectionTypeLabel, ftpPortForProtocolSelection, isRemoteDesktopConnectionType, localShellOptionsForPlatform, resolveSshSocksProxyRequest, uniqueRuntimeId, type LocalShellOption } from "./utils";
 import { RECENT_CONNECTION_LIMIT, loadCollapsedFolderIds, loadRecentConnectionIds, notifyConnectionTreeInvalidated, saveCollapsedFolderIds, saveRecentConnectionIds } from "./connectionSidebarState";
 import { collectConnectionFolderIds, countConnections, countFolders, filterConnectedConnections, filterConnectionTree, findConnectionInTree, flattenConnections, flattenFolders, visibleFlatConnections as flattenVisibleConnections, withLiveConnectionStatuses } from "./treeUtils";
 import { WorkspaceIcon } from "../workspaceIcons";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, CircleDot, Folder, FolderPlus, KeyRound, LayoutDashboard, List, Maximize2, Minimize2, PanelRight, Pencil, Pin, PinOff, Play, Plus, RotateCcw, Save, Search, Settings, SquarePlus, Trash2, X } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
-import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
+import type { DragEvent as ReactDragEvent, FormEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import i18next from "../../../i18n/config";
@@ -436,47 +436,6 @@ export function ConnectionSidebar({
     [],
   );
 
-  // Drop OS files/folders onto the Connection Tree to create Connections: files
-  // become Document Connections, folders become File Explorer Connections.
-  useEffect(() => {
-    if (!isTauriRuntime()) {
-      return;
-    }
-
-    let disposed = false;
-    let unlisten: (() => void) | null = null;
-    void getCurrentWebview()
-      .onDragDropEvent((event) => {
-        if (disposed) {
-          return;
-        }
-        if (event.payload.type === "over") {
-          setExternalFileDropActive(
-            isPositionInsideTree(event.payload.position.x, event.payload.position.y),
-          );
-        } else if (event.payload.type === "drop") {
-          const inside = isPositionInsideTree(event.payload.position.x, event.payload.position.y);
-          setExternalFileDropActive(false);
-          if (inside) {
-            void handleExternalPathsDroppedRef.current(event.payload.paths);
-          }
-        } else {
-          setExternalFileDropActive(false);
-        }
-      })
-      .then((dispose) => {
-        if (disposed) {
-          dispose();
-        } else {
-          unlisten = dispose;
-        }
-      });
-
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, []);
 
   async function reloadConnectionGroups() {
     try {
@@ -625,21 +584,41 @@ export function ConnectionSidebar({
     }
   }
 
-  // True when an OS drag-drop position (physical pixels) lands inside the tree
-  // list. Mirrors the App Launcher's dual raw/scaled check so it works across
-  // the WebView2 device-pixel-ratio differences seen on Windows.
-  function isPositionInsideTree(x: number, y: number) {
-    const bounds = treeListRef.current?.getBoundingClientRect();
-    if (!bounds) {
-      return false;
+  // HTML5 drag from a File Explorer Connection pane (real local paths) over the
+  // tree: highlight while the drag carries droppable paths. The native Tauri
+  // drag-drop handler is disabled app-wide (required for HTML5 DnD on Windows),
+  // so OS file drops never raise Tauri drag events and are handled here instead.
+  function handleTreePathsDragOver(event: ReactDragEvent<HTMLDivElement>) {
+    if (!dragHasConnectionPaths(event.dataTransfer)) {
+      return;
     }
-    const scale = window.devicePixelRatio || 1;
-    const inside = (px: number, py: number) =>
-      px >= bounds.left && px <= bounds.right && py >= bounds.top && py <= bounds.bottom;
-    return inside(x, y) || inside(x / scale, y / scale);
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    setExternalFileDropActive(true);
   }
 
-  // Create a Connection per OS-dropped path: folders become File Explorer
+  function handleTreePathsDragLeave(event: ReactDragEvent<HTMLDivElement>) {
+    // Ignore moves between descendant rows; only clear when the pointer actually
+    // leaves the tree list.
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
+    setExternalFileDropActive(false);
+  }
+
+  function handleTreePathsDrop(event: ReactDragEvent<HTMLDivElement>) {
+    if (!dragHasConnectionPaths(event.dataTransfer)) {
+      return;
+    }
+    event.preventDefault();
+    setExternalFileDropActive(false);
+    const paths = readConnectionPathsDrag(event.dataTransfer);
+    if (paths.length > 0) {
+      void handleExternalPathsDropped(paths);
+    }
+  }
+
+  // Create a Connection per dropped path: folders become File Explorer
   // Connections with default settings (named after the last folder segment),
   // files become Document Connections — matching the Add Connection flows.
   async function handleExternalPathsDropped(paths: string[]) {
@@ -1564,8 +1543,6 @@ export function ConnectionSidebar({
   treeRef.current = treeWithLiveStatuses;
   const handleOpenConnectionRef = useRef(handleOpenConnection);
   handleOpenConnectionRef.current = handleOpenConnection;
-  const handleExternalPathsDroppedRef = useRef(handleExternalPathsDropped);
-  handleExternalPathsDroppedRef.current = handleExternalPathsDropped;
   const onExternalOpenConnectionRef = useRef(onExternalOpenConnection);
   onExternalOpenConnectionRef.current = onExternalOpenConnection;
 
@@ -2613,6 +2590,9 @@ export function ConnectionSidebar({
         data-folder-count={displayTree.folders.length}
         data-tree-drop-kind="root"
         onContextMenu={handleTreeContextMenu}
+        onDragOver={handleTreePathsDragOver}
+        onDragLeave={handleTreePathsDragLeave}
+        onDrop={handleTreePathsDrop}
       >
         {/* In "Hide Folders" mode the flat list below already includes these
             root connections (flattenConnections starts at the root), so render

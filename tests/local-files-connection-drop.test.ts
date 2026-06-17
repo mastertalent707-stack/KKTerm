@@ -39,9 +39,40 @@ test("Dropping onto the Connection Tree routes folders to File Explorer and file
     /buildFileViewConnectionDraftFromPath\(prepared\.path/,
     "Dropped files should create Document (fileView) Connections.",
   );
+  // The native Tauri drag-drop handler is disabled app-wide (required for HTML5
+  // DnD on Windows), so the tree consumes an HTML5 drop carrying real paths
+  // rather than Tauri's `onDragDropEvent` (which never fires).
+  assert.doesNotMatch(
+    sidebarSource,
+    /onDragDropEvent/,
+    "The tree must not rely on Tauri onDragDropEvent — it never fires with the drag-drop handler disabled.",
+  );
   assert.match(
     sidebarSource,
-    /getCurrentWebview\(\)\s*\.onDragDropEvent/,
-    "The tree should subscribe to OS drag-drop events.",
+    /onDrop=\{handleTreePathsDrop\}/,
+    "The tree list should accept HTML5 path drops.",
+  );
+  assert.match(
+    sidebarSource,
+    /readConnectionPathsDrag\(event\.dataTransfer\)[\s\S]*handleExternalPathsDropped\(paths\)/,
+    "Dropped connection paths should be routed through handleExternalPathsDropped.",
+  );
+});
+
+test("A File Explorer (local) pane seeds connection paths when its rows are dragged", async () => {
+  const paneSource = await readFile(
+    new URL("../src/modules/workspace/connections/sftp/SftpFilePane.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    paneSource,
+    /side === "local"[\s\S]*writeConnectionPathsDrag\(/,
+    "The local file pane should attach absolute connection paths on drag start.",
+  );
+  assert.match(
+    paneSource,
+    /writeConnectionPathsDrag\([\s\S]*joinLocalPath\(path, name\)/,
+    "Dragged rows should carry their absolute local filesystem paths.",
   );
 });
