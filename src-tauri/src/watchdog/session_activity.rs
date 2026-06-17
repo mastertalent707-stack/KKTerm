@@ -95,14 +95,6 @@ impl SessionActivityTracker {
             guard.remove(session_id);
         }
     }
-
-    #[cfg(test)]
-    pub fn known_session_ids(&self) -> Vec<String> {
-        self.inner
-            .lock()
-            .map(|guard| guard.keys().cloned().collect())
-            .unwrap_or_default()
-    }
 }
 
 #[cfg(test)]

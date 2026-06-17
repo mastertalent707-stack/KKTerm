@@ -1356,7 +1356,7 @@ struct OpenAiResponsesReasoning {
 }
 
 #[derive(Clone, Serialize)]
-struct OpenAiCompatibleMessage {
+pub(crate) struct OpenAiCompatibleMessage {
     role: String,
     content: OpenAiCompatibleContent,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1403,7 +1403,7 @@ struct OpenAiCompatibleImageUrl {
 }
 
 #[derive(Clone, Serialize)]
-struct OpenAiToolDefinition {
+pub(crate) struct OpenAiToolDefinition {
     #[serde(rename = "type")]
     tool_type: &'static str,
     function: OpenAiToolFunctionDefinition,

@@ -1022,11 +1022,7 @@ impl SessionManager {
             app,
             secrets,
             &request.connection,
-            format!(
-                "tmux set-option -t {} mouse {}",
-                shell_single_quote(&tmux_session_id),
-                mouse_value
-            ),
+            tmux_set_mouse_command(&tmux_session_id, mouse_value),
         )?;
         Ok(())
     }
@@ -2017,6 +2013,14 @@ fn tmux_rename_session_command(tmux_session_id: &str, new_tmux_session_id: &str)
     )
 }
 
+fn tmux_set_mouse_command(tmux_session_id: &str, mouse_value: &str) -> String {
+    format!(
+        "if command -v tmux >/dev/null 2>&1; then tmux set-option -t {} mouse {}; fi",
+        shell_single_quote(tmux_session_id),
+        mouse_value
+    )
+}
+
 // A live-Session probe is queued behind authentication, so its wait spans an
 // interactive (blank-password) login plus the bounded command run. Keep it
 // generous enough for a person to type a password, but finite so an abandoned
@@ -2185,8 +2189,14 @@ fn required_tmux_session_id(value: String) -> Result<String, String> {
     if trimmed.is_empty() {
         return Err("tmux session id is required".to_string());
     }
-    if trimmed.chars().any(char::is_control) {
-        return Err("tmux session id cannot contain control characters".to_string());
+    if trimmed
+        .chars()
+        .any(|char| char.is_whitespace() || char == ':' || char == ';' || char.is_control())
+    {
+        return Err(
+            "tmux session id cannot contain whitespace, colons, semicolons, or control characters"
+                .to_string(),
+        );
     }
     Ok(trimmed.to_string())
 }
@@ -2776,6 +2786,14 @@ mod tests {
     }
 
     #[test]
+    fn tmux_set_mouse_command_checks_tmux_availability() {
+        assert_eq!(
+            tmux_set_mouse_command("kkterm-test", "on"),
+            "if command -v tmux >/dev/null 2>&1; then tmux set-option -t 'kkterm-test' mouse on; fi"
+        );
+    }
+
+    #[test]
     fn tmux_scroll_pane_command_enters_copy_mode_for_wheel_up() {
         assert_eq!(
             tmux_scroll_pane_command("kkterm-test", -4),
@@ -2864,6 +2882,13 @@ mod tests {
             tmux_rename_session_command("kkterm-test'old", "kkterm-test'new"),
             "if command -v tmux >/dev/null 2>&1; then tmux rename-session -t 'kkterm-test'\\''old' 'kkterm-test'\\''new'; fi"
         );
+    }
+
+    #[test]
+    fn required_tmux_session_id_rejects_tmux_target_delimiters() {
+        assert!(required_tmux_session_id("has space".to_string()).is_err());
+        assert!(required_tmux_session_id("has:colon".to_string()).is_err());
+        assert!(required_tmux_session_id("has:semicolon".to_string()).is_err());
     }
 
     #[test]
