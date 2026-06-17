@@ -916,6 +916,19 @@ pub(crate) fn build_cli_agent_prompt(
     settings: &AiProviderSettings,
     request: AgentRunRequest,
 ) -> Result<String, String> {
+    build_cli_agent_prompt_with_usage(provider_kind, settings, request).map(|built| built.prompt)
+}
+
+pub(crate) struct CliAgentPrompt {
+    pub(crate) prompt: String,
+    pub(crate) usage: AgentContextUsage,
+}
+
+pub(crate) fn build_cli_agent_prompt_with_usage(
+    provider_kind: &str,
+    settings: &AiProviderSettings,
+    request: AgentRunRequest,
+) -> Result<CliAgentPrompt, String> {
     let prompt = trim_required("assistant prompt", request.prompt)?;
     let context_label = trim_required("assistant context", request.context_label)?;
     let mut out = String::new();
@@ -963,6 +976,7 @@ pub(crate) fn build_cli_agent_prompt(
         request.messages,
         non_history_chars,
     );
+    let usage = history.context_usage(provider_kind, settings.model());
     if !history.messages.is_empty() {
         if history.omitted_messages > 0 {
             out.push_str(&history.compaction_notice());
@@ -1012,5 +1026,5 @@ pub(crate) fn build_cli_agent_prompt(
     }
     out.push_str("User request:\n");
     out.push_str(&prompt);
-    Ok(out)
+    Ok(CliAgentPrompt { prompt: out, usage })
 }

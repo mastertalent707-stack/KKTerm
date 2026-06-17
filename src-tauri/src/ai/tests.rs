@@ -39,6 +39,43 @@ fn ai_stream_skill_events_use_frontend_field_names() {
 }
 
 #[test]
+fn ai_stream_context_usage_event_uses_frontend_field_names() {
+    let event = serde_json::to_value(AiStreamEvent::ContextUsage {
+        usage: AgentContextUsage {
+            provider_kind: "openai".to_string(),
+            model: "gpt-5".to_string(),
+            context_limit_tokens: 400_000,
+            context_limit_approximate: false,
+            compaction_trigger_chars: 1_280_000,
+            estimated_request_chars: 64_000,
+            estimated_request_tokens: 16_000,
+            estimated_usage_percent: 4,
+            estimated_non_history_chars: 12_000,
+            estimated_history_chars: 52_000,
+            retained_messages: 8,
+            omitted_messages: 0,
+        },
+    })
+    .expect("stream event serializes");
+
+    assert_eq!(
+        event.get("type").and_then(Value::as_str),
+        Some("contextUsage")
+    );
+    let usage = event.get("usage").expect("usage payload");
+    assert_eq!(
+        usage.get("providerKind").and_then(Value::as_str),
+        Some("openai")
+    );
+    assert_eq!(
+        usage.get("estimatedUsagePercent").and_then(Value::as_u64),
+        Some(4)
+    );
+    assert!(usage.get("provider_kind").is_none());
+    assert!(usage.get("estimated_usage_percent").is_none());
+}
+
+#[test]
 fn acp_agent_message_delta_extracts_text_chunks() {
     let message = json!({
         "jsonrpc": "2.0",

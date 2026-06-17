@@ -844,6 +844,23 @@ pub struct AgentRunResponse {
 }
 
 #[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AgentContextUsage {
+    provider_kind: String,
+    model: String,
+    context_limit_tokens: usize,
+    context_limit_approximate: bool,
+    compaction_trigger_chars: usize,
+    estimated_request_chars: usize,
+    estimated_request_tokens: usize,
+    estimated_usage_percent: u8,
+    estimated_non_history_chars: usize,
+    estimated_history_chars: usize,
+    retained_messages: usize,
+    omitted_messages: usize,
+}
+
+#[derive(Clone, Serialize)]
 #[serde(
     tag = "type",
     rename_all = "camelCase",
@@ -872,6 +889,9 @@ pub(crate) enum AiStreamEvent {
         #[serde(skip_serializing_if = "Option::is_none")]
         goal: Option<String>,
         steps: Vec<AssistantPlanStep>,
+    },
+    ContextUsage {
+        usage: AgentContextUsage,
     },
     Done {
         model: String,
@@ -1131,7 +1151,28 @@ impl AgentProvider for GitHubCopilotProvider {
         request: AgentRunRequest,
         channel: Channel<Value>,
     ) -> Result<AgentRunResponse, String> {
-        let response = self.run(app, settings, api_key, request).await?;
+        let token = require_copilot_token(api_key)?;
+        let recalled_memories = if settings.tools().memory() {
+            let scope = active_connection_memory_scope(request.active_connection_id.as_deref());
+            recall_assistant_memories(&app, scope.as_deref())
+        } else {
+            Vec::new()
+        };
+        let built_prompt = build_copilot_prompt_with_usage(
+            request,
+            self.provider_kind(),
+            settings.model(),
+            Some(settings.custom_instructions().to_string()),
+            recalled_memories,
+        );
+        emit_stream(
+            &channel,
+            &AiStreamEvent::ContextUsage {
+                usage: built_prompt.usage.clone(),
+            },
+        )?;
+        let output = run_copilot_sdk(&app, &settings, &token, &built_prompt.prompt).await?;
+        let response = finish_copilot_response(self, settings.model(), output)?;
         let _ = channel.send(json!(AiStreamEvent::ContentDelta {
             delta: response.content.clone(),
         }));
@@ -1193,7 +1234,15 @@ impl AgentProvider for CliAgentProvider {
         request: AgentRunRequest,
         channel: Channel<Value>,
     ) -> Result<AgentRunResponse, String> {
-        let prompt = build_cli_agent_prompt(self.provider_kind, &settings, request)?;
+        let built_prompt =
+            build_cli_agent_prompt_with_usage(self.provider_kind, &settings, request)?;
+        emit_stream(
+            &channel,
+            &AiStreamEvent::ContextUsage {
+                usage: built_prompt.usage.clone(),
+            },
+        )?;
+        let prompt = built_prompt.prompt;
         let command = self.command.clone();
         let backend = self.backend;
         let model = settings.model().to_string();
@@ -1777,6 +1826,28 @@ fn build_copilot_prompt(
     custom_instructions: Option<String>,
     recalled_memories: Vec<String>,
 ) -> String {
+    build_copilot_prompt_with_usage(
+        request,
+        provider_kind,
+        model,
+        custom_instructions,
+        recalled_memories,
+    )
+    .prompt
+}
+
+struct CopilotPrompt {
+    prompt: String,
+    usage: AgentContextUsage,
+}
+
+fn build_copilot_prompt_with_usage(
+    request: AgentRunRequest,
+    provider_kind: &str,
+    model: &str,
+    custom_instructions: Option<String>,
+    recalled_memories: Vec<String>,
+) -> CopilotPrompt {
     let mut sections = Vec::new();
     sections.push(
         "You are the KKTerm AI Assistant. Help with local-first terminal, SSH, SFTP, dashboard, and workspace workflows. Do not execute commands; propose commands for user approval when needed."
@@ -1873,6 +1944,7 @@ fn build_copilot_prompt(
         .sum::<usize>()
         + request.prompt.chars().count();
     let history = compact_agent_history(provider_kind, model, request.messages, non_history_chars);
+    let usage = history.context_usage(provider_kind, model);
     if !history.messages.is_empty() {
         if history.omitted_messages > 0 {
             sections.push(history.compaction_notice());
@@ -1903,7 +1975,10 @@ fn build_copilot_prompt(
     }
 
     sections.push(format!("User request:\n{}", request.prompt));
-    sections.join("\n\n---\n\n")
+    CopilotPrompt {
+        prompt: sections.join("\n\n---\n\n"),
+        usage,
+    }
 }
 
 fn non_empty(value: Option<String>) -> Option<String> {
@@ -5302,6 +5377,8 @@ struct AgentContextBudget {
 #[derive(Clone)]
 struct CompactedAgentHistory {
     messages: Vec<AgentChatMessage>,
+    estimated_history_chars: usize,
+    estimated_request_chars: usize,
     omitted_messages: usize,
     budget: AgentContextBudget,
 }
@@ -5321,6 +5398,38 @@ impl CompactedAgentHistory {
             self.budget.history_total_max_chars
         )
     }
+
+    fn context_usage(&self, provider_kind: &str, model: &str) -> AgentContextUsage {
+        let limit_chars = self
+            .budget
+            .context_limit_tokens
+            .saturating_mul(APPROX_CHARS_PER_TOKEN);
+        let estimated_usage_percent = if limit_chars == 0 {
+            0
+        } else {
+            ((self.estimated_request_chars.saturating_mul(100)) / limit_chars).min(100) as u8
+        };
+        AgentContextUsage {
+            provider_kind: provider_kind.to_string(),
+            model: model.to_string(),
+            context_limit_tokens: self.budget.context_limit_tokens,
+            context_limit_approximate: self.budget.approximate_limit,
+            compaction_trigger_chars: self.budget.compaction_trigger_chars,
+            estimated_request_chars: self.estimated_request_chars,
+            estimated_request_tokens: approximate_tokens_for_chars(self.estimated_request_chars),
+            estimated_usage_percent,
+            estimated_non_history_chars: self
+                .estimated_request_chars
+                .saturating_sub(self.estimated_history_chars),
+            estimated_history_chars: self.estimated_history_chars,
+            retained_messages: self.messages.len(),
+            omitted_messages: self.omitted_messages,
+        }
+    }
+}
+
+fn approximate_tokens_for_chars(chars: usize) -> usize {
+    chars.div_ceil(APPROX_CHARS_PER_TOKEN)
 }
 
 fn agent_context_budget(provider_kind: &str, model: &str) -> AgentContextBudget {
@@ -5436,6 +5545,8 @@ fn compact_agent_history(
     if estimated_request_chars <= budget.compaction_trigger_chars {
         return CompactedAgentHistory {
             messages: history,
+            estimated_history_chars,
+            estimated_request_chars,
             omitted_messages: 0,
             budget,
         };
@@ -5482,6 +5593,8 @@ fn compact_agent_history(
     }
     CompactedAgentHistory {
         messages: kept,
+        estimated_history_chars,
+        estimated_request_chars,
         omitted_messages,
         budget,
     }
@@ -5589,6 +5702,7 @@ fn build_agent_messages(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 fn build_agent_messages_for_provider(
     provider_kind: &str,
     model: &str,
@@ -5609,6 +5723,55 @@ fn build_agent_messages_for_provider(
     dashboard_tools_enabled: bool,
     recalled_memories: Vec<String>,
 ) -> Vec<OpenAiCompatibleMessage> {
+    build_agent_messages_for_provider_with_usage(
+        provider_kind,
+        model,
+        prompt,
+        context_label,
+        intent,
+        reasoning_effort,
+        system_context,
+        selected_output,
+        page_context,
+        supports_image_input,
+        screenshot,
+        screenshots,
+        history,
+        output_language,
+        custom_instructions,
+        skill_summaries,
+        dashboard_tools_enabled,
+        recalled_memories,
+    )
+    .messages
+}
+
+struct AgentMessagesWithUsage {
+    messages: Vec<OpenAiCompatibleMessage>,
+    usage: AgentContextUsage,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_agent_messages_for_provider_with_usage(
+    provider_kind: &str,
+    model: &str,
+    prompt: String,
+    context_label: String,
+    intent: Option<String>,
+    reasoning_effort: String,
+    system_context: Option<String>,
+    selected_output: Option<String>,
+    page_context: Option<AgentPageContext>,
+    supports_image_input: bool,
+    screenshot: Option<AgentScreenshotContext>,
+    screenshots: Vec<AgentScreenshotContext>,
+    history: Vec<AgentChatMessage>,
+    output_language: Option<String>,
+    custom_instructions: Option<String>,
+    skill_summaries: Vec<AssistantSkillSummary>,
+    dashboard_tools_enabled: bool,
+    recalled_memories: Vec<String>,
+) -> AgentMessagesWithUsage {
     let normalized_intent = normalize_agent_intent(intent);
     let mut system_instructions: Vec<String> = vec![
         "You are KKTerm's AI Assistant for local-first administration workflows.".to_string(),
@@ -5689,6 +5852,7 @@ fn build_agent_messages_for_provider(
         page_context.as_ref(),
     );
     let history = compact_agent_history(provider_kind, model, history, non_history_chars);
+    let usage = history.context_usage(provider_kind, model);
     if history.omitted_messages > 0 {
         system_instructions.push(history.compaction_notice());
     }
@@ -5771,7 +5935,7 @@ fn build_agent_messages_for_provider(
         tool_call_id: None,
         tool_calls: None,
     });
-    messages
+    AgentMessagesWithUsage { messages, usage }
 }
 
 fn normalize_page_context(page_context: Option<AgentPageContext>) -> Option<AgentPageContext> {
