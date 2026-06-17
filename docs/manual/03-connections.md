@@ -128,6 +128,8 @@ Auto-detection runs at most once per Connection: after the first established SSH
 
 Drag a Connection onto a folder to move it; drag onto another Connection to reorder. Folders can be nested: when dragging a folder over another folder, drop on the center of the row to make it a subfolder, or drop near the row edge to reorder it beside that folder. While a tree drag is active, a temporary `connections.root` drop target appears so Connections or folders can be moved back to the root even when the visible tree has no blank space. Order is persisted.
 
+Dropping files or folders from the OS onto the Connection Tree creates Connections immediately with default settings, the same as Add Connection: a dropped file becomes a Document Connection (`connections.fileView`, named after the file), and a dropped folder becomes a File Explorer Connection (`connections.localFiles`, named after the folder's last path segment). The tree highlights while a file is dragged over it. Multiple items can be dropped at once.
+
 ## Status badges
 
 Each Connection in the tree shows a live status dot when it has one or more Sessions open. The dot is derived from `withLiveConnectionStatuses` in `src/modules/workspace/connections/treeUtils.ts` and is **display-only**. Do not pass the live-status Connection to workspace components that own Session lifecycle (TerminalWorkspace, WebViewWorkspace, RemoteDesktopWorkspace, SftpWorkspace) — they look up the stable Connection by id from the raw tree. See `src/modules/dashboard/widgets/ConnectionWidgetBody.tsx` for the safe pattern.
