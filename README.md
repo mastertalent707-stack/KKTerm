@@ -169,7 +169,7 @@ Most "AI in your terminal" demos stop at chat. KKTerm's assistant can also build
 
 Anything that looks like `rm -rf` gets flagged as dangerous and waits for an explicit human yes. The AI can't quietly run a destructive command because somebody got clever with a prompt injection in a man page.
 
-It talks to OpenAI, Anthropic, OpenRouter, DeepSeek, Gemini, Grok, Azure OpenAI, LiteLLM, GitHub Copilot, Ollama, NVIDIA, OpenCode, or anything OpenAI-compatible. Your API keys go to the OS keychain.
+It talks to OpenAI, OpenRouter, DeepSeek, Gemini, Grok, Azure OpenAI, LiteLLM, GitHub Copilot, Ollama, NVIDIA, OpenCode, or anything OpenAI-compatible — and reaches Anthropic's Claude through the local Claude CLI. Your API keys go to the OS keychain.
 
 ### A Dashboard that doesn't pretend to be Grafana
 

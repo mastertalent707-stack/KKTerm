@@ -80,7 +80,7 @@ For operational measurement records see `docs/PERFORMANCE.md`. For packaging and
 ### AI Assistant
 
 - [x] AI Assistant panel with streaming chat and OpenAI-compatible runtime.
-- [x] Provider registry: OpenAI, Anthropic, OpenRouter, DeepSeek, Gemini, Grok, Azure OpenAI, LiteLLM, GitHub Copilot, Ollama, NVIDIA, OpenCode, and generic endpoints.
+- [x] Provider registry: OpenAI, Anthropic, OpenRouter, DeepSeek, Gemini, Grok, Azure OpenAI, LiteLLM, GitHub Copilot, Ollama, NVIDIA, OpenCode, and generic endpoints. Anthropic/Claude is served through the local Claude CLI rather than the native OpenAI-compatible runtime.
 - [x] API keys stored in OS keychain; provider-specific model selector with custom model ID field.
 - [x] Command proposal flow with explicit approval before execution.
 - [x] Screenshot capture to clipboard and transient AI context (full surface, partial area, and region).
