@@ -1,4 +1,4 @@
-import { Cable, FolderInput, FolderOpen, Globe2, Laptop, Monitor, Mouse, Network, Server } from "lucide-react";
+import { Cable, FileText, FolderInput, FolderOpen, Globe2, Laptop, Monitor, Mouse, Network, Server } from "lucide-react";
 import { confirmNativeDialog, invokeCommand, type SshHostKeyPreview } from "../../../lib/tauri";
 import i18next from "../../../i18n/config";
 import type { Connection, ConnectionType, SshSettings, WorkspaceTab } from "../../../types";
@@ -98,6 +98,8 @@ export function connectionTypeLabel(type: ConnectionType) {
       return i18next.t("connections.ftp");
     case "localFiles":
       return i18next.t("connections.localFiles");
+    case "fileView":
+      return i18next.t("connections.fileView");
   }
 }
 
@@ -129,6 +131,9 @@ export function connectionToolbarTitle(connection: Connection) {
     return localTerminalToolbarTitle(connection);
   }
   if (connection.type === "localFiles") {
+    return connection.name;
+  }
+  if (connection.type === "fileView") {
     return connection.name;
   }
   return connection.port ? `${connection.host}:${connection.port}` : connection.host;
@@ -174,6 +179,8 @@ export function connectionIconForType(type: ConnectionType) {
       return FolderInput;
     case "localFiles":
       return FolderOpen;
+    case "fileView":
+      return FileText;
   }
 }
 

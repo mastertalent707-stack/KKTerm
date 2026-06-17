@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 24;
+const SCHEMA_USER_VERSION: i32 = 25;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS connections (
     terminal_opacity INTEGER,
     terminal_background_json TEXT,
     file_browser_view_options_json TEXT,
-    connection_type TEXT NOT NULL CHECK (connection_type IN ('local', 'ssh', 'telnet', 'serial', 'url', 'rdp', 'vnc', 'ftp', 'localFiles')),
+    connection_type TEXT NOT NULL CHECK (connection_type IN ('local', 'ssh', 'telnet', 'serial', 'url', 'rdp', 'vnc', 'ftp', 'localFiles', 'fileView')),
     status TEXT NOT NULL CHECK (status IN ('connected', 'idle', 'offline')),
     sort_order INTEGER NOT NULL
 );
@@ -1858,6 +1858,87 @@ impl Storage {
                 params![DEFAULT_WORKSPACE_ID],
             )
             .map_err(to_storage_error)?;
+        // v25: File Viewer Connection kind. The connections table predates the
+        // `fileView` connection_type, and SQLite can't alter a CHECK constraint
+        // in place, so rebuild the table so the connection_type CHECK accepts the
+        // new kind. By this point every upgrade path has the full current column
+        // set (CURRENT_SCHEMA on fresh installs, ensure_column/v20 rebuild on
+        // upgrades), so a full explicit-column copy is safe.
+        if stored_version < 25 && table_exists(&connection, "connections")? {
+            connection
+                .pragma_update(None, "legacy_alter_table", "ON")
+                .map_err(to_storage_error)?;
+            connection
+                .execute_batch(
+                    r#"
+                    BEGIN;
+                    ALTER TABLE connections RENAME TO connections_pre_v25;
+                    CREATE TABLE connections (
+                        id TEXT PRIMARY KEY,
+                        folder_id TEXT REFERENCES connection_folders(id) ON DELETE CASCADE,
+                        workspace_id TEXT REFERENCES workspaces(id) ON DELETE CASCADE,
+                        name TEXT NOT NULL,
+                        tab_title TEXT,
+                        host TEXT NOT NULL,
+                        username TEXT NOT NULL,
+                        port INTEGER,
+                        key_path TEXT,
+                        proxy_jump TEXT,
+                        ssh_socks_proxy TEXT,
+                        ssh_socks_proxy_username TEXT,
+                        ssh_socks_proxy_inherit_defaults INTEGER NOT NULL DEFAULT 1,
+                        auth_method TEXT NOT NULL DEFAULT 'keyFile',
+                        local_shell TEXT,
+                        local_startup_directory TEXT,
+                        local_startup_script TEXT,
+                        url TEXT,
+                        data_partition TEXT,
+                        use_tmux_sessions INTEGER NOT NULL DEFAULT 1,
+                        tmux_connection_id TEXT,
+                        serial_line TEXT,
+                        serial_speed INTEGER,
+                        rdp_options TEXT,
+                        vnc_options TEXT,
+                        ftp_options TEXT,
+                        password_credential_id TEXT REFERENCES connection_password_credentials(id) ON DELETE SET NULL,
+                        icon_data_url TEXT,
+                        icon_background_color TEXT,
+                        terminal_opacity INTEGER,
+                        terminal_background_json TEXT,
+                        file_browser_view_options_json TEXT,
+                        connection_type TEXT NOT NULL CHECK (connection_type IN ('local', 'ssh', 'telnet', 'serial', 'url', 'rdp', 'vnc', 'ftp', 'localFiles', 'fileView')),
+                        status TEXT NOT NULL CHECK (status IN ('connected', 'idle', 'offline')),
+                        sort_order INTEGER NOT NULL
+                    );
+                    INSERT INTO connections (
+                        id, folder_id, workspace_id, name, tab_title, host, username, port, key_path,
+                        proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults,
+                        auth_method, local_shell, local_startup_directory,
+                        local_startup_script, url, data_partition, use_tmux_sessions,
+                        tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
+                        ftp_options, password_credential_id, icon_data_url, icon_background_color,
+                        terminal_opacity, terminal_background_json, file_browser_view_options_json,
+                        connection_type, status, sort_order
+                    )
+                    SELECT
+                        id, folder_id, workspace_id, name, tab_title, host, username, port, key_path,
+                        proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults,
+                        auth_method, local_shell, local_startup_directory,
+                        local_startup_script, url, data_partition, use_tmux_sessions,
+                        tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
+                        ftp_options, password_credential_id, icon_data_url, icon_background_color,
+                        terminal_opacity, terminal_background_json, file_browser_view_options_json,
+                        connection_type, status, sort_order
+                    FROM connections_pre_v25;
+                    DROP TABLE connections_pre_v25;
+                    COMMIT;
+                    "#,
+                )
+                .map_err(to_storage_error)?;
+            connection
+                .pragma_update(None, "legacy_alter_table", "OFF")
+                .map_err(to_storage_error)?;
+        }
         connection
             .execute_batch(&format!("PRAGMA user_version = {SCHEMA_USER_VERSION}"))
             .map_err(to_storage_error)?;
@@ -3304,13 +3385,15 @@ fn ensure_folder_exists(
 fn normalize_connection_type(value: &str) -> Result<String, String> {
     match value.trim() {
         "localFiles" => Ok("localFiles".to_string()),
+        "fileView" => Ok("fileView".to_string()),
         value => match value.to_lowercase().as_str() {
             "local" | "ssh" | "telnet" | "serial" | "url" | "rdp" | "vnc" | "ftp" => {
                 Ok(value.to_lowercase())
             }
             "localfiles" => Ok("localFiles".to_string()),
+            "fileview" => Ok("fileView".to_string()),
             _ => Err(
-                "connection type must be local, ssh, telnet, serial, url, rdp, vnc, ftp, or localFiles"
+                "connection type must be local, ssh, telnet, serial, url, rdp, vnc, ftp, localFiles, or fileView"
                     .to_string(),
             ),
         },
@@ -3351,7 +3434,7 @@ fn extract_url_host(value: &str) -> Option<String> {
 
 fn normalize_connection_user(value: String, connection_type: &str) -> Result<String, String> {
     match connection_type {
-        "serial" | "url" | "localFiles" => Ok(String::new()),
+        "serial" | "url" | "localFiles" | "fileView" => Ok(String::new()),
         "vnc" => Ok(value.trim().to_string()),
         _ => required_field("user", value),
     }
@@ -3473,7 +3556,10 @@ fn normalize_local_startup_directory(
     value: Option<String>,
     connection_type: &str,
 ) -> Result<Option<String>, String> {
-    if connection_type != "local" && connection_type != "localFiles" {
+    // For `fileView` Connections this column stores the target file path rather
+    // than a starting directory; both reuse the same non-secret local path slot.
+    if connection_type != "local" && connection_type != "localFiles" && connection_type != "fileView"
+    {
         return Ok(None);
     }
 

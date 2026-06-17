@@ -16,6 +16,7 @@ import { brandIconRefToUrl } from "../../../lib/brandIconUrls";
 import { materialIconRefToUrl } from "../../../lib/iconCatalogUrls";
 import { osIconRefToUrl } from "../../../lib/osIconUrls";
 import { fileBrowserConnectionIconSrc } from "./fileBrowserConnectionIcons";
+import documentIcon from "../../../assets/file-icons/material-icon-theme/icons/document.svg";
 
 type LucideIcon = ComponentType<{ size?: number; style?: CSSProperties }>;
 
@@ -29,6 +30,7 @@ export const CONNECTION_ICON_SRC: Record<ConnectionType, string> = {
   vnc: vncIcon,
   ftp: fileBrowserConnectionIconSrc("ftp"),
   localFiles: fileBrowserConnectionIconSrc("localFiles"),
+  fileView: documentIcon,
 };
 
 export const PREDEFINED_CONNECTION_ICON_TYPES: ConnectionType[] = [
@@ -41,6 +43,7 @@ export const PREDEFINED_CONNECTION_ICON_TYPES: ConnectionType[] = [
   "vnc",
   "ftp",
   "localFiles",
+  "fileView",
 ];
 
 export function connectionIconSrcForConnection({

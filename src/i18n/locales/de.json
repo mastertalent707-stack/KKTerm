@@ -1780,7 +1780,11 @@
     "homeDirectory": "Home-Verzeichnis",
     "localFilesSubtitle": "Lokaler Dateibrowser",
     "localFilesRootDirectory": "Startordner",
-    "localFilesRootDirectoryPlaceholder": "Persönlicher Ordner"
+    "localFilesRootDirectoryPlaceholder": "Persönlicher Ordner",
+    "fileView": "File Viewer",
+    "fileViewPath": "File",
+    "fileViewPathPlaceholder": "Select a file to view",
+    "fileViewPickerTitle": "Select a file to view"
   },
   "terminal": {
     "openSftp": "SFTP-Browser öffnen",
@@ -3155,7 +3159,35 @@
     "editWorkspace": "Workspace bearbeiten",
     "deleteWorkspace": "Arbeitsbereich löschen",
     "deleteWorkspaceConfirm": "\"{{name}}\" und alle zugehörigen Verbindungen löschen? Dies kann nicht rückgängig gemacht werden.",
-    "workspaceCreated": "Arbeitsbereich \"{{name}}\" erstellt"
+    "workspaceCreated": "Arbeitsbereich \"{{name}}\" erstellt",
+    "fileViewer": {
+      "loading": "Loading…",
+      "noFile": "No file selected for this File Viewer Connection.",
+      "truncated": "This file is large; showing a partial preview.",
+      "invalidJson": "Invalid JSON — showing raw text.",
+      "imageTooLarge": "This image is too large to preview.",
+      "filterRows": "Filter rows…",
+      "filterLines": "Filter lines…",
+      "rowCount": "{{count}} rows",
+      "tableTruncated": "Showing the first {{count}} rows.",
+      "follow": "Follow",
+      "kind": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "csv": "Table",
+        "json": "JSON",
+        "image": "Image",
+        "log": "Log",
+        "hex": "Hex"
+      },
+      "level": {
+        "error": "Error",
+        "warn": "Warn",
+        "info": "Info",
+        "debug": "Debug",
+        "trace": "Trace"
+      }
+    }
   },
   "common": {
     "save": "Speichern",

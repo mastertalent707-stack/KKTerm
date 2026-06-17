@@ -1780,7 +1780,11 @@
     "homeDirectory": "Directory home",
     "localFilesSubtitle": "Browser file locale",
     "localFilesRootDirectory": "Cartella iniziale",
-    "localFilesRootDirectoryPlaceholder": "Cartella home"
+    "localFilesRootDirectoryPlaceholder": "Cartella home",
+    "fileView": "File Viewer",
+    "fileViewPath": "File",
+    "fileViewPathPlaceholder": "Select a file to view",
+    "fileViewPickerTitle": "Select a file to view"
   },
   "terminal": {
     "openSftp": "Apri browser SFTP",
@@ -3155,7 +3159,35 @@
     "editWorkspace": "Modifica Workspace",
     "deleteWorkspace": "Elimina area di lavoro",
     "deleteWorkspaceConfirm": "Eliminare \"{{name}}\" e tutte le sue connessioni? L'operazione non può essere annullata.",
-    "workspaceCreated": "Area di lavoro \"{{name}}\" creata"
+    "workspaceCreated": "Area di lavoro \"{{name}}\" creata",
+    "fileViewer": {
+      "loading": "Loading…",
+      "noFile": "No file selected for this File Viewer Connection.",
+      "truncated": "This file is large; showing a partial preview.",
+      "invalidJson": "Invalid JSON — showing raw text.",
+      "imageTooLarge": "This image is too large to preview.",
+      "filterRows": "Filter rows…",
+      "filterLines": "Filter lines…",
+      "rowCount": "{{count}} rows",
+      "tableTruncated": "Showing the first {{count}} rows.",
+      "follow": "Follow",
+      "kind": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "csv": "Table",
+        "json": "JSON",
+        "image": "Image",
+        "log": "Log",
+        "hex": "Hex"
+      },
+      "level": {
+        "error": "Error",
+        "warn": "Warn",
+        "info": "Info",
+        "debug": "Debug",
+        "trace": "Trace"
+      }
+    }
   },
   "common": {
     "save": "Salva",

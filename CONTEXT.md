@@ -18,12 +18,16 @@ A top-level section of the locale JSON mapping to a feature area in the frontend
 
 
 **Connection**:
-A durable openable resource stored in SQLite. The supported kinds are local terminal, SSH terminal, Telnet terminal, Serial terminal, URL (an embedded http(s) WebView2 target), RDP, VNC, FTP/FTPS, and File Explorer (a local filesystem browser, kind `localFiles`). SFTP is opened from an SSH Connection and is not stored as a standalone Connection. Every Connection belongs to exactly one **Workspace**.
+A durable openable resource stored in SQLite. The supported kinds are local terminal, SSH terminal, Telnet terminal, Serial terminal, URL (an embedded http(s) WebView2 target), RDP, VNC, FTP/FTPS, File Explorer (a local filesystem browser, kind `localFiles`), and File Viewer (a single-file universal viewer/light editor, kind `fileView`). SFTP is opened from an SSH Connection and is not stored as a standalone Connection. Every Connection belongs to exactly one **Workspace**.
 _Avoid_: Profile, saved session, host entry
 
 **File Explorer Connection**:
 A Connection of kind `localFiles`. It browses the local filesystem (no remote host or network Session) by reusing the SFTP file-browser shell as a single-pane local browser driven by local filesystem commands. It stores an optional starting directory and does not surface remote-connection status or transfer activity.
 _Avoid_: SFTP, FTP, local SFTP, remote browser
+
+**File Viewer Connection**:
+A Connection of kind `fileView`. It opens a single local file in a universal viewer / light editor (no remote host or network Session). The target file path is stored in the Connection's `local_startup_directory` slot (reused as the file path, not a directory). A viewer registry routes the file to a mode — text/code (CodeMirror), Markdown, table (CSV/TSV), JSON, image, dedicated Log mode (level coloring, filter, ANSI, follow/tail), or a Hex fallback — detected by extension plus a backend magic-byte/text probe, and the user can switch modes from the viewer toolbar. Phase 1 is read-only viewing; editing/save is deferred. It reuses no SFTP/browser session state.
+_Avoid_: File Explorer, editor tab, document session
 
 **Workspace**:
 A named, isolated container of Connections, surfaced as a switcher in the Activity Rail. The first Workspace ("Default") is seeded on first run and is permanent (non-deletable, non-movable); additional Workspaces are created through the New Workspace wizard (name, icon, and optional copy-import of Connections from other Workspaces). Switching the active Workspace re-scopes the Connection Tree and the rail's connected/pinned list only; open Sessions/Tabs, the Dashboard Module, the Installer Helper Module, and Settings remain global. The Workspace Module and Workspace Canvas render the *active* Workspace.

@@ -1780,7 +1780,11 @@
     "homeDirectory": "ホームディレクトリ",
     "localFilesSubtitle": "ローカル ファイル ブラウザー",
     "localFilesRootDirectory": "開始フォルダー",
-    "localFilesRootDirectoryPlaceholder": "ホーム フォルダー"
+    "localFilesRootDirectoryPlaceholder": "ホーム フォルダー",
+    "fileView": "File Viewer",
+    "fileViewPath": "File",
+    "fileViewPathPlaceholder": "Select a file to view",
+    "fileViewPickerTitle": "Select a file to view"
   },
   "terminal": {
     "openSftp": "SFTPブラウザを開く",
@@ -3155,7 +3159,35 @@
     "editWorkspace": "Workspace を編集",
     "deleteWorkspace": "ワークスペースを削除",
     "deleteWorkspaceConfirm": "\"{{name}}\" とそのすべての接続を削除しますか？この操作は元に戻せません。",
-    "workspaceCreated": "ワークスペース \"{{name}}\" を作成しました"
+    "workspaceCreated": "ワークスペース \"{{name}}\" を作成しました",
+    "fileViewer": {
+      "loading": "Loading…",
+      "noFile": "No file selected for this File Viewer Connection.",
+      "truncated": "This file is large; showing a partial preview.",
+      "invalidJson": "Invalid JSON — showing raw text.",
+      "imageTooLarge": "This image is too large to preview.",
+      "filterRows": "Filter rows…",
+      "filterLines": "Filter lines…",
+      "rowCount": "{{count}} rows",
+      "tableTruncated": "Showing the first {{count}} rows.",
+      "follow": "Follow",
+      "kind": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "csv": "Table",
+        "json": "JSON",
+        "image": "Image",
+        "log": "Log",
+        "hex": "Hex"
+      },
+      "level": {
+        "error": "Error",
+        "warn": "Warn",
+        "info": "Info",
+        "debug": "Debug",
+        "trace": "Trace"
+      }
+    }
   },
   "common": {
     "save": "保存",

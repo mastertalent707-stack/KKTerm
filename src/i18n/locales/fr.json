@@ -1780,7 +1780,11 @@
     "homeDirectory": "Répertoire personnel",
     "localFilesSubtitle": "Navigateur de fichiers local",
     "localFilesRootDirectory": "Dossier de départ",
-    "localFilesRootDirectoryPlaceholder": "Dossier personnel"
+    "localFilesRootDirectoryPlaceholder": "Dossier personnel",
+    "fileView": "File Viewer",
+    "fileViewPath": "File",
+    "fileViewPathPlaceholder": "Select a file to view",
+    "fileViewPickerTitle": "Select a file to view"
   },
   "terminal": {
     "openSftp": "Ouvrir le navigateur SFTP",
@@ -3155,7 +3159,35 @@
     "editWorkspace": "Modifier le Workspace",
     "deleteWorkspace": "Supprimer l'espace de travail",
     "deleteWorkspaceConfirm": "Supprimer \"{{name}}\" et toutes ses connexions ? Cette action est irréversible.",
-    "workspaceCreated": "Espace de travail \"{{name}}\" créé"
+    "workspaceCreated": "Espace de travail \"{{name}}\" créé",
+    "fileViewer": {
+      "loading": "Loading…",
+      "noFile": "No file selected for this File Viewer Connection.",
+      "truncated": "This file is large; showing a partial preview.",
+      "invalidJson": "Invalid JSON — showing raw text.",
+      "imageTooLarge": "This image is too large to preview.",
+      "filterRows": "Filter rows…",
+      "filterLines": "Filter lines…",
+      "rowCount": "{{count}} rows",
+      "tableTruncated": "Showing the first {{count}} rows.",
+      "follow": "Follow",
+      "kind": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "csv": "Table",
+        "json": "JSON",
+        "image": "Image",
+        "log": "Log",
+        "hex": "Hex"
+      },
+      "level": {
+        "error": "Error",
+        "warn": "Warn",
+        "info": "Info",
+        "debug": "Debug",
+        "trace": "Trace"
+      }
+    }
   },
   "common": {
     "save": "Enregistrer",

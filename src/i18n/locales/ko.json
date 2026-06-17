@@ -1780,7 +1780,11 @@
     "homeDirectory": "홈 디렉터리",
     "localFilesSubtitle": "로컬 파일 브라우저",
     "localFilesRootDirectory": "시작 폴더",
-    "localFilesRootDirectoryPlaceholder": "홈 폴더"
+    "localFilesRootDirectoryPlaceholder": "홈 폴더",
+    "fileView": "File Viewer",
+    "fileViewPath": "File",
+    "fileViewPathPlaceholder": "Select a file to view",
+    "fileViewPickerTitle": "Select a file to view"
   },
   "terminal": {
     "openSftp": "SFTP 브라우저 열기",
@@ -3155,7 +3159,35 @@
     "editWorkspace": "Workspace 편집",
     "deleteWorkspace": "작업 영역 삭제",
     "deleteWorkspaceConfirm": "\"{{name}}\" 작업 영역과 모든 연결을 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
-    "workspaceCreated": "\"{{name}}\" 작업 영역이 생성되었습니다"
+    "workspaceCreated": "\"{{name}}\" 작업 영역이 생성되었습니다",
+    "fileViewer": {
+      "loading": "Loading…",
+      "noFile": "No file selected for this File Viewer Connection.",
+      "truncated": "This file is large; showing a partial preview.",
+      "invalidJson": "Invalid JSON — showing raw text.",
+      "imageTooLarge": "This image is too large to preview.",
+      "filterRows": "Filter rows…",
+      "filterLines": "Filter lines…",
+      "rowCount": "{{count}} rows",
+      "tableTruncated": "Showing the first {{count}} rows.",
+      "follow": "Follow",
+      "kind": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "csv": "Table",
+        "json": "JSON",
+        "image": "Image",
+        "log": "Log",
+        "hex": "Hex"
+      },
+      "level": {
+        "error": "Error",
+        "warn": "Warn",
+        "info": "Info",
+        "debug": "Debug",
+        "trace": "Trace"
+      }
+    }
   },
   "common": {
     "save": "저장",

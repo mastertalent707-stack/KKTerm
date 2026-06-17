@@ -1780,7 +1780,11 @@
     "homeDirectory": "ไดเรกทอรีหลัก",
     "localFilesSubtitle": "เบราว์เซอร์ไฟล์ในเครื่อง",
     "localFilesRootDirectory": "โฟลเดอร์เริ่มต้น",
-    "localFilesRootDirectoryPlaceholder": "โฟลเดอร์หลัก"
+    "localFilesRootDirectoryPlaceholder": "โฟลเดอร์หลัก",
+    "fileView": "File Viewer",
+    "fileViewPath": "File",
+    "fileViewPathPlaceholder": "Select a file to view",
+    "fileViewPickerTitle": "Select a file to view"
   },
   "terminal": {
     "openSftp": "เปิดเบราว์เซอร์ SFTP",
@@ -3155,7 +3159,35 @@
     "editWorkspace": "แก้ไข Workspace",
     "deleteWorkspace": "ลบพื้นที่ทำงาน",
     "deleteWorkspaceConfirm": "ลบ \"{{name}}\" และการเชื่อมต่อทั้งหมดหรือไม่? การดำเนินการนี้ย้อนกลับไม่ได้",
-    "workspaceCreated": "สร้างพื้นที่ทำงาน \"{{name}}\" แล้ว"
+    "workspaceCreated": "สร้างพื้นที่ทำงาน \"{{name}}\" แล้ว",
+    "fileViewer": {
+      "loading": "Loading…",
+      "noFile": "No file selected for this File Viewer Connection.",
+      "truncated": "This file is large; showing a partial preview.",
+      "invalidJson": "Invalid JSON — showing raw text.",
+      "imageTooLarge": "This image is too large to preview.",
+      "filterRows": "Filter rows…",
+      "filterLines": "Filter lines…",
+      "rowCount": "{{count}} rows",
+      "tableTruncated": "Showing the first {{count}} rows.",
+      "follow": "Follow",
+      "kind": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "csv": "Table",
+        "json": "JSON",
+        "image": "Image",
+        "log": "Log",
+        "hex": "Hex"
+      },
+      "level": {
+        "error": "Error",
+        "warn": "Warn",
+        "info": "Info",
+        "debug": "Debug",
+        "trace": "Trace"
+      }
+    }
   },
   "common": {
     "save": "บันทึก",

@@ -1780,7 +1780,11 @@
     "homeDirectory": "Diretório inicial",
     "localFilesSubtitle": "Navegador de arquivos local",
     "localFilesRootDirectory": "Pasta inicial",
-    "localFilesRootDirectoryPlaceholder": "Pasta pessoal"
+    "localFilesRootDirectoryPlaceholder": "Pasta pessoal",
+    "fileView": "File Viewer",
+    "fileViewPath": "File",
+    "fileViewPathPlaceholder": "Select a file to view",
+    "fileViewPickerTitle": "Select a file to view"
   },
   "terminal": {
     "openSftp": "Abrir navegador SFTP",
@@ -3155,7 +3159,35 @@
     "editWorkspace": "Editar Workspace",
     "deleteWorkspace": "Excluir espaço de trabalho",
     "deleteWorkspaceConfirm": "Excluir \"{{name}}\" e todas as suas conexões? Isso não pode ser desfeito.",
-    "workspaceCreated": "Espaço de trabalho \"{{name}}\" criado"
+    "workspaceCreated": "Espaço de trabalho \"{{name}}\" criado",
+    "fileViewer": {
+      "loading": "Loading…",
+      "noFile": "No file selected for this File Viewer Connection.",
+      "truncated": "This file is large; showing a partial preview.",
+      "invalidJson": "Invalid JSON — showing raw text.",
+      "imageTooLarge": "This image is too large to preview.",
+      "filterRows": "Filter rows…",
+      "filterLines": "Filter lines…",
+      "rowCount": "{{count}} rows",
+      "tableTruncated": "Showing the first {{count}} rows.",
+      "follow": "Follow",
+      "kind": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "csv": "Table",
+        "json": "JSON",
+        "image": "Image",
+        "log": "Log",
+        "hex": "Hex"
+      },
+      "level": {
+        "error": "Error",
+        "warn": "Warn",
+        "info": "Info",
+        "debug": "Debug",
+        "trace": "Trace"
+      }
+    }
   },
   "common": {
     "save": "Salvar",

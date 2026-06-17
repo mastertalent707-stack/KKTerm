@@ -457,7 +457,8 @@ function buildPanesFromStoredLayout(
     connection.type === "url" ||
     isRemoteDesktopConnection(connection) ||
     connection.type === "ftp" ||
-    connection.type === "localFiles"
+    connection.type === "localFiles" ||
+    connection.type === "fileView"
       ? Array.from({ length: paneCount }, () => {
           const pane = buildPaneForConnection(connection);
           return pane ? { ...pane, id: createPaneId(connection.id) } : null;
@@ -570,6 +571,15 @@ function buildPaneFromStoredLayoutPane(
         : connection,
     };
   }
+  if (storedPane.kind === "fileViewer" || connection.type === "fileView") {
+    return {
+      kind: "fileViewer",
+      id,
+      title,
+      toolbarTitle,
+      connection,
+    };
+  }
   if (connection.type === "localFiles") {
     return {
       kind: "localFiles",
@@ -600,6 +610,9 @@ function titleForConnectionPane(connection: Connection) {
   if (isRemoteDesktopConnection(connection)) {
     return connection.name;
   }
+  if (connection.type === "localFiles" || connection.type === "fileView") {
+    return connection.name;
+  }
   return terminalPaneTitleForConnection(connection);
 }
 
@@ -614,6 +627,9 @@ function toolbarTitleForConnection(connection: Connection) {
     return localTerminalToolbarTitle(connection);
   }
   if (connection.type === "localFiles") {
+    return connection.name;
+  }
+  if (connection.type === "fileView") {
     return connection.name;
   }
   return formatConnectionAddress(connection);
@@ -720,6 +736,17 @@ function buildPaneForConnection(
     };
   }
 
+  if (connection.type === "fileView") {
+    return {
+      kind: "fileViewer",
+      id: createPaneId(connection.id),
+      childConnectionId: options?.childConnectionId,
+      title: options?.title ?? connection.name,
+      toolbarTitle: options?.toolbarTitle ?? toolbarTitleForConnection(connection),
+      connection,
+    };
+  }
+
   return {
     kind: "terminal",
     id: createPaneId(connection.id),
@@ -772,6 +799,15 @@ function buildPaneForStandaloneTab(tab: WorkspaceTab): WorkspacePane | null {
   if (tab.kind === "sftp" || tab.kind === "ftp" || tab.kind === "localFiles") {
     return {
       kind: tab.kind,
+      id: tab.id,
+      title: tab.title,
+      toolbarTitle: tab.toolbarTitle ?? toolbarTitleForConnection(tab.connection),
+      connection: tab.connection,
+    };
+  }
+  if (tab.kind === "fileViewer") {
+    return {
+      kind: "fileViewer",
       id: tab.id,
       title: tab.title,
       toolbarTitle: tab.toolbarTitle ?? toolbarTitleForConnection(tab.connection),
@@ -1108,6 +1144,7 @@ interface WorkspaceState {
   openSftpBrowserInNewTab: (connection: Connection) => void;
   openFtpBrowser: (connection: Connection) => void;
   openLocalFilesBrowser: (connection: Connection) => void;
+  openFileViewer: (connection: Connection) => void;
   openTerminalHere: (connection: Connection, remotePath: string) => void;
   openLocalTerminal: (options?: { name?: string; shell?: string }) => void;
   openElevatedLocalTerminal: (option: LocalShellOption) => Promise<void>;
@@ -1443,6 +1480,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
     if (connection.type === "localFiles") {
       get().openLocalFilesBrowser(connection);
+      return;
+    }
+    if (connection.type === "fileView") {
+      get().openFileViewer(connection);
       return;
     }
 
@@ -2072,6 +2113,31 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       toolbarTitle: toolbarTitleForConnection(connection),
       subtitle: connection.localStartupDirectory || connection.host || "",
       kind: "localFiles",
+      panes: [],
+      connection,
+    };
+    set((state) => ({
+      tabs: [...state.tabs, tab],
+      activeTabId: tab.id,
+    }));
+  },
+  openFileViewer: (connection) => {
+    if (connection.type !== "fileView") {
+      return;
+    }
+    const tabId = `tab-${connection.id}-fileView`;
+    const existingTab = get().tabs.find((tab) => tab.id === tabId);
+    if (existingTab) {
+      set({ activeTabId: existingTab.id });
+      return;
+    }
+    const tab: WorkspaceTab = {
+      id: tabId,
+      workspaceId: get().activeWorkspaceId,
+      title: connection.name,
+      toolbarTitle: toolbarTitleForConnection(connection),
+      subtitle: connection.localStartupDirectory || "",
+      kind: "fileViewer",
       panes: [],
       connection,
     };

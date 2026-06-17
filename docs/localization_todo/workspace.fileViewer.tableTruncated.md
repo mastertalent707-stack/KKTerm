@@ -1,0 +1,16 @@
+# workspace.fileViewer.tableTruncated
+
+- **English value**: `Showing the first {{count}} rows.`
+- **Namespace**: `workspace`
+- **File/component**: `src/modules/workspace/connections/file-viewer/FileViewerWorkspace.tsx`
+- **UI role**: `status`
+- **User flow**: Shown when the table viewer caps rendered rows.
+- **Tone**: concise/neutral
+- **Placeholders**: {{count}} = max rendered rows
+- **Context/meaning**: File Viewer is the universal local-file viewer Connection (kind `fileView`); distinct from the File Explorer (`localFiles`) browser.
+- **Domain notes**: "File Viewer" names a Connection type; keep technical tokens (JSON, CSV, Hex, Markdown, Log) as commonly localized in the target locale.
+
+<!--
+Filename: workspace.fileViewer.tableTruncated.md
+Delete this file once every non-English locale under src/i18n/locales/ has the key translated.
+-->

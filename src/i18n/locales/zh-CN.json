@@ -1780,7 +1780,11 @@
     "homeDirectory": "主目录",
     "localFilesSubtitle": "本地文件浏览器",
     "localFilesRootDirectory": "起始文件夹",
-    "localFilesRootDirectoryPlaceholder": "主文件夹"
+    "localFilesRootDirectoryPlaceholder": "主文件夹",
+    "fileView": "File Viewer",
+    "fileViewPath": "File",
+    "fileViewPathPlaceholder": "Select a file to view",
+    "fileViewPickerTitle": "Select a file to view"
   },
   "terminal": {
     "openSftp": "打开 SFTP 浏览器",
@@ -3155,7 +3159,35 @@
     "editWorkspace": "编辑 Workspace",
     "deleteWorkspace": "删除工作区",
     "deleteWorkspaceConfirm": "要删除“{{name}}”及其所有连接吗？此操作无法撤销。",
-    "workspaceCreated": "已创建工作区“{{name}}”"
+    "workspaceCreated": "已创建工作区“{{name}}”",
+    "fileViewer": {
+      "loading": "Loading…",
+      "noFile": "No file selected for this File Viewer Connection.",
+      "truncated": "This file is large; showing a partial preview.",
+      "invalidJson": "Invalid JSON — showing raw text.",
+      "imageTooLarge": "This image is too large to preview.",
+      "filterRows": "Filter rows…",
+      "filterLines": "Filter lines…",
+      "rowCount": "{{count}} rows",
+      "tableTruncated": "Showing the first {{count}} rows.",
+      "follow": "Follow",
+      "kind": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "csv": "Table",
+        "json": "JSON",
+        "image": "Image",
+        "log": "Log",
+        "hex": "Hex"
+      },
+      "level": {
+        "error": "Error",
+        "warn": "Warn",
+        "info": "Info",
+        "debug": "Debug",
+        "trace": "Trace"
+      }
+    }
   },
   "common": {
     "save": "保存",
