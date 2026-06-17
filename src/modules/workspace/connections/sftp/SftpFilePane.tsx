@@ -16,6 +16,7 @@ import { ExplorerSidebar } from "./ExplorerSidebar";
 import { SftpBackgroundLayer } from "./SftpBackgroundLayer";
 import { FileGlyph } from "./finderGlyphs";
 import { formatFileSize, joinLocalPath } from "./format";
+import { writeConnectionPathsDrag } from "../connectionPathsDrag";
 import type { FilePaneSide, LocalFavorite } from "./types";
 
 type SortKey = "name" | "size" | "date";
@@ -283,6 +284,16 @@ export function FilePane({
     onSelectionChange?.(names);
     event.dataTransfer.effectAllowed = "copy";
     event.dataTransfer.setData("application/x-kkterm-sftp-items", JSON.stringify({ side, names }));
+    // The local pane (File Explorer Connection or the SFTP local side) browses
+    // real filesystem paths, so it can also seed Connections when dropped on the
+    // Connection Tree. Remote paths aren't local-loadable, so only the local side
+    // carries them.
+    if (side === "local") {
+      writeConnectionPathsDrag(
+        event.dataTransfer,
+        names.map((name) => joinLocalPath(path, name)),
+      );
+    }
   }
 
   function handleDragOver(event: ReactDragEvent<HTMLDivElement>) {
