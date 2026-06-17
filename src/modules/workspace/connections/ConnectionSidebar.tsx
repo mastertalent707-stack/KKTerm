@@ -29,12 +29,14 @@ import {
   type ConnectionTabContextMenuDetail,
 } from "./connectionTabContextMenu";
 import { buildFileViewConnectionDraftFromPath } from "./fileViewConnectionDraft";
+import { buildLocalFilesConnectionDraftFromPath } from "./localFilesConnectionDraft";
 import { confirmTrustedSshHostKey, connectionPasswordOwnerId, connectionSshSocksProxyPasswordOwnerId, defaultPortForConnectionType, connectionTypeLabel, ftpPortForProtocolSelection, isRemoteDesktopConnectionType, localShellOptionsForPlatform, resolveSshSocksProxyRequest, uniqueRuntimeId, type LocalShellOption } from "./utils";
 import { RECENT_CONNECTION_LIMIT, loadCollapsedFolderIds, loadRecentConnectionIds, notifyConnectionTreeInvalidated, saveCollapsedFolderIds, saveRecentConnectionIds } from "./connectionSidebarState";
 import { collectConnectionFolderIds, countConnections, countFolders, filterConnectedConnections, filterConnectionTree, findConnectionInTree, flattenConnections, flattenFolders, visibleFlatConnections as flattenVisibleConnections, withLiveConnectionStatuses } from "./treeUtils";
 import { WorkspaceIcon } from "../workspaceIcons";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, CircleDot, Folder, FolderPlus, KeyRound, LayoutDashboard, List, Maximize2, Minimize2, PanelRight, Pencil, Pin, PinOff, Play, Plus, RotateCcw, Save, Search, Settings, SquarePlus, Trash2, X } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import type { TFunction } from "i18next";
@@ -272,6 +274,9 @@ export function ConnectionSidebar({
   const [quickConnectMenuOpen, setQuickConnectMenuOpen] = useState(false);
   const [recentConnectionIds, setRecentConnectionIds] = useState(loadRecentConnectionIds);
   const [dropTarget, setDropTarget] = useState("");
+  // Highlight shown while an OS file/folder is dragged over the tree, before it
+  // is dropped to create a Document/File Explorer Connection.
+  const [externalFileDropActive, setExternalFileDropActive] = useState(false);
   const [dragPreview, setDragPreview] = useState<TreeDragPreview | null>(null);
   const [draggedSourceId, setDraggedSourceId] = useState("");
   const [canvasDropZone, setCanvasDropZone] = useState<CanvasDropZone | null>(null);
@@ -316,6 +321,7 @@ export function ConnectionSidebar({
   }, [childConnections, tree]);
   const addConnectionRef = useRef<HTMLDivElement | null>(null);
   const quickConnectRef = useRef<HTMLDivElement | null>(null);
+  const treeListRef = useRef<HTMLDivElement | null>(null);
   const draggedItemRef = useRef<DraggedTreeItem | null>(null);
   const pointerDragTargetRef = useRef<TreeDropTarget | null>(null);
   const canvasDropTargetRef = useRef<CanvasDropZone | null>(null);
@@ -429,6 +435,48 @@ export function ConnectionSidebar({
     },
     [],
   );
+
+  // Drop OS files/folders onto the Connection Tree to create Connections: files
+  // become Document Connections, folders become File Explorer Connections.
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    let disposed = false;
+    let unlisten: (() => void) | null = null;
+    void getCurrentWebview()
+      .onDragDropEvent((event) => {
+        if (disposed) {
+          return;
+        }
+        if (event.payload.type === "over") {
+          setExternalFileDropActive(
+            isPositionInsideTree(event.payload.position.x, event.payload.position.y),
+          );
+        } else if (event.payload.type === "drop") {
+          const inside = isPositionInsideTree(event.payload.position.x, event.payload.position.y);
+          setExternalFileDropActive(false);
+          if (inside) {
+            void handleExternalPathsDroppedRef.current(event.payload.paths);
+          }
+        } else {
+          setExternalFileDropActive(false);
+        }
+      })
+      .then((dispose) => {
+        if (disposed) {
+          dispose();
+        } else {
+          unlisten = dispose;
+        }
+      });
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
 
   async function reloadConnectionGroups() {
     try {
@@ -574,6 +622,63 @@ export function ConnectionSidebar({
       await handleConnectionSaved();
     } catch (error) {
       setTreeError(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  // True when an OS drag-drop position (physical pixels) lands inside the tree
+  // list. Mirrors the App Launcher's dual raw/scaled check so it works across
+  // the WebView2 device-pixel-ratio differences seen on Windows.
+  function isPositionInsideTree(x: number, y: number) {
+    const bounds = treeListRef.current?.getBoundingClientRect();
+    if (!bounds) {
+      return false;
+    }
+    const scale = window.devicePixelRatio || 1;
+    const inside = (px: number, py: number) =>
+      px >= bounds.left && px <= bounds.right && py >= bounds.top && py <= bounds.bottom;
+    return inside(x, y) || inside(x / scale, y / scale);
+  }
+
+  // Create a Connection per OS-dropped path: folders become File Explorer
+  // Connections with default settings (named after the last folder segment),
+  // files become Document Connections — matching the Add Connection flows.
+  async function handleExternalPathsDropped(paths: string[]) {
+    if (!isTauriRuntime()) {
+      return;
+    }
+    const uniquePaths = Array.from(new Set(paths.map((path) => path.trim()).filter(Boolean)));
+    if (uniquePaths.length === 0) {
+      return;
+    }
+
+    const workspaceId = useWorkspaceStore.getState().activeWorkspaceId;
+    let created = 0;
+    for (const path of uniquePaths) {
+      try {
+        const prepared = await invokeCommand("prepare_app_launcher_entry", { request: { path } });
+        if (prepared.fileKind === "missing") {
+          continue;
+        }
+        if (prepared.fileKind === "folder") {
+          await invokeCommand("create_connection", {
+            request: buildLocalFilesConnectionDraftFromPath(prepared.path, { workspaceId }),
+          });
+        } else {
+          const { iconDataUrl, ...request } = buildFileViewConnectionDraftFromPath(prepared.path, {
+            workspaceId,
+          });
+          const connection = await invokeCommand("create_connection", { request });
+          await saveConnectionIconPresentation(connection, iconDataUrl, null);
+        }
+        created += 1;
+      } catch (error) {
+        setTreeError(error instanceof Error ? error.message : String(error));
+      }
+    }
+
+    if (created > 0) {
+      await reloadConnectionGroups();
+      notifyConnectionTreeInvalidated();
     }
   }
 
@@ -1459,6 +1564,8 @@ export function ConnectionSidebar({
   treeRef.current = treeWithLiveStatuses;
   const handleOpenConnectionRef = useRef(handleOpenConnection);
   handleOpenConnectionRef.current = handleOpenConnection;
+  const handleExternalPathsDroppedRef = useRef(handleExternalPathsDropped);
+  handleExternalPathsDroppedRef.current = handleExternalPathsDropped;
   const onExternalOpenConnectionRef = useRef(onExternalOpenConnection);
   onExternalOpenConnectionRef.current = onExternalOpenConnection;
 
@@ -2498,7 +2605,8 @@ export function ConnectionSidebar({
       {treeError ? <p className="form-error tree-error">{treeError}</p> : null}
 
       <div
-        className={`tree-list ${dropTarget === "root" ? "drop-target" : ""}`}
+        ref={treeListRef}
+        className={`tree-list ${dropTarget === "root" ? "drop-target" : ""}${externalFileDropActive ? " external-drop-target" : ""}`}
         aria-label={t("connections.connectionTree")}
         data-tutorial-id="connections.tree"
         data-connection-count={displayTree.connections.length}

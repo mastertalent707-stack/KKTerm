@@ -304,6 +304,7 @@
 }
 
 .tree-list.drop-target,
+.tree-list.external-drop-target,
 .tree-folder-row.drop-target,
 .connection-row.drop-target,
 .tree-root-drop-target.drop-target {
