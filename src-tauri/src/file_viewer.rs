@@ -54,6 +54,31 @@ pub struct FileViewBytesRequest {
     pub length: u64,
 }
 
+/// Error-message prefix the frontend matches to detect a save conflict (the file
+/// changed on disk since it was loaded) so it can prompt before overwriting.
+pub const FILE_VIEW_CONFLICT: &str = "FILE_VIEW_CONFLICT";
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileViewWriteRequest {
+    pub path: String,
+    pub content: String,
+    /// The mtime the editor loaded; a mismatch (unless `force`) means the file
+    /// changed underneath the editor and the save is refused as a conflict.
+    #[serde(default)]
+    pub expected_mtime_ms: Option<i64>,
+    /// Overwrite even when the on-disk mtime no longer matches.
+    #[serde(default)]
+    pub force: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileViewWriteResult {
+    pub mtime_ms: i64,
+    pub size: u64,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileViewProbe {
@@ -216,6 +241,61 @@ pub fn read_text(request: FileViewTextRequest) -> Result<FileViewText, String> {
         truncated: start > 0 || bytes_read < total_size,
         from_end: request.from_end,
         mtime_ms: mtime_ms(&metadata),
+    })
+}
+
+/// Atomically save edited UTF-8 text back to a file. Writes a sibling temp file
+/// in the same directory, copies the original's permissions, then renames it
+/// over the target — a rename on the same filesystem is atomic, so a crash mid-
+/// save cannot leave a truncated file. When `expected_mtime_ms` is provided and
+/// the on-disk mtime no longer matches (and `force` is not set), the save is
+/// refused with a `FILE_VIEW_CONFLICT` error so the editor can prompt first.
+pub fn write_text(request: FileViewWriteRequest) -> Result<FileViewWriteResult, String> {
+    let path = Path::new(&request.path);
+    if request.content.len() as u64 > READ_HARD_CAP_BYTES {
+        return Err("content exceeds the maximum editable size".to_string());
+    }
+    let existing = std::fs::metadata(path).ok();
+    if let Some(meta) = existing.as_ref() {
+        if meta.is_dir() {
+            return Err("path is a directory, not a file".to_string());
+        }
+    }
+
+    if !request.force {
+        if let (Some(expected), Some(meta)) = (request.expected_mtime_ms, existing.as_ref()) {
+            if expected != 0 && mtime_ms(meta) != expected {
+                return Err(format!("{FILE_VIEW_CONFLICT}: the file changed on disk"));
+            }
+        }
+    }
+
+    let parent = path
+        .parent()
+        .filter(|dir| !dir.as_os_str().is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
+    let nanos = std::time::SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|delta| delta.as_nanos())
+        .unwrap_or(0);
+    let temp_path = parent.join(format!(".kkterm-save-{}-{nanos}.tmp", std::process::id()));
+
+    std::fs::write(&temp_path, request.content.as_bytes())
+        .map_err(|error| format!("cannot write file: {error}"))?;
+    // Best-effort: preserve the original file's permission bits.
+    if let Some(meta) = existing.as_ref() {
+        let _ = std::fs::set_permissions(&temp_path, meta.permissions());
+    }
+    if let Err(error) = std::fs::rename(&temp_path, path) {
+        let _ = std::fs::remove_file(&temp_path);
+        return Err(format!("cannot save file: {error}"));
+    }
+
+    let metadata = std::fs::metadata(path).map_err(|error| format!("cannot read file: {error}"))?;
+    Ok(FileViewWriteResult {
+        mtime_ms: mtime_ms(&metadata),
+        size: metadata.len(),
     })
 }
 
@@ -521,6 +601,61 @@ mod tests {
         assert_eq!(decoded, b"CDE");
         assert_eq!(chunk.offset, 2);
         assert!(!chunk.eof);
+        std::fs::remove_file(path).ok();
+    }
+
+    #[test]
+    fn write_text_saves_atomically_and_reports_mtime() {
+        let path = temp_file("edit.txt", b"original");
+        let path_str = path.to_string_lossy().into_owned();
+        let result = write_text(FileViewWriteRequest {
+            path: path_str.clone(),
+            content: "edited contents".to_string(),
+            expected_mtime_ms: None,
+            force: false,
+        })
+        .unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "edited contents");
+        assert!(result.size > 0);
+        // No leftover temp file in the directory.
+        let leftovers = std::fs::read_dir(path.parent().unwrap())
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|entry| {
+                entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(".kkterm-save-")
+            })
+            .count();
+        assert_eq!(leftovers, 0);
+        std::fs::remove_file(path).ok();
+    }
+
+    #[test]
+    fn write_text_detects_and_can_force_conflicts() {
+        let path = temp_file("conflict.txt", b"v1");
+        let path_str = path.to_string_lossy().into_owned();
+        // A stale expected mtime is treated as a conflict.
+        let err = write_text(FileViewWriteRequest {
+            path: path_str.clone(),
+            content: "v2".to_string(),
+            expected_mtime_ms: Some(1),
+            force: false,
+        })
+        .unwrap_err();
+        assert!(err.starts_with(FILE_VIEW_CONFLICT));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "v1");
+
+        // Forcing overwrites despite the mtime mismatch.
+        write_text(FileViewWriteRequest {
+            path: path_str,
+            content: "v2".to_string(),
+            expected_mtime_ms: Some(1),
+            force: true,
+        })
+        .unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "v2");
         std::fs::remove_file(path).ok();
     }
 }

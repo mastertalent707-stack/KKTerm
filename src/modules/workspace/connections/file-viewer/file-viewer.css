@@ -39,6 +39,27 @@
   gap: 4px;
 }
 
+.file-viewer-dirty-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.file-viewer-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.file-viewer-save:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .file-viewer-mode-switch .toolbar-button.is-active {
   background: var(--sel-soft);
   color: var(--accent);

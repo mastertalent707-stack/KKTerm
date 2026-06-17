@@ -291,6 +291,11 @@ export interface FileViewBytes {
   mtimeMs: number;
 }
 
+export interface FileViewWriteResult {
+  mtimeMs: number;
+  size: number;
+}
+
 export interface PdfViewStatus {
   available: boolean;
   source: string | null;
@@ -1898,6 +1903,12 @@ type CommandMap = {
   read_file_view_bytes: {
     args: { request: { path: string; offset: number; length: number } };
     result: FileViewBytes;
+  };
+  write_file_view: {
+    args: {
+      request: { path: string; content: string; expectedMtimeMs?: number; force?: boolean };
+    };
+    result: FileViewWriteResult;
   };
   file_view_pdf_status: {
     args: undefined;

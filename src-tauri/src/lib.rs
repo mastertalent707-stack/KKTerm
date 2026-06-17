@@ -2298,6 +2298,13 @@ async fn file_view_pdf_status() -> Result<file_viewer::PdfViewStatus, String> {
 }
 
 #[tauri::command]
+async fn write_file_view(
+    request: file_viewer::FileViewWriteRequest,
+) -> Result<file_viewer::FileViewWriteResult, String> {
+    run_blocking_command("write file view", move || file_viewer::write_text(request)).await
+}
+
+#[tauri::command]
 async fn render_pdf_view(
     request: file_viewer::PdfRenderRequest,
 ) -> Result<file_viewer::PdfRender, String> {
@@ -3426,6 +3433,7 @@ pub fn run() {
             read_file_view_text,
             read_file_view_bytes,
             file_view_pdf_status,
+            write_file_view,
             render_pdf_view,
             open_filesystem_path,
             copy_local_path,

@@ -8,6 +8,7 @@ import {
   detectViewerKind,
   fileBaseName,
   fileExtension,
+  isEditableText,
   viewerLoadsText,
   viewerUsesExternalDependency,
 } from "../src/modules/workspace/connections/file-viewer/fileViewerModel.ts";
@@ -53,6 +54,17 @@ test("viewerLoadsText is false for image, hex, and pdf", () => {
   assert.equal(viewerLoadsText("image"), false);
   assert.equal(viewerLoadsText("hex"), false);
   assert.equal(viewerLoadsText("pdf"), false);
+});
+
+test("isEditableText only allows whole, cleanly-decoded text files (Phase 3)", () => {
+  assert.equal(isEditableText({ kind: "text", truncated: false, text: "hello" }), true);
+  // Non-text modes are read-only.
+  assert.equal(isEditableText({ kind: "json", truncated: false, text: "{}" }), false);
+  assert.equal(isEditableText({ kind: "log", truncated: false, text: "x" }), false);
+  // A truncated (partial) load must not be editable — saving would lose data.
+  assert.equal(isEditableText({ kind: "text", truncated: true, text: "partial" }), false);
+  // A lossy non-UTF-8 load (replacement char) must not be editable.
+  assert.equal(isEditableText({ kind: "text", truncated: false, text: "a�b" }), false);
 });
 
 test("pdf is detected and routed to its external dependency (Phase 2)", () => {

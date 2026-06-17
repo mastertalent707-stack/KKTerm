@@ -172,3 +172,18 @@ export function viewerLoadsText(kind: ViewerKind): boolean {
 export function viewerUsesExternalDependency(kind: ViewerKind): boolean {
   return kind === "pdf";
 }
+
+/** Unicode replacement character — present when a non-UTF-8 file was loaded
+ * lossily, which means saving would corrupt it, so editing must stay disabled. */
+const REPLACEMENT_CHAR = "�";
+
+/** Phase 3: whether the loaded content can be safely edited and saved. Only the
+ * text mode is editable, and only when the whole file was loaded (not truncated)
+ * and decoded cleanly as UTF-8 — otherwise a save would lose or corrupt data. */
+export function isEditableText(content: {
+  kind: ViewerKind;
+  truncated: boolean;
+  text: string;
+}): boolean {
+  return content.kind === "text" && !content.truncated && !content.text.includes(REPLACEMENT_CHAR);
+}
