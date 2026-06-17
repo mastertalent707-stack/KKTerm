@@ -1290,6 +1290,16 @@
   color: var(--red);
 }
 
+.settings-dialog-warning {
+  color: var(--amber);
+}
+
+.settings-security-note {
+  border-left: 3px solid var(--amber);
+  padding-left: 10px;
+  color: var(--text);
+}
+
 .settings-list-row > .settings-list-actions,
 .settings-list-row > button,
 .settings-summary-item strong,

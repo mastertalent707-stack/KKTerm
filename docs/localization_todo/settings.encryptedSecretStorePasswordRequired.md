@@ -1,13 +1,13 @@
 # settings.encryptedSecretStorePasswordRequired
 
-- **English value**: `Enter an unlock key for encrypted database storage.`
+- **English value**: `Enter the master password for encrypted database storage.`
 - **Namespace**: `settings`
 - **File/component**: `src/modules/settings/EncryptedSecretStoreDialog.tsx`
 - **UI role**: `error`
-- **User flow**: `Validation message when the user submits the encrypted database setup dialog without an unlock key.`
+- **User flow**: `Validation message when the user submits the encrypted database setup dialog without a master password.`
 - **Tone**: `direct setup guidance`
 - **Placeholders**: `none`
-- **Context/meaning**: `Enter means provide the local unlock key; encrypted database storage means the SQLite-backed credential backend.`
+- **Context/meaning**: `Enter means provide the local master password; encrypted database storage means the SQLite-backed credential backend.`
 - **Domain notes**: `Keep as one complete sentence.`
 
 <!--

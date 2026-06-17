@@ -1,14 +1,14 @@
 # settings.encryptedSecretStorePassword
 
-- **English value**: `Unlock key`
+- **English value**: `Master password`
 - **Namespace**: `settings`
 - **File/component**: `src/modules/settings/EncryptedSecretStoreDialog.tsx`
 - **UI role**: `label`
 - **User flow**: `Password input label in the encrypted database storage setup dialog.`
 - **Tone**: `concise/neutral`
 - **Placeholders**: `none`
-- **Context/meaning**: `Unlock key is a password-like secret used to derive the encryption key for stored credential values.`
-- **Domain notes**: `Do not translate as SSH key or API key; this is the local secret-store unlock key.`
+- **Context/meaning**: `Master password is the password-like secret used to derive the encryption key for stored credential values.`
+- **Domain notes**: `Do not translate as SSH password or API password; this is the local secret-store master password.`
 
 <!--
 Filename: settings.encryptedSecretStorePassword.md

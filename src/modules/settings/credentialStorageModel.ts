@@ -6,6 +6,11 @@ const SECRET_STORE_KINDS: readonly SecretStoreKind[] = ["os", "file"];
 type SecretStatusLike = Pick<KeychainStatus, "available" | "selectedStore" | "availableStores">;
 
 export type CredentialStorageSelectionAction = "select" | "setup-file";
+export type EncryptedSecretStoreWizardMode = "unlock" | "create";
+export type EncryptedDatabaseSecurityReminderKey =
+  | "settings.credentialStorageEncryptedComparison"
+  | "settings.credentialStorageEncryptedLinuxReminder"
+  | "settings.credentialStorageOsComparison";
 
 export function normalizeSecretStoreKind(value: unknown): SecretStoreKind {
   return SECRET_STORE_KINDS.includes(value as SecretStoreKind)
@@ -64,4 +69,27 @@ export function shouldPromptForEncryptedFileSetup({
     normalizeSecretStoreKind(secretStatus?.selectedStore) === "file" &&
     !secretStatus?.available
   );
+}
+
+export function encryptedSecretStoreInitialMode({
+  encryptedStoreExists,
+}: {
+  encryptedStoreExists: boolean | null | undefined;
+}): EncryptedSecretStoreWizardMode {
+  return encryptedStoreExists === false ? "create" : "unlock";
+}
+
+export function encryptedDatabaseSecurityReminderKey({
+  platform,
+  selectedStore,
+}: {
+  platform: RuntimePlatform;
+  selectedStore: SecretStoreKind;
+}): EncryptedDatabaseSecurityReminderKey {
+  if (selectedStore !== "file") {
+    return "settings.credentialStorageOsComparison";
+  }
+  return platform === "linux"
+    ? "settings.credentialStorageEncryptedLinuxReminder"
+    : "settings.credentialStorageEncryptedComparison";
 }

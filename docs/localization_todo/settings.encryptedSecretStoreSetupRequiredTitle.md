@@ -7,7 +7,7 @@
 - **User flow**: `Dialog title shown when the encrypted database backend is selected but KKTerm cannot unlock or verify it on launch.`
 - **Tone**: `direct setup guidance`
 - **Placeholders**: `none`
-- **Context/meaning**: `Needs setup means the unlock key must be entered or an initial key must be created.`
+- **Context/meaning**: `Needs setup means the master password must be entered or an initial master password must be created.`
 - **Domain notes**: `This is about the credential backend, not general Settings data import or backup.`
 
 <!--

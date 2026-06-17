@@ -303,6 +303,7 @@ export interface CredentialSettings {
 export interface ConfigureEncryptedFileSecretStoreRequest {
   password: string;
   createIfMissing: boolean;
+  resetExisting?: boolean;
 }
 
 export interface ConfigureEncryptedFileSecretStoreResult {
@@ -812,6 +813,7 @@ export interface KeychainStatus {
   backend: string;
   selectedStore: SecretStoreKind;
   availableStores: SecretStoreKind[];
+  encryptedStoreExists?: boolean;
 }
 
 export interface UrlCredentialSummary {

@@ -30,6 +30,7 @@ pub struct KeychainStatus {
     backend: String,
     selected_store: String,
     available_stores: Vec<String>,
+    encrypted_store_exists: bool,
 }
 
 #[derive(Deserialize)]
@@ -37,6 +38,8 @@ pub struct KeychainStatus {
 pub struct ConfigureEncryptedFileSecretStoreRequest {
     password: String,
     create_if_missing: bool,
+    #[serde(default)]
+    reset_existing: bool,
 }
 
 #[derive(Deserialize)]
@@ -276,6 +279,7 @@ impl Secrets {
                 .into_iter()
                 .map(str::to_string)
                 .collect(),
+            encrypted_store_exists: SqliteSecretStore::store_exists(&self.db_path).unwrap_or(false),
         }
     }
 
@@ -318,7 +322,11 @@ impl Secrets {
     ) -> Result<KeychainStatus, String> {
         let _guard = self.lock()?;
         let store = SqliteSecretStore::from_password(self.db_path.clone(), request.password)?;
-        store.initialize_or_verify(request.create_if_missing)?;
+        if request.reset_existing {
+            store.reset()?;
+        } else {
+            store.initialize_or_verify(request.create_if_missing)?;
+        }
         let mut state = self
             .state
             .lock()
@@ -842,6 +850,48 @@ mod tests {
             wrong_password_store
                 .exists(&reference)
                 .expect("presence check should only query metadata")
+        );
+    }
+
+    #[test]
+    fn encrypted_sqlite_store_reset_clears_existing_credentials() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let path = temp_dir.path().join("kkterm.sqlite3");
+        crate::storage::Storage::open(path.clone()).expect("storage opens");
+        let secrets = Secrets::new("os", path);
+
+        secrets
+            .configure_encrypted_file_store(ConfigureEncryptedFileSecretStoreRequest {
+                password: "old-password".to_string(),
+                create_if_missing: true,
+                reset_existing: false,
+            })
+            .expect("encrypted sqlite store is created");
+        secrets
+            .store_secret(StoreSecretRequest {
+                kind: SecretKind::ConnectionPassword,
+                owner_id: "credential-to-clear".to_string(),
+                secret: "discard-me".to_string(),
+            })
+            .expect("secret is stored");
+
+        let status = secrets
+            .configure_encrypted_file_store(ConfigureEncryptedFileSecretStoreRequest {
+                password: "new-password".to_string(),
+                create_if_missing: true,
+                reset_existing: true,
+            })
+            .expect("encrypted sqlite store is reset");
+
+        assert!(status.encrypted_store_exists);
+        assert!(
+            !secrets
+                .secret_exists(SecretReferenceRequest {
+                    kind: SecretKind::ConnectionPassword,
+                    owner_id: "credential-to-clear".to_string(),
+                })
+                .expect("presence check succeeds")
+                .exists()
         );
     }
 }

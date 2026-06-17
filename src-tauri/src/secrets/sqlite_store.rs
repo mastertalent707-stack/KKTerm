@@ -58,6 +58,26 @@ impl SqliteSecretStore {
         Self::new(db_path, password)
     }
 
+    pub(super) fn store_exists(db_path: &std::path::Path) -> Result<bool, String> {
+        let connection = Connection::open(db_path).map_err(|error| {
+            format!(
+                "Could not open encrypted SQLite secret store {}: {error}",
+                db_path.display()
+            )
+        })?;
+        let sentinel_key = storage_key(SENTINEL_KEY);
+        let count: i64 = connection
+            .query_row(
+                "SELECT COUNT(1) FROM encrypted_secret_store_entries WHERE secret_key = ?1",
+                params![sentinel_key],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|error| format!("Could not query encrypted SQLite secret store: {error}"))?
+            .unwrap_or(0);
+        Ok(count > 0)
+    }
+
     pub(super) fn initialize_or_verify(&self, create_if_missing: bool) -> Result<(), String> {
         let sentinel_key = storage_key(SENTINEL_KEY);
         if self.exists_by_key(&sentinel_key)? {
@@ -75,6 +95,15 @@ impl SqliteSecretStore {
         }
 
         Err("Encrypted SQLite secret store has not been set up".to_string())
+    }
+
+    pub(super) fn reset(&self) -> Result<(), String> {
+        let connection = self.open()?;
+        connection
+            .execute("DELETE FROM encrypted_secret_store_entries", [])
+            .map_err(|error| format!("Could not clear encrypted SQLite secrets: {error}"))?;
+        drop(connection);
+        self.write_by_key(&storage_key(SENTINEL_KEY), SENTINEL_PLAINTEXT)
     }
 
     fn open(&self) -> Result<Connection, String> {
@@ -263,7 +292,8 @@ fn decrypt_secret(
             },
         )
         .map_err(|_| {
-            "could not decrypt encrypted SQLite secret; check the configured unlock key".to_string()
+            "could not decrypt encrypted SQLite secret; check the configured master password"
+                .to_string()
         })?;
 
     String::from_utf8(plaintext)

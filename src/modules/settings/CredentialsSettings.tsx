@@ -18,6 +18,8 @@ import { CredentialDeleteConfirmDialog } from "./CredentialDeleteConfirmDialog";
 import { EncryptedSecretStoreDialog } from "./EncryptedSecretStoreDialog";
 import {
   credentialStorageSelectionAction,
+  encryptedDatabaseSecurityReminderKey,
+  encryptedSecretStoreInitialMode,
   normalizeAvailableSecretStores,
   normalizeSecretStoreKind,
   shouldPromptForEncryptedFileSetup,
@@ -92,6 +94,11 @@ export function CredentialsSettings() {
     [storedCredentials],
   );
   const selectedSecretStore = normalizeSecretStoreKind(draft.secretStore);
+  const platform = currentPlatform();
+  const securityReminderKey = encryptedDatabaseSecurityReminderKey({
+    platform,
+    selectedStore: selectedSecretStore,
+  });
   const availableSecretStores = useMemo(
     () => normalizeAvailableSecretStores(secretStatus?.availableStores, selectedSecretStore),
     [secretStatus?.availableStores, selectedSecretStore],
@@ -135,7 +142,7 @@ export function CredentialsSettings() {
       !dismissedLaunchPrompt &&
       !encryptedStoreDialogOpen &&
       shouldPromptForEncryptedFileSetup({
-        platform: currentPlatform(),
+        platform,
         selectedStore: normalizeSecretStoreKind(credentialSettings.secretStore),
         secretStatus,
       })
@@ -144,7 +151,13 @@ export function CredentialsSettings() {
       setEncryptedStoreError(null);
       setEncryptedStoreDialogOpen(true);
     }
-  }, [credentialSettings.secretStore, dismissedLaunchPrompt, encryptedStoreDialogOpen, secretStatus]);
+  }, [
+    credentialSettings.secretStore,
+    dismissedLaunchPrompt,
+    encryptedStoreDialogOpen,
+    platform,
+    secretStatus,
+  ]);
 
   async function handleSave() {
     try {
@@ -165,6 +178,7 @@ export function CredentialsSettings() {
   async function configureEncryptedStore(request: {
     password: string;
     createIfMissing: boolean;
+    resetExisting?: boolean;
   }) {
     try {
       setEncryptedStoreBusy(true);
@@ -179,6 +193,7 @@ export function CredentialsSettings() {
               backend: t("settings.credentialStorageFile"),
               selectedStore: "file" as const,
               availableStores: ["os" as const, "file" as const],
+              encryptedStoreExists: true,
             },
           };
       setCredentialSettings(result.settings);
@@ -314,6 +329,7 @@ export function CredentialsSettings() {
             </button>
           ) : null}
         </div>
+        <p className="field-hint settings-security-note">{t(securityReminderKey)}</p>
         <p className="field-hint">{t("settings.credentialStorageSwitchNote")}</p>
       </fieldset>
 
@@ -381,8 +397,13 @@ export function CredentialsSettings() {
       {encryptedStoreDialogOpen ? (
         <EncryptedSecretStoreDialog
           busy={encryptedStoreBusy}
+          encryptedStoreExists={secretStatus?.encryptedStoreExists}
           error={encryptedStoreError}
+          initialMode={encryptedSecretStoreInitialMode({
+            encryptedStoreExists: secretStatus?.encryptedStoreExists,
+          })}
           launchPrompt={encryptedStoreLaunchPrompt}
+          platform={platform}
           onCancel={closeEncryptedStoreDialog}
           onSubmit={configureEncryptedStore}
         />

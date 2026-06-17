@@ -5,33 +5,46 @@ import {
   Btn,
   DialogShell,
   Field,
-  Segmented,
   Sheet,
   TextInput,
 } from "../../app/ui/dialog";
-
-type SetupMode = "unlock" | "create";
+import type { RuntimePlatform } from "../../lib/platform";
+import type { EncryptedSecretStoreWizardMode } from "./credentialStorageModel";
 
 export function EncryptedSecretStoreDialog({
   busy,
   error,
+  initialMode,
+  encryptedStoreExists,
   launchPrompt,
+  platform,
   onCancel,
   onSubmit,
 }: {
   busy: boolean;
   error: string | null;
+  initialMode: EncryptedSecretStoreWizardMode;
+  encryptedStoreExists: boolean | null | undefined;
   launchPrompt: boolean;
+  platform: RuntimePlatform;
   onCancel: () => void;
-  onSubmit: (request: { password: string; createIfMissing: boolean }) => Promise<void>;
+  onSubmit: (request: {
+    password: string;
+    createIfMissing: boolean;
+    resetExisting?: boolean;
+  }) => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<SetupMode>(launchPrompt ? "create" : "unlock");
+  const [mode, setMode] = useState<EncryptedSecretStoreWizardMode>(initialMode);
+  const [resetExisting, setResetExisting] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [resetAttempted, setResetAttempted] = useState(false);
   const formRef = useRef<HTMLFormElement | null>(null);
   const createIfMissing = mode === "create";
+  const showResetRecovery = Boolean(error && encryptedStoreExists && !createIfMissing);
+  const displayedError = validationError ?? (!createIfMissing || resetAttempted ? error : null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,7 +58,19 @@ export function EncryptedSecretStoreDialog({
       return;
     }
     setValidationError(null);
-    await onSubmit({ password: trimmedPassword, createIfMissing });
+    if (resetExisting) {
+      setResetAttempted(true);
+    }
+    await onSubmit({ password: trimmedPassword, createIfMissing, resetExisting });
+  }
+
+  function startResetFlow() {
+    setMode("create");
+    setResetExisting(true);
+    setPassword("");
+    setConfirmPassword("");
+    setValidationError(null);
+    setResetAttempted(false);
   }
 
   return (
@@ -62,10 +87,12 @@ export function EncryptedSecretStoreDialog({
             primary={
               <Btn
                 disabled={busy}
-                kind="primary"
+                kind={resetExisting ? "danger" : "primary"}
                 onClick={() => formRef.current?.requestSubmit()}
               >
-                {createIfMissing
+                {resetExisting
+                  ? t("settings.encryptedSecretStoreResetAction")
+                  : createIfMissing
                   ? t("settings.encryptedSecretStoreCreateAction")
                   : t("settings.encryptedSecretStoreUnlockAction")}
               </Btn>
@@ -81,24 +108,27 @@ export function EncryptedSecretStoreDialog({
         }
       >
         <form ref={formRef} onSubmit={(event) => void handleSubmit(event)}>
-          <p className="field-hint">{t("settings.encryptedSecretStoreSetupBody")}</p>
-          <Field label={t("settings.encryptedSecretStoreSetupMode")}>
-            <Segmented
-              value={mode}
-              options={[
-                { value: "unlock", label: t("settings.encryptedSecretStoreUnlock") },
-                { value: "create", label: t("settings.encryptedSecretStoreCreate") },
-              ]}
-              onChange={(value) => {
-                setMode(value === "create" ? "create" : "unlock");
-                setValidationError(null);
-              }}
-            />
-          </Field>
+          <p className="field-hint settings-security-note">
+            {platform === "linux"
+              ? t("settings.encryptedSecretStoreLinuxSafety")
+              : t("settings.encryptedSecretStoreSecurityTradeoff")}
+          </p>
+          <p className="field-hint">
+            {resetExisting
+              ? t("settings.encryptedSecretStoreResetBody")
+              : createIfMissing
+              ? t("settings.encryptedSecretStoreCreateBody")
+              : t("settings.encryptedSecretStoreSetupBody")}
+          </p>
+          {createIfMissing ? (
+            <p className="field-hint">
+              {t("settings.encryptedSecretStorePasswordGuidance")}
+            </p>
+          ) : null}
           <Field label={t("settings.encryptedSecretStorePassword")} req>
             <TextInput
               autoFocus
-              autoComplete="current-password"
+              autoComplete={createIfMissing ? "new-password" : "current-password"}
               disabled={busy}
               type="password"
               value={password}
@@ -116,10 +146,25 @@ export function EncryptedSecretStoreDialog({
               />
             </Field>
           ) : null}
-          {validationError || error ? (
-            <p className="field-hint settings-dialog-error" role="alert">
-              {validationError ?? error}
+          {resetExisting ? (
+            <p className="field-hint settings-dialog-warning">
+              {t("settings.encryptedSecretStoreResetWarning")}
             </p>
+          ) : null}
+          {displayedError ? (
+            <p className="field-hint settings-dialog-error" role="alert">
+              {displayedError}
+            </p>
+          ) : null}
+          {showResetRecovery ? (
+            <button
+              className="secondary-button"
+              disabled={busy}
+              type="button"
+              onClick={startResetFlow}
+            >
+              {t("settings.encryptedSecretStoreResetOffer")}
+            </button>
           ) : null}
         </form>
       </Sheet>

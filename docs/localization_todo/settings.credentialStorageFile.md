@@ -8,7 +8,7 @@
 - **Tone**: `concise/neutral`
 - **Placeholders**: `none`
 - **Context/meaning**: `Database-backed encrypted secret storage, not a standalone file export or general database setting.`
-- **Domain notes**: `Preserve KKTerm's distinction between non-secret SQLite data and encrypted secret rows protected by an unlock key.`
+- **Domain notes**: `Preserve KKTerm's distinction between non-secret SQLite data and encrypted secret rows protected by a master password.`
 
 <!--
 Filename: settings.credentialStorageFile.md

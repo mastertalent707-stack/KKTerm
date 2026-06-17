@@ -131,3 +131,52 @@ test("credential storage model auto-prompts when encrypted database storage need
     false,
   );
 });
+
+test("credential storage model chooses encrypted database wizard mode from store existence", async () => {
+  const { encryptedSecretStoreInitialMode } =
+    await importTypeScriptModule(
+      new URL("../src/modules/settings/credentialStorageModel.ts", import.meta.url),
+    );
+
+  assert.equal(
+    encryptedSecretStoreInitialMode({ encryptedStoreExists: false }),
+    "create",
+  );
+  assert.equal(
+    encryptedSecretStoreInitialMode({ encryptedStoreExists: true }),
+    "unlock",
+  );
+  assert.equal(
+    encryptedSecretStoreInitialMode({ encryptedStoreExists: undefined }),
+    "unlock",
+  );
+});
+
+test("credential storage model explains encrypted database tradeoffs by platform", async () => {
+  const { encryptedDatabaseSecurityReminderKey } =
+    await importTypeScriptModule(
+      new URL("../src/modules/settings/credentialStorageModel.ts", import.meta.url),
+    );
+
+  assert.equal(
+    encryptedDatabaseSecurityReminderKey({
+      platform: "linux",
+      selectedStore: "file",
+    }),
+    "settings.credentialStorageEncryptedLinuxReminder",
+  );
+  assert.equal(
+    encryptedDatabaseSecurityReminderKey({
+      platform: "windows",
+      selectedStore: "file",
+    }),
+    "settings.credentialStorageEncryptedComparison",
+  );
+  assert.equal(
+    encryptedDatabaseSecurityReminderKey({
+      platform: "macos",
+      selectedStore: "os",
+    }),
+    "settings.credentialStorageOsComparison",
+  );
+});
