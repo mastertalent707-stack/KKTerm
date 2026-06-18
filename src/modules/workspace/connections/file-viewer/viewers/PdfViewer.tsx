@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import { invokeCommand } from "../../../../../lib/tauri";
+import type { DashboardBackground } from "../../../../dashboard/types";
+import { FileViewerBackgroundLayer } from "../FileViewerBackgroundLayer";
 import { ChromePortals } from "../chrome/FileViewerChromeContext";
 import { Chip, FootSeg, IconButton } from "../chrome/controls";
 
@@ -13,7 +15,15 @@ const SCALE_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
  * present before this mounts. Page nav + zoom live in the shell toolbar; the page
  * renders on the shared image stage.
  */
-export function PdfViewer({ filePath }: { filePath: string }) {
+export function PdfViewer({
+  active,
+  background,
+  filePath,
+}: {
+  active: boolean;
+  background: DashboardBackground | null;
+  filePath: string;
+}) {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(0);
@@ -52,6 +62,7 @@ export function PdfViewer({ filePath }: { filePath: string }) {
 
   return (
     <div className="fv-imgstage">
+      <FileViewerBackgroundLayer active={active} background={background} />
       <ChromePortals
         center={
           <>

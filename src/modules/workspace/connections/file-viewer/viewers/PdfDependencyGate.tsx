@@ -4,6 +4,7 @@ import { Download, FileText } from "lucide-react";
 import { invokeCommand, type PdfViewStatus } from "../../../../../lib/tauri";
 import { supportsInstallerHelper } from "../../../../../lib/platform";
 import { installRecipeAndWait } from "../../../../installer/progress";
+import type { DashboardBackground } from "../../../../dashboard/types";
 import { dependencyForKind } from "../fileViewerDependencies";
 import { PdfViewer } from "./PdfViewer";
 
@@ -13,7 +14,15 @@ import { PdfViewer } from "./PdfViewer";
  * prompts to install the dependency on demand through the Install Helper
  * (Windows) or to provide it via PATH (other platforms), then re-checks.
  */
-export function PdfDependencyGate({ filePath }: { filePath: string; isActive: boolean }) {
+export function PdfDependencyGate({
+  background,
+  filePath,
+  isActive,
+}: {
+  background: DashboardBackground | null;
+  filePath: string;
+  isActive: boolean;
+}) {
   const { t } = useTranslation();
   const dependency = dependencyForKind("pdf");
   const [status, setStatus] = useState<PdfViewStatus | null>(null);
@@ -63,7 +72,7 @@ export function PdfDependencyGate({ filePath }: { filePath: string; isActive: bo
   }
 
   if (status?.available) {
-    return <PdfViewer filePath={filePath} />;
+    return <PdfViewer active={isActive} background={background} filePath={filePath} />;
   }
 
   const toolName = dependency ? t(dependency.toolNameKey) : "Poppler";

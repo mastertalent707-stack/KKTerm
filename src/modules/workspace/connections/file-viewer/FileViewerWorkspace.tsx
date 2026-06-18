@@ -4,9 +4,11 @@ import { useTranslation } from "react-i18next";
 import { Check, Lock, Menu, RefreshCw, Save, X } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { WorkspaceTab } from "../../../../types";
+import type { DashboardBackground } from "../../../dashboard/types";
 import {
   confirmNativeDialog,
   invokeCommand,
+  isTauriRuntime,
   openFilesystemPath,
   type FileViewProbe,
 } from "../../../../lib/tauri";
@@ -43,6 +45,7 @@ import { ImageViewer } from "./viewers/ImageViewer";
 import { LogViewer } from "./viewers/LogViewer";
 import { HexViewer } from "./viewers/HexViewer";
 import { PdfDependencyGate } from "./viewers/PdfDependencyGate";
+import { FileViewerBackgroundPopover } from "./FileViewerBackgroundLayer";
 
 /** Per-kind read caps (bytes). Text-shaped viewers and images differ widely. */
 const TEXT_MAX_BYTES = 5 * 1024 * 1024;
@@ -108,6 +111,9 @@ export function FileViewerWorkspace({
   const markConnectionSessionEnded = useWorkspaceStore(
     (state) => state.markConnectionSessionEnded,
   );
+  const updateOpenConnectionTerminalAppearance = useWorkspaceStore(
+    (state) => state.updateOpenConnectionTerminalAppearance,
+  );
   const [probe, setProbe] = useState<FileViewProbe | null>(null);
   const [override, setOverride] = useState<ViewerKind | null>(null);
   const [content, setContent] = useState<LoadedContent | null>(null);
@@ -124,6 +130,9 @@ export function FileViewerWorkspace({
   const { encoding } = textSettings;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const [backgroundMenuOpen, setBackgroundMenuOpen] = useState(false);
+  const backgroundMenuRef = useRef<HTMLDivElement | null>(null);
+  const [backgroundPopoverOpen, setBackgroundPopoverOpen] = useState(false);
 
   // Editing state (Phase 3). `editedText` mirrors the uncontrolled editor's
   // current value so saves and the dirty indicator have it without re-rendering
@@ -257,6 +266,21 @@ export function FileViewerWorkspace({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [menuOpen]);
 
+  // Close the image/PDF view-options menu on an outside pointer press.
+  useEffect(() => {
+    if (!backgroundMenuOpen) {
+      return;
+    }
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node | null;
+      if (backgroundMenuRef.current && target && !backgroundMenuRef.current.contains(target)) {
+        setBackgroundMenuOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [backgroundMenuOpen]);
+
   function updateSettings(patch: Partial<DocumentTextSettings>) {
     setTextSettings((current) => {
       const next = { ...current, ...patch };
@@ -343,11 +367,43 @@ export function FileViewerWorkspace({
     }
   }
 
+  function saveBackground(nextBackground: DashboardBackground | null) {
+    if (!connectionId || !tab.connection) {
+      return;
+    }
+    const terminalOpacity = tab.connection.terminalOpacity ?? 50;
+    updateOpenConnectionTerminalAppearance(connectionId, {
+      terminalOpacity,
+      terminalBackground: nextBackground,
+    });
+    if (!isTauriRuntime()) {
+      return;
+    }
+    void invokeCommand("update_connection_terminal_appearance", {
+      connectionId,
+      terminalOpacity,
+      terminalBackground: nextBackground,
+    })
+      .then((updated) => {
+        if (updated) {
+          updateOpenConnectionTerminalAppearance(connectionId, {
+            terminalOpacity: updated.terminalOpacity ?? terminalOpacity,
+            terminalBackground: updated.terminalBackground ?? null,
+          });
+        }
+      })
+      .catch((backgroundError) => {
+        console.warn("file viewer background update failed.", backgroundError);
+      });
+  }
+
   const tint = fileTypeMeta(filePath).tint;
   const kindLabel = activeKind ? t(`workspace.fileViewer.kind.${activeKind}`) : "";
 
   // Font + Encoding menu and font variables only apply to text-loaded viewers.
   const showTextMenu = !!activeKind && viewerLoadsText(activeKind);
+  const showBackgroundMenu = activeKind === "image" || activeKind === "pdf";
+  const viewerBackground = tab.connection?.terminalBackground ?? null;
   const encodingLabel =
     encoding === AUTO_ENCODING
       ? content?.encoding
@@ -408,6 +464,35 @@ export function FileViewerWorkspace({
           />
         ) : null}
         <IconButton icon={RefreshCw} title={t("common.refresh")} onClick={() => void requestReload()} />
+        {showBackgroundMenu ? (
+          <div className="fv-menu-wrapper" ref={backgroundMenuRef}>
+            <button
+              type="button"
+              className={backgroundMenuOpen ? "fv-ibtn on" : "fv-ibtn"}
+              title={t("workspace.fileViewer.viewOptions")}
+              aria-label={t("workspace.fileViewer.viewOptions")}
+              {...menuButtonAria(backgroundMenuOpen)}
+              onClick={() => setBackgroundMenuOpen((open) => !open)}
+            >
+              <Menu size={17} />
+            </button>
+            {backgroundMenuOpen ? (
+              <div className="fv-menu fv-view-menu" role="menu">
+                <button
+                  className="fv-menu-item"
+                  onClick={() => {
+                    setBackgroundMenuOpen(false);
+                    setBackgroundPopoverOpen(true);
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  {t("workspace.fileViewer.background")}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {showTextMenu ? (
           <div className="fv-menu-wrapper" ref={menuRef}>
             <button
@@ -481,6 +566,13 @@ export function FileViewerWorkspace({
         ) : null}
         {onClose ? <IconButton icon={X} title={t("common.close")} onClick={onClose} /> : null}
       </div>
+      {backgroundPopoverOpen ? (
+        <FileViewerBackgroundPopover
+          background={viewerBackground}
+          onBackgroundChange={saveBackground}
+          onClose={() => setBackgroundPopoverOpen(false)}
+        />
+      ) : null}
 
       {content?.truncated ? (
         <div className="file-viewer-notice">{t("workspace.fileViewer.truncated")}</div>
@@ -501,6 +593,7 @@ export function FileViewerWorkspace({
               editable={editable}
               editorKey={`${filePath}:${reloadToken}:${activeKind}`}
               filePath={filePath}
+              background={viewerBackground}
               isActive={isActive}
               onEditChange={setEditedText}
               onChooseKind={(kind) => void requestMode(kind)}
@@ -552,6 +645,7 @@ function FileViewerContent({
   editable,
   editorKey,
   filePath,
+  background,
   isActive,
   onEditChange,
   onChooseKind,
@@ -561,6 +655,7 @@ function FileViewerContent({
   editable: boolean;
   editorKey: string;
   filePath: string;
+  background: DashboardBackground | null;
   isActive: boolean;
   onEditChange: (text: string) => void;
   onChooseKind: (kind: ViewerKind) => void;
@@ -579,9 +674,23 @@ function FileViewerContent({
     case "json":
       return <JsonViewer text={content.text ?? ""} />;
     case "image":
-      return <ImageViewer base64={content.base64 ?? ""} magic={content.magic} path={filePath} />;
+      return (
+        <ImageViewer
+          active={isActive}
+          background={background}
+          base64={content.base64 ?? ""}
+          magic={content.magic}
+          path={filePath}
+        />
+      );
     case "pdf":
-      return <PdfDependencyGate filePath={filePath} isActive={isActive} />;
+      return (
+        <PdfDependencyGate
+          background={background}
+          filePath={filePath}
+          isActive={isActive}
+        />
+      );
     case "log":
       return (
         <LogViewer

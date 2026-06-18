@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Maximize2, RotateCw, Scan, ZoomIn, ZoomOut } from "lucide-react";
+import type { DashboardBackground } from "../../../../dashboard/types";
+import { FileViewerBackgroundLayer } from "../FileViewerBackgroundLayer";
 import { fileExtension } from "../fileViewerModel";
 import { ChromePortals } from "../chrome/FileViewerChromeContext";
 import { Chip, FootSeg, IconButton } from "../chrome/controls";
@@ -24,10 +26,14 @@ const MIME_BY_TOKEN: Record<string, string> = {
  * embedded scripts, so this path is safe without extra sanitization.
  */
 export function ImageViewer({
+  active,
+  background,
   base64,
   path,
   magic,
 }: {
+  active: boolean;
+  background: DashboardBackground | null;
   base64: string;
   path: string;
   magic?: string | null;
@@ -48,6 +54,7 @@ export function ImageViewer({
 
   return (
     <div className="fv-imgstage">
+      <FileViewerBackgroundLayer active={active} background={background} />
       <ChromePortals
         center={
           <>

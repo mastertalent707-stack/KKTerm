@@ -1,0 +1,108 @@
+// Renders a DashboardBackground behind image/PDF Document viewer stages and
+// exposes the same shared picker used by Dashboard, terminals, and File Explorer.
+import { useEffect, useState, type CSSProperties, type JSX } from "react";
+import { SharedBackgroundPopover } from "../../../dashboard/edit/SharedBackgroundPopover";
+import { resolveBackgroundPreset } from "../../../dashboard/registry/backgroundPresets";
+import { DashboardDynamicBackground } from "../../../dashboard/registry/dynamicBackgrounds";
+import { loadBackgroundImage } from "../../../dashboard/state/persistence";
+import { type BackgroundFit, type DashboardBackground } from "../../../dashboard/types";
+
+function backgroundFitStyle(fit: BackgroundFit): CSSProperties {
+  switch (fit) {
+    case "fill":    return { backgroundSize: "cover", backgroundRepeat: "no-repeat", backgroundPosition: "center" };
+    case "fit":     return { backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center" };
+    case "stretch": return { backgroundSize: "100% 100%", backgroundRepeat: "no-repeat" };
+    case "tile":    return { backgroundSize: "auto", backgroundRepeat: "repeat" };
+    case "center":  return { backgroundSize: "auto", backgroundRepeat: "no-repeat", backgroundPosition: "center" };
+  }
+}
+
+function videoFitStyle(fit: BackgroundFit): CSSProperties {
+  switch (fit) {
+    case "fill":    return { objectFit: "cover" };
+    case "fit":     return { objectFit: "contain" };
+    case "stretch": return { objectFit: "fill" };
+    case "tile":    return { objectFit: "cover" };
+    case "center":  return { objectFit: "none" };
+  }
+}
+
+function dimColor(dim: number): string | undefined {
+  if (dim === 0) return undefined;
+  const alpha = Math.min(Math.abs(dim), 100) / 100;
+  return dim < 0
+    ? `rgba(0, 0, 0, ${alpha})`
+    : `rgba(255, 255, 255, ${alpha})`;
+}
+
+export function FileViewerBackgroundPopover({
+  background,
+  onBackgroundChange,
+  onClose,
+}: {
+  background: DashboardBackground | null;
+  onBackgroundChange: (background: DashboardBackground | null) => void | Promise<void>;
+  onClose: () => void;
+}) {
+  return (
+    <SharedBackgroundPopover
+      background={background}
+      className="fv-bg-popover"
+      defaultHintKey="workspace.fileViewer.backgroundDefaultHint"
+      onBackgroundChange={onBackgroundChange}
+      onClose={onClose}
+      onLoadBackgroundImage={async (file) => { await loadBackgroundImage(file); }}
+      titleKey="dashboard.changeBackground"
+    />
+  );
+}
+
+export function FileViewerBackgroundLayer({
+  active,
+  background,
+}: {
+  active: boolean;
+  background: DashboardBackground | null | undefined;
+}) {
+  const [mediaDataUrl, setMediaDataUrl] = useState("");
+  const mediaFile = background?.kind === "image" || background?.kind === "video" ? background.file : "";
+
+  useEffect(() => {
+    let cancelled = false;
+    setMediaDataUrl("");
+    if (!mediaFile) return;
+    void loadBackgroundImage(mediaFile).then((dataUrl) => {
+      if (!cancelled) setMediaDataUrl(dataUrl);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaFile]);
+
+  if (!background) return null;
+
+  let layer: JSX.Element | null = null;
+  if (background.kind === "preset") {
+    layer = <div className="fv-bg-fill" style={{ background: resolveBackgroundPreset(background.preset).css }} />;
+  } else if (background.kind === "dynamic") {
+    layer = <DashboardDynamicBackground active={active} id={background.dynamic} />;
+  } else if (background.kind === "image" && mediaDataUrl) {
+    const style: CSSProperties = {
+      backgroundImage: `url("${mediaDataUrl}")`,
+      ...backgroundFitStyle(background.fit),
+    };
+    const dim = dimColor(background.dim);
+    if (dim) (style as Record<string, string>)["--fv-bg-dim-color"] = dim;
+    layer = <div className="fv-bg-fill fv-bg-media" style={style} />;
+  } else if (background.kind === "video" && mediaDataUrl) {
+    const dim = dimColor(background.dim);
+    const style = dim ? ({ "--fv-bg-dim-color": dim } as CSSProperties) : undefined;
+    layer = (
+      <div className="fv-bg-fill fv-bg-media" style={style}>
+        <video aria-hidden="true" autoPlay loop muted playsInline src={mediaDataUrl} style={videoFitStyle(background.fit)} />
+      </div>
+    );
+  }
+
+  return layer ? <div className="fv-bg-layer" aria-hidden="true">{layer}</div> : null;
+}
