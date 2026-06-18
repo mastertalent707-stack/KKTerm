@@ -48,6 +48,24 @@ test("Match OS can read a system accent through the typed command boundary", asy
   );
 });
 
+test("App UI font is applied through the root design token", async () => {
+  const shellEffectsSource = await readFile(
+    new URL("../src/app/appShellEffects.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    shellEffectsSource,
+    /document\.documentElement\.style\.setProperty\("--app-ui-font-family", appearanceSettings\.appFontFamily\);/,
+    "custom App UI fonts should update the root token used by titlebar, settings popups, and portals",
+  );
+  assert.doesNotMatch(
+    shellEffectsSource,
+    /node\.style\.setProperty\("--app-ui-font-family"/,
+    "the App UI font token should not be scoped only to .app-shell",
+  );
+});
+
 test("Appearance Settings exposes Match OS as a color scheme option", async () => {
   const [appearanceSource, localeSource] = await Promise.all([
     readFile(new URL("../src/modules/settings/AppearanceSettings.tsx", import.meta.url), "utf8"),
