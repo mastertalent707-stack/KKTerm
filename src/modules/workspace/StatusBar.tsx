@@ -183,10 +183,8 @@ function StatusNoticePopup({
             >
               <i style={{ width: `${progress}%` }} />
             </span>
-            <span className="status-popup-progress-labels" aria-hidden="true">
-              <span className="status-popup-progress-min">0%</span>
-              <strong>{Math.round(progress)}%</strong>
-              <span className="status-popup-progress-max">100%</span>
+            <span className="status-popup-progress-label" aria-hidden="true">
+              {Math.round(progress)}%
             </span>
           </span>
         ) : (
