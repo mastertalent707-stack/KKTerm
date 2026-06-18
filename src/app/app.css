@@ -679,7 +679,7 @@
 
 .new-workspace-import-tools {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(150px, 190px) auto;
+  grid-template-columns: auto minmax(180px, 1fr) minmax(150px, 190px);
   gap: 8px;
   align-items: end;
   margin-bottom: 4px;
@@ -701,9 +701,17 @@
 
 .new-workspace-selection-actions {
   display: flex;
-  flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+}
+
+.new-workspace-selection-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
 }
 
 .new-workspace-type-filter {
@@ -715,10 +723,6 @@
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 700;
-}
-
-.new-workspace-selection-actions {
-  justify-content: flex-end;
 }
 
 .new-workspace-import-list {

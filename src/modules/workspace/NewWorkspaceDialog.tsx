@@ -1,4 +1,4 @@
-import { Pencil, Save, Search } from "lucide-react";
+import { Pencil, Save, Search, SquareCheck, SquareX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -276,6 +276,26 @@ export function NewWorkspaceDialog({
               ) : null}
 
               <div className="new-workspace-import-tools">
+                <div className="new-workspace-selection-actions">
+                  <button
+                    aria-label={t("workspace.selectAllConnections")}
+                    className="icon-button new-workspace-selection-button"
+                    disabled={visibleImportIds.length === 0}
+                    onClick={() => setVisibleSelection(true)}
+                    type="button"
+                  >
+                    <SquareCheck aria-hidden="true" size={16} />
+                  </button>
+                  <button
+                    aria-label={t("workspace.deselectAllConnections")}
+                    className="icon-button new-workspace-selection-button"
+                    disabled={visibleImportIds.length === 0}
+                    onClick={() => setVisibleSelection(false)}
+                    type="button"
+                  >
+                    <SquareX aria-hidden="true" size={16} />
+                  </button>
+                </div>
                 <label className="search-box new-workspace-import-search">
                   <Search size={14} />
                   <input
@@ -303,24 +323,6 @@ export function NewWorkspaceDialog({
                     ))}
                   </select>
                 </label>
-                <div className="new-workspace-selection-actions">
-                  <button
-                    className="toolbar-button"
-                    disabled={visibleImportIds.length === 0}
-                    onClick={() => setVisibleSelection(true)}
-                    type="button"
-                  >
-                    {t("workspace.selectAllConnections")}
-                  </button>
-                  <button
-                    className="toolbar-button"
-                    disabled={visibleImportIds.length === 0}
-                    onClick={() => setVisibleSelection(false)}
-                    type="button"
-                  >
-                    {t("workspace.deselectAllConnections")}
-                  </button>
-                </div>
               </div>
 
               <div className="new-workspace-import-list">
