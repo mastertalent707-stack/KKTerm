@@ -3,6 +3,48 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.90/kkterm-0.1.90-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.90/kkterm-0.1.90-windows-arm64-setup.exe)
+
+## Highlights
+- Dock onto all Connection tabs (no more “where did that Pane go?” surprises).
+
+## New
+- Enhanced **New Workspace** dialog: added selection buttons for importing connections.
+- Document viewer **soft wrap** with persisted state in the Session storage.
+- Terminal settings: support for **custom shell profiles** (add/edit/remove) with fallback to platform defaults when deleted.
+
+## Improved
+- Terminal settings custom shell presets: improved validation for local shell command lines.
+- Updated localization content for custom shell settings across multiple languages.
+
+## Fixed
+
+## Internal
+- Updated asset protocol scopes for user-writable media.
+- Removed outdated localization files and refreshed translations for custom shell settings.
+
+---
+
+## 亮點
+- 可以停靠到所有「Connection」分頁（不用再遇到「這個 Pane 到哪去了？」的驚嚇）。
+
+## 新增
+- 強化 **新增工作區（New Workspace）**：加入匯入連線的選擇按鈕。
+- 文件檢視器 **文字自動換行（soft wrap）**，並將狀態存到 Session storage。
+- 終端機設定新增 **自訂 Shell 方案（custom shell profiles）**：支援新增/編輯/移除；刪除後會回退到平台預設值。
+
+## 改善
+- 終端機設定的自訂 shell presets：加強本機 shell 指令列的驗證。
+- 多語系更新：針對自訂 shell 設定的在地化內容同步更新。
+
+## 修正
+
+## Internal
+- 更新資產（asset）協定的權限範圍：針對使用者可寫入的媒體。
+- 移除過期的在地化檔案，並刷新自訂 shell 設定相關翻譯。
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.89/kkterm-0.1.89-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.89/kkterm-0.1.89-windows-arm64-setup.exe)
 
