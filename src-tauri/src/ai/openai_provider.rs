@@ -67,6 +67,15 @@ impl OpenAiCompatibleProvider {
             settings.disabled_skill_names(),
             settings.custom_skills_enabled(),
         )?;
+        let supports_images = supports_image_input(self.provider_kind, settings.model());
+        let sent_screenshot_count =
+            request.screenshots.len() + usize::from(request.screenshot.is_some());
+        let attachment_chars = estimate_attachment_context_chars(
+            supports_images,
+            sent_screenshot_count,
+            &request.files,
+            api_style == OpenAiApiStyle::Responses,
+        );
         let built_messages = build_agent_messages_for_provider_with_usage(
             self.provider_kind,
             settings.model(),
@@ -77,7 +86,7 @@ impl OpenAiCompatibleProvider {
             request.system_context,
             request.selected_output,
             request.page_context,
-            supports_image_input(self.provider_kind, settings.model()),
+            supports_images,
             request.screenshot,
             request.screenshots,
             request.messages,
@@ -86,6 +95,7 @@ impl OpenAiCompatibleProvider {
             skill_summaries.clone(),
             settings.tools().dashboard(),
             recalled_memories,
+            attachment_chars,
         );
         if let Some(channel) = channel.as_ref() {
             emit_stream(

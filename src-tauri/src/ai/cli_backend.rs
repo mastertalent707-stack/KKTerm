@@ -681,6 +681,7 @@ pub(crate) fn run_cli_agent_command(
     command: &str,
     model: &str,
     prompt: &str,
+    cancel_probe: Option<&dyn Fn() -> bool>,
 ) -> Result<String, String> {
     let invocation = cli_agent_invocation(backend, model, prompt);
     ai_interaction_debug!(
@@ -700,11 +701,12 @@ pub(crate) fn run_cli_agent_command(
         .iter()
         .map(String::as_str)
         .collect::<Vec<_>>();
-    let output_result = run_cli_capture_with_stdin(
+    let output_result = run_cli_capture_with_stdin_and_cancel(
         command,
         &arg_refs,
         invocation.stdin.as_deref(),
         Some(COPILOT_SDK_RESPONSE_TIMEOUT),
+        cancel_probe,
     );
     match &output_result {
         Ok(output) => ai_interaction_debug!(
@@ -800,7 +802,17 @@ pub(crate) fn run_cli_capture_with_stdin(
     command: &str,
     args: &[&str],
     stdin: Option<&str>,
-    _timeout: Option<Duration>,
+    timeout: Option<Duration>,
+) -> Result<String, String> {
+    run_cli_capture_with_stdin_and_cancel(command, args, stdin, timeout, None)
+}
+
+pub(crate) fn run_cli_capture_with_stdin_and_cancel(
+    command: &str,
+    args: &[&str],
+    stdin: Option<&str>,
+    timeout: Option<Duration>,
+    cancel_probe: Option<&dyn Fn() -> bool>,
 ) -> Result<String, String> {
     let (program, process_args) = cli_process_invocation(command, args);
     let mut cmd = Command::new(&program);
@@ -831,12 +843,51 @@ pub(crate) fn run_cli_capture_with_stdin(
             return Err(format!("failed to write `{command}` stdin: {error}"));
         }
     }
-    let output = child
-        .wait_with_output()
-        .map_err(|error| format!("failed to wait for `{command}`: {error}"))?;
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-    if !output.status.success() {
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| format!("failed to open `{command}` stdout"))?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| format!("failed to open `{command}` stderr"))?;
+    let stdout_reader = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        let _ = std::io::Read::read_to_end(&mut BufReader::new(stdout), &mut bytes);
+        bytes
+    });
+    let stderr_reader = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        let _ = std::io::Read::read_to_end(&mut BufReader::new(stderr), &mut bytes);
+        bytes
+    });
+    let started = Instant::now();
+    let status = loop {
+        if cancel_probe.is_some_and(|probe| probe()) {
+            let _ = child.kill();
+            let _ = child.wait();
+            let _ = stdout_reader.join();
+            let _ = stderr_reader.join();
+            return Err(ASSISTANT_STREAM_CANCELED_ERROR.to_string());
+        }
+        if timeout.is_some_and(|limit| started.elapsed() >= limit) {
+            let _ = child.kill();
+            let _ = child.wait();
+            let _ = stdout_reader.join();
+            let _ = stderr_reader.join();
+            return Err(format!("`{command}` timed out"));
+        }
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|error| format!("failed to wait for `{command}`: {error}"))?
+        {
+            break status;
+        }
+        std::thread::sleep(Duration::from_millis(25));
+    };
+    let stdout = String::from_utf8_lossy(&stdout_reader.join().unwrap_or_default()).to_string();
+    let stderr = String::from_utf8_lossy(&stderr_reader.join().unwrap_or_default()).to_string();
+    if !status.success() {
         let detail = if stderr.trim().is_empty() {
             stdout.trim().to_string()
         } else {
@@ -844,7 +895,7 @@ pub(crate) fn run_cli_capture_with_stdin(
         };
         return Err(format!(
             "`{command}` exited with {}{}",
-            output.status,
+            status,
             if detail.is_empty() {
                 String::new()
             } else {
@@ -857,6 +908,10 @@ pub(crate) fn run_cli_capture_with_stdin(
     } else {
         Ok(stdout)
     }
+}
+
+pub(crate) fn should_fallback_from_acp_error(error: &str) -> bool {
+    error != ASSISTANT_STREAM_CANCELED_ERROR
 }
 
 pub(crate) fn cli_process_invocation(command: &str, args: &[&str]) -> (String, Vec<String>) {

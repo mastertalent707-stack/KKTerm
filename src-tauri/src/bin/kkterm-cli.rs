@@ -76,6 +76,7 @@ async fn run() -> std::io::Result<()> {
 }
 
 async fn handle_request(request: Value) -> Option<Value> {
+    let is_notification = request.get("id").is_none();
     let id = request.get("id").cloned().unwrap_or(Value::Null);
     let method = request
         .get("method")
@@ -83,7 +84,28 @@ async fn handle_request(request: Value) -> Option<Value> {
         .unwrap_or_default()
         .to_string();
 
+    if is_notification && method != "notifications/initialized" {
+        return None;
+    }
+
     match method.as_str() {
+        "initialize"
+            if request
+                .pointer("/params/protocolVersion")
+                .and_then(Value::as_str)
+                .is_some_and(|version| version != PROTOCOL_VERSION) =>
+        {
+            Some(json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "error": {
+                    "code": -32602,
+                    "message": format!(
+                        "unsupported MCP protocol version; kkterm-cli supports {PROTOCOL_VERSION}"
+                    )
+                }
+            }))
+        }
         "initialize" => Some(json!({
             "jsonrpc": "2.0",
             "id": id,
@@ -297,4 +319,35 @@ fn writeln_stderr(message: &str) -> std::io::Result<()> {
     let stderr = std::io::stderr();
     let mut handle = stderr.lock();
     writeln!(handle, "{message}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn unknown_notifications_do_not_receive_responses() {
+        let response = handle_request(json!({
+            "jsonrpc": "2.0",
+            "method": "notifications/cancelled",
+            "params": {"requestId": 7}
+        }))
+        .await;
+
+        assert!(response.is_none());
+    }
+
+    #[tokio::test]
+    async fn initialize_rejects_unsupported_protocol_versions() {
+        let response = handle_request(json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {"protocolVersion": "1900-01-01"}
+        }))
+        .await
+        .expect("initialize response");
+
+        assert_eq!(response["error"]["code"], -32602);
+    }
 }

@@ -1475,7 +1475,7 @@ export function AssistantPanel({
     }
   }
 
-  function denyAssistantToolApproval(request: PendingToolApproval) {
+  async function denyAssistantToolApproval(request: PendingToolApproval) {
     activeAssistantRequestIdRef.current += 1;
     setIsSendingPrompt(false);
     setChatError("");
@@ -1496,7 +1496,10 @@ export function AssistantPanel({
           : message,
       ),
     );
-    void completeAssistantToolApproval(request.requestId, false);
+    if (isTauriRuntime()) {
+      await invokeCommand("cancel_assistant_streams").catch(() => {});
+    }
+    await completeAssistantToolApproval(request.requestId, false);
   }
 
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {

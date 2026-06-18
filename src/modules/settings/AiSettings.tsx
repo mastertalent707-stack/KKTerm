@@ -52,6 +52,7 @@ import { shouldShowStoredAiProviderKeyMask } from "./aiProviderKeyField";
 import i18next from "../../i18n/config";
 import { resolveInstallPlan } from "../installer/dag";
 import { installRecipeAndWait } from "../installer/progress";
+import { isWindowsPlatform } from "../../lib/platform";
 import {
   readStoredAiCliBackendStatus,
   writeStoredAiCliBackendStatus,
@@ -1707,51 +1708,51 @@ export function AiSettings() {
               <small>{t("settings.showAllModelsHint")}</small>
             </span>
           </label>
-          <label className="settings-toggle-row">
-            <ToggleSwitch
-              checked={Boolean(draft.builtInMcpServerEnabled)}
-              onChange={(checked) =>
-                setDraft((settings) => ({
-                  ...settings,
-                  builtInMcpServerEnabled: checked,
-                }))
-              }
-            />
-            <span>
-              <strong>
-                {t("settings.builtInMcpServerEnabled")}
-                <button
-                  className="settings-api-key-link"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    setShowBuiltInMcpConfig(true);
-                  }}
-                  type="button"
-                >
-                  {t("settings.builtInMcpShowConfig")}
-                </button>
-              </strong>
-              <small>{t("settings.builtInMcpServerEnabledHint")}</small>
-            </span>
-          </label>
-          <label className="settings-toggle-row">
-            <ToggleSwitch
-              checked={Boolean(draft.builtInMcpAllowAllDangerous)}
-              onChange={(checked) =>
-                setDraft((settings) => ({
-                  ...settings,
-                  builtInMcpAllowAllDangerous: checked,
-                }))
-              }
-            />
-            <span>
-              <strong className="built-in-mcp-dangerous-label">
-                {t("settings.builtInMcpAllowAllDangerous")}
-              </strong>
-              <small>{t("settings.builtInMcpAllowAllDangerousHint")}</small>
-            </span>
-          </label>
+              {isWindowsPlatform() ? (
+                <>
+                  <div className="settings-toggle-row built-in-mcp-server-row">
+                    <ToggleSwitch
+                      checked={Boolean(draft.builtInMcpServerEnabled)}
+                      onChange={(checked) =>
+                        setDraft((settings) => ({
+                          ...settings,
+                          builtInMcpServerEnabled: checked,
+                        }))
+                      }
+                    />
+                    <span>
+                      <strong>
+                        {t("settings.builtInMcpServerEnabled")}
+                        <button
+                          className="settings-api-key-link"
+                          onClick={() => setShowBuiltInMcpConfig(true)}
+                          type="button"
+                        >
+                          {t("settings.builtInMcpShowConfig")}
+                        </button>
+                      </strong>
+                      <small>{t("settings.builtInMcpServerEnabledHint")}</small>
+                    </span>
+                  </div>
+                  <label className="settings-toggle-row">
+                    <ToggleSwitch
+                      checked={Boolean(draft.builtInMcpAllowAllDangerous)}
+                      onChange={(checked) =>
+                        setDraft((settings) => ({
+                          ...settings,
+                          builtInMcpAllowAllDangerous: checked,
+                        }))
+                      }
+                    />
+                    <span>
+                      <strong className="built-in-mcp-dangerous-label">
+                        {t("settings.builtInMcpAllowAllDangerous")}
+                      </strong>
+                      <small>{t("settings.builtInMcpAllowAllDangerousHint")}</small>
+                    </span>
+                  </label>
+                </>
+              ) : null}
           <label className="settings-toggle-row">
             <ToggleSwitch
               checked={Boolean(draft.allowInsecureMcpHttp)}

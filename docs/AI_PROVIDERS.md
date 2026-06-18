@@ -72,6 +72,12 @@ omitted. OpenAI-compatible HTTP providers, the GitHub Copilot SDK bridge, and
 ACP/CLI prompts all use this same path so custom providers do not bypass
 compaction.
 
+After compaction, usage metadata is recalculated from the retained messages
+rather than the original history. Replayed reasoning and compact tool
+transcripts count against that retained budget. Provider requests also add an
+approximate image cost and the transmitted file payload size when those
+attachments are actually sent.
+
 Treat model limits as operational guardrails, not product promises. Exact limits
 can drift by model revision and custom OpenAI-compatible endpoints may proxy any
 backend, so unknown or self-hosted models must use conservative approximate
