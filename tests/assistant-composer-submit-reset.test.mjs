@@ -5,7 +5,7 @@ import test from "node:test";
 test("Assistant composer resets template intent after submit clears the textarea", async () => {
   const source = await readFile(new URL("../src/ai/AssistantPanel.tsx", import.meta.url), "utf8");
   const body =
-    source.match(/async function submitAssistantPrompt\(\) \{([\s\S]*?)\n  function denyAssistantToolApproval/)?.[1] ??
+    source.match(/async function submitAssistantPrompt\(\) \{([\s\S]*?)\n  (?:async )?function denyAssistantToolApproval/)?.[1] ??
     "";
 
   assert.ok(body, "submitAssistantPrompt implementation should be discoverable");

@@ -1202,6 +1202,9 @@ impl AgentProvider for CliAgentProvider {
         let output = tauri::async_runtime::spawn_blocking(move || {
             run_acp_agent_command(backend, &model, &prompt, &app_for_acp, &settings_for_acp)
                 .or_else(|acp_error| {
+                    if !should_fallback_from_acp_error(&acp_error) {
+                        return Err(acp_error);
+                    }
                     ai_interaction_debug!(
                         "agent.cli_acp_fallback",
                         json!({
@@ -1212,7 +1215,7 @@ impl AgentProvider for CliAgentProvider {
                             "promptChars": prompt.chars().count(),
                         })
                     );
-                    run_cli_agent_command(backend, &command, &model, &prompt)
+                    run_cli_agent_command(backend, &command, &model, &prompt, None)
                 })
         })
         .await
@@ -1263,6 +1266,9 @@ impl AgentProvider for CliAgentProvider {
                     &settings_for_acp,
                 )
                 .or_else(|acp_error| {
+                    if !should_fallback_from_acp_error(&acp_error) {
+                        return Err(acp_error);
+                    }
                     ai_interaction_debug!(
                         "agent.cli_acp_streaming_fallback",
                         json!({
@@ -1273,7 +1279,16 @@ impl AgentProvider for CliAgentProvider {
                             "promptChars": prompt.chars().count(),
                         })
                     );
-                    let output = run_cli_agent_command(backend, &command, &model, &prompt)?;
+                    let cancel_app = app_for_acp.clone();
+                    let generation = assistant_stream_generation(&cancel_app);
+                    let cancel_probe = || assistant_stream_canceled(&cancel_app, generation);
+                    let output = run_cli_agent_command(
+                        backend,
+                        &command,
+                        &model,
+                        &prompt,
+                        Some(&cancel_probe),
+                    )?;
                     emit_stream(
                         &channel,
                         &AiStreamEvent::ContentDelta {
@@ -1315,7 +1330,7 @@ enum OpenAiAuthStyle {
     ApiKeyHeader,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum OpenAiApiStyle {
     ChatCompletions,
     Responses,
@@ -5554,15 +5569,9 @@ fn compact_agent_history(
 
     let mut total = 0usize;
     let mut kept: Vec<AgentChatMessage> = Vec::new();
-    for mut message in history.into_iter().rev() {
-        message.content =
-            truncate_prompt_section(&message.content, budget.history_message_max_chars);
-        let cost = message.content.chars().count()
-            + message
-                .reasoning_content
-                .as_deref()
-                .map(|r| r.chars().count())
-                .unwrap_or(0);
+    for message in history.into_iter().rev() {
+        let message = truncate_agent_history_message(message, budget.history_message_max_chars);
+        let cost = estimate_agent_history_message_chars(&message);
         if !kept.is_empty() && total + cost > budget.history_total_max_chars {
             break;
         }
@@ -5591,32 +5600,125 @@ fn compact_agent_history(
             })
         );
     }
+    let retained_history_chars = estimate_agent_history_chars(&kept);
     CompactedAgentHistory {
         messages: kept,
-        estimated_history_chars,
-        estimated_request_chars,
+        estimated_history_chars: retained_history_chars,
+        estimated_request_chars: non_history_chars.saturating_add(retained_history_chars),
         omitted_messages,
         budget,
     }
 }
 
+fn truncate_agent_history_message(
+    mut message: AgentChatMessage,
+    max_chars: usize,
+) -> AgentChatMessage {
+    let overhead = message.role.chars().count().saturating_add(4);
+    let mut remaining = max_chars.saturating_sub(overhead);
+    message.content = truncate_to_char_budget(&message.content, remaining);
+    remaining = remaining.saturating_sub(message.content.chars().count());
+
+    if message.role.trim() == "assistant" && !message.tool_calls.is_empty() && remaining > 0 {
+        let mut retained = Vec::new();
+        for call in std::mem::take(&mut message.tool_calls) {
+            retained.push(call);
+            let transcript_chars = agent_tool_transcript(&retained)
+                .map(|transcript| transcript.chars().count())
+                .unwrap_or(0);
+            if transcript_chars > remaining {
+                retained.pop();
+                break;
+            }
+        }
+        message.tool_calls = retained;
+        remaining = remaining.saturating_sub(
+            agent_tool_transcript(&message.tool_calls)
+                .map(|transcript| transcript.chars().count())
+                .unwrap_or(0),
+        );
+    } else {
+        message.tool_calls.clear();
+    }
+
+    message.reasoning_content = message
+        .reasoning_content
+        .map(|reasoning| truncate_to_char_budget(&reasoning, remaining))
+        .filter(|reasoning| !reasoning.trim().is_empty());
+    message
+}
+
+fn truncate_to_char_budget(value: &str, max_chars: usize) -> String {
+    let value = value.trim();
+    if value.chars().count() <= max_chars {
+        return value.to_string();
+    }
+    const MARKER: &str = "\n[truncated]";
+    let marker_chars = MARKER.chars().count();
+    if max_chars <= marker_chars {
+        return value.chars().take(max_chars).collect();
+    }
+    let mut truncated: String = value.chars().take(max_chars - marker_chars).collect();
+    truncated.push_str(MARKER);
+    truncated
+}
+
+fn estimate_agent_history_message_chars(message: &AgentChatMessage) -> usize {
+    message.role.chars().count()
+        + message.content.chars().count()
+        + message
+            .reasoning_content
+            .as_deref()
+            .map(|reasoning| reasoning.chars().count())
+            .unwrap_or(0)
+        + if message.role.trim() == "assistant" {
+            agent_tool_transcript(&message.tool_calls)
+                .map(|transcript| transcript.chars().count())
+                .unwrap_or(0)
+        } else {
+            0
+        }
+        + 4
+}
+
 fn estimate_agent_history_chars(history: &[AgentChatMessage]) -> usize {
     history
         .iter()
-        .map(|message| {
-            message.role.chars().count()
-                + message.content.chars().count()
-                + message
-                    .reasoning_content
-                    .as_deref()
-                    .map(|reasoning| reasoning.chars().count())
-                    .unwrap_or(0)
-                + agent_tool_transcript(&message.tool_calls)
-                    .map(|transcript| transcript.chars().count())
-                    .unwrap_or(0)
-                + 4
-        })
+        .map(estimate_agent_history_message_chars)
         .sum()
+}
+
+const IMAGE_CONTEXT_EQUIVALENT_CHARS: usize = 4_000;
+
+fn estimate_attachment_context_chars(
+    supports_image_input: bool,
+    screenshot_count: usize,
+    files: &[AgentFileContext],
+    sends_files: bool,
+) -> usize {
+    let image_chars = if supports_image_input {
+        screenshot_count.saturating_mul(IMAGE_CONTEXT_EQUIVALENT_CHARS)
+    } else {
+        0
+    };
+    let file_chars = if sends_files {
+        files
+            .iter()
+            .map(|file| {
+                file.source_label.chars().count()
+                    + file
+                        .file_data
+                        .as_deref()
+                        .or(file.data_url.as_deref())
+                        .or(file.text.as_deref())
+                        .map(|value| value.chars().count())
+                        .unwrap_or(0)
+            })
+            .sum()
+    } else {
+        0
+    };
+    image_chars.saturating_add(file_chars)
 }
 
 fn estimate_agent_request_non_history_chars(
@@ -5742,6 +5844,7 @@ fn build_agent_messages_for_provider(
         skill_summaries,
         dashboard_tools_enabled,
         recalled_memories,
+        0,
     )
     .messages
 }
@@ -5771,6 +5874,7 @@ fn build_agent_messages_for_provider_with_usage(
     skill_summaries: Vec<AssistantSkillSummary>,
     dashboard_tools_enabled: bool,
     recalled_memories: Vec<String>,
+    attachment_chars: usize,
 ) -> AgentMessagesWithUsage {
     let normalized_intent = normalize_agent_intent(intent);
     let mut system_instructions: Vec<String> = vec![
@@ -5850,7 +5954,8 @@ fn build_agent_messages_for_provider_with_usage(
         system_context.as_deref(),
         selected_output.as_deref(),
         page_context.as_ref(),
-    );
+    )
+    .saturating_add(attachment_chars);
     let history = compact_agent_history(provider_kind, model, history, non_history_chars);
     let usage = history.context_usage(provider_kind, model);
     if history.omitted_messages > 0 {

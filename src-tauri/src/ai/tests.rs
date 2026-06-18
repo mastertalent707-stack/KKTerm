@@ -229,6 +229,32 @@ fn acp_command_specs_use_registry_adapters() {
 }
 
 #[test]
+fn assistant_cancellation_never_falls_back_to_one_shot_cli() {
+    assert!(!should_fallback_from_acp_error(
+        ASSISTANT_STREAM_CANCELED_ERROR
+    ));
+    assert!(should_fallback_from_acp_error(
+        "ACP backend returned an error during initialize"
+    ));
+}
+
+#[test]
+fn cli_capture_honors_timeout() {
+    let started = Instant::now();
+    #[cfg(target_os = "windows")]
+    let result = run_cli_capture(
+        "powershell.exe",
+        &["-NoProfile", "-Command", "Start-Sleep -Seconds 5"],
+        Some(Duration::from_millis(100)),
+    );
+    #[cfg(not(target_os = "windows"))]
+    let result = run_cli_capture("sh", &["-c", "sleep 5"], Some(Duration::from_millis(100)));
+
+    assert!(result.unwrap_err().contains("timed out"));
+    assert!(started.elapsed() < Duration::from_secs(2));
+}
+
+#[test]
 fn configured_cli_backend_command_wins_over_discovery() {
     let command = resolve_cli_backend_command(
         AiCliBackendKind::Codex,
@@ -944,6 +970,68 @@ fn bounded_history_keeps_newest_messages_within_budget() {
     assert_eq!(kept.len(), 1);
     assert!(kept[0].content.chars().count() <= HISTORY_MESSAGE_MAX_CHARS + 20);
     assert!(kept[0].content.ends_with("[truncated]"));
+}
+
+#[test]
+fn compacted_context_usage_describes_retained_history() {
+    let history: Vec<AgentChatMessage> = (0..20)
+        .map(|i| AgentChatMessage {
+            role: "assistant".to_string(),
+            content: format!("turn-{i} {}", "x".repeat(7_000)),
+            reasoning_content: None,
+            tool_calls: Vec::new(),
+        })
+        .collect();
+
+    let compacted = compact_agent_history("openai", "gpt-4", history, 1_000);
+    let retained_chars = estimate_agent_history_chars(&compacted.messages);
+    let usage = compacted.context_usage("openai", "gpt-4");
+
+    assert_eq!(usage.estimated_history_chars, retained_chars);
+    assert_eq!(usage.estimated_request_chars, retained_chars + 1_000);
+    assert_eq!(usage.estimated_non_history_chars, 1_000);
+}
+
+#[test]
+fn compacted_history_bounds_reasoning_and_tool_transcripts() {
+    let history = vec![AgentChatMessage {
+        role: "assistant".to_string(),
+        content: "answer".to_string(),
+        reasoning_content: Some("r".repeat(100_000)),
+        tool_calls: (0..2_000)
+            .map(|i| AgentToolCallSummary {
+                tool_name: format!("tool_{i}"),
+                error: Some("e".repeat(100)),
+            })
+            .collect(),
+    }];
+
+    let compacted = compact_agent_history("openai", "gpt-4", history, 100_000);
+    assert!(
+        estimate_agent_history_chars(&compacted.messages)
+            <= compacted.budget.history_message_max_chars
+    );
+}
+
+#[test]
+fn attachment_estimate_counts_sent_images_and_response_files() {
+    let screenshots = vec![AgentScreenshotContext {
+        source_label: "screen".to_string(),
+        data_url: "data:image/png;base64,abc".to_string(),
+    }];
+    let files = vec![AgentFileContext {
+        source_label: "notes.txt".to_string(),
+        file_data: None,
+        data_url: None,
+        mime_type: Some("text/plain".to_string()),
+        text: Some("hello".to_string()),
+    }];
+
+    assert!(estimate_attachment_context_chars(true, screenshots.len(), &files, true) > 4_000);
+    assert_eq!(
+        estimate_attachment_context_chars(false, screenshots.len(), &files, false),
+        0
+    );
 }
 
 #[test]

@@ -343,8 +343,9 @@ reconnect the client, and run `tools/list` to verify connectivity. The
 client should see the published tool list; `tools/call` requires KKTerm.exe
 to be running.
 
-Settings → AI Assistant → Built-in MCP Server includes a "Show config"
-dialog with JSON and TOML snippets whose `command` is the resolved
+On Windows, Settings → AI Assistant → Built-in MCP Server includes a
+"Show config" action. The config dialog opens only from that action; changing
+either MCP toggle never opens it. It contains JSON and TOML snippets whose `command` is the resolved
 `kkterm-cli` path beside the running `KKTerm.exe`. Its setup table shows
 copyable command examples for clients that support CLI MCP registration and
 config paths for clients that require manual editing.
@@ -358,7 +359,11 @@ widget source/body JSON, and secret-looking argument fields before writing.
 
 ## Platform support
 
-The bridge is Windows-only at this time. On macOS and Linux, `kkterm-cli`
+The bridge and its Settings controls are Windows-only at this time. On macOS and Linux, `kkterm-cli`
 builds and answers `initialize` / `tools/list` locally but every
 `tools/call` returns `app_not_running` with a "Windows-only" detail.
 Non-Windows transport is tracked as a follow-up.
+
+`kkterm-cli` uses MCP protocol version `2025-03-26`. It rejects a different
+requested initialize version with `-32602` and never sends JSON-RPC responses
+for notifications.

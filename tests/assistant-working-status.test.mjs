@@ -45,6 +45,10 @@ test("assistant renders in-chat tool approval controls", async () => {
     new URL("../src/ai/AssistantPanel.tsx", import.meta.url),
     "utf8",
   );
+  const approvalCardsSource = await readFile(
+    new URL("../src/ai/AssistantToolApprovalCards.tsx", import.meta.url),
+    "utf8",
+  );
   const tauriSource = await readFile(new URL("../src/lib/tauri.ts", import.meta.url), "utf8");
 
   assert.match(
@@ -58,34 +62,29 @@ test("assistant renders in-chat tool approval controls", async () => {
     "AssistantPanel should complete the approval request instead of changing global settings.",
   );
   assert.match(
-    assistantSource,
+    approvalCardsSource,
     /assistant-tool-approval-card/,
     "AssistantPanel should render an in-chat approval card.",
   );
   assert.match(
     assistantSource,
-    /toolApprovalCancelled/,
-    "AssistantPanel should show a skipped state when the user cancels the tool call.",
+    /function denyAssistantToolApproval[\s\S]*cancel_assistant_streams[\s\S]*completeAssistantToolApproval\(request\.requestId, false\)/,
+    "Deny should cancel the backend turn before rejecting its pending tool call.",
   );
   assert.match(
-    assistantSource,
+    approvalCardsSource,
     /toolApprovalAllowSession/,
     "AssistantPanel should offer an Allow in this session action.",
   );
   assert.match(
     assistantSource,
-    /allowToolApprovalsForCurrentResponseRef\.current\s*=\s*true/,
-    "Allow in this session should remember approval for the active assistant response.",
-  );
-  assert.match(
-    assistantSource,
-    /completeAssistantToolApproval\(request\.requestId,\s*false\)/,
-    "Cancel should reject the pending tool call without stopping the active response.",
+    /allowedToolApprovalsForCurrentChatRef\.current\.add\(toolName\)/,
+    "Allow in this session should remember approval for the active chat.",
   );
   assert.doesNotMatch(
-    assistantSource,
+    approvalCardsSource,
     /common\.yes|common\.no|cancelPrompt/,
-    "The approval card should use Allow, Allow in this session, and Cancel only.",
+    "The approval card should use Allow, Allow in this session, and Deny only.",
   );
   assert.match(
     tauriSource,
