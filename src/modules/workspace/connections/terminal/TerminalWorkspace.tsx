@@ -1,4 +1,4 @@
-import { confirmTrustedSshHostKey, connectionPasswordOwnerId, connectionToolbarTitle, resolveSshSocksProxyRequest, uniqueRuntimeId, usesNativeSshHostKeyVerification } from "../utils";
+import { confirmTrustedSshHostKey, connectionPasswordOwnerId, connectionToolbarTitle, localShellOptionsForPlatform, resolveAvailableLocalShell, resolveSshSocksProxyRequest, uniqueRuntimeId, usesNativeSshHostKeyVerification } from "../utils";
 import { resolveLocalShellForLaunch } from "./pwshPreflight";
 import { ConfirmDialog } from "../../../../app/ConfirmDialog";
 import { readFromClipboard, writeToClipboard } from "../../../../lib/clipboard";
@@ -2021,7 +2021,10 @@ function TerminalPaneView({
         const terminalDimensions = terminal.dimensions;
         const requestedShell =
           connection.type === "local"
-            ? connection.localShell ?? terminalSettings.defaultShell
+            ? resolveAvailableLocalShell(
+                connection.localShell ?? terminalSettings.defaultShell,
+                localShellOptionsForPlatform(terminalSettings.customShells),
+              )
             : undefined;
         const shell =
           connection.type === "local"

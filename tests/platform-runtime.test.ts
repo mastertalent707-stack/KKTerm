@@ -100,5 +100,5 @@ test("native window controls are used only on macOS (overlay title bar)", () => 
 test("defaultLocalShell picks a sensible shell per platform", () => {
   withNavigator(WINDOWS, () => assert.equal(defaultLocalShell(), "powershell.exe"));
   withNavigator(MAC, () => assert.equal(defaultLocalShell(), "/bin/zsh"));
-  withNavigator(LINUX, () => assert.equal(defaultLocalShell(), "/bin/sh"));
+  withNavigator(LINUX, () => assert.equal(defaultLocalShell(), "/bin/bash"));
 });

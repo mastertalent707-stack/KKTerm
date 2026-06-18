@@ -1,8 +1,8 @@
 import { Cable, FileText, FolderInput, FolderOpen, Globe2, Laptop, Monitor, Mouse, Network, Server } from "lucide-react";
 import { confirmNativeDialog, invokeCommand, type SshHostKeyPreview } from "../../../lib/tauri";
 import i18next from "../../../i18n/config";
-import type { Connection, ConnectionType, SshSettings, WorkspaceTab } from "../../../types";
-import { isWindowsPlatform } from "../../../lib/platform";
+import type { Connection, ConnectionType, SshSettings, TerminalCustomShell, WorkspaceTab } from "../../../types";
+import { defaultLocalShell, isWindowsPlatform } from "../../../lib/platform";
 
 const WINDOWS_LOCAL_SHELL_OPTIONS = [
   { labelKey: "settings.powerShell", value: "powershell.exe" },
@@ -17,9 +17,17 @@ export type LocalShellOption = {
   value?: string;
 };
 
-export function localShellOptionsForPlatform(): LocalShellOption[] {
+export function localShellOptionsForPlatform(customShells?: TerminalCustomShell[]): LocalShellOption[] {
+  const customOptions =
+    customShells
+      ?.filter((shell) => shell.name.trim() && shell.commandLine.trim())
+      .map((shell) => ({
+        label: shell.name.trim(),
+        value: shell.commandLine.trim(),
+      })) ?? [];
+
   if (!isWindowsPlatform()) {
-    return [{ label: i18next.t("workspace.terminal") }];
+    return [{ label: i18next.t("workspace.terminal"), value: defaultLocalShell() }, ...customOptions];
   }
 
   return [
@@ -29,7 +37,17 @@ export function localShellOptionsForPlatform(): LocalShellOption[] {
       value: option.value,
       canElevate: option.value === "powershell.exe" || option.value === "pwsh.exe",
     })),
+    ...customOptions,
   ];
+}
+
+export function resolveAvailableLocalShell(shell: string | undefined, options: LocalShellOption[]) {
+  const fallback = options[0]?.value ?? defaultLocalShell();
+  const requested = shell?.trim();
+  if (!requested) {
+    return fallback;
+  }
+  return options.some((option) => (option.value ?? "") === requested) ? requested : fallback;
 }
 
 export function uniqueRuntimeId(prefix: string) {

@@ -2109,6 +2109,11 @@ fn terminal_settings_round_trip_through_settings_table() {
             allow_osc52_clipboard: true,
             confirm_multiline_paste: false,
             default_shell: "pwsh.exe".to_string(),
+            custom_shells: vec![TerminalCustomShell {
+                id: "git-bash".to_string(),
+                name: " Git Bash ".to_string(),
+                command_line: r#" "C:\Program Files\Git\bin\bash.exe" --login -i "#.to_string(),
+            }],
         })
         .expect("terminal settings update");
 
@@ -2122,6 +2127,12 @@ fn terminal_settings_round_trip_through_settings_table() {
         .expect("terminal settings reload");
     assert_eq!(reloaded.font_family, "Cascadia Mono");
     assert_eq!(reloaded.default_shell, "pwsh.exe");
+    assert_eq!(reloaded.custom_shells.len(), 1);
+    assert_eq!(reloaded.custom_shells[0].name, "Git Bash");
+    assert_eq!(
+        reloaded.custom_shells[0].command_line,
+        r#""C:\Program Files\Git\bin\bash.exe" --login -i"#
+    );
 }
 
 #[test]

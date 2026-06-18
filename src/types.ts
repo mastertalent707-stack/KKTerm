@@ -291,6 +291,12 @@ export interface StoredLayoutPane {
 
 export type TerminalCursorStyle = "block" | "bar" | "underline";
 
+export interface TerminalCustomShell {
+  id: string;
+  name: string;
+  commandLine: string;
+}
+
 export interface GeneralSettings {
   autoBackupEnabled: boolean;
   autoUpdateChecksEnabled: boolean;
@@ -474,6 +480,7 @@ export interface TerminalSettings {
   allowOsc52Clipboard: boolean;
   confirmMultilinePaste: boolean;
   defaultShell: string;
+  customShells: TerminalCustomShell[];
 }
 
 export type ColorScheme =

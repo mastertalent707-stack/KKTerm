@@ -1509,7 +1509,10 @@ export function ConnectionSidebar({
     () => (showConnectedOnly ? filterConnectedConnections(filteredTree) : filteredTree),
     [filteredTree, showConnectedOnly],
   );
-  const quickConnectShellOptions = useMemo(() => localShellOptionsForPlatform(), [i18n.language]);
+  const quickConnectShellOptions = useMemo(
+    () => localShellOptionsForPlatform(terminalSettings.customShells),
+    [i18n.language, terminalSettings.customShells],
+  );
   const recentConnections = useMemo(() => {
     const connectionsById = new Map(
       flattenConnections(treeWithLiveStatuses).map((connection) => [connection.id, connection]),
@@ -3692,6 +3695,7 @@ function ConnectionDialog({
   onSubmit: (request: ConnectionDialogRequest) => void | Promise<void>;
 }) {
   const { i18n, t } = useTranslation();
+  const terminalSettings = useWorkspaceStore((state) => state.terminalSettings);
   const connectionType = initialConnection?.type ?? initialConnectionType ?? "";
   const [authMethod, setAuthMethod] = useState<"keyFile" | "password" | "agent">(
     initialConnection?.authMethod ?? "keyFile",
@@ -3764,7 +3768,10 @@ function ConnectionDialog({
     }
     return Array.from(new Set(urls));
   }, [initialConnection?.iconDataUrl, tree]);
-  const localShellOptions = useMemo(() => localShellOptionsForPlatform(), [i18n.language]);
+  const localShellOptions = useMemo(
+    () => localShellOptionsForPlatform(terminalSettings.customShells),
+    [i18n.language, terminalSettings.customShells],
+  );
   const isEditMode = mode === "edit";
   const canUseSavedPasswordCredential = mode !== "quick" && supportsConnectionPasswordCredential(connectionType);
   const matchingPasswordCredentials = useMemo(

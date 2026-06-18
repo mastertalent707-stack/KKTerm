@@ -426,6 +426,16 @@ pub struct TerminalSettings {
     allow_osc52_clipboard: bool,
     confirm_multiline_paste: bool,
     default_shell: String,
+    #[serde(default)]
+    custom_shells: Vec<TerminalCustomShell>,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalCustomShell {
+    id: String,
+    name: String,
+    command_line: String,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -4132,6 +4142,7 @@ fn default_terminal_settings() -> TerminalSettings {
         } else {
             std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
         },
+        custom_shells: Vec::new(),
     }
 }
 
@@ -4614,6 +4625,7 @@ fn validate_dashboard_settings(
 fn validate_terminal_settings(mut settings: TerminalSettings) -> Result<TerminalSettings, String> {
     settings.font_family = required_field("font family", settings.font_family)?;
     settings.default_shell = required_field("default shell", settings.default_shell)?;
+    settings.custom_shells = validate_terminal_custom_shells(settings.custom_shells)?;
 
     if !(8..=32).contains(&settings.font_size) {
         return Err("terminal font size must be between 8 and 32".to_string());
@@ -4636,6 +4648,39 @@ fn validate_terminal_settings(mut settings: TerminalSettings) -> Result<Terminal
     }
 
     Ok(settings)
+}
+
+fn validate_terminal_custom_shells(
+    custom_shells: Vec<TerminalCustomShell>,
+) -> Result<Vec<TerminalCustomShell>, String> {
+    let mut normalized = Vec::new();
+    let mut seen_ids = Vec::new();
+
+    for shell in custom_shells {
+        let id = required_field("custom shell id", shell.id)?;
+        let name = required_field("custom shell name", shell.name)?;
+        let command_line = required_field("custom shell command line", shell.command_line)?;
+
+        if seen_ids.contains(&id) {
+            continue;
+        }
+        seen_ids.push(id.clone());
+
+        if name.chars().count() > 80 {
+            return Err("custom shell name must be 80 characters or fewer".to_string());
+        }
+        if command_line.chars().count() > 1000 {
+            return Err("custom shell command line must be 1000 characters or fewer".to_string());
+        }
+
+        normalized.push(TerminalCustomShell {
+            id,
+            name,
+            command_line,
+        });
+    }
+
+    Ok(normalized)
 }
 
 fn validate_appearance_settings(

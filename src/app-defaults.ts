@@ -81,6 +81,7 @@ export const defaultTerminalSettings: TerminalSettings = {
   allowOsc52Clipboard: true,
   confirmMultilinePaste: true,
   defaultShell: defaultLocalShell(),
+  customShells: [],
 };
 
 export const defaultAppearanceSettings: AppearanceSettings = {

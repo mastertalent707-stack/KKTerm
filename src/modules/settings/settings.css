@@ -1383,6 +1383,11 @@
   border-bottom: 0;
 }
 
+.settings-custom-shell-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 /*
  * Merge consecutive Settings row blocks inside one subsection so related
  * controls read as one grouped card divided by rules instead of separate cards.
@@ -1443,6 +1448,24 @@
   font-size: 12px;
   font-weight: 450;
   line-height: 1.35;
+}
+
+.settings-toggle-row .settings-custom-shell-fields {
+  grid-column: 2;
+  grid-row: 1;
+  grid-template-columns: minmax(140px, 0.4fr) minmax(220px, 1fr);
+  gap: 12px;
+}
+
+.settings-custom-shell-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-custom-shell-fields label > span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 520;
 }
 
 .settings-toggle-actions {

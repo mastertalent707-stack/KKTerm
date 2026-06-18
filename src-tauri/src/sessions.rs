@@ -2259,10 +2259,14 @@ fn command_for(request: &StartTerminalSessionRequest) -> Result<CommandBuilder, 
                         std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
                     }
                 });
-            let is_cmd = is_windows_cmd_shell(&program);
-            let mut command = CommandBuilder::new(resolved_local_shell_program(program));
+            let parsed = parse_local_shell_command_line(&program)?;
+            let is_cmd = is_windows_cmd_shell(&parsed.program);
+            let mut command = CommandBuilder::new(resolved_local_shell_program(parsed.program));
             if is_cmd {
                 command.arg("/D");
+            }
+            for arg in parsed.args {
+                command.arg(arg);
             }
             sanitize_windows_local_environment(&mut command);
             set_terminal_environment(&mut command);
@@ -2397,6 +2401,63 @@ fn resolved_local_shell_program(program: String) -> String {
     }
 }
 
+struct LocalShellCommandLine {
+    program: String,
+    args: Vec<String>,
+}
+
+fn parse_local_shell_command_line(command_line: &str) -> Result<LocalShellCommandLine, String> {
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut chars = command_line.trim().chars().peekable();
+    let mut quote: Option<char> = None;
+
+    while let Some(ch) = chars.next() {
+        match ch {
+            '"' | '\'' => {
+                if quote == Some(ch) {
+                    quote = None;
+                } else if quote.is_none() {
+                    quote = Some(ch);
+                } else {
+                    current.push(ch);
+                }
+            }
+            '\\' => {
+                if matches!(chars.peek(), Some('"') | Some('\'')) {
+                    if let Some(next) = chars.next() {
+                        current.push(next);
+                    }
+                } else {
+                    current.push(ch);
+                }
+            }
+            ch if ch.is_whitespace() && quote.is_none() => {
+                if !current.is_empty() {
+                    parts.push(std::mem::take(&mut current));
+                }
+            }
+            _ => current.push(ch),
+        }
+    }
+
+    if quote.is_some() {
+        return Err("local shell command line has an unclosed quote".to_string());
+    }
+
+    if !current.is_empty() {
+        parts.push(current);
+    }
+
+    let program = parts
+        .first()
+        .cloned()
+        .ok_or_else(|| "local shell command line is required".to_string())?;
+    let args = parts.into_iter().skip(1).collect();
+
+    Ok(LocalShellCommandLine { program, args })
+}
+
 fn is_windows_cmd_shell(program: &str) -> bool {
     let trimmed = program.trim();
     if trimmed.is_empty() {
@@ -2424,7 +2485,10 @@ fn windows_cmd_program() -> String {
 pub fn local_shell_available(shell: &str) -> bool {
     #[cfg(target_os = "windows")]
     {
-        let resolved = resolved_local_shell_program(shell.trim().to_string());
+        let Ok(parsed) = parse_local_shell_command_line(shell) else {
+            return false;
+        };
+        let resolved = resolved_local_shell_program(parsed.program);
         if resolved.is_empty() {
             return false;
         }
@@ -2540,6 +2604,23 @@ mod tests {
     fn local_shell_available_is_permissive_off_windows() {
         // The pwsh pre-flight gate is Windows-only; elsewhere this is a no-op.
         assert!(local_shell_available("anything"));
+    }
+
+    #[test]
+    fn local_shell_command_line_splits_program_and_arguments() {
+        let parsed = parse_local_shell_command_line(r#""C:\Program Files\Git\bin\bash.exe" --login -i"#)
+            .expect("quoted command line parses");
+
+        assert_eq!(parsed.program, r"C:\Program Files\Git\bin\bash.exe");
+        assert_eq!(parsed.args, vec!["--login", "-i"]);
+    }
+
+    #[test]
+    fn local_shell_command_line_keeps_bare_program_without_arguments() {
+        let parsed = parse_local_shell_command_line("pwsh.exe").expect("bare command parses");
+
+        assert_eq!(parsed.program, "pwsh.exe");
+        assert!(parsed.args.is_empty());
     }
 
     #[test]

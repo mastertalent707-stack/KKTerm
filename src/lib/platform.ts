@@ -53,5 +53,5 @@ export function defaultLocalShell() {
   if (isWindowsPlatform()) {
     return "powershell.exe";
   }
-  return currentPlatform() === "macos" ? "/bin/zsh" : "/bin/sh";
+  return currentPlatform() === "macos" ? "/bin/zsh" : "/bin/bash";
 }

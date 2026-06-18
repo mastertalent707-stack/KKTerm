@@ -26,7 +26,7 @@ Settings tutorial targets:
   `settings.widgetCredentialsStored`.
 - AI Assistant: `settings.aiProvider`, `settings.aiToolsTitle`, `settings.aiCustomInstructions`, `settings.assistantSkillsTitle`, `settings.mcpServersTitle`, `settings.allowInsecureMcpHttp`.
 - SSH: `settings.defaultUser`, `settings.defaultPort`, `settings.defaultKey`, `settings.proxyJump`, `settings.sshSocksProxy`, `settings.sshSocksProxyUsername`, `settings.sshSocksProxyPassword`, `settings.sshBufferLines`.
-- Terminal: `settings.terminalFontFamily`, `settings.terminalFontSize`, `settings.defaultShell`, `settings.scrollbackLines`.
+- Terminal: `settings.terminalFontFamily`, `settings.terminalFontSize`, `settings.defaultShell`, `settings.customShells`, `settings.scrollbackLines`.
 - URL: `settings.ignoreCertificateErrors`, `settings.urlSavedPasswords`, `settings.urlDataShards`.
 - RDP: `settings.rdpColorDepth`, `settings.rdpPerformanceProfile`.
 - VNC: `settings.vncViewOnly`, `settings.vncColorLevel`.
@@ -165,7 +165,7 @@ X11 forwarding is negotiated when a new native SSH Session starts. SSH Sessions 
 
 ## Terminal
 
-Section header `settings.sectionTerminal`. Font family + size, line height, cursor style, scrollback length, bell behaviour, default shell on Local. The font family field (`settings.terminalFontFamily`) accepts any installed font name and also suggests custom fonts dropped into the app fonts folder (`settings.openCustomFontsFolder`, hint `settings.customFontsHint` / `settings.noCustomFonts`). Custom fonts — including powerline/Nerd Fonts — render without a system-wide install because KKTerm loads them into the WebView itself; this is the supported way to get powerline glyphs. `settings.defaultTransparency` sets the starting local/Telnet/Serial terminal transparency for new terminal Connections and Child Connection Tabs; the default is 50. `settings.randomDynamicBackgroundOnCreate` assigns a random dynamic terminal background only when creating new local/Telnet/Serial Connections, new top-strip Tabs, or new Child Connection Tabs.
+Section header `settings.sectionTerminal`. Font family + size, line height, cursor style, scrollback length, bell behaviour, default shell on Local, and custom local shell profiles. The font family field (`settings.terminalFontFamily`) accepts any installed font name and also suggests custom fonts dropped into the app fonts folder (`settings.openCustomFontsFolder`, hint `settings.customFontsHint` / `settings.noCustomFonts`). Custom fonts — including powerline/Nerd Fonts — render without a system-wide install because KKTerm loads them into the WebView itself; this is the supported way to get powerline glyphs. The Custom shells subsection (`settings.customShells`) stores named command lines with optional arguments; saved entries appear in `settings.defaultShell` and in Add Connection → Local terminal → `connections.shell`. `settings.defaultTransparency` sets the starting local/Telnet/Serial terminal transparency for new terminal Connections and Child Connection Tabs; the default is 50. `settings.randomDynamicBackgroundOnCreate` assigns a random dynamic terminal background only when creating new local/Telnet/Serial Connections, new top-strip Tabs, or new Child Connection Tabs.
 
 ## RDP and VNC
 

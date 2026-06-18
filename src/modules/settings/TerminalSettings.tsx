@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { FolderOpen, Terminal } from "lucide-react";
+import { FolderOpen, Plus, Terminal, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
 import { listCustomFontOptions, type CustomFontOption } from "../../lib/customFonts";
-import { isWindowsPlatform } from "../../lib/platform";
 import { useWorkspaceStore } from "../../store";
 import type { TerminalCursorStyle, TerminalSettings as TerminalSettingsType } from "../../types";
+import { localShellOptionsForPlatform, resolveAvailableLocalShell } from "../workspace/connections/utils";
 import { SettingsSectionHeader, useSettingsSaveRegistration } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
 
@@ -38,6 +38,14 @@ function normalizeTerminalSettingsDraft(settings: TerminalSettingsType, t: TFunc
     throw new Error(t("settings.defaultTransparencyRange"));
   }
 
+  const customShells = (settings.customShells ?? [])
+    .map((shell) => ({
+      id: shell.id.trim() || makeCustomShellId(),
+      name: shell.name.trim(),
+      commandLine: shell.commandLine.trim(),
+    }))
+    .filter((shell) => shell.name && shell.commandLine);
+
   return {
     ...settings,
     fontFamily: settings.fontFamily.trim(),
@@ -46,8 +54,16 @@ function normalizeTerminalSettingsDraft(settings: TerminalSettingsType, t: TFunc
     scrollbackLines: Math.round(settings.scrollbackLines),
     defaultTransparency: Math.round(settings.defaultTransparency),
     useRandomDynamicBackground: settings.useRandomDynamicBackground ?? false,
-    defaultShell: settings.defaultShell.trim(),
+    defaultShell: resolveAvailableLocalShell(settings.defaultShell, localShellOptionsForPlatform(customShells)),
+    customShells,
   };
+}
+
+function makeCustomShellId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `custom-shell-${crypto.randomUUID()}`;
+  }
+  return `custom-shell-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function TerminalSettings() {
@@ -58,6 +74,16 @@ export function TerminalSettings() {
   const [draft, setDraft] = useState(terminalSettings);
   const [customFonts, setCustomFonts] = useState<CustomFontOption[]>([]);
   const hasChanges = JSON.stringify(draft) !== JSON.stringify(terminalSettings);
+  const defaultShellOptions = localShellOptionsForPlatform(draft.customShells);
+  const defaultShellSelectOptions = defaultShellOptions.some((option) => (option.value ?? "") === draft.defaultShell)
+    ? defaultShellOptions
+    : [
+        ...defaultShellOptions,
+        {
+          label: draft.defaultShell,
+          value: draft.defaultShell,
+        },
+      ];
 
   useEffect(() => {
     setDraft(terminalSettings);
@@ -105,6 +131,45 @@ export function TerminalSettings() {
     } catch (err) {
       showStatusBarNotice(err instanceof Error ? err.message : String(err), { tone: "error" });
     }
+  }
+
+  function handleAddCustomShell() {
+    setDraft((settings) => ({
+      ...settings,
+      customShells: [
+        ...(settings.customShells ?? []),
+        {
+          id: makeCustomShellId(),
+          name: "",
+          commandLine: "",
+        },
+      ],
+    }));
+  }
+
+  function handleUpdateCustomShell(shellId: string, field: "name" | "commandLine", value: string) {
+    setDraft((settings) => ({
+      ...settings,
+      customShells: (settings.customShells ?? []).map((shell) =>
+        shell.id === shellId ? { ...shell, [field]: value } : shell,
+      ),
+    }));
+  }
+
+  function handleRemoveCustomShell(shellId: string) {
+    setDraft((settings) => {
+      const removedShell = settings.customShells?.find((shell) => shell.id === shellId);
+      const customShells = (settings.customShells ?? []).filter((shell) => shell.id !== shellId);
+      const defaultShell =
+        removedShell?.commandLine.trim() && settings.defaultShell === removedShell.commandLine.trim()
+          ? resolveAvailableLocalShell(undefined, localShellOptionsForPlatform(customShells))
+          : settings.defaultShell;
+      return {
+        ...settings,
+        customShells,
+        defaultShell,
+      };
+    });
   }
 
   useSettingsSaveRegistration({ hasChanges, onSave: handleSave });
@@ -224,35 +289,22 @@ export function TerminalSettings() {
         <div className="form-grid three-columns">
           <label data-tutorial-id="settings.defaultShell">
             <span>{t("settings.defaultShell")}</span>
-            {isWindowsPlatform() ? (
-              <select
-                onChange={(event) => {
-                  const defaultShell = event.currentTarget.value;
-                  setDraft((settings) => ({
-                    ...settings,
-                    defaultShell,
-                  }));
-                }}
-                value={draft.defaultShell}
-              >
-                <option value="powershell.exe">{t("settings.powerShell")}</option>
-                <option value="pwsh.exe">{t("settings.powerShell7")}</option>
-                <option value="cmd.exe">{t("settings.commandPrompt")}</option>
-                <option value="wsl.exe">{t("settings.wsl")}</option>
-              </select>
-            ) : (
-              <input
-                onChange={(event) => {
-                  const defaultShell = event.currentTarget.value;
-                  setDraft((settings) => ({
-                    ...settings,
-                    defaultShell,
-                  }));
-                }}
-                placeholder="/bin/zsh"
-                value={draft.defaultShell}
-              />
-            )}
+            <select
+              onChange={(event) => {
+                const defaultShell = event.currentTarget.value;
+                setDraft((settings) => ({
+                  ...settings,
+                  defaultShell,
+                }));
+              }}
+              value={draft.defaultShell}
+            >
+              {defaultShellSelectOptions.map((option) => (
+                <option key={option.value ?? option.label} value={option.value ?? ""}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label data-tutorial-id="settings.scrollbackLines">
             <span>{t("settings.scrollbackLines")}</span>
@@ -305,6 +357,51 @@ export function TerminalSettings() {
               <small>{t("settings.randomDynamicBackgroundOnCreateHint")}</small>
             </span>
           </label>
+        </div>
+      </fieldset>
+
+      <fieldset className="settings-subsection settings-fieldset">
+        <legend>{t("settings.customShells")}</legend>
+        <div>
+          <p className="field-hint">{t("settings.customShellsHint")}</p>
+        </div>
+        <div className="settings-toggle-list">
+          {(draft.customShells ?? []).map((shell) => (
+            <div className="settings-toggle-row settings-custom-shell-row" key={shell.id}>
+              <Terminal size={16} aria-hidden />
+              <span className="settings-custom-shell-fields">
+                <label>
+                  <span>{t("settings.customShellName")}</span>
+                  <input
+                    onChange={(event) => handleUpdateCustomShell(shell.id, "name", event.currentTarget.value)}
+                    placeholder={t("settings.customShellNamePlaceholder")}
+                    value={shell.name}
+                  />
+                </label>
+                <label>
+                  <span>{t("settings.customShellCommandLine")}</span>
+                  <input
+                    onChange={(event) => handleUpdateCustomShell(shell.id, "commandLine", event.currentTarget.value)}
+                    placeholder={t("settings.customShellCommandLinePlaceholder")}
+                    value={shell.commandLine}
+                  />
+                </label>
+              </span>
+              <button
+                aria-label={t("settings.removeCustomShell", { name: shell.name || t("settings.customShell") })}
+                className="toolbar-button"
+                onClick={() => handleRemoveCustomShell(shell.id)}
+                title={t("settings.removeCustomShell", { name: shell.name || t("settings.customShell") })}
+                type="button"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+          <button className="toolbar-button" onClick={handleAddCustomShell} type="button">
+            <Plus size={15} />
+            {t("settings.addCustomShell")}
+          </button>
         </div>
       </fieldset>
 

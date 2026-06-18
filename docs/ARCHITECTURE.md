@@ -52,7 +52,7 @@ AI Assistant context is also a command-boundary concern. Any frontend page conte
 - `src/modules/settings/CredentialsSettings.tsx` — credential backend selection and stored credential metadata/delete actions.
 - `src/modules/settings/AiSettings.tsx` — AI provider kind, dynamic provider fields, provider-specific model selector, custom model ID input, API key, OpenAI/Anthropic CLI backend toggles, output language, and insecure TLS provider toggle. Provider addition rules live in `docs/AI_PROVIDERS.md`.
 - `src/modules/settings/SshSettings.tsx` — SSH defaults, SSH terminal buffer behavior, SSH port redirect visibility, SSH OSC 52 clipboard policy, managed VcXsrv launcher defaults for local X11 windows, and SFTP transfer defaults summary.
-- `src/modules/settings/TerminalSettings.tsx` — Local terminal font, size, line height, scrollback, cursor, default shell, and local terminal toggles. Do not put SSH-only terminal behavior here; SSH terminal behavior belongs in `SshSettings.tsx`.
+- `src/modules/settings/TerminalSettings.tsx` — Local terminal font, size, line height, scrollback, cursor, default shell, reusable custom shell profiles, and local terminal toggles. Do not put SSH-only terminal behavior here; SSH terminal behavior belongs in `SshSettings.tsx`.
 - `src/modules/settings/UrlSettings.tsx` — URL Connection security defaults, saved website password metadata, and URL data shard management.
 - `src/modules/settings/RdpSettings.tsx` — Planned RDP quality defaults summary.
 - `src/modules/settings/VncSettings.tsx` — Planned VNC quality defaults summary.

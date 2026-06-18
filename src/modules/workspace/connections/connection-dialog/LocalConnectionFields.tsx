@@ -1,9 +1,9 @@
-import { type CSSProperties, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { Command, Shell, SquareTerminal, Terminal, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { technicalInputProps } from "../../../../lib/inputBehavior";
 import type { Connection } from "../../../../types";
-import type { LocalShellOption } from "../utils";
+import { resolveAvailableLocalShell, type LocalShellOption } from "../utils";
 
 export function LocalConnectionFields({
   initialConnection,
@@ -19,8 +19,11 @@ export function LocalConnectionFields({
   onLocalStartupDirectoryChange: (value: string) => void;
 }) {
   const { t } = useTranslation();
-  const defaultLocalShell = initialConnection?.localShell ?? localShellOptions[0]?.value ?? "";
+  const defaultLocalShell = resolveAvailableLocalShell(initialConnection?.localShell, localShellOptions);
   const [selectedLocalShell, setSelectedLocalShell] = useState(defaultLocalShell);
+  useEffect(() => {
+    setSelectedLocalShell((currentShell) => resolveAvailableLocalShell(currentShell, localShellOptions));
+  }, [localShellOptions]);
   const selectedShellIndex = Math.max(
     0,
     localShellOptions.findIndex((option) => (option.value ?? "") === selectedLocalShell),
