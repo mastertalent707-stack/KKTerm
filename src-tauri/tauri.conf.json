@@ -17,7 +17,7 @@
         "enable": true,
         "scope": [
           "$EXE/backgrounds/**",
-          "$EXE/fonts/**"
+          "$RESOURCE/fonts/**/*"
         ]
       }
     }
