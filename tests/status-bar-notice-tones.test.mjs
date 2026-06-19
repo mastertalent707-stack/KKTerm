@@ -33,5 +33,8 @@ test("status popup icons and progress bar use the same semantic tone colors", ()
     workspaceCss,
     /\.status-popup-icon[\s\S]*color:\s*var\(--notice-tone\);[\s\S]*\.status-popup-icon svg[\s\S]*stroke:\s*var\(--notice-tone\);/,
   );
-  assert.match(workspaceCss, /\.status-popup-timer i[\s\S]*background:\s*var\(--notice-tone\);/);
+  assert.match(
+    workspaceCss,
+    /\.status-popup-progress > i[\s\S]*background:\s*var\(--notice-tone\);/,
+  );
 });

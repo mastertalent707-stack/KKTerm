@@ -55,7 +55,9 @@ test("Don't Sleep rail uses state-specific tooltip copy and shared Pulse status 
     assert.match(statusBarSource, new RegExp(`\\b${iconName}\\b`));
   }
   assert.doesNotMatch(statusBarSource, /isNoticeTimerRunning/);
-  assert.match(statusBarSource, /void popup\.offsetWidth/);
+  assert.doesNotMatch(statusBarSource, /void popup\.offsetWidth/);
+  assert.doesNotMatch(statusBarSource, /status-popup-timer/);
+  assert.match(statusBarSource, /className="status-popup-progress"/);
   assert.match(workspaceCss, /\.status-popup-pulse[\s\S]*blur\(24px\) saturate\(180%\)/);
   assert.match(workspaceCss, /--status-popup-glass-bg:\s*rgba\(252 252 253 \/ 88%\)/);
   assert.match(workspaceCss, /--status-popup-glass-bg:\s*rgba\(44 44 46 \/ 62%\)/);
