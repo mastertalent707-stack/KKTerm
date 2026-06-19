@@ -2407,6 +2407,7 @@
     },
     "sshPortForwardingTitle": "Transfert de port SSH",
     "addForward": "Ajouter un transfert",
+    "sshRemoteGatewayPortsHint": "Les écouteurs distants génériques nécessitent GatewayPorts clientspecified ; GatewayPorts no les limite à l’interface de bouclage.",
     "sshPortForwardInvalid": "Saisissez un port d'écoute et une destination valides.",
     "sshPortForwardBindConflict": "{{address}}:{{port}} est déjà utilisé par un autre transfert SSH.",
     "sshPortForwardSessionUnavailable": "Ouvrez cette boîte de dialogue depuis un volet SSH natif connecté et réessayez.",

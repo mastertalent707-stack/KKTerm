@@ -2407,6 +2407,7 @@
     },
     "sshPortForwardingTitle": "Encaminhamento de porta SSH",
     "addForward": "Adicionar encaminhamento",
+    "sshRemoteGatewayPortsHint": "Listeners remotos em um endereço curinga exigem GatewayPorts clientspecified; GatewayPorts no os restringe à interface de loopback.",
     "sshPortForwardInvalid": "Digite uma porta de escuta e um destino válidos.",
     "sshPortForwardBindConflict": "{{address}}:{{port}} já está em uso por outro encaminhamento SSH.",
     "sshPortForwardSessionUnavailable": "Abra esta caixa de diálogo a partir de um painel SSH nativo conectado e tente novamente.",

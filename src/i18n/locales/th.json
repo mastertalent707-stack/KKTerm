@@ -2407,6 +2407,7 @@
     },
     "sshPortForwardingTitle": "การส่งต่อพอร์ต SSH",
     "addForward": "เพิ่มการส่งต่อ",
+    "sshRemoteGatewayPortsHint": "ตัวรับฟังแบบไวลด์การ์ดบนเครื่องระยะไกลต้องใช้ GatewayPorts clientspecified; GatewayPorts no จะจำกัดให้รับฟังเฉพาะอินเทอร์เฟซลูปแบ็ก",
     "sshPortForwardInvalid": "ป้อนพอร์ตรอรับและปลายทางที่ถูกต้อง",
     "sshPortForwardBindConflict": "{{address}}:{{port}} ถูกใช้งานโดยการส่งต่อ SSH อื่นอยู่แล้ว",
     "sshPortForwardSessionUnavailable": "เปิดกล่องโต้ตอบนี้จากบานหน้าต่าง SSH แบบเนทีฟที่เชื่อมต่อแล้วแล้วลองอีกครั้ง",

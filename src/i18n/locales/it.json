@@ -2407,6 +2407,7 @@
     },
     "sshPortForwardingTitle": "Inoltro delle porte SSH",
     "addForward": "Aggiungi inoltro",
+    "sshRemoteGatewayPortsHint": "I listener remoti su un indirizzo jolly richiedono GatewayPorts clientspecified; GatewayPorts no li limita all’interfaccia di loopback.",
     "sshPortForwardInvalid": "Inserisci una porta di ascolto e una destinazione valide.",
     "sshPortForwardBindConflict": "{{address}}:{{port}} è già in uso da un altro inoltro SSH.",
     "sshPortForwardSessionUnavailable": "Apri questa finestra di dialogo da un riquadro SSH nativo connesso e riprova.",

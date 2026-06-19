@@ -493,9 +493,16 @@ export function SshPortForwardingDialog({
         closeAriaLabel={t("common.close")}
         eyebrow={t("terminal.sshPortForwardingTitle")}
         footer={
-          <Actions
-            primary={<Btn kind="primary" icon="plus" onClick={() => void handleAdd()}>{t("terminal.addForward")}</Btn>}
-          />
+          <>
+            {mode === "R" ? (
+              <span className="sshf-gateway-ports-hint">
+                {t("terminal.sshRemoteGatewayPortsHint")}
+              </span>
+            ) : null}
+            <Actions
+              primary={<Btn kind="primary" icon="plus" onClick={() => void handleAdd()}>{t("terminal.addForward")}</Btn>}
+            />
+          </>
         }
         onClose={onClose}
         width={760}

@@ -2407,6 +2407,7 @@
     },
     "sshPortForwardingTitle": "Penerusan Port SSH",
     "addForward": "Tambah penerusan",
+    "sshRemoteGatewayPortsHint": "Listener wildcard jarak jauh memerlukan GatewayPorts clientspecified; GatewayPorts no membatasinya ke antarmuka loopback.",
     "sshPortForwardInvalid": "Masukkan port dengar dan tujuan yang valid.",
     "sshPortForwardBindConflict": "{{address}}:{{port}} sudah digunakan oleh penerusan SSH lain.",
     "sshPortForwardSessionUnavailable": "Buka dialog ini dari Pane SSH native yang terhubung dan coba lagi.",

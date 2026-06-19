@@ -2407,6 +2407,7 @@
     },
     "sshPortForwardingTitle": "Reenvío de puertos SSH",
     "addForward": "Agregar reenvío",
+    "sshRemoteGatewayPortsHint": "Los listeners remotos en una dirección comodín requieren GatewayPorts clientspecified; GatewayPorts no los restringe a la interfaz de bucle local.",
     "sshPortForwardInvalid": "Ingresa un puerto de escucha y un destino válidos.",
     "sshPortForwardBindConflict": "{{address}}:{{port}} ya está en uso por otro reenvío SSH.",
     "sshPortForwardSessionUnavailable": "Abre este cuadro de diálogo desde un panel SSH nativo conectado y vuelve a intentarlo.",

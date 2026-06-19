@@ -2407,6 +2407,7 @@
     },
     "sshPortForwardingTitle": "SSH 端口转发",
     "addForward": "添加转发",
+    "sshRemoteGatewayPortsHint": "远程通配地址监听需要将 GatewayPorts 设为 clientspecified；GatewayPorts no 会将其限制在回环接口。",
     "sshPortForwardInvalid": "请输入有效的监听端口和目标。",
     "sshPortForwardBindConflict": "{{address}}:{{port}} 已被其他 SSH 转发占用。",
     "sshPortForwardSessionUnavailable": "请从已连接的原生 SSH 窗格打开此对话框并重试。",

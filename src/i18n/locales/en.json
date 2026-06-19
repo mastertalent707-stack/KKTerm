@@ -2407,6 +2407,7 @@
     },
     "sshPortForwardingTitle": "SSH Port Forwarding",
     "addForward": "Add forward",
+    "sshRemoteGatewayPortsHint": "Remote wildcard listeners require GatewayPorts clientspecified; GatewayPorts no restricts them to loopback.",
     "sshPortForwardInvalid": "Enter a valid listen port and destination.",
     "sshPortForwardBindConflict": "{{address}}:{{port}} is already in use by another SSH forward.",
     "sshPortForwardSessionUnavailable": "Open this dialog from a connected native SSH Pane and try again.",

@@ -2407,6 +2407,7 @@
     },
     "sshPortForwardingTitle": "SSH ポートフォワーディング",
     "addForward": "フォワードを追加",
+    "sshRemoteGatewayPortsHint": "リモートのワイルドカードリスナーには GatewayPorts clientspecified が必要です。GatewayPorts no の場合はループバックに制限されます。",
     "sshPortForwardInvalid": "有効なリッスンポートと接続先を入力してください。",
     "sshPortForwardBindConflict": "{{address}}:{{port}} は既に別の SSH フォワードで使用されています。",
     "sshPortForwardSessionUnavailable": "接続済みのネイティブ SSH ペインからこのダイアログを開いて、もう一度お試しください。",

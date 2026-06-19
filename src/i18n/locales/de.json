@@ -2407,6 +2407,7 @@
     },
     "sshPortForwardingTitle": "SSH-Port-Weiterleitung",
     "addForward": "Weiterleitung hinzufügen",
+    "sshRemoteGatewayPortsHint": "Remote-Wildcard-Listener erfordern GatewayPorts clientspecified; GatewayPorts no beschränkt sie auf die Loopback-Schnittstelle.",
     "sshPortForwardInvalid": "Geben Sie einen gültigen Listen-Port und ein Ziel ein.",
     "sshPortForwardBindConflict": "{{address}}:{{port}} wird bereits von einer anderen SSH-Weiterleitung verwendet.",
     "sshPortForwardSessionUnavailable": "Öffnen Sie diesen Dialog aus einem verbundenen nativen SSH-Pane und versuchen Sie es erneut.",

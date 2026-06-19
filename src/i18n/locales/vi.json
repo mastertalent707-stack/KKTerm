@@ -2407,6 +2407,7 @@
     },
     "sshPortForwardingTitle": "Chuyển tiếp cổng SSH",
     "addForward": "Thêm chuyển tiếp",
+    "sshRemoteGatewayPortsHint": "Trình lắng nghe ký tự đại diện từ xa yêu cầu GatewayPorts clientspecified; GatewayPorts no giới hạn chúng ở giao diện loopback.",
     "sshPortForwardInvalid": "Nhập cổng lắng nghe và đích hợp lệ.",
     "sshPortForwardBindConflict": "{{address}}:{{port}} đã được sử dụng bởi một chuyển tiếp SSH khác.",
     "sshPortForwardSessionUnavailable": "Hãy mở hộp thoại này từ một ngăn SSH native đã kết nối và thử lại.",

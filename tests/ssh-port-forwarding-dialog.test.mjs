@@ -88,6 +88,17 @@ test("SSH forwarding dialog uses a top-right close button as its only dismiss ac
   assert.doesNotMatch(source, /cancel=\{<Btn onClick=\{onClose\}>/);
 });
 
+test("Remote forwarding shows a translated GatewayPorts reminder at the footer left", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+  const css = await readFile(cssUrl, "utf8");
+
+  assert.match(
+    source,
+    /footer=\{[\s\S]*?mode === "R"[\s\S]*?terminal\.sshRemoteGatewayPortsHint[\s\S]*?<Actions/,
+  );
+  assert.match(css, /\.sshf-gateway-ports-hint\s*\{[^}]*color:\s*var\(--text-muted\);/s);
+});
+
 test("SSH forwarding inputs use the themed surface color", async () => {
   const css = await readFile(cssUrl, "utf8");
 
