@@ -31,6 +31,10 @@ import {
 import { buildFileViewConnectionDraftFromPath } from "./fileViewConnectionDraft";
 import { buildLocalFilesConnectionDraftFromPath } from "./localFilesConnectionDraft";
 import { dragHasConnectionPaths, readConnectionPathsDrag } from "./connectionPathsDrag";
+import {
+  connectionRequestNeedsCredentialStoreUnlock,
+  shouldDeleteSshSocksProxySecret,
+} from "./credentialUnlockPreflight";
 import { confirmTrustedSshHostKey, connectionPasswordOwnerId, connectionSshSocksProxyPasswordOwnerId, defaultPortForConnectionType, connectionTypeLabel, ftpPortForProtocolSelection, isRemoteDesktopConnectionType, localShellOptionsForPlatform, resolveSshSocksProxyRequest, uniqueRuntimeId, type LocalShellOption } from "./utils";
 import { RECENT_CONNECTION_LIMIT, loadCollapsedFolderIds, loadRecentConnectionIds, notifyConnectionTreeInvalidated, saveCollapsedFolderIds, saveRecentConnectionIds } from "./connectionSidebarState";
 import { collectConnectionFolderIds, countConnections, countFolders, filterConnectedConnections, filterConnectionTree, findConnectionInTree, flattenConnections, flattenFolders, visibleFlatConnections as flattenVisibleConnections, withLiveConnectionStatuses } from "./treeUtils";
@@ -43,11 +47,12 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import i18next from "../../../i18n/config";
 import { ariaExpanded, dialogButtonAria } from "../../../lib/aria";
+import { requestCredentialUnlock } from "../../../lib/credentialUnlock";
 import { isMacPlatform } from "../../../lib/platform";
 import { nativeMenuIcons } from "../../../lib/nativeMenuIcons";
 import { lockOsIconAutoDetect } from "../../../lib/osIcons";
 import { showNativeContextMenu, type NativeContextMenuItem } from "../../../lib/nativeContextMenu";
-import { confirmNativeDialog, invokeCommand, isTauriRuntime, selectAppLauncherFolder, selectFileViewPath, selectKeyFile, type TmuxSession } from "../../../lib/tauri";
+import { confirmNativeDialog, invokeCommand, isCredentialUnlockRequiredError, isTauriRuntime, selectAppLauncherFolder, selectFileViewPath, selectKeyFile, type TmuxSession } from "../../../lib/tauri";
 import { connectionTree } from "../../../app-defaults";
 import { DeleteConfirmationDialog } from "../../../app/DeleteConfirmationDialog";
 import { DialogPortal } from "../../../app/DialogPortal";
@@ -1104,6 +1109,40 @@ export function ConnectionSidebar({
     });
   }
 
+  async function ensureCredentialStoreReadyForConnectionRequest(
+    request: ConnectionDialogRequest,
+    existingConnection?: Connection,
+  ) {
+    let needsUnlock = connectionRequestNeedsCredentialStoreUnlock(request);
+    if (existingConnection && request.type === "ssh") {
+      const presence = await invokeCommand("secret_exists", {
+        request: {
+          kind: "sshSocksProxyPassword",
+          ownerId: connectionSshSocksProxyPasswordOwnerId(existingConnection),
+        },
+      });
+      needsUnlock ||= shouldDeleteSshSocksProxySecret({
+        ...request,
+        existingSecretExists: presence.exists,
+      });
+    }
+    if (!needsUnlock || !isTauriRuntime()) {
+      return true;
+    }
+    const status = await invokeCommand("credential_secret_store_status", undefined);
+    if (status.selectedStore !== "file" || status.unlocked) {
+      return true;
+    }
+    return requestCredentialUnlock();
+  }
+
+  function showConnectionFormError(error: unknown) {
+    if (isCredentialUnlockRequiredError(error)) {
+      return;
+    }
+    setFormError(error instanceof Error ? error.message : String(error));
+  }
+
   async function saveSshSocksProxyPassword(connection: Connection, password?: string) {
     if (!isTauriRuntime() || connection.type !== "ssh") {
       return;
@@ -1124,6 +1163,15 @@ export function ConnectionSidebar({
       return;
     }
     if (!hasPerConnectionAuth) {
+      const presence = await invokeCommand("secret_exists", {
+        request: {
+          kind: "sshSocksProxyPassword",
+          ownerId,
+        },
+      });
+      if (!presence.exists) {
+        return;
+      }
       await invokeCommand("delete_secret", {
         request: {
           kind: "sshSocksProxyPassword",
@@ -1141,6 +1189,9 @@ export function ConnectionSidebar({
       : null;
     if (formMode === "save") {
       try {
+        if (!(await ensureCredentialStoreReadyForConnectionRequest(request))) {
+          return;
+        }
         let connection = await invokeCommand("create_connection", {
           request: {
             ...connectionRequest,
@@ -1172,7 +1223,7 @@ export function ConnectionSidebar({
         }
         await handleConnectionSaved();
       } catch (error) {
-        setFormError(error instanceof Error ? error.message : String(error));
+        showConnectionFormError(error);
       }
       return;
     }
@@ -1209,12 +1260,15 @@ export function ConnectionSidebar({
     };
 
     try {
+      if (!(await ensureCredentialStoreReadyForConnectionRequest(request))) {
+        return;
+      }
       await quickConnect(candidate, { password, passwordCredentialId, sshSocksProxyPassword });
       setFormMode(null);
       setNewConnectionType(null);
       setFormError("");
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : String(error));
+      showConnectionFormError(error);
     }
   }
 
@@ -1237,6 +1291,9 @@ export function ConnectionSidebar({
     };
 
     try {
+      if (!(await ensureCredentialStoreReadyForConnectionRequest(request, currentConnection.connection))) {
+        return;
+      }
       let connection = await invokeCommand("update_connection", {
         request: updateRequest,
       });
@@ -1269,7 +1326,7 @@ export function ConnectionSidebar({
       notifyConnectionTreeInvalidated();
       setEditConnection(null);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : String(error));
+      showConnectionFormError(error);
     }
   }
 

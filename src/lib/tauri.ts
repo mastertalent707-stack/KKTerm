@@ -11,6 +11,11 @@ import type { ConfirmDialogOptions } from "@tauri-apps/plugin-dialog";
 import { readFile, writeFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import i18next from "../i18n/config";
+import {
+  CREDENTIAL_UNLOCK_REQUIRED_EVENT,
+  isCredentialUnlockRequiredError,
+  notifyCredentialUnlockRequired as dispatchCredentialUnlockRequired,
+} from "./credentialUnlock";
 import type {
   AppearanceSettings,
   AiProviderSettings,
@@ -2511,7 +2516,7 @@ type CommandMap = {
   };
 };
 
-export const CREDENTIAL_UNLOCK_REQUIRED_EVENT = "kkterm:credential-unlock-required";
+export { CREDENTIAL_UNLOCK_REQUIRED_EVENT, isCredentialUnlockRequiredError };
 
 export interface ManualChapter {
   slug: string;
@@ -2608,16 +2613,8 @@ export function invokeCommand<Name extends keyof CommandMap>(
 }
 
 function notifyCredentialUnlockRequired(error: unknown) {
-  if (typeof window === "undefined") {
-    return;
-  }
-  const message = error instanceof Error ? error.message : String(error);
-  if (
-    message.includes("KKTERM_SECRET_STORE_PASSWORD is required for encrypted SQLite secret storage") ||
-    message.includes("Encrypted SQLite secret store has not been set up") ||
-    message.includes("could not decrypt encrypted SQLite secret")
-  ) {
-    window.dispatchEvent(new CustomEvent(CREDENTIAL_UNLOCK_REQUIRED_EVENT));
+  if (isCredentialUnlockRequiredError(error)) {
+    dispatchCredentialUnlockRequired();
   }
 }
 

@@ -43,6 +43,7 @@ import { ariaHidden } from "./lib/aria";
 import { currentPlatform, supportsInstallerHelper } from "./lib/platform";
 import { useBootstrapSettings } from "./lib/settings";
 import { CREDENTIAL_UNLOCK_REQUIRED_EVENT, invokeCommand } from "./lib/tauri";
+import type { CredentialUnlockRequestDetail } from "./lib/credentialUnlock";
 import { EncryptedSecretStoreDialog } from "./modules/settings/EncryptedSecretStoreDialog";
 import { SettingsPage } from "./modules/settings/SettingsPage";
 import type { SettingsAssistantContext } from "./modules/settings/settingsAssistantContext";
@@ -79,6 +80,7 @@ function App() {
     useState<boolean | undefined>(undefined);
   const [credentialUnlockBusy, setCredentialUnlockBusy] = useState(false);
   const [credentialUnlockError, setCredentialUnlockError] = useState<string | null>(null);
+  const credentialUnlockCompletionsRef = useRef<Array<(unlocked: boolean) => void>>([]);
 
   function isOverlayPage(page: ActivePage): page is "settings" {
     return page === "settings";
@@ -198,7 +200,13 @@ function App() {
   });
 
   useEffect(() => {
-    function openCredentialUnlockPrompt() {
+    const credentialUnlockCompletions = credentialUnlockCompletionsRef.current;
+
+    function openCredentialUnlockPrompt(event: Event) {
+      const completion = (event as CustomEvent<CredentialUnlockRequestDetail>).detail?.complete;
+      if (completion) {
+        credentialUnlockCompletions.push(completion);
+      }
       setCredentialUnlockError(null);
       setCredentialUnlockDialogOpen(true);
       void invokeCommand("credential_secret_store_status", undefined)
@@ -209,8 +217,17 @@ function App() {
     window.addEventListener(CREDENTIAL_UNLOCK_REQUIRED_EVENT, openCredentialUnlockPrompt);
     return () => {
       window.removeEventListener(CREDENTIAL_UNLOCK_REQUIRED_EVENT, openCredentialUnlockPrompt);
+      for (const complete of credentialUnlockCompletions.splice(0)) {
+        complete(false);
+      }
     };
   }, []);
+
+  function completeCredentialUnlockRequests(unlocked: boolean) {
+    for (const complete of credentialUnlockCompletionsRef.current.splice(0)) {
+      complete(unlocked);
+    }
+  }
 
   async function configureCredentialUnlockStore(request: {
     password: string;
@@ -224,6 +241,7 @@ function App() {
       setCredentialUnlockDialogOpen(false);
       setCredentialUnlockStoreExists(true);
       window.dispatchEvent(new CustomEvent("kkterm:credential-store-status-changed"));
+      completeCredentialUnlockRequests(true);
     } catch (error) {
       setCredentialUnlockError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -377,6 +395,7 @@ function App() {
           onCancel={() => {
             setCredentialUnlockDialogOpen(false);
             setCredentialUnlockError(null);
+            completeCredentialUnlockRequests(false);
           }}
           onSubmit={configureCredentialUnlockStore}
         />

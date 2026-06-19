@@ -146,6 +146,8 @@ test("app update uses a cancellable download phase before delayed installation",
   assert.match(promptSource, /showStatusBarProgress/);
   assert.match(statusBarSource, /CircleGauge/);
   assert.match(statusBarSource, /role="progressbar"/);
-  assert.match(statusBarSource, /status-popup-progress-min[^]*0%/);
-  assert.match(statusBarSource, /status-popup-progress-max[^]*100%/);
+  assert.match(statusBarSource, /aria-valuemin=\{0\}/);
+  assert.match(statusBarSource, /aria-valuemax=\{100\}/);
+  assert.match(statusBarSource, /aria-valuenow=\{progress\}/);
+  assert.match(statusBarSource, /Math\.round\(progress\)\}%/);
 });
