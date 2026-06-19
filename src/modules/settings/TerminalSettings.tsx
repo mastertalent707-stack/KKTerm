@@ -6,10 +6,13 @@ import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
 import { listCustomFontOptions, type CustomFontOption } from "../../lib/customFonts";
 import {
   isSystemFontAccessSupported,
-  loadCachedSystemFonts,
-  refreshSystemFonts,
   systemFontsExcluding,
 } from "../../lib/systemFonts";
+import {
+  getRecommendedFontOptions,
+  refreshSharedSystemFonts,
+  useSystemFontCatalog,
+} from "../../lib/fontCatalog";
 import { defaultTerminalSettings } from "../../app-defaults";
 import { currentPlatform } from "../../lib/platform";
 import { useWorkspaceStore } from "../../store";
@@ -18,21 +21,6 @@ import { localShellOptionsForPlatform, resolveAvailableLocalShell } from "../wor
 import { customShellPresetsForPlatform, findCustomShellPreset } from "./customShellPresets";
 import { SettingsSectionHeader, useSettingsSaveRegistration } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
-
-// Curated monospace fonts offered in the terminal font dropdown. `family` is the
-// primary OS font name used to dedupe detected system fonts; labels are proper
-// font names rendered as data, so they are not routed through i18n.
-const TERMINAL_FONT_OPTIONS: { label: string; value: string; family: string }[] = [
-  { label: "Cascadia Mono", value: '"Cascadia Mono", monospace', family: "Cascadia Mono" },
-  { label: "Cascadia Code", value: '"Cascadia Code", monospace', family: "Cascadia Code" },
-  { label: "JetBrains Mono", value: '"JetBrains Mono", monospace', family: "JetBrains Mono" },
-  { label: "Consolas", value: "Consolas, monospace", family: "Consolas" },
-  { label: "Courier New", value: '"Courier New", monospace', family: "Courier New" },
-  { label: "Fira Code", value: '"Fira Code", monospace', family: "Fira Code" },
-  { label: "Cascadia Code PL", value: '"Cascadia Code PL", monospace', family: "Cascadia Code PL" },
-];
-
-const CURATED_TERMINAL_FONT_FAMILIES = TERMINAL_FONT_OPTIONS.map((option) => option.family);
 
 /** CSS font stack for a font family picked from the custom or system font list. */
 function terminalFontCssValue(family: string) {
@@ -102,8 +90,7 @@ export function TerminalSettings() {
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const [draft, setDraft] = useState(terminalSettings);
   const [customFonts, setCustomFonts] = useState<CustomFontOption[]>([]);
-  const [systemFonts, setSystemFonts] = useState<string[]>(() => loadCachedSystemFonts());
-  const [refreshingFonts, setRefreshingFonts] = useState(false);
+  const { systemFonts, refreshing: refreshingFonts, recommendationsSynced } = useSystemFontCatalog();
   const hasChanges = JSON.stringify(draft) !== JSON.stringify(terminalSettings);
   const defaultShellOptions = localShellOptionsForPlatform(draft.customShells);
   const customShellPresets = customShellPresetsForPlatform(currentPlatform());
@@ -156,15 +143,11 @@ export function TerminalSettings() {
       showStatusBarNotice(t("settings.systemFontsUnavailable"), { tone: "error" });
       return;
     }
-    setRefreshingFonts(true);
     try {
-      const fonts = await refreshSystemFonts();
-      setSystemFonts(fonts);
+      await refreshSharedSystemFonts();
       showStatusBarNotice(t("settings.systemFontsRefreshed"), { tone: "success" });
     } catch (err) {
       showStatusBarNotice(err instanceof Error ? err.message : String(err), { tone: "error" });
-    } finally {
-      setRefreshingFonts(false);
     }
   }
 
@@ -242,14 +225,20 @@ export function TerminalSettings() {
     label: font.name,
     value: terminalFontCssValue(font.name),
   }));
+  const terminalFontOptions = getRecommendedFontOptions(
+    "terminal",
+    undefined,
+    recommendationsSynced ? systemFonts : undefined,
+  );
+  const curatedTerminalFontFamilies = terminalFontOptions.flatMap((option) => option.family ? [option.family] : []);
   const systemFontTerminalOptions = systemFontsExcluding(systemFonts, [
-    ...CURATED_TERMINAL_FONT_FAMILIES,
+    ...curatedTerminalFontFamilies,
     ...customFonts.map((font) => font.name),
   ]).map((family) => ({ family, value: terminalFontCssValue(family) }));
   const defaultTerminalFontValue = defaultTerminalSettings.fontFamily;
   const terminalFontMatched =
     draft.fontFamily === defaultTerminalFontValue ||
-    TERMINAL_FONT_OPTIONS.some((option) => option.value === draft.fontFamily) ||
+    terminalFontOptions.some((option) => option.value === draft.fontFamily) ||
     customFontTerminalOptions.some((option) => option.value === draft.fontFamily) ||
     systemFontTerminalOptions.some((option) => option.value === draft.fontFamily);
 
@@ -305,10 +294,9 @@ export function TerminalSettings() {
                   </optgroup>
                 ) : null}
                 <optgroup label={t("settings.recommendedFonts")}>
-                  <option value={defaultTerminalFontValue}>{t("settings.terminalFontDefault")}</option>
-                  {TERMINAL_FONT_OPTIONS.map((option) => (
+                  {terminalFontOptions.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {option.labelKey ? t(option.labelKey) : option.label}
                     </option>
                   ))}
                 </optgroup>

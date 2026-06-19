@@ -9,74 +9,17 @@ import {
 } from "../../lib/customFonts";
 import {
   isSystemFontAccessSupported,
-  loadCachedSystemFonts,
-  refreshSystemFonts,
   systemFontsExcluding,
 } from "../../lib/systemFonts";
+import {
+  getRecommendedFontOptions,
+  refreshSharedSystemFonts,
+  useSystemFontCatalog,
+} from "../../lib/fontCatalog";
 import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
-import { defaultAppearanceSettings } from "../../app-defaults";
 import { useWorkspaceStore } from "../../store";
 import type { AppearanceSettings as AppearanceSettingsType, ColorScheme } from "../../types";
 import { SettingsSectionHeader, useSettingsSaveRegistration } from "./shared";
-
-// `family` is the primary OS font name behind each curated stack. It is used to
-// dedupe detected system fonts so a curated entry hides its system twin; the
-// default stack has no single family, so it is left undefined.
-const APP_UI_FONT_OPTIONS = [
-  {
-    labelKey: "settings.uiFontDefault",
-    value: defaultAppearanceSettings.appFontFamily,
-  },
-  {
-    labelKey: "settings.inter",
-    value: '"Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif',
-    family: "Inter",
-  },
-  {
-    labelKey: "settings.segoeUi",
-    value: '"Segoe UI", ui-sans-serif, system-ui, sans-serif',
-    family: "Segoe UI",
-  },
-  {
-    labelKey: "settings.arial",
-    value: 'Arial, "Segoe UI", sans-serif',
-    family: "Arial",
-  },
-  {
-    labelKey: "settings.microsoftJhengHeiUi",
-    value: '"Microsoft JhengHei UI", "Segoe UI", sans-serif',
-    family: "Microsoft JhengHei UI",
-  },
-  {
-    labelKey: "settings.microsoftYaHeiUi",
-    value: '"Microsoft YaHei UI", "Segoe UI", sans-serif',
-    family: "Microsoft YaHei UI",
-  },
-  {
-    labelKey: "settings.yuGothicUi",
-    value: '"Yu Gothic UI", "Segoe UI", sans-serif',
-    family: "Yu Gothic UI",
-  },
-  {
-    labelKey: "settings.malgunGothic",
-    value: '"Malgun Gothic", "Segoe UI", sans-serif',
-    family: "Malgun Gothic",
-  },
-  {
-    labelKey: "settings.tahoma",
-    value: 'Tahoma, "Segoe UI", sans-serif',
-    family: "Tahoma",
-  },
-  {
-    labelKey: "settings.consolas",
-    value: 'Consolas, "Segoe UI", sans-serif',
-    family: "Consolas",
-  },
-] as const;
-
-const CURATED_APP_FONT_FAMILIES = APP_UI_FONT_OPTIONS.flatMap((option) =>
-  "family" in option ? [option.family] : [],
-);
 
 /** CSS font stack for an OS font family picked from the system font list. */
 function appSystemFontCssValue(family: string) {
@@ -237,8 +180,7 @@ export function AppearanceSettings({ onResetLayout }: { onResetLayout: () => voi
   const setAppearanceSettings = useWorkspaceStore((state) => state.setAppearanceSettings);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const [customFonts, setCustomFonts] = useState<CustomFontOption[]>([]);
-  const [systemFonts, setSystemFonts] = useState<string[]>(() => loadCachedSystemFonts());
-  const [refreshingFonts, setRefreshingFonts] = useState(false);
+  const { systemFonts, refreshing: refreshingFonts, recommendationsSynced } = useSystemFontCatalog();
   const [draft, setDraft] = useState<AppearanceSettingsType>(appearanceSettings);
   // Tracks the last persisted settings so we can revert live preview on navigate-away
   const savedRef = useRef<AppearanceSettingsType>(appearanceSettings);
@@ -317,27 +259,29 @@ export function AppearanceSettings({ onResetLayout }: { onResetLayout: () => voi
       showStatusBarNotice(t("settings.systemFontsUnavailable"), { tone: "error" });
       return;
     }
-    setRefreshingFonts(true);
     try {
-      const fonts = await refreshSystemFonts();
-      setSystemFonts(fonts);
+      await refreshSharedSystemFonts();
       showStatusBarNotice(t("settings.systemFontsRefreshed"), { tone: "success" });
     } catch (refreshError) {
       showStatusBarNotice(
         refreshError instanceof Error ? refreshError.message : String(refreshError),
         { tone: "error" },
       );
-    } finally {
-      setRefreshingFonts(false);
     }
   }
 
   const previewColors = SCHEME_PREVIEW_COLORS[draft.colorScheme];
+  const appFontOptions = getRecommendedFontOptions(
+    "app-ui",
+    undefined,
+    recommendationsSynced ? systemFonts : undefined,
+  );
+  const curatedAppFontFamilies = appFontOptions.flatMap((option) => option.family ? [option.family] : []);
   const systemFontOptions = systemFontsExcluding(systemFonts, [
-    ...CURATED_APP_FONT_FAMILIES,
+    ...curatedAppFontFamilies,
     ...customFonts.map((font) => font.name),
   ]).map((family) => ({ family, value: appSystemFontCssValue(family) }));
-  const knownFontSelected = APP_UI_FONT_OPTIONS.some((option) => option.value === draft.appFontFamily);
+  const knownFontSelected = appFontOptions.some((option) => option.value === draft.appFontFamily);
   const customFontSelected = customFonts.some((font) => font.cssValue === draft.appFontFamily);
   const systemFontSelected = systemFontOptions.some((option) => option.value === draft.appFontFamily);
 
@@ -389,9 +333,9 @@ export function AppearanceSettings({ onResetLayout }: { onResetLayout: () => voi
                   </option>
                 ))}</optgroup> : null}
                 <optgroup label={t("settings.recommendedFonts")}>
-                  {APP_UI_FONT_OPTIONS.map((option) => (
+                  {appFontOptions.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {t(option.labelKey)}
+                      {option.labelKey ? t(option.labelKey) : option.label}
                     </option>
                   ))}
                 </optgroup>
