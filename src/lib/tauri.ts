@@ -59,6 +59,7 @@ import type {
   ScreenshotSettings,
   SshSettings,
   SystemAccentColor,
+  SystemFont,
   StoreSecretRequest,
   SystemPerformanceCountersSnapshot,
   DeleteStoredCredentialRequest,
@@ -1286,7 +1287,7 @@ type CommandMap = {
   };
   list_system_fonts: {
     args: undefined;
-    result: string[];
+    result: SystemFont[];
   };
   load_custom_font_data: {
     args: { path: string };

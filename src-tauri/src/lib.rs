@@ -96,6 +96,14 @@ struct CustomFontEntry {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct SystemFontEntry {
+    pub(crate) family: String,
+    #[serde(rename = "isMonospace")]
+    pub(crate) is_monospaced: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct CustomFontData {
     data_base64: String,
 }
@@ -317,7 +325,7 @@ async fn list_custom_fonts(app: tauri::AppHandle) -> Result<Vec<CustomFontEntry>
 }
 
 #[tauri::command]
-async fn list_system_fonts() -> Result<Vec<String>, String> {
+async fn list_system_fonts() -> Result<Vec<SystemFontEntry>, String> {
     tauri::async_runtime::spawn_blocking(list_system_fonts_sync)
         .await
         .map_err(|error| format!("failed to list system fonts: {error}"))

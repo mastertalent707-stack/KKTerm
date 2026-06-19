@@ -1372,7 +1372,7 @@
     "systemFontsRefreshed": "시스템 글꼴을 새로 고쳤습니다.",
     "systemFontsUnavailable": "이 앱 빌드에서는 시스템 글꼴 감지를 사용할 수 없습니다.",
     "refreshSystemFonts": "시스템 글꼴 새로 고침",
-    "terminalFontDefault": "기본값 (Cascadia Mono)",
+    "terminalFontDefault": "기본값 ({{font}})",
     "systemSans": "시스템 산세리프",
     "segoeUiVariable": "Segoe UI Variable",
     "openAiCompatibleEndpoint": "OpenAI 호환 엔드포인트",

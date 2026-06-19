@@ -922,7 +922,7 @@
 .proposal-context-details pre {
   margin: 0;
   overflow: auto;
-  font-family: "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+  font-family: "Cascadia Mono", "SF Mono", "JetBrains Mono", Consolas, monospace;
   font-size: 12px;
   line-height: 1.58;
 }

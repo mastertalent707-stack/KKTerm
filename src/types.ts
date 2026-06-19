@@ -519,6 +519,11 @@ export interface CustomFont {
   isMonospace: boolean;
 }
 
+export interface SystemFont {
+  family: string;
+  isMonospace: boolean;
+}
+
 export interface SshSettings {
   defaultUser: string;
   defaultPort: number;

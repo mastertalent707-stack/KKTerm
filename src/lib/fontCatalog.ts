@@ -4,12 +4,14 @@ import { listCustomFontOptions, type CustomFontOption } from "./customFonts";
 import type { RuntimePlatform } from "./platform";
 import { currentPlatform } from "./platform";
 import { loadCachedSystemFonts, refreshSystemFonts } from "./systemFonts";
+import type { SystemFont } from "../types";
 
 export type FontPurpose = "app-ui" | "terminal";
 
 export interface RecommendedFontOption {
   label?: string;
   labelKey?: string;
+  labelParams?: Record<string, string>;
   value: string;
   family?: string;
   bundled?: boolean;
@@ -18,7 +20,7 @@ export interface RecommendedFontOption {
 interface SystemFontCatalogSnapshot {
   customFonts: CustomFontOption[];
   customFontsLoaded: boolean;
-  systemFonts: string[];
+  systemFonts: SystemFont[];
   refreshing: boolean;
   recommendationsSynced: boolean;
 }
@@ -28,15 +30,28 @@ const APP_DEFAULT: RecommendedFontOption = {
   value: defaultAppearanceSettings.appFontFamily,
 };
 
-const TERMINAL_DEFAULT: RecommendedFontOption = {
-  labelKey: "settings.terminalFontDefault",
-  value: defaultTerminalSettings.fontFamily,
-};
+// The default terminal font stack resolves per platform via CSS fallback:
+// Cascadia Mono (Windows), SF Mono (macOS), then the bundled JetBrains Mono
+// (Linux / elsewhere). The label names whichever the platform resolves.
+function terminalDefault(fontName: string): RecommendedFontOption {
+  return {
+    labelKey: "settings.terminalFontDefault",
+    labelParams: { font: fontName },
+    value: defaultTerminalSettings.fontFamily,
+  };
+}
 
 const INTER: RecommendedFontOption = {
   label: "Inter",
   value: '"Inter", ui-sans-serif, system-ui, sans-serif',
   family: "Inter",
+  bundled: true,
+};
+
+const JETBRAINS_MONO: RecommendedFontOption = {
+  label: "JetBrains Mono",
+  value: '"JetBrains Mono", monospace',
+  family: "JetBrains Mono",
   bundled: true,
 };
 
@@ -67,32 +82,32 @@ const APP_RECOMMENDATIONS: Record<RuntimePlatform, RecommendedFontOption[]> = {
 
 const TERMINAL_RECOMMENDATIONS: Record<RuntimePlatform, RecommendedFontOption[]> = {
   windows: [
-    TERMINAL_DEFAULT,
+    terminalDefault("Cascadia Mono"),
     terminalFont("Cascadia Mono"),
     terminalFont("Cascadia Code"),
-    terminalFont("JetBrains Mono"),
+    JETBRAINS_MONO,
     terminalFont("Consolas"),
     terminalFont("Courier New"),
     terminalFont("Fira Code"),
     terminalFont("Cascadia Code PL"),
   ],
   macos: [
-    TERMINAL_DEFAULT,
+    terminalDefault("SF Mono"),
     terminalFont("SF Mono"),
     terminalFont("Menlo"),
-    terminalFont("JetBrains Mono"),
+    JETBRAINS_MONO,
     terminalFont("Fira Code"),
   ],
   linux: [
-    TERMINAL_DEFAULT,
+    terminalDefault("JetBrains Mono"),
+    JETBRAINS_MONO,
     terminalFont("Adwaita Mono"),
     terminalFont("Ubuntu Mono"),
-    terminalFont("JetBrains Mono"),
     terminalFont("Fira Code"),
     terminalFont("Source Code Pro"),
     terminalFont("DejaVu Sans Mono"),
   ],
-  unknown: [TERMINAL_DEFAULT, terminalFont("JetBrains Mono"), terminalFont("Fira Code")],
+  unknown: [terminalDefault("Cascadia Mono"), JETBRAINS_MONO, terminalFont("Fira Code")],
 };
 
 let snapshot: SystemFontCatalogSnapshot = {
@@ -167,7 +182,7 @@ export async function loadSharedCustomFonts(
 }
 
 export async function refreshSharedFontCatalog(
-  systemScan: () => Promise<string[]> = refreshSystemFonts,
+  systemScan: () => Promise<SystemFont[]> = refreshSystemFonts,
   customScan: () => Promise<CustomFontOption[]> = listCustomFontOptions,
 ): Promise<void> {
   if (snapshot.refreshing) return;

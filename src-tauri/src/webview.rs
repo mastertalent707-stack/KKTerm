@@ -638,6 +638,17 @@ impl WebviewSessionManager {
                 .owner(&host_window)
                 .map_err(|error| format!("failed to assign URL webview owner: {error}"))?;
         }
+        // On macOS the overlay must be a child (`addChildWindow:`) of the main
+        // window. Without it, the borderless WKWebView lives in a standalone
+        // window that macOS treats as occluded the moment the app deactivates,
+        // blanking the page on focus loss. As a child it shares the parent's
+        // activation and z-order, matching the Windows owner relationship above.
+        #[cfg(target_os = "macos")]
+        {
+            builder = builder
+                .parent(&host_window)
+                .map_err(|error| format!("failed to assign URL webview parent: {error}"))?;
+        }
         if let Some(additional_browser_args) = self.additional_browser_args {
             builder = builder.additional_browser_args(additional_browser_args);
         }

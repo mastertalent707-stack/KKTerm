@@ -1372,7 +1372,7 @@
     "systemFontsRefreshed": "Đã làm mới phông chữ hệ thống.",
     "systemFontsUnavailable": "Tính năng phát hiện phông chữ hệ thống không khả dụng trong bản dựng ứng dụng này.",
     "refreshSystemFonts": "Làm mới phông chữ hệ thống",
-    "terminalFontDefault": "Mặc định (Cascadia Mono)",
+    "terminalFontDefault": "Mặc định ({{font}})",
     "systemSans": "System sans",
     "segoeUiVariable": "Segoe UI Variable",
     "openAiCompatibleEndpoint": "OpenAI-compatible endpoint",

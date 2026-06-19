@@ -19,13 +19,20 @@ test("recommended font options follow the current platform", () => {
   assert.deepEqual(linuxUi, [undefined, "Inter", "Adwaita Sans", "Ubuntu Sans", "Cantarell", "Noto Sans"]);
   assert.deepEqual(linuxTerminal, [
     undefined,
+    "JetBrains Mono",
     "Adwaita Mono",
     "Ubuntu Mono",
-    "JetBrains Mono",
     "Fira Code",
     "Source Code Pro",
     "DejaVu Sans Mono",
   ]);
+});
+
+test("bundled JetBrains Mono survives terminal recommendation pruning", () => {
+  // Even when no system terminal fonts are detected, the bundled mono must stay.
+  const options = getRecommendedFontOptions("terminal", "macos", ["Some Unrelated Font"]);
+
+  assert.deepEqual(options.map((option) => option.family), [undefined, "JetBrains Mono"]);
 });
 
 test("known system fonts prune unavailable recommendations but preserve defaults and bundled Inter", () => {
@@ -42,7 +49,10 @@ test("one refresh publishes system and custom fonts to every subscriber", async 
 
   try {
     await refreshSharedFontCatalog(
-      async () => ["SF Mono", "Menlo"],
+      async () => [
+        { family: "SF Mono", isMonospace: true },
+        { family: "Menlo", isMonospace: true },
+      ],
       async () => [{
         cssFamily: "kkterm-custom-test",
         cssValue: '"kkterm-custom-test", "Test Font", sans-serif',
@@ -60,7 +70,10 @@ test("one refresh publishes system and custom fonts to every subscriber", async 
         path: "C:/fonts/TestFont.otf",
       }],
     );
-    assert.deepEqual(systemFontCatalogSnapshot().systemFonts, ["SF Mono", "Menlo"]);
+    assert.deepEqual(systemFontCatalogSnapshot().systemFonts, [
+      { family: "SF Mono", isMonospace: true },
+      { family: "Menlo", isMonospace: true },
+    ]);
     assert.deepEqual(systemFontCatalogSnapshot().customFonts.map((font) => font.name), ["Test Font"]);
     assert.equal(systemFontCatalogSnapshot().refreshing, false);
     assert.equal(systemFontCatalogSnapshot().recommendationsSynced, true);

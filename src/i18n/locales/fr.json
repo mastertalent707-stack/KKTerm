@@ -1372,7 +1372,7 @@
     "systemFontsRefreshed": "Polices système actualisées.",
     "systemFontsUnavailable": "La détection des polices système n’est pas disponible dans cette version de l’application.",
     "refreshSystemFonts": "Actualiser les polices système",
-    "terminalFontDefault": "Par défaut (Cascadia Mono)",
+    "terminalFontDefault": "Par défaut ({{font}})",
     "systemSans": "Sans système",
     "segoeUiVariable": "Segoe UI Variable",
     "openAiCompatibleEndpoint": "Point de terminaison compatible OpenAI",

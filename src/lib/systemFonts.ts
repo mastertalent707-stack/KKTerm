@@ -7,6 +7,7 @@
 // cache.
 
 import { invokeCommand, isTauriRuntime } from "./tauri";
+import type { SystemFont } from "../types";
 
 const SYSTEM_FONTS_STORAGE_KEY = "kkterm.systemFonts";
 
@@ -15,8 +16,13 @@ export function isSystemFontAccessSupported(): boolean {
   return isTauriRuntime();
 }
 
-/** Read the previously cached system font families (empty when never refreshed). */
-export function loadCachedSystemFonts(): string[] {
+/** Family names from a system-font list, optionally restricted to monospace. */
+export function systemFontFamilies(fonts: SystemFont[], monospaceOnly = false): string[] {
+  return fonts.filter((font) => !monospaceOnly || font.isMonospace).map((font) => font.family);
+}
+
+/** Read the previously cached system fonts (empty when never refreshed). */
+export function loadCachedSystemFonts(): SystemFont[] {
   if (typeof localStorage === "undefined") {
     return [];
   }
@@ -29,32 +35,50 @@ export function loadCachedSystemFonts(): string[] {
     if (!Array.isArray(parsed)) {
       return [];
     }
-    return parsed.filter((value): value is string => typeof value === "string");
+    return normalizeSystemFonts(parsed);
   } catch {
     return [];
   }
 }
 
+/** Accept both the current object cache and the legacy `string[]` cache shape. */
+function normalizeSystemFonts(values: unknown[]): SystemFont[] {
+  const fonts: SystemFont[] = [];
+  for (const value of values) {
+    if (typeof value === "string") {
+      const family = value.trim();
+      if (family) fonts.push({ family, isMonospace: false });
+    } else if (value && typeof value === "object" && "family" in value) {
+      const family = String((value as { family: unknown }).family).trim();
+      if (family) {
+        fonts.push({ family, isMonospace: Boolean((value as { isMonospace?: unknown }).isMonospace) });
+      }
+    }
+  }
+  return fonts;
+}
+
 /**
- * Ask the backend for installed font families, cache them, and return the
- * sorted unique list. Throws when the runtime cannot enumerate fonts so callers
- * can surface a localized notice.
+ * Ask the backend for installed fonts, cache them, and return the sorted unique
+ * list with monospace flags. Throws when the runtime cannot enumerate fonts so
+ * callers can surface a localized notice.
  */
-export async function refreshSystemFonts(): Promise<string[]> {
+export async function refreshSystemFonts(): Promise<SystemFont[]> {
   if (!isTauriRuntime()) {
     throw new Error("System font access is not supported in this runtime.");
   }
 
   const fonts = await invokeCommand("list_system_fonts");
-  const families = new Set<string>();
+  const byFamily = new Map<string, boolean>();
   for (const font of fonts) {
-    const family = font.trim();
-    if (family) {
-      families.add(family);
-    }
+    const family = font.family.trim();
+    if (!family) continue;
+    byFamily.set(family, (byFamily.get(family) ?? false) || font.isMonospace);
   }
 
-  const list = [...families].sort((a, b) => a.localeCompare(b));
+  const list: SystemFont[] = [...byFamily.entries()]
+    .map(([family, isMonospace]) => ({ family, isMonospace }))
+    .sort((a, b) => a.family.localeCompare(b.family));
   try {
     localStorage.setItem(SYSTEM_FONTS_STORAGE_KEY, JSON.stringify(list));
   } catch {
