@@ -9,7 +9,7 @@ use std::{
     fs::{self, File},
     io::{Read, Write},
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener as StdTcpListener},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Command as ProcessCommand,
     sync::Mutex,
     thread::{self, JoinHandle},
@@ -2379,7 +2379,15 @@ fn sanitize_windows_local_environment(command: &mut CommandBuilder) -> Vec<Strin
         let mut retained = Vec::new();
         for key in WINDOWS_LOCAL_ENV_ALLOWLIST {
             if let Some(value) = std::env::var_os(key) {
-                command.env(*key, value);
+                if *key == "PSModulePath" {
+                    let value = match windows_documents_folder_path() {
+                        Some(documents) => windows_powershell_module_path_for(&value, &documents),
+                        None => value.to_string_lossy().to_string(),
+                    };
+                    command.env(*key, value);
+                } else {
+                    command.env(*key, value);
+                }
                 retained.push((*key).to_string());
             }
         }
@@ -2391,6 +2399,85 @@ fn sanitize_windows_local_environment(command: &mut CommandBuilder) -> Vec<Strin
         let _ = command;
         Vec::new()
     }
+}
+
+#[cfg(target_os = "windows")]
+fn windows_documents_folder_path() -> Option<PathBuf> {
+    use std::ffi::OsString;
+    use std::os::windows::ffi::OsStringExt;
+
+    use windows_sys::Win32::System::Com::CoTaskMemFree;
+    use windows_sys::Win32::UI::Shell::SHGetKnownFolderPath;
+    use windows_sys::core::GUID;
+
+    const FOLDERID_DOCUMENTS: GUID = GUID {
+        data1: 0xfdd39ad0,
+        data2: 0x238f,
+        data3: 0x46af,
+        data4: [0xad, 0xb4, 0x6c, 0x85, 0x48, 0x03, 0x69, 0xc7],
+    };
+
+    unsafe {
+        let mut raw_path = std::ptr::null_mut();
+        if SHGetKnownFolderPath(&FOLDERID_DOCUMENTS, 0, std::ptr::null_mut(), &mut raw_path) < 0
+            || raw_path.is_null()
+        {
+            return None;
+        }
+
+        let mut len = 0;
+        while *raw_path.add(len) != 0 {
+            len += 1;
+        }
+        let path = OsString::from_wide(std::slice::from_raw_parts(raw_path, len));
+        CoTaskMemFree(raw_path.cast());
+
+        if path.is_empty() {
+            None
+        } else {
+            Some(PathBuf::from(path))
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn windows_powershell_module_path_for(
+    inherited: impl AsRef<std::ffi::OsStr>,
+    documents: &Path,
+) -> String {
+    let mut entries = Vec::new();
+    push_unique_module_path(
+        &mut entries,
+        documents.join("WindowsPowerShell").join("Modules"),
+    );
+    push_unique_module_path(&mut entries, documents.join("PowerShell").join("Modules"));
+
+    for entry in inherited.as_ref().to_string_lossy().split(';') {
+        push_unique_module_path(&mut entries, PathBuf::from(entry.trim()));
+    }
+
+    entries
+        .into_iter()
+        .map(|path| path.to_string_lossy().to_string())
+        .collect::<Vec<_>>()
+        .join(";")
+}
+
+#[cfg(target_os = "windows")]
+fn push_unique_module_path(entries: &mut Vec<PathBuf>, path: PathBuf) {
+    if path.as_os_str().is_empty() {
+        return;
+    }
+
+    let normalized = path.to_string_lossy().to_ascii_lowercase();
+    if entries
+        .iter()
+        .any(|entry| entry.to_string_lossy().to_ascii_lowercase() == normalized)
+    {
+        return;
+    }
+
+    entries.push(path);
 }
 
 fn resolved_local_shell_program(program: String) -> String {
@@ -2618,6 +2705,20 @@ mod tests {
 
     #[cfg(target_os = "windows")]
     #[test]
+    fn powershell_module_path_includes_redirected_documents_modules() {
+        let inherited =
+            r"C:\Users\Example\Documents\WindowsPowerShell\Modules;C:\Windows\System32\Modules";
+        let documents = PathBuf::from(r"C:\Users\Example\OneDrive\Documents");
+
+        let merged = windows_powershell_module_path_for(inherited, &documents);
+
+        assert!(merged.contains(r"C:\Users\Example\OneDrive\Documents\WindowsPowerShell\Modules"));
+        assert!(merged.contains(r"C:\Users\Example\OneDrive\Documents\PowerShell\Modules"));
+        assert!(merged.contains(r"C:\Users\Example\Documents\WindowsPowerShell\Modules"));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
     fn local_shell_available_resolves_known_and_unknown_programs() {
         // cmd.exe resolves via ComSpec on every Windows host.
         assert!(local_shell_available("cmd.exe"));
@@ -2636,8 +2737,9 @@ mod tests {
 
     #[test]
     fn local_shell_command_line_splits_program_and_arguments() {
-        let parsed = parse_local_shell_command_line(r#""C:\Program Files\Git\bin\bash.exe" --login -i"#)
-            .expect("quoted command line parses");
+        let parsed =
+            parse_local_shell_command_line(r#""C:\Program Files\Git\bin\bash.exe" --login -i"#)
+                .expect("quoted command line parses");
 
         assert_eq!(parsed.program, r"C:\Program Files\Git\bin\bash.exe");
         assert_eq!(parsed.args, vec!["--login", "-i"]);
