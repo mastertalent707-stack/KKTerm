@@ -3,6 +3,58 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.93/kkterm-0.1.93-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.93/kkterm-0.1.93-windows-arm64-setup.exe)
+
+## Highlights
+- Added an **increment_version** option to the Release workflow (default: **on**)—handy for release-engineering when you just want the notes, not the version bump.
+- SSH Port Forwarding dialog improvements: editable dropdown inputs, enhanced suggestions, and updated tests—less “what port name was that again?” energy.
+
+## New
+- **Installer:** Improved installer helper with a **WSL distro manager**, added **Oh My Posh** to the Utilities section, and fixed **portable winget detection**. (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/397, also co-authored by @Claude Opus 4.8)
+- **Release:** Added **increment_version** workflow_dispatch option (default on) to the Release workflow. (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/399)
+
+## Improved
+- **Workspace:** Full-width toolbar for docked **Document viewer** tabs/panes. (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/398, also co-authored by @Claude Opus 4.8)
+- **Connections (SSH):** Enhanced editable dropdowns for SSH forwarding fields (common port names) and improved styling. (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/397)
+- **Connections (SSH):** Implemented editable dropdown inputs for SSH forwarding fields, plus enhanced suggestions and tests. (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/397; PR merge activity includes implementation + tests)
+
+## Fixed
+- **Installer (portable tools):** Fixed portable winget detection so tools installed via portable winget are detected correctly (e.g., no more “not installed” after a successful install). (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/397, also co-authored by @Claude Opus 4.8)
+
+## Internal
+- Updated release workflow configurations for Windows/macOS releases. (https://github.com/ryantsai/KKTerm/compare/v0.1.92...v0.1.93)
+- Mirrored releases through **Cloudflare** (including worker + related scripts/tests/docs).  
+- Fixed font handling on macOS, added **JetBrains Mono** as a fallback font and default on Linux.  
+- Windows: enhanced PowerShell module path handling for documents folder.  
+- Chore/docs: various release-mirror design and workflow-related documentation updates.
+
+---
+
+## Highlights（重點）
+- 在 Release 工作流程新增 **increment_version** 選項（預設：**開啟**）—方便你在釋出時只想要「更新說明」，不想再多 bump 版本號（release-engineering 小確幸）。
+- SSH Port Forwarding 對話框改進：可編輯下拉輸入、強化建議與更新測試—少一點「那個 port 名稱叫什麼來著？」的困擾。
+
+## New（新增）
+- **安裝器（Installer）：** 改善安裝助手：新增 **WSL 發行版管理員**、把 **Oh My Posh** 加到 Utilities，並修正 **portable winget 偵測**。 (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/397, also co-authored by @Claude Opus 4.8)
+- **Release：** Release 工作流程加入 **increment_version** 選項（預設開啟）。 (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/399)
+
+## Improved（改善）
+- **Workspace：** 讓靠泊（docked）的 **文件檢視器（Document viewer）**工具列成為全寬顯示。 (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/398, also co-authored by @Claude Opus 4.8)
+- **連線（Connections）—SSH：** 強化 SSH forwarding 欄位的可編輯下拉（包含常見 port 名稱）並改進樣式。 (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/397)
+- **連線（Connections）—SSH：** 實作 SSH forwarding 欄位的可編輯下拉輸入，並強化建議與測試。 (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/397；合併過程包含實作與測試)
+
+## Fixed（修正）
+- **安裝器（Installer）：** 修正 portable winget 偵測，確保可攜式 winget 安裝的工具能被正確辨識（避免成功安裝後仍顯示「not installed」）。 (by @ryantsai in https://github.com/ryantsai/KKTerm/pull/397, also co-authored by @Claude Opus 4.8)
+
+## Internal（內部）
+- 更新 Windows/macOS 釋出用的 release 工作流程設定。 (https://github.com/ryantsai/KKTerm/compare/v0.1.92...v0.1.93)
+- 透過 **Cloudflare** 進行 Release mirror（包含 worker、相關腳本、測試與文件）。  
+- 修正 macOS 字型處理，加入 **JetBrains Mono** 作為備援字型，並在 Linux 設為預設。  
+- Windows：強化 PowerShell 模組路徑處理（documents 資料夾）。  
+- 雜項：release-mirror 設計與工作流程相關文件更新。
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.92/kkterm-0.1.92-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.92/kkterm-0.1.92-windows-arm64-setup.exe)
 
