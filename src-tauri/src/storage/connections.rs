@@ -53,11 +53,14 @@ impl Storage {
         let rdp_options = normalize_rdp_connection_options(request.rdp_options, &connection_type)?;
         let vnc_options = normalize_vnc_connection_options(request.vnc_options, &connection_type)?;
         let ftp_options = normalize_ftp_connection_options(request.ftp_options, &connection_type)?;
+        let ssh_port_forwardings =
+            normalize_ssh_port_forwardings(request.ssh_port_forwardings, &connection_type)?;
         let file_view_open_external =
             normalize_file_view_open_external(request.file_view_open_external, &connection_type);
         let rdp_options_json = serialize_connection_options(&rdp_options, "RDP")?;
         let vnc_options_json = serialize_connection_options(&vnc_options, "VNC")?;
         let ftp_options_json = serialize_connection_options(&ftp_options, "FTP")?;
+        let ssh_port_forwardings_json = ssh_port_forwardings_to_json(&ssh_port_forwardings)?;
         let id = make_connection_id(&name);
         let use_tmux_sessions =
             normalize_use_tmux_sessions(request.use_tmux_sessions, &connection_type);
@@ -87,8 +90,8 @@ impl Storage {
         transaction
             .execute(
                 "INSERT INTO connections (
-                    id, folder_id, name, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, file_view_open_external, connection_type, status, sort_order, workspace_id
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, 'idle', ?27, ?28)",
+                    id, folder_id, name, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, ssh_port_forwardings_json, file_view_open_external, connection_type, status, sort_order, workspace_id
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, 'idle', ?28, ?29)",
                 params![
                     id,
                     folder_id,
@@ -114,6 +117,7 @@ impl Storage {
                     rdp_options_json,
                     vnc_options_json,
                     ftp_options_json,
+                    ssh_port_forwardings_json,
                     file_view_open_external,
                     connection_type,
                     next_sort_order,
@@ -167,6 +171,7 @@ impl Storage {
             terminal_opacity: Some(DEFAULT_TERMINAL_OPACITY),
             terminal_background: None,
             file_browser_view_options: None,
+            ssh_port_forwardings,
             file_view_open_external,
             connection_type,
             tags,
@@ -227,11 +232,14 @@ impl Storage {
         let rdp_options = normalize_rdp_connection_options(request.rdp_options, &connection_type)?;
         let vnc_options = normalize_vnc_connection_options(request.vnc_options, &connection_type)?;
         let ftp_options = normalize_ftp_connection_options(request.ftp_options, &connection_type)?;
+        let ssh_port_forwardings =
+            normalize_ssh_port_forwardings(request.ssh_port_forwardings, &connection_type)?;
         let file_view_open_external =
             normalize_file_view_open_external(request.file_view_open_external, &connection_type);
         let rdp_options_json = serialize_connection_options(&rdp_options, "RDP")?;
         let vnc_options_json = serialize_connection_options(&vnc_options, "VNC")?;
         let ftp_options_json = serialize_connection_options(&ftp_options, "FTP")?;
+        let ssh_port_forwardings_json = ssh_port_forwardings_to_json(&ssh_port_forwardings)?;
         let mut connection = self.lock()?;
         let transaction = connection.transaction().map_err(to_storage_error)?;
         let existing = transaction
@@ -330,10 +338,11 @@ impl Storage {
                      rdp_options = ?21,
                      vnc_options = ?22,
                      ftp_options = ?23,
-                     file_view_open_external = ?24,
-                     sort_order = ?25,
-                     workspace_id = ?26
-                 WHERE id = ?27",
+                     ssh_port_forwardings_json = ?24,
+                     file_view_open_external = ?25,
+                     sort_order = ?26,
+                     workspace_id = ?27
+                 WHERE id = ?28",
                 params![
                     target_folder_id,
                     name,
@@ -358,6 +367,7 @@ impl Storage {
                     rdp_options_json,
                     vnc_options_json,
                     ftp_options_json,
+                    ssh_port_forwardings_json,
                     file_view_open_external,
                     sort_order,
                     &target_workspace_id,
@@ -543,6 +553,44 @@ impl Storage {
             .execute(
                 "UPDATE connections SET file_browser_view_options_json = ?1 WHERE id = ?2",
                 params![view_options_json, &connection_id],
+            )
+            .map_err(to_storage_error)?;
+        get_connection_by_id(&connection, &connection_id).map(Some)
+    }
+
+    pub fn update_connection_ssh_port_forwardings(
+        &self,
+        connection_id: String,
+        forwardings: Option<Vec<SshPortForwarding>>,
+    ) -> Result<Option<SavedConnection>, String> {
+        let connection_id = required_field("connection id", connection_id)?;
+        let connection = self.lock()?;
+        let connection_type = connection
+            .query_row(
+                "SELECT connection_type FROM connections WHERE id = ?1",
+                params![&connection_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(to_storage_error)?
+            .ok_or_else(|| "connection was not found".to_string())?;
+        let forwardings =
+            normalize_ssh_port_forwardings(forwardings, &connection_type)?;
+        let forwardings_json = ssh_port_forwardings_to_json(&forwardings)?;
+        let current = connection
+            .query_row(
+                "SELECT ssh_port_forwardings_json FROM connections WHERE id = ?1",
+                params![&connection_id],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .map_err(to_storage_error)?;
+        if current == forwardings_json {
+            return Ok(None);
+        }
+        connection
+            .execute(
+                "UPDATE connections SET ssh_port_forwardings_json = ?1 WHERE id = ?2",
+                params![forwardings_json, &connection_id],
             )
             .map_err(to_storage_error)?;
         get_connection_by_id(&connection, &connection_id).map(Some)
@@ -1180,7 +1228,7 @@ impl Storage {
 
         let source = transaction
             .query_row(
-                "SELECT folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, workspace_id, file_browser_view_options_json, file_view_open_external
+                "SELECT folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, workspace_id, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json
                  FROM connections
                  WHERE id = ?1",
                 params![source_id],
@@ -1214,6 +1262,7 @@ impl Storage {
                         row.get::<_, Option<String>>(25)?,
                         file_browser_view_options_from_json(row.get::<_, Option<String>>(26)?),
                         row.get::<_, bool>(27)?,
+                        ssh_port_forwardings_from_json(row.get::<_, Option<String>>(28)?),
                     ))
                 },
             )
@@ -1249,6 +1298,7 @@ impl Storage {
             workspace_id,
             file_browser_view_options,
             file_view_open_external,
+            ssh_port_forwardings,
         ) = source;
         let workspace_id = normalize_workspace_id(workspace_id.unwrap_or_default());
         let duplicate_name = request
@@ -1270,8 +1320,8 @@ impl Storage {
         transaction
             .execute(
                 "INSERT INTO connections (
-                    id, folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, file_browser_view_options_json, file_view_open_external, status, sort_order, workspace_id
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, 'idle', ?30, ?31)",
+                    id, folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, status, sort_order, workspace_id
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, 'idle', ?31, ?32)",
                 params![
                     duplicate_id,
                     folder_id,
@@ -1302,6 +1352,7 @@ impl Storage {
                     terminal_background_to_json(&terminal_background)?,
                     file_browser_view_options_to_json(&file_browser_view_options)?,
                     file_view_open_external,
+                    ssh_port_forwardings_to_json(&ssh_port_forwardings)?,
                     next_sort_order,
                     workspace_id
                 ],

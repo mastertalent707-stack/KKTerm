@@ -51,7 +51,7 @@ AI Assistant context is also a command-boundary concern. Any frontend page conte
 - `src/modules/settings/WorkspaceSettings.tsx` — Workspace display preferences, including whether the top Tab Strip is hidden in favor of Child Connection Tabs under parent Connections in the Connection Tree, whether saved Connections require double-click to open from that tree, and whether File Explorer opens local files with the OS default app or KKTerm's inline Document/light editor.
 - `src/modules/settings/CredentialsSettings.tsx` — credential backend selection and stored credential metadata/delete actions.
 - `src/modules/settings/AiSettings.tsx` — AI provider kind, dynamic provider fields, provider-specific model selector, custom model ID input, API key, OpenAI/Anthropic CLI backend toggles, output language, and insecure TLS provider toggle. Provider addition rules live in `docs/AI_PROVIDERS.md`.
-- `src/modules/settings/SshSettings.tsx` — SSH defaults, SSH terminal buffer behavior, SSH port redirect visibility, SSH OSC 52 clipboard policy, managed VcXsrv launcher defaults for local X11 windows, and SFTP transfer defaults summary.
+- `src/modules/settings/SshSettings.tsx` — SSH defaults, SSH terminal buffer behavior, SSH OSC 52 clipboard policy, managed VcXsrv launcher defaults for local X11 windows, and SFTP transfer defaults summary.
 - `src/modules/settings/TerminalSettings.tsx` — Local terminal font, size, line height, scrollback, cursor, default shell, reusable custom shell profiles, and local terminal toggles. Do not put SSH-only terminal behavior here; SSH terminal behavior belongs in `SshSettings.tsx`.
 - `src/lib/fontCatalog.ts` — Shared platform-aware App UI/terminal font recommendations plus subscribed custom/system font state. Both font pickers consume this catalog so one explicit refresh rescans the app fonts folder and installed OS fonts, then updates both without scanning during initial render.
 - `src/modules/settings/UrlSettings.tsx` — URL Connection security defaults, saved website password metadata, and URL data shard management.
@@ -98,6 +98,7 @@ Owns current SQLite schema initialization and repositories for:
 - recent sessions
 - non-secret AI provider metadata
 - non-secret SSH tmux launch preferences
+- non-secret SSH port forwarding mappings
 - dashboard views, widget instances, and AI Created Widget definitions (see `docs/DASHBOARD.md`)
 
 Plaintext secrets are never stored in SQLite. When the encrypted SQLite backend is selected, SQLite stores only encrypted secret rows plus KDF/cipher metadata.

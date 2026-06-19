@@ -63,6 +63,7 @@ fn create_test_ssh_connection(
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("SSH connection is created")
@@ -100,6 +101,7 @@ fn create_test_ssh_connection_in_workspace(
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: Some(workspace_id),
         })
         .expect("SSH connection is created in workspace")
@@ -151,6 +153,7 @@ fn create_test_local_connection(storage: &Storage, name: &str, shell: &str) -> S
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("local connection is created")
@@ -237,6 +240,7 @@ fn create_connection_can_persist_root_ssh_connection() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("connection is created");
@@ -289,6 +293,7 @@ fn ssh_socks_proxy_username_round_trips_without_storing_passwords_in_sqlite() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("connection is created");
@@ -371,6 +376,7 @@ fn local_connection_persists_startup_directory_and_script() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("local connection is created");
@@ -432,6 +438,7 @@ fn local_files_connection_can_be_created_with_starting_directory() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("local File Explorer connection is created");
@@ -477,6 +484,7 @@ fn file_view_connection_persists_file_path_and_no_host() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: true,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("Document connection is created");
@@ -536,6 +544,7 @@ fn create_connection_can_persist_remote_desktop_connections() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("RDP connection is created");
@@ -574,6 +583,7 @@ fn create_connection_can_persist_remote_desktop_connections() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("VNC connection is created");
@@ -613,6 +623,7 @@ fn create_connection_can_persist_telnet_and_serial_connections() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("Telnet connection is created");
@@ -649,6 +660,7 @@ fn create_connection_can_persist_telnet_and_serial_connections() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("Serial connection is created");
@@ -690,6 +702,7 @@ fn url_credentials_round_trip_without_storing_passwords_in_sqlite() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("URL connection is created");
@@ -889,6 +902,7 @@ fn stored_credential_candidates_include_connection_url_and_widget_metadata() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("SSH connection is created");
@@ -918,6 +932,7 @@ fn stored_credential_candidates_include_connection_url_and_widget_metadata() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("URL connection is created");
@@ -1033,6 +1048,7 @@ fn assigning_connection_password_credential_requires_matching_type() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("RDP connection is created");
@@ -1169,6 +1185,7 @@ fn update_connection_edits_fields_and_moves_folder() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
         })
         .expect("connection is updated");
 
@@ -1228,6 +1245,7 @@ fn update_connection_preserves_existing_tmux_preference_when_omitted() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
         })
         .expect("tmux preference is disabled");
 
@@ -1258,6 +1276,7 @@ fn update_connection_preserves_existing_tmux_preference_when_omitted() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
         })
         .expect("connection is updated without tmux preference");
 
@@ -1335,6 +1354,60 @@ fn duplicate_connection_copies_non_secret_connection_data() {
 
     assert_eq!(production.connections.len(), 2);
     assert_eq!(production.connections[1].id, duplicated.id);
+}
+
+#[test]
+fn ssh_port_forwardings_persist_update_and_duplicate() {
+    let storage = Storage::open(temp_db_path("ssh-forwardings")).expect("storage opens");
+    let connection = create_test_ssh_connection(&storage, "Bastion", "bastion.internal", None);
+    let forwardings = vec![
+        SshPortForwarding {
+            id: "forward-local-web".to_string(),
+            mode: "L".to_string(),
+            enabled: true,
+            bind: "127.0.0.1".to_string(),
+            listen_port: 8080,
+            dest_host: Some("localhost".to_string()),
+            dest_port: Some(3000),
+        },
+        SshPortForwarding {
+            id: "forward-socks".to_string(),
+            mode: "D".to_string(),
+            enabled: false,
+            bind: "127.0.0.1".to_string(),
+            listen_port: 1080,
+            dest_host: Some("ignored.example".to_string()),
+            dest_port: Some(9999),
+        },
+    ];
+
+    let updated = storage
+        .update_connection_ssh_port_forwardings(connection.id.clone(), Some(forwardings.clone()))
+        .expect("forwardings update succeeds")
+        .expect("connection changes");
+    let stored = updated
+        .ssh_port_forwardings
+        .as_ref()
+        .expect("forwardings are persisted");
+    assert_eq!(stored.len(), 2);
+    assert!(stored[0] == forwardings[0]);
+    assert_eq!(stored[1].mode, "D");
+    assert!(stored[1].dest_host.is_none());
+    assert!(stored[1].dest_port.is_none());
+
+    let duplicated = storage
+        .duplicate_connection(DuplicateConnectionRequest {
+            id: connection.id.clone(),
+            name: Some("Bastion Copy".to_string()),
+        })
+        .expect("connection is duplicated");
+    assert!(duplicated.ssh_port_forwardings == updated.ssh_port_forwardings);
+
+    let cleared = storage
+        .update_connection_ssh_port_forwardings(connection.id.clone(), None)
+        .expect("forwardings clear succeeds")
+        .expect("connection changes");
+    assert!(cleared.ssh_port_forwardings.is_none());
 }
 
 #[test]
@@ -1458,6 +1531,7 @@ fn deleting_folder_removes_connections_in_that_folder() {
             vnc_options: None,
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("connection is created in folder");
@@ -2414,6 +2488,7 @@ fn remote_desktop_connection_options_are_optional_protocol_overrides() {
             }),
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("RDP connection with options is created");
@@ -2464,6 +2539,7 @@ fn remote_desktop_connection_options_are_optional_protocol_overrides() {
             }),
             ftp_options: None,
             file_view_open_external: false,
+            ssh_port_forwardings: None,
             workspace_id: None,
         })
         .expect("VNC connection with options is created");

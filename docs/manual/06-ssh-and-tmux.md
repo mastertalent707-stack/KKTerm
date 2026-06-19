@@ -2,7 +2,7 @@
 
 ## AI grep hints
 
-- Keys: `terminal.verifyingHostKey`, `terminal.sshHostKeyChanged`, `terminal.sshHostKeyChangedDetail`, `terminal.sshHostKeyChangeDetail`, `terminal.trustHostKey`, `terminal.hostKeyNotTrusted`, `terminal.selectKeyFile`, `terminal.sshContextUnavailable`, `terminal.showTmux`, `terminal.editTmuxSession`, `terminal.tmuxSessionName`, `terminal.tmuxSessionNameRequired`, `terminal.tmuxSessionNameInvalid`, `terminal.tmuxSessionRenamed`, `terminal.tmuxSessions`, `terminal.refreshTmux`, `terminal.noTmuxSessions`, `terminal.attached`, `terminal.detached`, `terminal.detachTmux`, `terminal.closeTmux`, `terminal.openInPane`, `terminal.openLeft`, `terminal.openRight`, `terminal.openAbove`, `terminal.openBelow`, `terminal.mouseOn`, `terminal.mouseOff`, `terminal.sshPortRedirect`, `terminal.remoteLoopbackPorts`, `terminal.refreshPorts`, `terminal.scanningPorts`, `terminal.noRemoteLoopbackPorts`, `terminal.remoteLoopbackPort`, `terminal.openPortInBrowser`, `terminal.sshPortForwardOpened`, `settings.xServer`, `settings.xServerManaged`, `settings.xServerLaunch`
+- Keys: `terminal.verifyingHostKey`, `terminal.sshHostKeyChanged`, `terminal.sshHostKeyChangedDetail`, `terminal.sshHostKeyChangeDetail`, `terminal.trustHostKey`, `terminal.hostKeyNotTrusted`, `terminal.selectKeyFile`, `terminal.sshContextUnavailable`, `terminal.showTmux`, `terminal.editTmuxSession`, `terminal.tmuxSessionName`, `terminal.tmuxSessionNameRequired`, `terminal.tmuxSessionNameInvalid`, `terminal.tmuxSessionRenamed`, `terminal.tmuxSessions`, `terminal.refreshTmux`, `terminal.noTmuxSessions`, `terminal.attached`, `terminal.detached`, `terminal.detachTmux`, `terminal.closeTmux`, `terminal.openInPane`, `terminal.openLeft`, `terminal.openRight`, `terminal.openAbove`, `terminal.openBelow`, `terminal.mouseOn`, `terminal.mouseOff`, `terminal.sshPortRedirect`, `terminal.sshPortForwardingTitle`, `terminal.addForward`, `terminal.localListener`, `terminal.remoteListener`, `terminal.destination`, `terminal.forwardTo`, `terminal.bindAddress`, `terminal.listenPort`, `terminal.socksPort`, `terminal.runningForwards`, `terminal.noSshForwards`, `terminal.sshPortForwardOpened`, `settings.xServer`, `settings.xServerManaged`, `settings.xServerLaunch`
 - Topics: SSH host key trust, tmux session list, attach / detach / rename tmux, Child Connection Tab tmux resume, SSH local port forward for remote loopback services, SOCKS proxy troubleshooting, managed VcXsrv launch for local X11 windows, tutorial targets `terminal.tmuxSessions`, `terminal.sshPortRedirect`
 - Synonyms: "trust this host", "key fingerprint changed", "MITM warning", "tmux session", "screen", "child tmux tab", "saved tmux tab", "port forward", "tunnel", "SOCKS", "proxy", "early eof", "Tinyproxy", "PuTTY", "X11", "X forwarding", "X server", "VcXsrv"
 
@@ -75,17 +75,19 @@ When tmux mouse mode is off, wheel input over the Pane is kept in KKTerm's termi
 
 ## SSH local port forwarding
 
-For probing a remote service exposed on the remote's loopback interface:
+For SSH port forwarding:
 
-- Open the toolbar action `terminal.sshPortRedirect`.
-- The popover header is `terminal.remoteLoopbackPorts`.
-- `terminal.refreshPorts` rescans the remote for listening loopback ports. While scanning: `terminal.scanningPorts`. Empty state: `terminal.noRemoteLoopbackPorts`.
-- Each row uses `terminal.remoteLoopbackPort` and provides `terminal.openPortInBrowser`, which sets up a local port forward to `127.0.0.1:<port>` and opens it.
-- Confirmation: `terminal.sshPortForwardOpened`.
+- Open `terminal.sshPortRedirect` from the terminal action menu. Once the Connection has one or more enabled mappings, the Pane toolbar also shows a green tunnel button beside `terminal.startRecording`; clicking it opens the same centered dialog.
+- The centered dialog title is `terminal.sshPortForwardingTitle`.
+- The dialog has Local (`-L`), Remote (`-R`), and Dynamic (`-D`) mode tabs. Counts on the tabs show enabled mappings for the saved SSH Connection.
+- Mappings are non-secret per-Connection settings. Child Connection Tabs, split Panes, additional Tabs, and Dashboard-spawned surfaces share the parent SSH Connection's mapping list instead of owning independent forwarding settings.
+- Starting an already-running mapping reuses that mapping's stable forward id, so opening additional child/pane/tab surfaces for the same parent Connection does not recreate duplicate local tunnels.
+- The current runtime can start Local forwards. Remote and Dynamic mappings can be saved in the dialog but return an unsupported-runtime error if started until those tunnel modes are implemented in the backend.
+- Deleting the last enabled mapping removes the green toolbar tunnel button from open SSH Panes after the Connection metadata refreshes.
 
 Tutorial target: `terminal.sshPortRedirect`.
 
-This path uses the existing SSH channel for the tunnel — it does not create a second SSH login.
+The Local forward runtime uses native SSH forwarding and does not create a second terminal Pane or tmux shell.
 
 ## Local X server launcher
 

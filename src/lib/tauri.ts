@@ -197,6 +197,7 @@ export interface SshPortForwardStarted {
   forwardId: string;
   localPort: number;
   remotePort: number;
+  destHost: string;
   url: string;
 }
 
@@ -1100,6 +1101,10 @@ type CommandMap = {
     args: { connectionId: string; viewOptions?: FileBrowserViewOptions | null };
     result: Connection | null;
   };
+  update_connection_ssh_port_forwardings: {
+    args: { connectionId: string; forwardings?: Connection["sshPortForwardings"] };
+    result: Connection | null;
+  };
   delete_connection: {
     args: { connectionId: string };
     result: null;
@@ -1915,7 +1920,13 @@ type CommandMap = {
   sshSocksProxyInheritDefaults?: boolean;
         authMethod?: "keyFile" | "password" | "agent";
         secretOwnerId?: string;
-        remotePort: number;
+        forwardId?: string;
+        mode?: "L" | "R" | "D";
+        bind?: string;
+        listenPort?: number;
+        destHost?: string;
+        destPort?: number;
+        remotePort?: number;
       };
     };
     result: SshPortForwardStarted;

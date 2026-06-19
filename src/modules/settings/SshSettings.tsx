@@ -48,7 +48,6 @@ function normalizeSshSettingsDraft(settings: SshSettingsType, t: TFunction): Ssh
     defaultTransparency,
     defaultUseTmuxSessions: settings.defaultUseTmuxSessions ?? true,
     useRandomDynamicBackground: settings.useRandomDynamicBackground ?? false,
-    hideCommonPortRedirects: settings.hideCommonPortRedirects ?? true,
     allowOsc52Clipboard: settings.allowOsc52Clipboard ?? true,
     managedXServerEnabled: settings.managedXServerEnabled ?? false,
     xServerPath: settings.xServerPath?.trim() || undefined,
@@ -456,29 +455,6 @@ export function SshSettings() {
             />
             <span>
               <strong>{t("settings.allowSshOsc52Clipboard")}</strong>
-            </span>
-          </label>
-        </div>
-      </fieldset>
-
-      <fieldset className="settings-subsection settings-fieldset">
-        <legend>{t("settings.portRedirect")}</legend>
-        <div className="settings-section-title">
-          <div>
-            <p className="field-hint">{t("settings.portRedirectHint")}</p>
-          </div>
-        </div>
-        <div className="settings-toggle-list">
-          <label className="settings-toggle-row">
-            <ToggleSwitch
-              checked={sshDraft.hideCommonPortRedirects ?? true}
-              onChange={(checked) =>
-                setSshDraft((settings) => ({ ...settings, hideCommonPortRedirects: checked }))
-              }
-            />
-            <span>
-              <strong>{t("settings.hideCommonPortRedirects")}</strong>
-              <small>{t("settings.hideCommonPortRedirectsHint")}</small>
             </span>
           </label>
         </div>

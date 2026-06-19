@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 27;
+const SCHEMA_USER_VERSION: i32 = 28;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS connections (
     terminal_opacity INTEGER,
     terminal_background_json TEXT,
     file_browser_view_options_json TEXT,
+    ssh_port_forwardings_json TEXT,
     file_view_open_external INTEGER NOT NULL DEFAULT 0,
     connection_type TEXT NOT NULL CHECK (connection_type IN ('local', 'ssh', 'telnet', 'serial', 'url', 'rdp', 'vnc', 'ftp', 'localFiles', 'fileView')),
     status TEXT NOT NULL CHECK (status IN ('connected', 'idle', 'offline')),
@@ -546,10 +547,6 @@ pub struct SshSettings {
 }
 
 impl SshSettings {
-    pub(crate) fn hide_common_port_redirects(&self) -> bool {
-        self.hide_common_port_redirects
-    }
-
     pub(crate) fn managed_x_server_enabled(&self) -> bool {
         self.managed_x_server_enabled
     }
@@ -1045,6 +1042,7 @@ pub struct SavedConnection {
     terminal_opacity: Option<u8>,
     terminal_background: Option<crate::dashboard_storage::DashboardBackground>,
     file_browser_view_options: Option<FileBrowserViewOptions>,
+    ssh_port_forwardings: Option<Vec<SshPortForwarding>>,
     file_view_open_external: bool,
     #[serde(rename = "type")]
     connection_type: String,
@@ -1071,6 +1069,20 @@ pub struct FileBrowserPaneViewOptions {
     zoom: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     background: Option<crate::dashboard_storage::DashboardBackground>,
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SshPortForwarding {
+    id: String,
+    mode: String,
+    enabled: bool,
+    bind: String,
+    listen_port: u16,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    dest_host: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    dest_port: Option<u16>,
 }
 
 impl FileBrowserViewOptions {
@@ -1122,6 +1134,8 @@ pub struct CreateConnectionRequest {
     #[serde(default)]
     ftp_options: Option<crate::ftp::FtpOptions>,
     #[serde(default)]
+    ssh_port_forwardings: Option<Vec<SshPortForwarding>>,
+    #[serde(default)]
     file_view_open_external: bool,
 }
 
@@ -1159,6 +1173,8 @@ pub struct UpdateConnectionRequest {
     vnc_options: Option<VncConnectionOptions>,
     #[serde(default)]
     ftp_options: Option<crate::ftp::FtpOptions>,
+    #[serde(default)]
+    ssh_port_forwardings: Option<Vec<SshPortForwarding>>,
     #[serde(default)]
     file_view_open_external: bool,
 }
@@ -1717,6 +1733,12 @@ impl Storage {
         ensure_column(
             &connection,
             "connections",
+            "ssh_port_forwardings_json",
+            "TEXT",
+        )?;
+        ensure_column(
+            &connection,
+            "connections",
             "file_view_open_external",
             "INTEGER NOT NULL DEFAULT 0",
         )?;
@@ -2020,6 +2042,12 @@ impl Storage {
                 .pragma_update(None, "legacy_alter_table", "OFF")
                 .map_err(to_storage_error)?;
         }
+        ensure_column(
+            &connection,
+            "connections",
+            "ssh_port_forwardings_json",
+            "TEXT",
+        )?;
         connection
             .execute_batch(&format!("PRAGMA user_version = {SCHEMA_USER_VERSION}"))
             .map_err(to_storage_error)?;
@@ -2810,7 +2838,7 @@ fn list_root_connections_for_workspace(
     let mut statement = connection
         .prepare(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external
+                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE folder_id IS NULL AND workspace_id = ?1
@@ -2873,7 +2901,7 @@ fn list_connections_for_folder(
     let mut statement = connection
         .prepare(&format!(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external
+                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE {where_clause}
@@ -3249,7 +3277,7 @@ fn get_connection_by_id(
     let saved_connection = connection
         .query_row(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external
+                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE connections.id = ?1",
@@ -3289,6 +3317,7 @@ fn get_connection_by_id(
                     terminal_background: terminal_background_from_json(row.get(28)?),
                     file_browser_view_options: file_browser_view_options_from_json(row.get(31)?),
                     file_view_open_external: row.get(32)?,
+                    ssh_port_forwardings: ssh_port_forwardings_from_json(row.get(33)?),
                     password_credential_id,
                     url_credential_username: url_credential_username.clone(),
                     has_url_credential: url_credential_username.is_some(),
@@ -3343,6 +3372,7 @@ fn saved_connection_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SavedC
         terminal_background: terminal_background_from_json(row.get(28)?),
         file_browser_view_options: file_browser_view_options_from_json(row.get(31)?),
         file_view_open_external: row.get(32)?,
+        ssh_port_forwardings: ssh_port_forwardings_from_json(row.get(33)?),
         url_credential_username: url_credential_username.clone(),
         has_url_credential: url_credential_username.is_some(),
         status: "idle".to_string(),
@@ -3588,6 +3618,45 @@ fn normalize_use_tmux_sessions(value: Option<bool>, connection_type: &str) -> bo
 
 fn normalize_file_view_open_external(value: bool, connection_type: &str) -> bool {
     connection_type == "fileView" && value
+}
+
+fn normalize_ssh_port_forwardings(
+    forwardings: Option<Vec<SshPortForwarding>>,
+    connection_type: &str,
+) -> Result<Option<Vec<SshPortForwarding>>, String> {
+    if connection_type != "ssh" {
+        return Ok(None);
+    }
+    let mut normalized = Vec::new();
+    for mut forwarding in forwardings.unwrap_or_default() {
+        forwarding.id = required_field("forwarding id", forwarding.id)?;
+        forwarding.mode = required_field("forwarding mode", forwarding.mode)?.to_uppercase();
+        if !matches!(forwarding.mode.as_str(), "L" | "R" | "D") {
+            return Err("forwarding mode must be L, R, or D".to_string());
+        }
+        forwarding.bind = required_field("forwarding bind address", forwarding.bind)?;
+        if forwarding.listen_port == 0 {
+            return Err("forwarding listen port must be between 1 and 65535".to_string());
+        }
+        if forwarding.mode == "D" {
+            forwarding.dest_host = None;
+            forwarding.dest_port = None;
+        } else {
+            forwarding.dest_host = Some(required_field(
+                "forwarding destination host",
+                forwarding.dest_host.unwrap_or_default(),
+            )?);
+            if forwarding.dest_port.unwrap_or(0) == 0 {
+                return Err("forwarding destination port must be between 1 and 65535".to_string());
+            }
+        }
+        normalized.push(forwarding);
+    }
+    if normalized.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(normalized))
+    }
 }
 
 fn normalize_serial_line(
@@ -3951,6 +4020,21 @@ fn file_browser_view_options_to_json(
                 .map(Some)
                 .map_err(|_| "file browser view options are invalid".to_string())
         }
+    }
+}
+
+fn ssh_port_forwardings_from_json(value: Option<String>) -> Option<Vec<SshPortForwarding>> {
+    value.and_then(|json| serde_json::from_str::<Vec<SshPortForwarding>>(&json).ok())
+}
+
+fn ssh_port_forwardings_to_json(
+    forwardings: &Option<Vec<SshPortForwarding>>,
+) -> Result<Option<String>, String> {
+    match forwardings {
+        None => Ok(None),
+        Some(forwardings) => serde_json::to_string(forwardings)
+            .map(Some)
+            .map_err(|_| "SSH port forwardings are invalid".to_string()),
     }
 }
 

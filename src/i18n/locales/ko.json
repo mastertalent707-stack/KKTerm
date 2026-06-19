@@ -2404,7 +2404,37 @@
           "description": "macOS 기본 설정 값을 씁니다. 실행 전 플레이스홀더를 교체하세요."
         }
       }
-    }
+    },
+    "sshPortForwardingTitle": "SSH Port Forwarding",
+    "addForward": "Add forward",
+    "sshPortForwardInvalid": "Enter a valid listen port and destination.",
+    "thisPc": "This PC",
+    "internet": "Internet",
+    "anyHost": "any host",
+    "runningForwards": "Running",
+    "noSshForwards": "No {{mode}} forwards running yet.",
+    "opening": "opening",
+    "active": "active",
+    "remoteListener": "Remote listener",
+    "localListener": "Local listener",
+    "onServer": "on the server",
+    "onThisPc": "on this PC",
+    "bindAddress": "Bind address",
+    "socksPort": "SOCKS port",
+    "listenPort": "Listen port",
+    "forwardTo": "Forward to",
+    "destination": "Destination",
+    "reachableFromServer": "reachable from the server",
+    "host": "Host",
+    "port": "Port",
+    "sshForwardModeLocal": "Local",
+    "sshForwardModeLocalTagline": "Bring a remote service to this PC",
+    "sshForwardModeRemote": "Remote",
+    "sshForwardModeRemoteTagline": "Expose a service on this PC to the server",
+    "sshForwardModeDynamic": "Dynamic",
+    "sshForwardModeDynamicTagline": "Route traffic through the server (SOCKS)",
+    "sshForwardListening": "Listening",
+    "sshTunnel": "SSH tunnel"
   },
   "sftp": {
     "connecting": "연결 중",

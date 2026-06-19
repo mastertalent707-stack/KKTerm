@@ -588,6 +588,15 @@ fn update_connection_file_browser_view_options(
 }
 
 #[tauri::command]
+fn update_connection_ssh_port_forwardings(
+    storage: tauri::State<'_, storage::Storage>,
+    connection_id: String,
+    forwardings: Option<Vec<storage::SshPortForwarding>>,
+) -> Result<Option<storage::SavedConnection>, String> {
+    storage.update_connection_ssh_port_forwardings(connection_id, forwardings)
+}
+
+#[tauri::command]
 fn update_connection_terminal_appearance(
     storage: tauri::State<'_, storage::Storage>,
     connection_id: String,
@@ -2192,9 +2201,7 @@ async fn list_remote_loopback_ports(
     run_blocking_command("SSH loopback port discovery", move || {
         let sessions = app.state::<sessions::SessionManager>();
         let secrets = app.state::<secrets::Secrets>();
-        let storage = app.state::<storage::Storage>();
-        let hide_common_ports = storage.ssh_settings()?.hide_common_port_redirects();
-        sessions.list_remote_loopback_ports(app.clone(), &secrets, request, hide_common_ports)
+        sessions.list_remote_loopback_ports(app.clone(), &secrets, request, false)
     })
     .await
 }
@@ -3320,6 +3327,7 @@ pub fn run() {
             update_connection_icon_background_color,
             update_connection_terminal_appearance,
             update_connection_file_browser_view_options,
+            update_connection_ssh_port_forwardings,
             update_connection_tab_title,
             delete_connection,
             duplicate_connection,

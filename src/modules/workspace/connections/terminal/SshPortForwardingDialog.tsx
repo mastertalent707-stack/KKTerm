@@ -1,0 +1,301 @@
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Actions, Btn, DIcon, Field, Sheet, TextInput } from "../../../../app/ui/dialog";
+import { invokeCommand, isTauriRuntime } from "../../../../lib/tauri";
+import type { Connection, SshPortForwardMode, SshPortForwarding } from "../../../../types";
+import { useWorkspaceStore } from "../../../../store";
+import { connectionPasswordOwnerId, resolveSshSocksProxyRequest } from "../utils";
+
+type ForwardingDraft = Record<SshPortForwardMode, {
+  bind: string;
+  listenPort: string;
+  destHost: string;
+  destPort: string;
+}>;
+
+const MODES: Array<{
+  key: SshPortForwardMode;
+  icon: "arrowdown" | "arrowup" | "network";
+  nameKey: string;
+  taglineKey: string;
+  flag: string;
+}> = [
+  { key: "L", icon: "arrowdown", nameKey: "terminal.sshForwardModeLocal", taglineKey: "terminal.sshForwardModeLocalTagline", flag: "-L" },
+  { key: "R", icon: "arrowup", nameKey: "terminal.sshForwardModeRemote", taglineKey: "terminal.sshForwardModeRemoteTagline", flag: "-R" },
+  { key: "D", icon: "network", nameKey: "terminal.sshForwardModeDynamic", taglineKey: "terminal.sshForwardModeDynamicTagline", flag: "-D" },
+];
+
+const DEFAULT_DRAFT: ForwardingDraft = {
+  L: { bind: "127.0.0.1", listenPort: "8080", destHost: "localhost", destPort: "3000" },
+  R: { bind: "127.0.0.1", listenPort: "9000", destHost: "localhost", destPort: "3000" },
+  D: { bind: "127.0.0.1", listenPort: "1080", destHost: "", destPort: "" },
+};
+
+function numeric(value: string) {
+  return value.replace(/\D/g, "").slice(0, 5);
+}
+
+function shortAddress(value: string) {
+  return value === "localhost" ? "localhost" : value || "127.0.0.1";
+}
+
+function forwardingCommand(connection: Connection, mode: SshPortForwardMode, draft: ForwardingDraft[SshPortForwardMode]) {
+  const modeInfo = MODES.find((entry) => entry.key === mode) ?? MODES[0];
+  const spec = mode === "D"
+    ? `${draft.bind}:${draft.listenPort}`
+    : `${draft.bind}:${draft.listenPort}:${draft.destHost}:${draft.destPort}`;
+  return `ssh ${modeInfo.flag} ${spec} ${connection.user}@${connection.host}`;
+}
+
+function modeLabel(mode: SshPortForwardMode, t: (key: string) => string) {
+  const info = MODES.find((entry) => entry.key === mode);
+  return info ? t(info.nameKey) : mode;
+}
+
+function forwardingEndpoint(forwarding: SshPortForwarding) {
+  if (forwarding.mode === "D") {
+    return "SOCKS5";
+  }
+  return `${shortAddress(forwarding.destHost ?? "")}:${forwarding.destPort ?? ""}`;
+}
+
+function sshConnectionRequest(connection: Connection) {
+  const sshSettings = useWorkspaceStore.getState().sshSettings;
+  return {
+    host: connection.host,
+    user: connection.user,
+    port: connection.port,
+    keyPath: connection.keyPath,
+    proxyJump: connection.proxyJump,
+    ...resolveSshSocksProxyRequest(connection, sshSettings),
+    authMethod: connection.authMethod,
+    secretOwnerId: connectionPasswordOwnerId(connection),
+  };
+}
+
+export function hasEnabledSshPortForwardings(connection: Connection | undefined) {
+  return Boolean(connection?.sshPortForwardings?.some((forwarding) => forwarding.enabled));
+}
+
+export function SshPortForwardingDialog({
+  connection,
+  onClose,
+  onConnectionUpdated,
+}: {
+  connection: Connection;
+  onClose: () => void;
+  onConnectionUpdated: (connection: Connection) => void;
+}) {
+  const { t } = useTranslation();
+  const [mode, setMode] = useState<SshPortForwardMode>("L");
+  const [drafts, setDrafts] = useState<ForwardingDraft>(DEFAULT_DRAFT);
+  const [forwardings, setForwardings] = useState<SshPortForwarding[]>(connection.sshPortForwardings ?? []);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  const counts = useMemo(() => {
+    return forwardings.reduce<Record<SshPortForwardMode, number>>(
+      (acc, forwarding) => {
+        if (forwarding.enabled) acc[forwarding.mode] += 1;
+        return acc;
+      },
+      { L: 0, R: 0, D: 0 },
+    );
+  }, [forwardings]);
+  const current = drafts[mode];
+  const visibleForwardings = forwardings.filter((forwarding) => forwarding.mode === mode);
+  const command = forwardingCommand(connection, mode, current);
+
+  function updateDraft(patch: Partial<ForwardingDraft[SshPortForwardMode]>) {
+    setDrafts((value) => ({ ...value, [mode]: { ...value[mode], ...patch } }));
+  }
+
+  async function persist(nextForwardings: SshPortForwarding[]) {
+    setForwardings(nextForwardings);
+    if (!isTauriRuntime()) {
+      return;
+    }
+    const updated = await invokeCommand("update_connection_ssh_port_forwardings", {
+      connectionId: connection.id,
+      forwardings: nextForwardings.length > 0 ? nextForwardings : null,
+    });
+    if (updated) {
+      onConnectionUpdated(updated);
+    }
+  }
+
+  async function startForward(forwarding: SshPortForwarding) {
+    if (!isTauriRuntime() || !forwarding.enabled) {
+      return;
+    }
+    setBusyId(forwarding.id);
+    setError("");
+    try {
+      await invokeCommand("start_ssh_port_forward", {
+        request: {
+          ...sshConnectionRequest(connection),
+          forwardId: forwarding.id,
+          mode: forwarding.mode,
+          bind: forwarding.bind,
+          listenPort: forwarding.listenPort,
+          destHost: forwarding.destHost,
+          destPort: forwarding.destPort,
+          remotePort: forwarding.destPort,
+        },
+      });
+    } catch (startError) {
+      setError(startError instanceof Error ? startError.message : String(startError));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleAdd() {
+    const listenPort = Number(current.listenPort);
+    const destPort = Number(current.destPort);
+    if (!listenPort || (mode !== "D" && (!current.destHost.trim() || !destPort))) {
+      setError(t("terminal.sshPortForwardInvalid"));
+      return;
+    }
+    const forwarding: SshPortForwarding = {
+      id: `ssh-forward-${connection.id}-${mode}-${Date.now().toString(36)}`,
+      mode,
+      enabled: true,
+      bind: current.bind.trim() || "127.0.0.1",
+      listenPort,
+      destHost: mode === "D" ? undefined : current.destHost.trim(),
+      destPort: mode === "D" ? undefined : destPort,
+    };
+    const next = [...forwardings, forwarding];
+    await persist(next);
+    await startForward(forwarding);
+  }
+
+  async function handleRemove(id: string) {
+    const forwarding = forwardings.find((entry) => entry.id === id);
+    const next = forwardings.filter((entry) => entry.id !== id);
+    await persist(next);
+    if (forwarding?.enabled && isTauriRuntime()) {
+      await invokeCommand("close_ssh_port_forward", { request: { forwardId: id } }).catch(() => undefined);
+    }
+  }
+
+  return (
+    <div className="dialog-backdrop connection-dialog-backdrop sshf-backdrop" role="presentation">
+      <Sheet
+        className="sshf"
+        eyebrow={t("terminal.sshPortForwardingTitle")}
+        footer={
+          <Actions
+            primary={<Btn kind="primary" icon="plus" onClick={() => void handleAdd()}>{t("terminal.addForward")}</Btn>}
+            cancel={<Btn onClick={onClose}>{t("common.close")}</Btn>}
+          />
+        }
+        width={760}
+      >
+        <div className="sshf-body">
+          <div className="sshf-modes">
+            {MODES.map((entry) => (
+              <button className={`sshf-mode${mode === entry.key ? " active" : ""}`} key={entry.key} onClick={() => setMode(entry.key)} type="button">
+                <div className="m-top">
+                  <span className="m-flag"><DIcon name={entry.icon} size={15} /></span>
+                  <span className="m-name">{t(entry.nameKey)}</span>
+                  {counts[entry.key] > 0 ? <span className="m-badge">{counts[entry.key]}</span> : null}
+                </div>
+                <span className="m-desc">{t(entry.taglineKey)}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="sshf-diagram">
+            <div className="sshf-stage">
+              <ForwardNode icon="monitor" label={t("terminal.thisPc")} endpoint={`${current.bind}:${current.listenPort}`} listen={mode !== "R"} listeningLabel={t("terminal.sshForwardListening")} />
+              <div className={`sshf-track ${mode === "R" ? "rtl" : "ltr"}`}><span className="sshf-rail" /><span className="sshf-dot" /><span className="sshf-dot two" /><span className="sshf-dot three" /></div>
+              <ForwardNode icon="server" label={connection.name} endpoint={mode === "D" ? t("terminal.sshTunnel") : `${current.destHost}:${current.destPort}`} listen={mode === "R"} listeningLabel={t("terminal.sshForwardListening")} />
+              {mode === "D" ? (
+                <>
+                  <div className="sshf-track ltr"><span className="sshf-rail" /><span className="sshf-dot" /><span className="sshf-dot two" /></div>
+                  <ForwardNode icon="globe" label={t("terminal.internet")} endpoint={t("terminal.anyHost")} />
+                </>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="sshf-active">
+            <div className="sa-head">{t("terminal.runningForwards")} <span className="sa-count">{visibleForwardings.length}</span></div>
+            {visibleForwardings.length === 0 ? (
+              <div className="sa-empty">{t("terminal.noSshForwards", { mode: modeLabel(mode, t).toLowerCase() })}</div>
+            ) : (
+              <div className="sa-list">
+                {visibleForwardings.map((forwarding) => (
+                  <div className="sa-row" key={forwarding.id}>
+                    <span className={`sa-dot ${forwarding.enabled ? "active" : ""}`} />
+                    <span className="sa-local">{forwarding.bind}:{forwarding.listenPort}</span>
+                    <span className="sa-arr">-&gt;</span>
+                    <span className="sa-remote">{forwardingEndpoint(forwarding)}</span>
+                    <span className="sa-time">{busyId === forwarding.id ? t("terminal.opening") : t("terminal.active")}</span>
+                    <button className="sa-del danger" onClick={() => void handleRemove(forwarding.id)} title={t("common.delete")} type="button">
+                      <DIcon name="close" size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className={`sshf-pairs${mode === "D" ? " one" : ""}`}>
+            <div className="sshf-pair">
+              <div className="pair-h"><span className="pdot listen" />{mode === "R" ? t("terminal.remoteListener") : t("terminal.localListener")}<small>{mode === "R" ? t("terminal.onServer") : t("terminal.onThisPc")}</small></div>
+              <div className="sshf-row3">
+                <Field label={t("terminal.bindAddress")}><TextInput mono value={current.bind} onChange={(event) => updateDraft({ bind: event.currentTarget.value })} /></Field>
+                <Field label={mode === "D" ? t("terminal.socksPort") : t("terminal.listenPort")}><TextInput mono inputMode="numeric" value={current.listenPort} onChange={(event) => updateDraft({ listenPort: numeric(event.currentTarget.value) })} /></Field>
+              </div>
+            </div>
+            {mode !== "D" ? (
+              <div className="sshf-pair">
+                <div className="pair-h"><span className="pdot dest" />{mode === "R" ? t("terminal.forwardTo") : t("terminal.destination")}<small>{mode === "R" ? t("terminal.onThisPc") : t("terminal.reachableFromServer")}</small></div>
+                <div className="sshf-row3">
+                  <Field label={t("terminal.host")}><TextInput mono value={current.destHost} onChange={(event) => updateDraft({ destHost: event.currentTarget.value })} /></Field>
+                  <Field label={t("terminal.port")}><TextInput mono inputMode="numeric" value={current.destPort} onChange={(event) => updateDraft({ destPort: numeric(event.currentTarget.value) })} /></Field>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="sshf-cmd">
+            <span className="cmd-prompt">$</span>
+            <code>{command}</code>
+          </div>
+          {error ? <p className="form-error">{error}</p> : null}
+        </div>
+      </Sheet>
+    </div>
+  );
+}
+
+function ForwardNode({
+  icon,
+  label,
+  endpoint,
+  listen,
+  listeningLabel,
+}: {
+  icon: "monitor" | "server" | "globe";
+  label: string;
+  endpoint: string;
+  listen?: boolean;
+  listeningLabel?: string;
+}) {
+  return (
+    <div className="sshf-node">
+      <div className={`sshf-tile ${icon === "monitor" ? "pc" : icon}${listen ? " listen" : ""}`}>
+        {listen ? <span className="sshf-listen-chip"><i />{listeningLabel}</span> : null}
+        <DIcon name={icon} size={26} />
+      </div>
+      <div className="sshf-cap">
+        <span className="role">{label}</span>
+        <span className="ep">{endpoint}</span>
+      </div>
+    </div>
+  );
+}

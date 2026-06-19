@@ -10,7 +10,7 @@ import { SftpWorkspace } from "../sftp/SftpWorkspace";
 import { FileViewerWorkspace } from "../file-viewer/FileViewerWorkspace";
 import { WebViewWorkspace } from "../webview/WebViewWorkspace";
 import { ConnectionGlyph } from "../ConnectionGlyph";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Check, FileText, Folder, FolderOpen, Mouse, ChevronRight, Circle, ClipboardPaste, Copy, Globe2, Menu, Monitor, Network, PanelBottom, Pencil, RefreshCw, Save, Search, SplitSquareHorizontal, Square, Type, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bot, Check, FileText, Folder, FolderOpen, Mouse, ChevronRight, Circle, ClipboardPaste, Copy, Menu, Monitor, Network, PanelBottom, Pencil, RefreshCw, Save, Search, SplitSquareHorizontal, Square, Type, X } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -19,7 +19,7 @@ import { useTranslation } from "react-i18next";
 import i18next from "../../../../i18n/config";
 import { ariaInvalid, dialogButtonAria, menuButtonAria } from "../../../../lib/aria";
 import { fileBrowserCommandsFor } from "../../../../lib/fileBrowserCommands";
-import { focusCurrentWebview, invokeCommand, isTauriRuntime, logUiDebug, saveTextFile, type RemoteLoopbackPort, type TerminalOutput, type TerminalRecordingEntry, type TerminalRecordingInfo, type TmuxSession } from "../../../../lib/tauri";
+import { focusCurrentWebview, invokeCommand, isTauriRuntime, logUiDebug, saveTextFile, type TerminalOutput, type TerminalRecordingEntry, type TerminalRecordingInfo, type TmuxSession } from "../../../../lib/tauri";
 import { markOsIconAutoDetectDone, osIconIdForDetection, osIconRefForId, shouldAutoDetectOsIcon } from "../../../../lib/osIcons";
 import { notifyConnectionTreeInvalidated } from "../connectionSidebarState";
 import { defaultTerminalSettings } from "../../../../app-defaults";
@@ -39,6 +39,7 @@ import {
 import type { Connection, LayoutNode, SplitDirection, TerminalPane, WorkspacePane, WorkspaceTab } from "../../../../types";
 import { QuickCommandBar } from "./QuickCommandBar";
 import { TerminalBackgroundLayer, TerminalBackgroundPopover } from "./TerminalBackgroundPopover";
+import { SshPortForwardingDialog, hasEnabledSshPortForwardings } from "./SshPortForwardingDialog";
 
 type TerminalContextMenuState = {
   x: number;
@@ -104,13 +105,16 @@ export function TerminalWorkspace({
   const setTerminalSettings = useWorkspaceStore((state) => state.setTerminalSettings);
   const generalSettings = useWorkspaceStore((state) => state.generalSettings);
   const setFocusedPane = useWorkspaceStore((state) => state.setFocusedPane);
+  const refreshOpenConnectionMetadata = useWorkspaceStore((state) => state.refreshOpenConnectionMetadata);
   const updateOpenTerminalPaneFontSize = useWorkspaceStore((state) => state.updateOpenTerminalPaneFontSize);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const usePaneTerminalBackgrounds =
     generalSettings.separateSplitTerminalBackgrounds &&
     tab.panes.filter(isTerminalPane).length > 1;
   const [sftpDialogConnection, setSftpDialogConnection] = useState<Connection | null>(null);
+  const [sshPortForwardingDialogConnection, setSshPortForwardingDialogConnection] = useState<Connection | null>(null);
   const sftpFocusRestorePaneIdRef = useRef<string | null>(null);
+  const sshPortForwardingFocusRestorePaneIdRef = useRef<string | null>(null);
   const { t } = useTranslation();
   const defaultFontSize = defaultTerminalSettings.fontSize;
   const canSplit = allowPaneLayoutControls && tab.panes.some((pane) => pane.connection);
@@ -183,6 +187,20 @@ export function TerminalWorkspace({
   function openSftpDialog(connection: Connection, paneId: string) {
     sftpFocusRestorePaneIdRef.current = paneId === focusedPaneId ? paneId : null;
     setSftpDialogConnection(connection);
+  }
+
+  function closeSshPortForwardingDialog() {
+    const restorePaneId = sshPortForwardingFocusRestorePaneIdRef.current;
+    sshPortForwardingFocusRestorePaneIdRef.current = null;
+    setSshPortForwardingDialogConnection(null);
+    if (restorePaneId) {
+      focusTerminalPaneAfterDialogClose(restorePaneId);
+    }
+  }
+
+  function openSshPortForwardingDialog(connection: Connection, paneId: string) {
+    sshPortForwardingFocusRestorePaneIdRef.current = paneId === focusedPaneId ? paneId : null;
+    setSshPortForwardingDialogConnection(connection);
   }
 
   function handleSplit(paneId: string, direction: "right" | "left" | "down" | "up") {
@@ -458,6 +476,7 @@ export function TerminalWorkspace({
             onFontChange={handleFontChange}
             onOpenAssistant={onOpenAssistant}
             onOpenSftp={openSftpDialog}
+            onOpenSshPortForwarding={openSshPortForwardingDialog}
             onSaveBuffer={(paneId) => void handleSaveBuffer(paneId)}
             showSftpButton={showSftpButton}
             onSplit={handleSplit}
@@ -482,6 +501,17 @@ export function TerminalWorkspace({
         </div>,
         document.body,
       ) : null}
+      {sshPortForwardingDialogConnection ? createPortal(
+        <SshPortForwardingDialog
+          connection={sshPortForwardingDialogConnection}
+          onClose={closeSshPortForwardingDialog}
+          onConnectionUpdated={(updatedConnection) => {
+            refreshOpenConnectionMetadata(updatedConnection);
+            setSshPortForwardingDialogConnection(updatedConnection);
+          }}
+        />,
+        document.body,
+      ) : null}
     </section>
   );
 }
@@ -500,6 +530,7 @@ function TerminalLayoutView({
   onFontChange,
   onOpenAssistant,
   onOpenSftp,
+  onOpenSshPortForwarding,
   onSaveBuffer,
   showSftpButton,
   onSplit,
@@ -519,6 +550,7 @@ function TerminalLayoutView({
   onFontChange: (delta: number | "reset") => void;
   onOpenAssistant: () => void;
   onOpenSftp: (connection: Connection, paneId: string) => void;
+  onOpenSshPortForwarding: (connection: Connection, paneId: string) => void;
   onSaveBuffer: (paneId: string) => void;
   showSftpButton: boolean;
   onSplit: (paneId: string, direction: "right" | "left" | "down" | "up") => void;
@@ -557,6 +589,7 @@ function TerminalLayoutView({
             usePaneTerminalBackgrounds={usePaneTerminalBackgrounds}
             onOpenAssistant={onOpenAssistant}
             onOpenSftp={onOpenSftp}
+            onOpenSshPortForwarding={onOpenSshPortForwarding}
             onSaveBuffer={onSaveBuffer}
             showSftpButton={showSftpButton}
             onSplit={onSplit}
@@ -603,6 +636,7 @@ function TerminalLayoutView({
           onFontChange={onFontChange}
           onOpenAssistant={onOpenAssistant}
           onOpenSftp={onOpenSftp}
+          onOpenSshPortForwarding={onOpenSshPortForwarding}
           onSaveBuffer={onSaveBuffer}
           showSftpButton={showSftpButton}
           onSplit={onSplit}
@@ -1284,157 +1318,6 @@ function XServerToolbarIndicator({
   );
 }
 
-function SshPortForwardMenu({
-  connection,
-  triggerClassName = "terminal-pane-action",
-  triggerLabel,
-  triggerRole,
-}: {
-  connection: Connection;
-  triggerClassName?: string;
-  triggerLabel?: string;
-  triggerRole?: "menuitem";
-}) {
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [ports, setPorts] = useState<RemoteLoopbackPort[]>([]);
-  const [error, setError] = useState("");
-  const [openingPort, setOpeningPort] = useState<number | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const openSshPortForwardBrowser = useWorkspaceStore((state) => state.openSshPortForwardBrowser);
-  const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
-  const { t } = useTranslation();
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    function onPointerDown(event: PointerEvent) {
-      const target = event.target as Node | null;
-      if (menuRef.current && target && !menuRef.current.contains(target)) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [open]);
-
-  async function loadPorts() {
-    if (!isTauriRuntime()) {
-      setPorts([]);
-      setError(t("terminal.tauriRequired"));
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    try {
-      const result = await invokeCommand("list_remote_loopback_ports", {
-        request: tmuxConnectionRequest(connection),
-      });
-      setPorts(result);
-    } catch (loadError) {
-      setPorts([]);
-      setError(loadError instanceof Error ? loadError.message : String(loadError));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleToggle() {
-    const nextOpen = !open;
-    setOpen(nextOpen);
-    if (nextOpen) {
-      await loadPorts();
-    }
-  }
-
-  async function handleOpenPort(port: number) {
-    setOpeningPort(port);
-    setError("");
-    try {
-      const forward = await invokeCommand("start_ssh_port_forward", {
-        request: {
-          ...tmuxConnectionRequest(connection),
-          remotePort: port,
-        },
-      });
-      openSshPortForwardBrowser(connection, forward);
-      showStatusBarNotice(t("terminal.sshPortForwardOpened", { port }));
-      setOpen(false);
-    } catch (openError) {
-      setError(openError instanceof Error ? openError.message : String(openError));
-    } finally {
-      setOpeningPort(null);
-    }
-  }
-
-  return (
-    <div
-      className="tmux-session-wrapper"
-      data-tutorial-id="terminal.sshPortRedirect"
-      ref={menuRef}
-      role={triggerRole ? "none" : undefined}
-    >
-      <button
-        className={triggerClassName}
-        aria-label={t("terminal.sshPortRedirect")}
-        {...dialogButtonAria(open)}
-        onClick={() => void handleToggle()}
-        role={triggerRole}
-        title={t("terminal.sshPortRedirect")}
-        type="button"
-      >
-        <Network size={13} />
-        {triggerLabel ? <span>{triggerLabel}</span> : null}
-      </button>
-      {open ? (
-        <div className="tmux-session-menu ssh-port-menu" role="dialog" aria-label={t("terminal.sshPortRedirect")}>
-          <header>
-            <strong>{t("terminal.remoteLoopbackPorts")}</strong>
-            <button
-              className="terminal-pane-action"
-              aria-label={t("terminal.refreshPorts")}
-              onClick={() => void loadPorts()}
-              title={t("terminal.refreshPorts")}
-              type="button"
-            >
-              <RefreshCw size={13} />
-            </button>
-          </header>
-          {loading ? <p>{t("terminal.scanningPorts")}</p> : null}
-          {error ? <p className="form-error">{error}</p> : null}
-          {!loading && !error && ports.length === 0 ? <p>{t("terminal.noRemoteLoopbackPorts")}</p> : null}
-          <div className="tmux-session-list">
-            {ports.map((entry) => (
-              <div className="tmux-session-row ssh-port-row" key={`${entry.address}-${entry.port}`}>
-                <div className="tmux-session-row-main">
-                  <div className="tmux-session-row-info" aria-label={t("terminal.remoteLoopbackPort", { port: entry.port })}>
-                    <strong>{t("terminal.remoteLoopbackPort", { port: entry.port })}</strong>
-                    <small>{entry.address}</small>
-                  </div>
-                  <button
-                    className="terminal-pane-action"
-                    aria-label={t("terminal.openPortInBrowser", { port: entry.port })}
-                    disabled={openingPort !== null}
-                    onClick={() => void handleOpenPort(entry.port)}
-                    title={t("terminal.openPortInBrowser", { port: entry.port })}
-                    type="button"
-                  >
-                    {openingPort === entry.port ? <RefreshCw size={13} /> : <Globe2 size={13} />}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 // Connection ids with an OS-detection request in flight, so concurrently
 // opening panes of the same Connection only probe the remote host once.
 const osDetectInFlight = new Set<string>();
@@ -1530,6 +1413,7 @@ function TerminalPaneView({
   usePaneTerminalBackgrounds,
   onOpenAssistant,
   onOpenSftp,
+  onOpenSshPortForwarding,
   onSaveBuffer,
   showSftpButton,
   onSplit,
@@ -1547,6 +1431,7 @@ function TerminalPaneView({
   usePaneTerminalBackgrounds: boolean;
   onOpenAssistant: () => void;
   onOpenSftp: (connection: Connection, paneId: string) => void;
+  onOpenSshPortForwarding: (connection: Connection, paneId: string) => void;
   onSaveBuffer: (paneId: string) => void;
   showSftpButton: boolean;
   onSplit: (paneId: string, direction: "right" | "left" | "down" | "up") => void;
@@ -2448,6 +2333,13 @@ function TerminalPaneView({
     onOpenSftp(pane.connection, pane.id);
   }
 
+  function handleOpenSshPortForwarding() {
+    if (pane.connection?.type !== "ssh") {
+      return;
+    }
+    onOpenSshPortForwarding(pane.connection, pane.id);
+  }
+
   function handleSplit(direction: "right" | "left" | "down" | "up") {
     setActionsMenuOpen(false);
     onSplit(pane.id, direction);
@@ -2552,6 +2444,18 @@ function TerminalPaneView({
           >
             {recordingInfo ? <Square size={9} fill="currentColor" /> : <Circle size={8} fill="currentColor" />}
           </button>
+          {isSshPane && hasEnabledSshPortForwardings(pane.connection) ? (
+            <button
+              className="terminal-pane-action terminal-ssh-forwarding-button"
+              aria-label={t("terminal.sshPortRedirect")}
+              data-tutorial-id="terminal.sshPortRedirect"
+              onClick={handleOpenSshPortForwarding}
+              title={t("terminal.sshPortRedirect")}
+              type="button"
+            >
+              <Network size={13} />
+            </button>
+          ) : null}
           {isSshPane && showSftpButton ? (
             <button
               className="terminal-pane-action"
@@ -2612,12 +2516,18 @@ function TerminalPaneView({
             {actionsMenuOpen ? (
               <div className="terminal-menu" role="menu">
                 {isSshPane && pane.connection ? (
-                  <SshPortForwardMenu
-                    connection={pane.connection}
-                    triggerClassName="terminal-menu-item"
-                    triggerLabel={t("terminal.sshPortRedirect")}
-                    triggerRole="menuitem"
-                  />
+                  <button
+                    className="terminal-menu-item"
+                    onClick={() => {
+                      setActionsMenuOpen(false);
+                      handleOpenSshPortForwarding();
+                    }}
+                    role="menuitem"
+                    type="button"
+                  >
+                    <Network size={13} />
+                    {t("terminal.sshPortRedirect")}
+                  </button>
                 ) : null}
                 <div className="terminal-menu-submenu">
                   <button

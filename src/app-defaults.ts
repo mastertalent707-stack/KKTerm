@@ -105,7 +105,6 @@ export const defaultSshSettings: SshSettings = {
   defaultTransparency: 50,
   defaultUseTmuxSessions: true,
   useRandomDynamicBackground: false,
-  hideCommonPortRedirects: true,
   allowOsc52Clipboard: true,
   managedXServerEnabled: false,
   xServerPath: "",

@@ -58,6 +58,18 @@ export interface FileBrowserViewOptions {
   remote?: FileBrowserPaneViewOptions;
 }
 
+export type SshPortForwardMode = "L" | "R" | "D";
+
+export interface SshPortForwarding {
+  id: string;
+  mode: SshPortForwardMode;
+  enabled: boolean;
+  bind: string;
+  listenPort: number;
+  destHost?: string;
+  destPort?: number;
+}
+
 export interface Connection {
   id: string;
   name: string;
@@ -89,6 +101,7 @@ export interface Connection {
   terminalOpacity?: number | null;
   terminalBackground?: DashboardBackground | null;
   fileBrowserViewOptions?: FileBrowserViewOptions | null;
+  sshPortForwardings?: SshPortForwarding[] | null;
   fileViewOpenExternal?: boolean;
   rdpOptions?: RdpConnectionOptions;
   vncOptions?: VncConnectionOptions;
@@ -135,6 +148,7 @@ export interface CreateConnectionRequest {
   rdpOptions?: RdpConnectionOptions;
   vncOptions?: VncConnectionOptions;
   ftpOptions?: FtpConnectionOptions;
+  sshPortForwardings?: SshPortForwarding[] | null;
   fileViewOpenExternal?: boolean;
 }
 
@@ -535,7 +549,6 @@ export interface SshSettings {
   defaultTransparency: number;
   defaultUseTmuxSessions: boolean;
   useRandomDynamicBackground: boolean;
-  hideCommonPortRedirects: boolean;
   allowOsc52Clipboard: boolean;
   managedXServerEnabled: boolean;
   xServerPath?: string;
