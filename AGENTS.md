@@ -116,8 +116,11 @@ Strong success criteria let you loop independently.
 - Do not put live Session state into the durable Connection model.
 - `withLiveConnectionStatuses` is display-only. Do not pass its fresh
   Connection objects to workspace components that own Session lifecycles.
-- User-facing transient status belongs in the bottom Status Bar via
-  `showStatusBarNotice`; do not add one-off toast/status implementations.
+- Every user-facing transient notification—information, success confirmation,
+  warning, or error—belongs in the bottom Status Bar popup via
+  `showStatusBarNotice` with the matching `tone`. Do not render transient
+  outcome text inline in dialogs/pages and do not add one-off toast, banner, or
+  status implementations. Use `showStatusBarProgress` for determinate work.
 - Do not use `window.alert`, `window.confirm`, or `window.prompt`; use
   translated app-owned dialogs/popovers.
 - RDP ActiveX overlay parking is RDP-only. Do not extend that workaround to

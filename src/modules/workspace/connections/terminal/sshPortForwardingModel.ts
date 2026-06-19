@@ -11,6 +11,11 @@ export type LocalTcpListener = {
   port: number;
 };
 
+export type SshForwardDiagramTarget = {
+  host: string;
+  ports: number[];
+};
+
 export async function startEnabledSshPortForwardings(
   forwardings: SshPortForwarding[],
   startForward: (forwarding: SshPortForwarding) => Promise<unknown>,
@@ -113,6 +118,35 @@ export function sshForwardDisplayEndpoints(forwarding: SshPortForwarding) {
       ? "SOCKS5"
       : forwardingEndpoint(forwarding.destHost, forwarding.destPort),
   };
+}
+
+export function sshForwardDiagramTargets(
+  mode: SshPortForwarding["mode"],
+  forwardings: SshPortForwarding[],
+  draft: { host: string; port?: number },
+) {
+  if (mode === "D") {
+    return [];
+  }
+  const targets = new Map<string, number[]>();
+  const addTarget = (hostValue: string | undefined, port: number | undefined) => {
+    const host = hostValue?.trim();
+    const normalized = host?.toLowerCase();
+    if (!host || !normalized || normalized === "localhost" || normalized === "::1" || normalized.startsWith("127.")) {
+      return;
+    }
+    const ports = targets.get(host) ?? [];
+    if (port && !ports.includes(port)) {
+      ports.push(port);
+    }
+    targets.set(host, ports);
+  };
+
+  forwardings
+    .filter((forwarding) => forwarding.mode === mode)
+    .forEach((forwarding) => addTarget(forwarding.destHost, forwarding.destPort));
+  addTarget(draft.host, draft.port);
+  return [...targets].map(([host, ports]) => ({ host, ports }));
 }
 
 function browserHost(value: string) {

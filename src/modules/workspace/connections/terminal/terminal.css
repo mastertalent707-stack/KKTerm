@@ -1057,9 +1057,107 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sshf-dot,
-  .sshf-tile.listen::after {
+  .sshf-tile.listen::after,
+  .fan-wires path {
     animation: none;
   }
+}
+
+.sshf-fan {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  margin-left: -22px;
+}
+
+.sshf-fan.left {
+  margin-right: -22px;
+  margin-left: 0;
+}
+
+.fan-wires {
+  flex: 0 0 auto;
+  overflow: visible;
+  color: color-mix(in srgb, var(--accent) 55%, var(--text-muted));
+}
+
+.fan-wires path {
+  stroke-dasharray: 2.5 4;
+  animation: sshf-fan-flow 1.8s linear infinite;
+}
+
+@keyframes sshf-fan-flow {
+  to { stroke-dashoffset: -13; }
+}
+
+.sshf-targets {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
+  max-width: 104px;
+  max-height: 100%;
+}
+
+.sshf-targets.dense {
+  gap: 6px;
+  max-width: 34px;
+}
+
+.tg-node {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+  height: 32px;
+}
+
+.sshf-targets.dense .tg-node { height: 24px; }
+
+.tg-ico {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: var(--surface);
+  font-size: 11px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--text-muted) 82%, var(--surface));
+  border-radius: 9px;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--text) 18%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--surface) 18%, transparent);
+}
+
+.sshf-targets.dense .tg-ico {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
+
+.tg-cap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sshf-fan.left .tg-node { flex-direction: row-reverse; }
+.sshf-fan.left .tg-cap { align-items: flex-end; text-align: right; }
+
+.tg-cap .nm {
+  max-width: 64px;
+  overflow: hidden;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tg-node.more .tg-ico {
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 .sshf-active {

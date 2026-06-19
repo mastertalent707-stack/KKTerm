@@ -54,6 +54,16 @@ For an inline cautionary banner inside a `Sheet` body (e.g. the credential-expor
 passphrase warning), use the shared `.kk-dlg-warn` class rather than hand-rolling
 an amber callout.
 
+### Transient feedback
+
+The bottom Status Bar popup is the only transient notification surface. Route
+every informational outcome, success confirmation, warning, and error through
+`showStatusBarNotice` with the matching `tone`; use `showStatusBarProgress` for
+determinate work. Dialogs and pages must not render transient results inline or
+create local toast, banner, snackbar, or status-message systems. Static guidance
+and cautions that are part of the form before an action occurs are content, not
+transient notifications, and may remain beside the relevant controls.
+
 `TextInput` and `TextArea` default to the shared technical-input behaviour from
 `src/lib/inputBehavior.ts`, disabling autocorrect, autocapitalization, and
 spellcheck for machine-oriented dialog fields. Callers may override those props
@@ -130,6 +140,8 @@ Copy Path / Get Info. Reuse `FilePane` and these patterns for new browser UIs.
 3. Windows button order; one concise title; close-X only without a footer dismiss.
    Footer from `Actions`/`.dialog-actions` with an icon'd primary — never
    `connection-dialog-footer`.
-4. Route every string through `t()`; add `en.json` keys + a
+4. Route transient information, success, warning, and error outcomes through
+   `showStatusBarNotice`; use `showStatusBarProgress` for determinate work.
+5. Route every string through `t()`; add `en.json` keys + a
    `docs/localization_todo/` pending file (see that README).
-5. Verify in Default and Dark plus one extra scheme in the real Tauri runtime.
+6. Verify in Default and Dark plus one extra scheme in the real Tauri runtime.

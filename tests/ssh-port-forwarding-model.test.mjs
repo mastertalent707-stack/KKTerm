@@ -115,6 +115,31 @@ test("Remote rows put the local destination left and server listener right", asy
   }), { left: "localhost:1420", right: "0.0.0.0:4444" });
 });
 
+test("diagram targets group distinct non-loopback destinations by host", async () => {
+  const { sshForwardDiagramTargets } = await importTypeScriptModule(
+    new URL(
+      "../src/modules/workspace/connections/terminal/sshPortForwardingModel.ts",
+      import.meta.url,
+    ),
+  );
+  const forwardings = [
+    { id: "loopback", mode: "L", enabled: true, destHost: "localhost", destPort: 3000 },
+    { id: "first", mode: "L", enabled: true, destHost: "10.0.0.124", destPort: 3000 },
+    { id: "second", mode: "L", enabled: true, destHost: "10.0.0.124", destPort: 5432 },
+    { id: "duplicate", mode: "L", enabled: true, destHost: "10.0.0.124", destPort: 3000 },
+    { id: "other-mode", mode: "R", enabled: true, destHost: "build-agent", destPort: 4000 },
+  ];
+
+  assert.deepEqual(
+    sshForwardDiagramTargets("L", forwardings, { host: "metrics-store", port: 9090 }),
+    [
+      { host: "10.0.0.124", ports: [3000, 5432] },
+      { host: "metrics-store", ports: [9090] },
+    ],
+  );
+  assert.deepEqual(sshForwardDiagramTargets("D", forwardings, { host: "ignored", port: 1080 }), []);
+});
+
 test("Remote URLs reject loopback and replace wildcards with the SSH host", async () => {
   const { sshRemoteForwardBrowserUrl } = await importTypeScriptModule(
     new URL(

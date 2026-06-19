@@ -41,8 +41,6 @@ test("Remote mode assigns the local destination and remote listener to the corre
     source,
     /mode === "R"[\s\S]*?t\("terminal\.remoteListener"\)[\s\S]*?value=\{current\.bind\}[\s\S]*?value=\{current\.listenPort\}/,
   );
-  assert.match(source, /mode === "R" \? `\$\{current\.destHost\}:\$\{current\.destPort\}` : `\$\{current\.bind\}:\$\{current\.listenPort\}`/);
-  assert.match(source, /mode === "R" \? `\$\{current\.bind\}:\$\{current\.listenPort\}` : `\$\{current\.destHost\}:\$\{current\.destPort\}`/);
 });
 
 test("Remote forwarding defaults to a wildcard IPv4 listener", async () => {
@@ -112,6 +110,48 @@ test("SSH forwarding Listening chips use the shared green status token", async (
   const css = await readFile(cssUrl, "utf8");
 
   assert.match(css, /\.sshf-listen-chip\s*\{[^}]*background:\s*var\(--green\);/s);
+});
+
+test("SSH forwarding diagram renders third-host target fans from saved mappings", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+  const css = await readFile(cssUrl, "utf8");
+
+  assert.match(source, /sshForwardDiagramTargets\(mode, forwardings,/);
+  assert.match(source, /function ForwardTargetFan\(/);
+  assert.match(source, /mode === "R"[\s\S]*?<ForwardTargetFan/);
+  assert.match(source, /mode === "L"[\s\S]*?<ForwardTargetFan/);
+  assert.match(css, /\.sshf-fan\s*\{/);
+  assert.match(css, /\.sshf-targets\s*\{/);
+  assert.match(css, /\.tg-node\s*\{/);
+});
+
+test("SSH forwarding satellite nodes show hosts without draft-derived ports", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+  const fanSource = source.slice(
+    source.indexOf("function ForwardTargetFan"),
+  );
+
+  assert.match(fanSource, /<span className="nm">\{target\.host\}<\/span>/);
+  assert.doesNotMatch(fanSource, /target\.ports/);
+});
+
+test("SSH forwarding main diagram nodes omit draft endpoint captions", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+  const diagramSource = source.slice(
+    source.indexOf('<div className="sshf-diagram">'),
+    source.indexOf('<div className="sshf-active">'),
+  );
+
+  assert.doesNotMatch(diagramSource, /<ForwardNode icon="(?:monitor|server)"[^>]*\bendpoint=/);
+});
+
+test("SSH forwarding dialog routes user-facing errors through the Status Bar", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+
+  assert.match(source, /const showStatusBarNotice = useWorkspaceStore\(\(state\) => state\.showStatusBarNotice\)/);
+  assert.match(source, /function showError\(error: unknown\)/);
+  assert.match(source, /showStatusBarNotice\(message, \{ tone: "error" \}\)/);
+  assert.doesNotMatch(source, /\[error, setError\]|\bsetError\(|className="form-error"/);
 });
 
 test("SSH forwarding dropdowns portal below the input outside dialog clipping", async () => {

@@ -10,9 +10,11 @@ import {
   localListenerPortOptions,
   sshForwardBindConflict,
   sshForwardBrowserUrl,
+  sshForwardDiagramTargets,
   sshForwardDisplayEndpoints,
   sshRemoteForwardBrowserUrl,
   type LocalTcpListener,
+  type SshForwardDiagramTarget,
 } from "./sshPortForwardingModel";
 
 type ForwardingDraft = Record<SshPortForwardMode, {
@@ -262,6 +264,7 @@ export function SshPortForwardingDialog({
   onConnectionUpdated: (connection: Connection) => void;
 }) {
   const { t } = useTranslation();
+  const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const [mode, setMode] = useState<SshPortForwardMode>("L");
   const [drafts, setDrafts] = useState<ForwardingDraft>(DEFAULT_DRAFT);
   const [forwardings, setForwardings] = useState<SshPortForwarding[]>(connection.sshPortForwardings ?? []);
@@ -270,7 +273,6 @@ export function SshPortForwardingDialog({
   const [remoteInterfaceAddresses, setRemoteInterfaceAddresses] = useState<string[]>([]);
   const [remoteLoopbackPorts, setRemoteLoopbackPorts] = useState<number[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -328,6 +330,10 @@ export function SshPortForwardingDialog({
   }, [forwardings]);
   const current = drafts[mode];
   const visibleForwardings = forwardings.filter((forwarding) => forwarding.mode === mode);
+  const diagramTargets = sshForwardDiagramTargets(mode, forwardings, {
+    host: current.destHost,
+    port: Number(current.destPort) || undefined,
+  });
   const command = forwardingCommand(connection, mode, current);
   const bindAddressOptions = uniqueOptions([
     "127.0.0.1",
@@ -355,6 +361,11 @@ export function SshPortForwardingDialog({
     setDrafts((value) => ({ ...value, [mode]: { ...value[mode], ...patch } }));
   }
 
+  function showError(error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    showStatusBarNotice(message, { tone: "error" });
+  }
+
   async function persist(nextForwardings: SshPortForwarding[]) {
     setForwardings(nextForwardings);
     if (!isTauriRuntime()) {
@@ -374,11 +385,10 @@ export function SshPortForwardingDialog({
       return true;
     }
     if (!sessionId) {
-      setError(t("terminal.sshPortForwardSessionUnavailable"));
+      showError(t("terminal.sshPortForwardSessionUnavailable"));
       return false;
     }
     setBusyId(forwarding.id);
-    setError("");
     try {
       await invokeCommand("start_ssh_port_forward", {
         request: {
@@ -397,14 +407,14 @@ export function SshPortForwardingDialog({
     } catch (startError) {
       const message = startError instanceof Error ? startError.message : String(startError);
       if (message.includes("ssh-port-forward-bind-conflict")) {
-        setError(t("terminal.sshPortForwardBindConflict", {
+        showError(t("terminal.sshPortForwardBindConflict", {
           address: forwarding.bind,
           port: forwarding.listenPort,
         }));
       } else if (message.includes("ssh-port-forward-session-unavailable")) {
-        setError(t("terminal.sshPortForwardSessionUnavailable"));
+        showError(t("terminal.sshPortForwardSessionUnavailable"));
       } else {
-        setError(message);
+        showError(message);
       }
       return false;
     } finally {
@@ -416,7 +426,7 @@ export function SshPortForwardingDialog({
     const listenPort = Number(current.listenPort);
     const destPort = Number(current.destPort);
     if (!listenPort || (mode !== "D" && (!current.destHost.trim() || !destPort))) {
-      setError(t("terminal.sshPortForwardInvalid"));
+      showError(t("terminal.sshPortForwardInvalid"));
       return;
     }
     const forwarding: SshPortForwarding = {
@@ -429,11 +439,11 @@ export function SshPortForwardingDialog({
       destPort: mode === "D" ? undefined : destPort,
     };
     if (!sessionId) {
-      setError(t("terminal.sshPortForwardSessionUnavailable"));
+      showError(t("terminal.sshPortForwardSessionUnavailable"));
       return;
     }
     if (sshForwardBindConflict(forwarding, forwardings)) {
-      setError(t("terminal.sshPortForwardBindConflict", {
+      showError(t("terminal.sshPortForwardBindConflict", {
         address: forwarding.bind,
         port: forwarding.listenPort,
       }));
@@ -451,23 +461,26 @@ export function SshPortForwardingDialog({
           request: { forwardId: forwarding.id },
         }).catch(() => undefined);
       }
-      setError(persistError instanceof Error ? persistError.message : String(persistError));
+      showError(persistError);
     }
   }
 
   async function handleRemove(id: string) {
     const forwarding = forwardings.find((entry) => entry.id === id);
     const next = forwardings.filter((entry) => entry.id !== id);
-    await persist(next);
-    if (forwarding?.enabled && isTauriRuntime()) {
-      await invokeCommand("close_ssh_port_forward", { request: { forwardId: id } }).catch(() => undefined);
+    try {
+      await persist(next);
+      if (forwarding?.enabled && isTauriRuntime()) {
+        await invokeCommand("close_ssh_port_forward", { request: { forwardId: id } });
+      }
+    } catch (removeError) {
+      showError(removeError);
     }
   }
 
   async function handleToggleForwarding(forwarding: SshPortForwarding, nextEnabled: boolean) {
     const updatedForwarding = { ...forwarding, enabled: nextEnabled };
     const next = forwardings.map((entry) => entry.id === forwarding.id ? updatedForwarding : entry);
-    setError("");
     try {
       await persist(next);
       if (nextEnabled) {
@@ -481,7 +494,7 @@ export function SshPortForwardingDialog({
         }
       }
     } catch (toggleError) {
-      setError(toggleError instanceof Error ? toggleError.message : String(toggleError));
+      showError(toggleError);
     }
   }
 
@@ -523,15 +536,17 @@ export function SshPortForwardingDialog({
 
           <div className="sshf-diagram">
             <div className="sshf-stage">
-              <ForwardNode icon="monitor" label={t("terminal.thisPc")} endpoint={mode === "R" ? `${current.destHost}:${current.destPort}` : `${current.bind}:${current.listenPort}`} listen={mode !== "R"} listeningLabel={t("terminal.sshForwardListening")} />
+              {mode === "R" && diagramTargets.length > 0 ? <ForwardTargetFan side="left" targets={diagramTargets} /> : null}
+              <ForwardNode icon="monitor" label={t("terminal.thisPc")} listen={mode !== "R"} listeningLabel={t("terminal.sshForwardListening")} />
               <div className={`sshf-track ${mode === "R" ? "rtl" : "ltr"}`}><span className="sshf-rail" /><span className="sshf-dot" /><span className="sshf-dot two" /><span className="sshf-dot three" /></div>
-              <ForwardNode icon="server" label={connection.name} endpoint={mode === "D" ? t("terminal.sshTunnel") : mode === "R" ? `${current.bind}:${current.listenPort}` : `${current.destHost}:${current.destPort}`} listen={mode === "R"} listeningLabel={t("terminal.sshForwardListening")} />
+              <ForwardNode icon="server" label={connection.name} listen={mode === "R"} listeningLabel={t("terminal.sshForwardListening")} />
               {mode === "D" ? (
                 <>
                   <div className="sshf-track ltr"><span className="sshf-rail" /><span className="sshf-dot" /><span className="sshf-dot two" /></div>
                   <ForwardNode icon="globe" label={t("terminal.internet")} endpoint={t("terminal.anyHost")} />
-                </>
-              ) : null}
+                  </>
+                ) : null}
+              {mode === "L" && diagramTargets.length > 0 ? <ForwardTargetFan side="right" targets={diagramTargets} /> : null}
             </div>
           </div>
 
@@ -554,7 +569,7 @@ export function SshPortForwardingDialog({
                         onClick={() => {
                           const url = sshForwardBrowserUrl(forwarding.bind, forwarding.listenPort);
                           void openExternalUrl(url).catch((openError) => {
-                            setError(openError instanceof Error ? openError.message : String(openError));
+                            showError(openError);
                           });
                         }}
                         title={sshForwardBrowserUrl(forwarding.bind, forwarding.listenPort)}
@@ -570,7 +585,7 @@ export function SshPortForwardingDialog({
                       <button
                         className="sa-remote sa-endpoint-link"
                         onClick={() => void openExternalUrl(remoteUrl).catch((openError) => {
-                          setError(openError instanceof Error ? openError.message : String(openError));
+                          showError(openError);
                         })}
                         title={remoteUrl}
                         type="button"
@@ -643,7 +658,6 @@ export function SshPortForwardingDialog({
             <span className="cmd-prompt">$</span>
             <code>{command}</code>
           </div>
-          {error ? <p className="form-error">{error}</p> : null}
         </div>
       </Sheet>
     </div>
@@ -659,7 +673,7 @@ function ForwardNode({
 }: {
   icon: "monitor" | "server" | "globe";
   label: string;
-  endpoint: string;
+  endpoint?: string;
   listen?: boolean;
   listeningLabel?: string;
 }) {
@@ -671,8 +685,64 @@ function ForwardNode({
       </div>
       <div className="sshf-cap">
         <span className="role">{label}</span>
-        <span className="ep">{endpoint}</span>
+        {endpoint ? <span className="ep">{endpoint}</span> : null}
       </div>
     </div>
   );
+}
+
+function ForwardTargetFan({
+  side,
+  targets,
+}: {
+  side: "left" | "right";
+  targets: SshForwardDiagramTarget[];
+}) {
+  const left = side === "left";
+  const dense = targets.length > 3;
+  const shown = dense && targets.length > 4 ? targets.slice(0, 3) : targets;
+  const extra = targets.length - shown.length;
+  const rows = shown.length + (extra > 0 ? 1 : 0);
+  const nodeHeight = dense ? 24 : 32;
+  const gap = dense ? 6 : 7;
+  const wireWidth = 40;
+  const stackHeight = rows * nodeHeight + (rows - 1) * gap;
+  const originY = stackHeight / 2;
+  const centers = Array.from({ length: rows }, (_, index) => index * (nodeHeight + gap) + nodeHeight / 2);
+  const targetColumn = (
+    <div className={`sshf-targets${dense ? " dense" : ""}`}>
+      {shown.map((target) => (
+        <div className="tg-node" key={target.host} title={target.host}>
+          <span className="tg-ico"><DIcon name="server" size={dense ? 12 : 15} /></span>
+          {!dense ? (
+            <span className="tg-cap">
+              <span className="nm">{target.host}</span>
+            </span>
+          ) : null}
+        </div>
+      ))}
+      {extra > 0 ? (
+        <div className="tg-node more" title={targets.slice(shown.length).map((target) => target.host).join("\n")}>
+          <span className="tg-ico">+{extra}</span>
+        </div>
+      ) : null}
+    </div>
+  );
+  const wires = (
+    <svg aria-hidden="true" className="fan-wires" height={stackHeight} preserveAspectRatio="none" viewBox={`0 0 ${wireWidth} ${stackHeight}`} width={wireWidth}>
+      {centers.map((centerY, index) => (
+        <path
+          d={left
+            ? `M${wireWidth} ${originY} C ${wireWidth / 2} ${originY}, ${wireWidth / 2} ${centerY}, 0 ${centerY}`
+            : `M0 ${originY} C ${wireWidth / 2} ${originY}, ${wireWidth / 2} ${centerY}, ${wireWidth} ${centerY}`}
+          fill="none"
+          key={index}
+          stroke="currentColor"
+          strokeWidth="1.4"
+        />
+      ))}
+    </svg>
+  );
+
+  return <div className={`sshf-fan${left ? " left" : ""}`}>{left ? <>{targetColumn}{wires}</> : <>{wires}{targetColumn}</>}</div>;
 }
