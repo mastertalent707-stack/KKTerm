@@ -5,6 +5,9 @@ import { currentPlatform } from "./platform";
 import {
   appUpdateInstallStrategy,
   appUpdateProgressPercent,
+  fetchUpdateJson,
+  parseCloudflareReleaseManifest,
+  selectManifestWindowsInstaller,
   selectWindowsInstallerAssets,
   type AppUpdateAsset,
   type AppUpdateInstallerAssets,
@@ -25,6 +28,7 @@ export function isDebugBuild(): Promise<boolean> {
 
 const RELEASES_API_URL = "https://api.github.com/repos/ryantsai/KKTerm/releases/latest";
 const RELEASES_PAGE_URL = "https://github.com/ryantsai/KKTerm/releases/latest";
+const CLOUDFLARE_RELEASE_URL = "https://kkterm.ryantsai.com/releases/latest.json";
 
 export type AppUpdate = {
   currentVersion: string;
@@ -100,22 +104,26 @@ export async function checkForAppUpdate(): Promise<AppUpdate | null> {
 
   const currentVersion = await getVersion();
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
-
-  let release: GitHubRelease;
+  const targetTriple = (await invokeCommand("get_app_update_target_triple")) as string;
   try {
-    const response = await fetch(RELEASES_API_URL, {
-      headers: { Accept: "application/vnd.github+json" },
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      throw new Error(`GitHub returned ${response.status}`);
-    }
-    release = (await response.json()) as GitHubRelease;
-  } finally {
-    clearTimeout(timeout);
+    const manifest = parseCloudflareReleaseManifest(
+      await fetchUpdateJson(CLOUDFLARE_RELEASE_URL, "Cloudflare", 10_000),
+    );
+    if (compareVersions(manifest.version, currentVersion) <= 0) return null;
+    return {
+      currentVersion,
+      version: manifest.version,
+      body: manifest.notes.trim(),
+      htmlUrl: manifest.release_url,
+      installer: selectManifestWindowsInstaller(manifest, targetTriple),
+      installStrategy: strategy,
+    };
+  } catch {
+    // GitHub remains a fallback when the app-owned release mirror is unavailable
+    // or returns malformed metadata.
   }
+
+  const release = (await fetchUpdateJson(RELEASES_API_URL, "GitHub", 10_000)) as GitHubRelease;
 
   if (release.draft || release.prerelease || !release.tag_name) {
     return null;
@@ -125,8 +133,6 @@ export async function checkForAppUpdate(): Promise<AppUpdate | null> {
   if (compareVersions(latestVersion, currentVersion) <= 0) {
     return null;
   }
-
-  const targetTriple = await invokeCommand("get_app_update_target_triple");
 
   return {
     currentVersion,

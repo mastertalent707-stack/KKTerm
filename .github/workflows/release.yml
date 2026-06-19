@@ -14,12 +14,12 @@ on:
         default: false
         type: boolean
       skip_build:
-        description: "Use existing release artifacts instead of building the installer"
+        description: "Use existing Windows release artifacts instead of building the installers"
         required: false
         default: false
         type: boolean
       skip_smoke:
-        description: "Skip installer smoke test"
+        description: "Skip Windows installer smoke test"
         required: false
         default: false
         type: boolean
@@ -29,13 +29,14 @@ on:
         default: false
         type: boolean
       dry_run:
-        description: "Preview release version only; do not change files, tags, or releases"
+        description: "Preview release version only; do not change files, tags, releases, or mirrors"
         required: false
         default: false
         type: boolean
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: release-main
@@ -43,8 +44,10 @@ concurrency:
 
 jobs:
   release:
-    name: GitHub Release
+    name: GitHub Release (Windows x64/ARM64)
     runs-on: windows-latest
+    outputs:
+      tag: ${{ steps.release_info.outputs.tag }}
     env:
       GH_TOKEN: ${{ github.token }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -69,12 +72,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Publish release
+      - name: Publish Windows release and release notes
         shell: pwsh
         run: |
-          # Use the both-arch wrapper so CI/CD always builds and publishes the
-          # x64 and ARM64 installers together, matching the local
-          # `npm run release:github:both-arch` path.
+          # Windows owns versioning: this increments package/Tauri/Cargo versions,
+          # generates notes, commits/tags, pushes main, creates the GitHub Release,
+          # and uploads x64 + ARM64 installer assets.
           $releaseArgs = @("-File", "scripts/release-github-both-arch.ps1")
           if ("${{ inputs.draft }}" -eq "true") { $releaseArgs += "-Draft" }
           if ("${{ inputs.prerelease }}" -eq "true") { $releaseArgs += "-Prerelease" }
@@ -83,3 +86,129 @@ jobs:
           if ("${{ inputs.skip_ai_release_notes }}" -eq "true") { $releaseArgs += "-SkipAiReleaseNotes" }
           if ("${{ inputs.dry_run }}" -eq "true") { $releaseArgs += "-DryRun" }
           powershell -NoProfile -ExecutionPolicy Bypass @releaseArgs
+
+      - name: Capture release tag
+        id: release_info
+        shell: pwsh
+        run: |
+          if ("${{ inputs.dry_run }}" -eq "true") {
+            "tag=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            exit 0
+          }
+          $version = (node -p "require('./package.json').version").Trim()
+          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+  release-macos:
+    name: GitHub Release (macOS Apple Silicon)
+    runs-on: macos-15
+    needs: release
+    if: ${{ inputs.dry_run != true }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Refresh to Windows release commit and tags
+        run: |
+          git fetch origin main --tags
+          git reset --hard origin/main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          targets: aarch64-apple-darwin
+
+      - run: npm ci
+
+      - name: Import Apple signing certificate
+        if: ${{ env.APPLE_CERTIFICATE_P12 != '' }}
+        env:
+          KEYCHAIN_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/kkterm-signing.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/kkterm-signing.keychain-db"
+          printf '%s' "$APPLE_CERTIFICATE_P12" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychain -d user | sed 's/[\" ]//g')
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Write App Store Connect API key
+        run: |
+          test -n "$APPLE_API_KEY_P8"
+          printf '%s' "$APPLE_API_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+          echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
+
+      - name: Build, notarize, and publish macOS assets
+        run: zsh scripts/release-github-macos.sh --tag "${{ needs.release.outputs.tag }}"
+
+  release-linux:
+    name: GitHub Release (Linux AppImage)
+    runs-on: ubuntu-24.04
+    needs: release-macos
+    if: ${{ inputs.dry_run != true }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Refresh to Windows release commit and tags
+        run: |
+          git fetch origin main --tags
+          git reset --hard origin/main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+
+      - name: Install Tauri Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            build-essential \
+            pkg-config \
+            libfuse2t64
+
+      - run: npm ci
+
+      - name: Build and publish Linux AppImage
+        run: bash scripts/release-github-linux.sh --tag "${{ needs.release.outputs.tag }}"
+
+  mirror-final:
+    name: Final Cloudflare mirror reconciliation
+    needs: release-linux
+    if: ${{ inputs.dry_run != true && inputs.draft != true && inputs.prerelease != true }}
+    uses: ./.github/workflows/mirror-release.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+    secrets: inherit

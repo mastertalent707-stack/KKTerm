@@ -409,4 +409,9 @@ log "Upload macOS assets"
 gh release upload "$TAG_NAME" "$DMG_PATH" "$SHA_PATH" "$UPDATER_PATH" "$UPDATER_SIG_PATH" "$LATEST_JSON_PATH" --clobber
 rm -rf "$existing_latest_dir"
 
+log "Dispatch Cloudflare release mirror"
+if ! gh workflow run mirror-release.yml --ref main -f "tag=$TAG_NAME"; then
+  print -u2 -- "Warning: Cloudflare mirror dispatch failed. Retry with: gh workflow run mirror-release.yml --ref main -f tag=$TAG_NAME"
+fi
+
 log "macOS release assets published."

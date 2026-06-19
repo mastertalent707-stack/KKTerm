@@ -494,6 +494,12 @@ artifacts/release-notes-*.md) that were not part of a finished release.
 
         Invoke-Checked -FilePath "gh" -ArgumentList $GhArgs -Action "Create GitHub release"
 
+        Write-Host "==> Dispatch Cloudflare release mirror"
+        gh workflow run mirror-release.yml --ref $Branch -f "tag=$TagName"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Cloudflare mirror dispatch failed. Retry with: gh workflow run mirror-release.yml --ref $Branch -f tag=$TagName"
+        }
+
         [PSCustomObject]@{
             Version = $NextVersion
             Tag = $TagName

@@ -55,6 +55,85 @@ test("startup update check only runs once when enabled in the Tauri runtime", as
   );
 });
 
+test("startup update checks are throttled for 24 hours", async () => {
+  const { shouldRunStartupUpdateCheck, STARTUP_UPDATE_CHECK_INTERVAL_MS } =
+    await importTypeScriptModule(new URL("../src/lib/appUpdatesModel.ts", import.meta.url));
+  const now = Date.UTC(2026, 5, 19, 8);
+
+  assert.equal(
+    shouldRunStartupUpdateCheck({
+      autoUpdateChecksEnabled: true,
+      hasCheckedThisLaunch: false,
+      isTauriRuntime: true,
+      lastCheckedAt: now - STARTUP_UPDATE_CHECK_INTERVAL_MS + 1,
+      now,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldRunStartupUpdateCheck({
+      autoUpdateChecksEnabled: true,
+      hasCheckedThisLaunch: false,
+      isTauriRuntime: true,
+      lastCheckedAt: now - STARTUP_UPDATE_CHECK_INTERVAL_MS,
+      now,
+    }),
+    true,
+  );
+});
+
+test("Cloudflare release manifest selects a verified Windows installer pair", async () => {
+  const { parseCloudflareReleaseManifest, selectManifestWindowsInstaller } =
+    await importTypeScriptModule(new URL("../src/lib/appUpdatesModel.ts", import.meta.url));
+  const manifest = parseCloudflareReleaseManifest({
+    version: "0.1.93",
+    notes: "notes",
+    pub_date: "2026-06-19T00:00:00Z",
+    release_url: "https://github.com/ryantsai/KKTerm/releases/tag/v0.1.93",
+    platforms: {
+      "windows-x64": {
+        url: "https://kkterm.ryantsai.com/releases/v0.1.93/kkterm-0.1.93-windows-x64-setup.exe",
+        checksum_url:
+          "https://kkterm.ryantsai.com/releases/v0.1.93/kkterm-0.1.93-windows-x64-setup.exe.sha256",
+      },
+    },
+  });
+
+  assert.deepEqual(selectManifestWindowsInstaller(manifest, "windows-x64"), {
+    assetName: "kkterm-0.1.93-windows-x64-setup.exe",
+    downloadUrl: "https://kkterm.ryantsai.com/releases/v0.1.93/kkterm-0.1.93-windows-x64-setup.exe",
+    checksumUrl:
+      "https://kkterm.ryantsai.com/releases/v0.1.93/kkterm-0.1.93-windows-x64-setup.exe.sha256",
+  });
+  assert.throws(
+    () =>
+      parseCloudflareReleaseManifest({
+        version: "0.1.93",
+        platforms: {
+          "windows-x64": {
+            url: "http://evil.example/app.exe",
+            checksum_url: "https://kkterm.ryantsai.com/app.exe.sha256",
+          },
+        },
+      }),
+    /manifest/i,
+  );
+});
+
+test("each update endpoint request gets an independent timeout signal", async () => {
+  const { fetchUpdateJson } = await importTypeScriptModule(
+    new URL("../src/lib/appUpdatesModel.ts", import.meta.url),
+  );
+  const signals = [];
+  const fakeFetch = async (_url, init) => {
+    signals.push(init.signal);
+    return { ok: true, json: async () => ({ version: "0.1.93" }) };
+  };
+  await fetchUpdateJson("https://first.example", "First", 1000, fakeFetch);
+  await fetchUpdateJson("https://second.example", "Second", 1000, fakeFetch);
+  assert.notEqual(signals[0], signals[1]);
+});
+
 test("installer asset selection requires matching installer and checksum assets", async () => {
   const { selectWindowsInstallerAssets } = await importTypeScriptModule(
     new URL("../src/lib/appUpdatesModel.ts", import.meta.url),

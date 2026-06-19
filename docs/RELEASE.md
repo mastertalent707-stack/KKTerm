@@ -12,6 +12,7 @@ KKTerm is local-first by default.
 - Durable Connection metadata is stored in local SQLite.
 - Secrets such as passwords, passphrases, and AI API keys are stored in the OS keychain.
 - Update checks are enabled by default and contact GitHub Releases metadata only. This is separate from telemetry: KKTerm does not send analytics, crash reports, terminal contents, Connection data, or secrets as part of update checking. When a newer non-draft, non-prerelease release is available, KKTerm prompts the user; it does not install anything without an explicit click.
+- Packaged builds normally check `https://kkterm.ryantsai.com/releases/latest.json`, served by the app-owned Cloudflare release mirror, and retain GitHub Releases as fallback. These requests contain no Connection, Session, Tab, terminal, credential, or analytics data.
 
 ## Diagnostics Bundle Flow
 
@@ -74,6 +75,26 @@ Publish the next build release with:
 npm run release:github
 ```
 
+### Cloudflare release mirror
+
+GitHub Releases is canonical, while `kkterm.ryantsai.com` provides resilient update metadata and downloads from the private `kkterm-releases` R2 bucket. The `mirror-release.yml` workflow downloads the complete selected GitHub Release, verifies published SHA-256 pairs, mirrors recognized assets under `releases/v<version>/`, and uploads `releases/latest.json` last. It is safe to rerun for the same tag.
+
+The repository requires `CLOUDFLARE_ACCOUNT_ID` and a scoped `CLOUDFLARE_API_TOKEN` GitHub Actions secret with permission to write the dedicated R2 bucket. Never commit either value or copy Wrangler's local OAuth credentials into Actions.
+
+Windows publishes first. The Windows release script dispatches the mirror immediately; the macOS and Linux scripts dispatch it again after their staggered uploads, allowing the same manifest to gain those signed platform entries later. A daily workflow schedule reconciles the latest stable release if a dispatch was missed.
+
+Retry any failed reconciliation without rebuilding:
+
+```bash
+gh workflow run mirror-release.yml --ref main -f tag=v<version>
+```
+
+For a local authenticated dry run that performs no R2 writes:
+
+```bash
+node scripts/sync-cloudflare-release.mjs --tag v<version> --dry-run
+```
+
 The script generates release notes, increments the `<major>.<minor>.<build>` version across npm, Tauri, and Cargo metadata, builds the NSIS installer artifact, smoke tests the installer, runs frontend and Rust checks, commits the version bump plus release notes, tags it as `v<version>`, pushes to `origin/main`, and creates a GitHub release with the installer, checksum, and generated notes. Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-github.ps1 -DryRun` to preview the next version, add `-Draft` for a draft release, or add `-SkipBuild` to publish from existing artifacts.
 
 Release notes are generated before the version-bump commit so the summary covers changes since the previous `v*` tag and not the release commit itself. The generator writes:
@@ -95,7 +116,7 @@ $env:OPENAI_API_KEY = "sk-..."
 npm run release:github
 ```
 
-GitHub Actions uses the same scripts through the manual **Release** workflow. The workflow invokes `scripts/release-github-both-arch.ps1` so a CI/CD release always builds and publishes the x64 **and** ARM64 installers together, matching the local `npm run release:github:both-arch` path (and the `Direct Downloads` section, which links both architecture assets). Store the API key as the repository secret `OPENAI_API_KEY`; the workflow exposes it to the script as the same environment variable. Use the workflow inputs to mark a release as draft/prerelease, skip the installer build or smoke test, disable AI notes, or run a dry preview.
+GitHub Actions uses the same scripts through the manual **Release** workflow. The workflow first invokes `scripts/release-github-both-arch.ps1` on Windows so CI/CD increments the version, generates release notes, commits/tags, creates the GitHub Release, and publishes the x64 **and** ARM64 installers together, matching the local `npm run release:github:both-arch` path (and the `Direct Downloads` section, which links both architecture assets). After Windows succeeds, the same workflow runs the macOS release script and then the Linux release script against the newly pushed tag so the complete cross-platform release can be produced from one workflow dispatch. The platform jobs intentionally run in that order to avoid concurrent `latest.json` updates overwriting staggered platform entries. Store the release-notes API key as the repository secret `OPENAI_API_KEY`; the workflow exposes it to the script as the same environment variable. Use the workflow inputs to mark a release as draft/prerelease, skip the Windows installer build or smoke test, disable AI notes, or run a dry preview.
 
 ## macOS GitHub Release Assets
 

@@ -347,4 +347,9 @@ log "Upload Linux updater metadata"
 gh release upload "$TAG_NAME" "$LATEST_JSON_PATH" --clobber
 rm -rf "$existing_latest_dir"
 
+log "Dispatch Cloudflare release mirror"
+if ! gh workflow run mirror-release.yml --ref main -f "tag=$TAG_NAME"; then
+  printf 'Warning: Cloudflare mirror dispatch failed. Retry with: gh workflow run mirror-release.yml --ref main -f tag=%s\n' "$TAG_NAME" >&2
+fi
+
 log "Linux release assets published."

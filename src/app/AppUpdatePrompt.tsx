@@ -12,7 +12,7 @@ import {
   type AppUpdate,
 } from "../lib/appUpdates";
 import { shouldRunStartupUpdateCheck } from "../lib/appUpdatesModel";
-import { recordUpdateCheckedNow } from "../lib/lastUpdateCheck";
+import { readLastUpdateCheckAt, recordUpdateCheckedNow } from "../lib/lastUpdateCheck";
 import { isTauriRuntime, openExternalUrl } from "../lib/tauri";
 import { useWorkspaceStore } from "../store";
 
@@ -91,6 +91,7 @@ export function AppUpdatePrompt({
         autoUpdateChecksEnabled,
         hasCheckedThisLaunch: startupCheckedRef.current,
         isTauriRuntime: isTauriRuntime(),
+        lastCheckedAt: readLastUpdateCheckAt(),
       })
     ) {
       return;
