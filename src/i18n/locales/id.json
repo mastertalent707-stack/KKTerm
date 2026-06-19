@@ -1372,7 +1372,7 @@
     "systemFontsRefreshed": "Font sistem telah disegarkan.",
     "systemFontsUnavailable": "Deteksi font sistem tidak tersedia dalam build aplikasi ini.",
     "refreshSystemFonts": "Segarkan font sistem",
-    "terminalFontDefault": "Bawaan (Cascadia Mono)",
+    "terminalFontDefault": "Bawaan ({{font}})",
     "systemSans": "System sans",
     "segoeUiVariable": "Segoe UI Variable",
     "openAiCompatibleEndpoint": "Endpoint kompatibel OpenAI",

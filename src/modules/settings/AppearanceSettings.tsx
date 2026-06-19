@@ -7,6 +7,7 @@ import {
 } from "../../lib/customFonts";
 import {
   isSystemFontAccessSupported,
+  systemFontFamilies,
   systemFontsExcluding,
 } from "../../lib/systemFonts";
 import {
@@ -273,13 +274,15 @@ export function AppearanceSettings({ onResetLayout }: { onResetLayout: () => voi
   }
 
   const previewColors = SCHEME_PREVIEW_COLORS[draft.colorScheme];
+  // The app-UI font picker offers every family (not just monospace).
+  const appSystemFonts = systemFontFamilies(systemFonts);
   const appFontOptions = getRecommendedFontOptions(
     "app-ui",
     undefined,
-    recommendationsSynced ? systemFonts : undefined,
+    recommendationsSynced ? appSystemFonts : undefined,
   );
   const curatedAppFontFamilies = appFontOptions.flatMap((option) => option.family ? [option.family] : []);
-  const systemFontOptions = systemFontsExcluding(systemFonts, [
+  const systemFontOptions = systemFontsExcluding(appSystemFonts, [
     ...curatedAppFontFamilies,
     ...customFonts.map((font) => font.name),
   ]).map((family) => ({ family, value: appSystemFontCssValue(family) }));

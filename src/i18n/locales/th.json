@@ -1372,7 +1372,7 @@
     "systemFontsRefreshed": "รีเฟรชฟอนต์ของระบบแล้ว",
     "systemFontsUnavailable": "การตรวจหาฟอนต์ของระบบไม่พร้อมใช้งานในบิลด์แอปนี้",
     "refreshSystemFonts": "รีเฟรชฟอนต์ของระบบ",
-    "terminalFontDefault": "ค่าเริ่มต้น (Cascadia Mono)",
+    "terminalFontDefault": "ค่าเริ่มต้น ({{font}})",
     "systemSans": "ระบบ sans",
     "segoeUiVariable": "Segoe UI Variable",
     "openAiCompatibleEndpoint": "จุดสิ้นสุดที่เข้ากันได้กับ OpenAI",

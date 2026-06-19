@@ -4124,7 +4124,11 @@ fn default_status_bar_monitor_interval_seconds() -> u32 {
 
 fn default_terminal_settings() -> TerminalSettings {
     TerminalSettings {
-        font_family: "\"Cascadia Mono\", \"JetBrains Mono\", Consolas, monospace".to_string(),
+        // Resolves per platform via CSS fallback: Cascadia Mono (Windows),
+        // SF Mono (macOS), then the bundled JetBrains Mono (Linux / anywhere the
+        // others are absent). Keep in sync with the frontend app-defaults.ts.
+        font_family: "\"Cascadia Mono\", \"SF Mono\", \"JetBrains Mono\", Consolas, monospace"
+            .to_string(),
         font_size: 12,
         line_height: 1.25,
         cursor_style: "block".to_string(),

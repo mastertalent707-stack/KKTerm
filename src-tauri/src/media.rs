@@ -208,14 +208,22 @@ pub(crate) fn is_supported_font_extension(extension: &str) -> bool {
 /// sorted, de-duplicated list. This is intentionally a pure-Rust scan so the
 /// build stays free of native font-config / DirectWrite / Core Text deps; it
 /// runs off the UI thread on explicit refresh only.
-pub(crate) fn list_system_fonts_sync() -> Vec<String> {
-    use std::collections::BTreeSet;
+pub(crate) fn list_system_fonts_sync() -> Vec<SystemFontEntry> {
+    use std::collections::BTreeMap;
 
-    let mut families: BTreeSet<String> = BTreeSet::new();
+    // family name -> monospaced (OR-combined across the family's faces, matching
+    // how custom fonts treat a family as monospace if any face is).
+    let mut families: BTreeMap<String, bool> = BTreeMap::new();
     for dir in system_font_directories() {
         collect_fonts_in_dir(&dir, 0, &mut families);
     }
-    families.into_iter().collect()
+    families
+        .into_iter()
+        .map(|(family, is_monospaced)| SystemFontEntry {
+            family,
+            is_monospaced,
+        })
+        .collect()
 }
 
 fn system_font_directories() -> Vec<PathBuf> {
@@ -261,7 +269,11 @@ fn system_font_directories() -> Vec<PathBuf> {
     dirs
 }
 
-fn collect_fonts_in_dir(dir: &Path, depth: usize, out: &mut std::collections::BTreeSet<String>) {
+fn collect_fonts_in_dir(
+    dir: &Path,
+    depth: usize,
+    out: &mut std::collections::BTreeMap<String, bool>,
+) {
     // Bound recursion so a symlink cycle inside a font directory cannot loop.
     if depth > 8 {
         return;
@@ -292,7 +304,7 @@ fn is_system_font_file(path: &Path) -> bool {
     )
 }
 
-fn collect_family_names(data: &[u8], out: &mut std::collections::BTreeSet<String>) {
+fn collect_family_names(data: &[u8], out: &mut std::collections::BTreeMap<String, bool>) {
     let face_count = ttf_parser::fonts_in_collection(data).unwrap_or(1).max(1);
     for index in 0..face_count {
         let face = match ttf_parser::Face::parse(data, index) {
@@ -301,9 +313,15 @@ fn collect_family_names(data: &[u8], out: &mut std::collections::BTreeSet<String
         };
         if let Some(name) = preferred_face_family_name(&face) {
             let trimmed = name.trim();
-            if !trimmed.is_empty() {
-                out.insert(trimmed.to_string());
+            // Skip Apple's hidden/system-internal families (e.g. ".SF NS",
+            // ".Apple SD Gothic NeoI"). Their dot prefix marks them as not
+            // user-selectable; Core Text hides them but our raw directory scan
+            // would otherwise surface them in the font picker.
+            if trimmed.is_empty() || trimmed.starts_with('.') {
+                continue;
             }
+            let entry = out.entry(trimmed.to_string()).or_insert(false);
+            *entry = *entry || face.is_monospaced();
         }
     }
 }

@@ -6,6 +6,7 @@ import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
 import { normalizeAvailableTerminal, terminalCustomFontOptions } from "../../lib/customFonts";
 import {
   isSystemFontAccessSupported,
+  systemFontFamilies,
   systemFontsExcluding,
 } from "../../lib/systemFonts";
 import {
@@ -229,13 +230,15 @@ export function TerminalSettings() {
       label: font.name,
       value: terminalFontCssValue(font.name),
     }));
+  // The terminal font picker only offers monospace families.
+  const monospaceSystemFonts = systemFontFamilies(systemFonts, true);
   const terminalFontOptions = getRecommendedFontOptions(
     "terminal",
     undefined,
-    recommendationsSynced ? systemFonts : undefined,
+    recommendationsSynced ? monospaceSystemFonts : undefined,
   );
   const curatedTerminalFontFamilies = terminalFontOptions.flatMap((option) => option.family ? [option.family] : []);
-  const systemFontTerminalOptions = systemFontsExcluding(systemFonts, [
+  const systemFontTerminalOptions = systemFontsExcluding(monospaceSystemFonts, [
     ...curatedTerminalFontFamilies,
     ...customFonts.map((font) => font.name),
   ]).map((family) => ({ family, value: terminalFontCssValue(family) }));
@@ -300,7 +303,7 @@ export function TerminalSettings() {
                 <optgroup label={t("settings.recommendedFonts")}>
                   {terminalFontOptions.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.labelKey ? t(option.labelKey) : option.label}
+                      {option.labelKey ? t(option.labelKey, option.labelParams) : option.label}
                     </option>
                   ))}
                 </optgroup>

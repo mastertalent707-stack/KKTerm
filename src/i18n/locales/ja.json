@@ -1372,7 +1372,7 @@
     "systemFontsRefreshed": "システムフォントを更新しました。",
     "systemFontsUnavailable": "このアプリビルドでは、システムフォントの検出を利用できません。",
     "refreshSystemFonts": "システムフォントを更新",
-    "terminalFontDefault": "既定 (Cascadia Mono)",
+    "terminalFontDefault": "既定 ({{font}})",
     "systemSans": "システムサンセリフ",
     "segoeUiVariable": "Segoe UI Variable",
     "openAiCompatibleEndpoint": "OpenAI互換エンドポイント",

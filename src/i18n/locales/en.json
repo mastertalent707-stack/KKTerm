@@ -1372,7 +1372,7 @@
     "systemFontsRefreshed": "System fonts refreshed.",
     "systemFontsUnavailable": "System font detection isn't available in this app build.",
     "refreshSystemFonts": "Refresh system fonts",
-    "terminalFontDefault": "Default (Cascadia Mono)",
+    "terminalFontDefault": "Default ({{font}})",
     "systemSans": "System sans",
     "segoeUiVariable": "Segoe UI Variable",
     "openAiCompatibleEndpoint": "OpenAI-compatible endpoint",

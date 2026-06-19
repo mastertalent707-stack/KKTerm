@@ -14,6 +14,16 @@
   font-style: italic;
 }
 
+/* Bundled terminal monospace. Cascadia Mono ships with Windows but not macOS or
+   Linux, so the default terminal font stack resolves here on those platforms. */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("../assets/fonts/jetbrains-mono/web/JetBrainsMono-Variable.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 100 800;
+  font-style: normal;
+}
+
 :root {
   color: var(--text);
   background: var(--app-bg);

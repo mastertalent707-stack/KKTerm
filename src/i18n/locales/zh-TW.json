@@ -1372,7 +1372,7 @@
     "systemFontsRefreshed": "系統字型已重新整理。",
     "systemFontsUnavailable": "此應用程式建置版本無法使用系統字型偵測。",
     "refreshSystemFonts": "重新整理系統字型",
-    "terminalFontDefault": "預設 (Cascadia Mono)",
+    "terminalFontDefault": "預設 ({{font}})",
     "systemSans": "系統無襯線",
     "segoeUiVariable": "Segoe UI Variable",
     "openAiCompatibleEndpoint": "OpenAI 相容端點",

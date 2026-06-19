@@ -70,7 +70,10 @@ export const defaultDashboardSettings: DashboardSettings = {
 };
 
 export const defaultTerminalSettings: TerminalSettings = {
-  fontFamily: '"Cascadia Mono", "JetBrains Mono", Consolas, monospace',
+  // Resolves per platform via CSS fallback: Cascadia Mono (Windows), SF Mono
+  // (macOS), then the bundled JetBrains Mono (Linux / anywhere the others are
+  // absent). Keep in sync with the backend default in storage.rs.
+  fontFamily: '"Cascadia Mono", "SF Mono", "JetBrains Mono", Consolas, monospace',
   fontSize: 12,
   lineHeight: 1.25,
   cursorStyle: "block",

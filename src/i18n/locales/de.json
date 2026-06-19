@@ -1372,7 +1372,7 @@
     "systemFontsRefreshed": "Systemschriftarten wurden aktualisiert.",
     "systemFontsUnavailable": "Die Erkennung von Systemschriftarten ist in diesem App-Build nicht verfügbar.",
     "refreshSystemFonts": "Systemschriftarten aktualisieren",
-    "terminalFontDefault": "Standard (Cascadia Mono)",
+    "terminalFontDefault": "Standard ({{font}})",
     "systemSans": "System Sans",
     "segoeUiVariable": "Segoe UI Variable",
     "openAiCompatibleEndpoint": "OpenAI-kompatibler Endpunkt",
