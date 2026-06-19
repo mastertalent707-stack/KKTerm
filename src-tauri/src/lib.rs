@@ -2221,10 +2221,14 @@ async fn list_remote_network_addresses(
 }
 
 #[tauri::command]
-fn list_local_tcp_listeners(
-    sessions: tauri::State<'_, sessions::SessionManager>,
+async fn list_local_tcp_listeners(
+    app: tauri::AppHandle,
 ) -> Result<Vec<sessions::LocalTcpListener>, String> {
-    sessions.list_local_tcp_listeners()
+    run_blocking_command("local TCP listener discovery", move || {
+        app.state::<sessions::SessionManager>()
+            .list_local_tcp_listeners()
+    })
+    .await
 }
 
 #[tauri::command]

@@ -10,6 +10,7 @@ const cssUrl = new URL(
   "../src/modules/workspace/connections/terminal/terminal.css",
   import.meta.url,
 );
+const backendUrl = new URL("../src-tauri/src/lib.rs", import.meta.url);
 
 test("SSH forwarding fields use unfiltered editable dropdowns for detected suggestions", async () => {
   const source = await readFile(dialogUrl, "utf8");
@@ -68,6 +69,16 @@ test("enabled reachable Remote listeners render on the right and open externally
   assert.match(source, /forwarding\.mode === "R" && forwarding\.enabled && remoteUrl/);
   assert.match(source, /className="sa-remote sa-endpoint-link"/);
   assert.match(css, /\.sa-endpoint-link/);
+});
+
+test("local listener discovery runs off the Tauri command thread", async () => {
+  const backend = await readFile(backendUrl, "utf8");
+  const command = backend.slice(
+    backend.indexOf("async fn list_local_tcp_listeners"),
+    backend.indexOf("async fn start_ssh_port_forward"),
+  );
+
+  assert.match(command, /run_blocking_command\("local TCP listener discovery"/);
 });
 
 test("SSH forwarding dialog uses a top-right close button as its only dismiss action", async () => {
