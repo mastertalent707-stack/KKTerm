@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 use std::{
     collections::HashMap,
     future::Future,
-    net::{SocketAddr, TcpListener as StdTcpListener},
+    net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener as StdTcpListener},
     path::PathBuf,
     rc::Rc,
     sync::{Arc, mpsc as std_mpsc},
@@ -21,7 +21,7 @@ use std::{
 };
 use tauri::{AppHandle, Manager};
 use tokio::{
-    io::copy_bidirectional,
+    io::{AsyncReadExt, AsyncWriteExt, copy_bidirectional},
     net::{TcpListener, TcpStream},
     sync::{mpsc, oneshot},
 };
@@ -137,14 +137,34 @@ enum NativeSshWorkerMsg {
     },
     StartPortForward {
         forward_id: String,
-        listener: StdTcpListener,
-        dest_host: String,
-        remote_port: u16,
+        kind: NativeSshPortForwardKind,
         reply: std_mpsc::SyncSender<Result<(), String>>,
     },
     StopPortForward {
         forward_id: String,
     },
+}
+
+pub enum NativeSshPortForwardKind {
+    Local {
+        listener: StdTcpListener,
+        dest_host: String,
+        dest_port: u16,
+    },
+    Dynamic {
+        listener: StdTcpListener,
+    },
+    Remote {
+        bind: String,
+        listen_port: u16,
+        dest_host: String,
+        dest_port: u16,
+    },
+}
+
+enum LivePortForward {
+    Listener(oneshot::Sender<()>),
+    Remote { bind: String, port: u32 },
 }
 
 /// Cloneable handle to a live native SSH Session for running one-off remote
@@ -178,18 +198,14 @@ impl NativeSshPortForwardHandle {
     pub fn start(
         &self,
         forward_id: String,
-        listener: StdTcpListener,
-        dest_host: String,
-        remote_port: u16,
+        kind: NativeSshPortForwardKind,
         timeout: Duration,
     ) -> Result<(), String> {
         let (reply, rx) = std_mpsc::sync_channel(1);
         self.worker_tx
             .send(NativeSshWorkerMsg::StartPortForward {
                 forward_id,
-                listener,
-                dest_host,
-                remote_port,
+                kind,
                 reply,
             })
             .map_err(|_| "native SSH session is closed".to_string())?;
@@ -247,6 +263,7 @@ pub(crate) struct NativeSshConnectionRequest {
     pub known_hosts_path: PathBuf,
     pub x11_forwarding: Option<NativeSshX11Forwarding>,
     pub socks_proxy: Option<String>,
+    pub(crate) remote_forward_targets: Option<RemoteForwardTargets>,
 }
 
 #[derive(Clone)]
@@ -325,7 +342,10 @@ pub(crate) struct VerifyingClient {
     known_hosts_path: PathBuf,
     rejection: Arc<std::sync::Mutex<Option<String>>>,
     x11_forwarding: Option<NativeSshX11Forwarding>,
+    remote_forward_targets: Option<RemoteForwardTargets>,
 }
+
+pub(crate) type RemoteForwardTargets = Arc<std::sync::Mutex<HashMap<(String, u32), (String, u16)>>>;
 
 impl client::Handler for VerifyingClient {
     type Error = russh::Error;
@@ -386,6 +406,42 @@ impl client::Handler for VerifyingClient {
                 tokio::spawn(async move {
                     if let Err(error) = bridge_x11_channel(channel, x11_forwarding.display).await {
                         eprintln!("failed to bridge SSH X11 channel: {error}");
+                    }
+                });
+            }
+            Ok(())
+        }
+    }
+
+    fn server_channel_open_forwarded_tcpip(
+        &mut self,
+        channel: Channel<Msg>,
+        connected_address: &str,
+        connected_port: u32,
+        _originator_address: &str,
+        _originator_port: u32,
+        _session: &mut Session,
+    ) -> impl Future<Output = Result<(), Self::Error>> + Send {
+        let target = self.remote_forward_targets.as_ref().and_then(|targets| {
+            targets.lock().ok().and_then(|targets| {
+                targets
+                    .get(&(connected_address.to_string(), connected_port))
+                    .or_else(|| {
+                        targets
+                            .iter()
+                            .find(|((_, port), _)| *port == connected_port)
+                            .map(|(_, target)| target)
+                    })
+                    .cloned()
+            })
+        });
+        async move {
+            if let Some((dest_host, dest_port)) = target {
+                tokio::spawn(async move {
+                    if let Err(error) =
+                        bridge_remote_forward_channel(channel, dest_host, dest_port).await
+                    {
+                        eprintln!("SSH remote port forward connection failed: {error}");
                     }
                 });
             }
@@ -745,6 +801,7 @@ async fn run_remote_command_async(request: NativeSshCommandRequest) -> Result<St
         known_hosts_path: request.known_hosts_path,
         x11_forwarding: None,
         socks_proxy: request.socks_proxy,
+        remote_forward_targets: None,
     })
     .await?;
 
@@ -1019,6 +1076,7 @@ async fn run_native_terminal_once(
     ready_tx: Option<std_mpsc::SyncSender<Result<NativeSshReadyResult, String>>>,
     startup_timeout: Duration,
 ) -> Result<TerminalRunOutcome, String> {
+    let remote_forward_targets = RemoteForwardTargets::default();
     let startup = async {
         ssh_debug(
             "terminal.startup.begin",
@@ -1044,6 +1102,7 @@ async fn run_native_terminal_once(
                 known_hosts_path: request.known_hosts_path.clone(),
                 x11_forwarding: request.x11_forwarding.clone(),
                 socks_proxy: request.socks_proxy.clone(),
+                remote_forward_targets: Some(Arc::clone(&remote_forward_targets)),
             },
             Some(&mut prompt),
         )
@@ -1148,7 +1207,7 @@ async fn run_native_terminal_once(
     // exec channels without a second connection. `client::Handle` is not Clone,
     // so an Rc provides the shared, read-only access the local probe tasks need.
     let session = Rc::new(session);
-    let mut port_forward_stops = HashMap::<String, oneshot::Sender<()>>::new();
+    let mut live_port_forwards = HashMap::<String, LivePortForward>::new();
 
     if let Some(ready_tx) = ready_tx {
         let _ = ready_tx.send(Ok((terminal_ready_ms, x11_forwarding_status)));
@@ -1261,44 +1320,80 @@ async fn run_native_terminal_once(
                     }
                     Some(NativeSshWorkerMsg::StartPortForward {
                         forward_id,
-                        listener,
-                        dest_host,
-                        remote_port,
+                        kind,
                         reply,
                     }) => {
-                        let result = TcpListener::from_std(listener)
-                            .map_err(|error| format!("failed to start local port forward listener: {error}"));
-                        match result {
-                            Ok(listener) => {
-                                if let Some(stop) = port_forward_stops.remove(&forward_id) {
-                                    let _ = stop.send(());
+                        if let Some(existing) = live_port_forwards.remove(&forward_id) {
+                            stop_live_port_forward(existing, &session, &remote_forward_targets).await;
+                        }
+                        let result = match kind {
+                            NativeSshPortForwardKind::Local { listener, dest_host, dest_port } => {
+                                TcpListener::from_std(listener)
+                                    .map_err(|error| format!("failed to start local port forward listener: {error}"))
+                                    .map(|listener| {
+                                        let (stop_tx, stop_rx) = oneshot::channel();
+                                        let session = Rc::clone(&session);
+                                        let task_forward_id = forward_id.clone();
+                                        tokio::task::spawn_local(async move {
+                                            if let Err(error) = run_live_ssh_port_forward(listener, session, dest_host, dest_port, stop_rx).await {
+                                                eprintln!("SSH port forward {task_forward_id} stopped: {error}");
+                                            }
+                                        });
+                                        LivePortForward::Listener(stop_tx)
+                                    })
+                            }
+                            NativeSshPortForwardKind::Dynamic { listener } => {
+                                TcpListener::from_std(listener)
+                                    .map_err(|error| format!("failed to start dynamic port forward listener: {error}"))
+                                    .map(|listener| {
+                                        let (stop_tx, stop_rx) = oneshot::channel();
+                                        let session = Rc::clone(&session);
+                                        let task_forward_id = forward_id.clone();
+                                        tokio::task::spawn_local(async move {
+                                            if let Err(error) = run_live_ssh_dynamic_forward(listener, session, stop_rx).await {
+                                                eprintln!("SSH dynamic port forward {task_forward_id} stopped: {error}");
+                                            }
+                                        });
+                                        LivePortForward::Listener(stop_tx)
+                                    })
+                            }
+                            NativeSshPortForwardKind::Remote { bind, listen_port, dest_host, dest_port } => {
+                                let port = u32::from(listen_port);
+                                if let Ok(mut targets) = remote_forward_targets.lock() {
+                                    targets.insert((bind.clone(), port), (dest_host, dest_port));
                                 }
-                                let (stop_tx, stop_rx) = oneshot::channel();
-                                port_forward_stops.insert(forward_id.clone(), stop_tx);
-                                let session = Rc::clone(&session);
-                                tokio::task::spawn_local(async move {
-                                    if let Err(error) = run_live_ssh_port_forward(
-                                        listener,
-                                        session,
-                                        dest_host,
-                                        remote_port,
-                                        stop_rx,
-                                    )
-                                    .await
-                                    {
-                                        eprintln!("SSH port forward {forward_id} stopped: {error}");
+                                match session.tcpip_forward(bind.clone(), u32::from(listen_port)).await {
+                                    Ok(allocated_port) => {
+                                        let actual_port = if listen_port == 0 { allocated_port } else { port };
+                                        if actual_port != port {
+                                            if let Ok(mut targets) = remote_forward_targets.lock() {
+                                                if let Some(target) = targets.remove(&(bind.clone(), port)) {
+                                                    targets.insert((bind.clone(), actual_port), target);
+                                                }
+                                            }
+                                        }
+                                        Ok(LivePortForward::Remote { bind, port: actual_port })
                                     }
-                                });
+                                    Err(error) => {
+                                        if let Ok(mut targets) = remote_forward_targets.lock() {
+                                            targets.remove(&(bind, port));
+                                        }
+                                        Err(format!("failed to start remote port forward listener: {error}"))
+                                    },
+                                }
+                            }
+                        };
+                        match result {
+                            Ok(live_forward) => {
+                                live_port_forwards.insert(forward_id, live_forward);
                                 let _ = reply.send(Ok(()));
                             }
-                            Err(error) => {
-                                let _ = reply.send(Err(error));
-                            }
+                            Err(error) => { let _ = reply.send(Err(error)); }
                         }
                     }
                     Some(NativeSshWorkerMsg::StopPortForward { forward_id }) => {
-                        if let Some(stop) = port_forward_stops.remove(&forward_id) {
-                            let _ = stop.send(());
+                        if let Some(existing) = live_port_forwards.remove(&forward_id) {
+                            stop_live_port_forward(existing, &session, &remote_forward_targets).await;
                         }
                     }
                     None => {}
@@ -1614,6 +1709,7 @@ async fn connect_verified_client_with_prompt(
         known_hosts_path: request.known_hosts_path,
         rejection: Arc::clone(&host_key_rejection),
         x11_forwarding: request.x11_forwarding,
+        remote_forward_targets: request.remote_forward_targets,
     };
     let mut session = with_ssh_startup_timeout("connecting to SSH server", async {
         match socks_proxy.as_deref() {
@@ -1742,11 +1838,240 @@ async fn forward_live_ssh_stream(
     Ok(())
 }
 
+async fn run_live_ssh_dynamic_forward(
+    listener: TcpListener,
+    session: Rc<client::Handle<VerifyingClient>>,
+    mut stop_rx: oneshot::Receiver<()>,
+) -> Result<(), String> {
+    loop {
+        tokio::select! {
+            _ = &mut stop_rx => return Ok(()),
+            accepted = listener.accept() => {
+                let (stream, originator) = accepted
+                    .map_err(|error| format!("failed to accept SOCKS5 connection: {error}"))?;
+                let session = Rc::clone(&session);
+                tokio::task::spawn_local(async move {
+                    if let Err(error) = forward_live_ssh_socks5_stream(stream, originator, session).await {
+                        eprintln!("SSH SOCKS5 connection failed: {error}");
+                    }
+                });
+            }
+        }
+    }
+}
+
+async fn forward_live_ssh_socks5_stream(
+    mut local: TcpStream,
+    originator: SocketAddr,
+    session: Rc<client::Handle<VerifyingClient>>,
+) -> Result<(), String> {
+    let mut greeting = [0_u8; 2];
+    local
+        .read_exact(&mut greeting)
+        .await
+        .map_err(|error| format!("failed to read SOCKS5 greeting: {error}"))?;
+    if greeting[0] != 5 {
+        return Err("SOCKS5 client used an unsupported protocol version".to_string());
+    }
+    let mut methods = vec![0_u8; usize::from(greeting[1])];
+    local
+        .read_exact(&mut methods)
+        .await
+        .map_err(|error| format!("failed to read SOCKS5 methods: {error}"))?;
+    if !methods.contains(&0) {
+        local
+            .write_all(&[5, 0xff])
+            .await
+            .map_err(|error| format!("failed to reject SOCKS5 authentication: {error}"))?;
+        return Err("SOCKS5 client did not offer no-authentication".to_string());
+    }
+    local
+        .write_all(&[5, 0])
+        .await
+        .map_err(|error| format!("failed to accept SOCKS5 authentication: {error}"))?;
+
+    let mut request = [0_u8; 4];
+    local
+        .read_exact(&mut request)
+        .await
+        .map_err(|error| format!("failed to read SOCKS5 request: {error}"))?;
+    if request[0] != 5 || request[1] != 1 || request[2] != 0 {
+        let _ = local.write_all(&[5, 7, 0, 1, 0, 0, 0, 0, 0, 0]).await;
+        return Err("SOCKS5 forwarding supports CONNECT requests only".to_string());
+    }
+
+    let mut encoded_target = vec![request[3]];
+    match request[3] {
+        1 => {
+            let mut address = [0_u8; 4];
+            local
+                .read_exact(&mut address)
+                .await
+                .map_err(|error| format!("failed to read SOCKS5 IPv4 target: {error}"))?;
+            encoded_target.extend_from_slice(&address);
+        }
+        3 => {
+            let length = local
+                .read_u8()
+                .await
+                .map_err(|error| format!("failed to read SOCKS5 host length: {error}"))?;
+            encoded_target.push(length);
+            let mut address = vec![0_u8; usize::from(length)];
+            local
+                .read_exact(&mut address)
+                .await
+                .map_err(|error| format!("failed to read SOCKS5 host: {error}"))?;
+            encoded_target.extend_from_slice(&address);
+        }
+        4 => {
+            let mut address = [0_u8; 16];
+            local
+                .read_exact(&mut address)
+                .await
+                .map_err(|error| format!("failed to read SOCKS5 IPv6 target: {error}"))?;
+            encoded_target.extend_from_slice(&address);
+        }
+        _ => {
+            let _ = local.write_all(&[5, 8, 0, 1, 0, 0, 0, 0, 0, 0]).await;
+            return Err("SOCKS5 client used an unsupported address type".to_string());
+        }
+    }
+    let mut port = [0_u8; 2];
+    local
+        .read_exact(&mut port)
+        .await
+        .map_err(|error| format!("failed to read SOCKS5 target port: {error}"))?;
+    encoded_target.extend_from_slice(&port);
+    let (dest_host, dest_port) = parse_socks5_target(&encoded_target)?;
+
+    let channel = match session
+        .channel_open_direct_tcpip(
+            dest_host,
+            u32::from(dest_port),
+            originator.ip().to_string(),
+            u32::from(originator.port()),
+        )
+        .await
+    {
+        Ok(channel) => channel,
+        Err(error) => {
+            let _ = local.write_all(&[5, 5, 0, 1, 0, 0, 0, 0, 0, 0]).await;
+            return Err(format!(
+                "failed to open SSH channel for SOCKS5 target: {error}"
+            ));
+        }
+    };
+    local
+        .write_all(&[5, 0, 0, 1, 0, 0, 0, 0, 0, 0])
+        .await
+        .map_err(|error| format!("failed to confirm SOCKS5 connection: {error}"))?;
+    let mut remote = channel.into_stream();
+    copy_bidirectional(&mut local, &mut remote)
+        .await
+        .map_err(|error| format!("failed to proxy SOCKS5 data: {error}"))?;
+    Ok(())
+}
+
+fn parse_socks5_target(value: &[u8]) -> Result<(String, u16), String> {
+    let (&address_type, rest) = value
+        .split_first()
+        .ok_or_else(|| "SOCKS5 target is empty".to_string())?;
+    let (host, port_bytes) = match address_type {
+        1 if rest.len() == 6 => (
+            Ipv4Addr::new(rest[0], rest[1], rest[2], rest[3]).to_string(),
+            &rest[4..],
+        ),
+        3 if !rest.is_empty() && rest[0] > 0 && rest.len() == usize::from(rest[0]) + 3 => {
+            let end = usize::from(rest[0]) + 1;
+            let host = std::str::from_utf8(&rest[1..end])
+                .map_err(|_| "SOCKS5 host is not valid UTF-8".to_string())?
+                .to_string();
+            (host, &rest[end..])
+        }
+        4 if rest.len() == 18 => {
+            let address: [u8; 16] = rest[..16]
+                .try_into()
+                .map_err(|_| "SOCKS5 IPv6 target is invalid".to_string())?;
+            (Ipv6Addr::from(address).to_string(), &rest[16..])
+        }
+        1 | 3 | 4 => return Err("SOCKS5 target has an invalid length".to_string()),
+        _ => return Err("SOCKS5 target uses an unsupported address type".to_string()),
+    };
+    Ok((host, u16::from_be_bytes([port_bytes[0], port_bytes[1]])))
+}
+
+async fn bridge_remote_forward_channel(
+    channel: Channel<Msg>,
+    dest_host: String,
+    dest_port: u16,
+) -> Result<(), String> {
+    let mut local = TcpStream::connect((dest_host.as_str(), dest_port))
+        .await
+        .map_err(|error| format!("failed to connect to remote-forward destination: {error}"))?;
+    let mut remote = channel.into_stream();
+    copy_bidirectional(&mut local, &mut remote)
+        .await
+        .map_err(|error| format!("failed to proxy remote-forward data: {error}"))?;
+    Ok(())
+}
+
+async fn stop_live_port_forward(
+    forward: LivePortForward,
+    session: &client::Handle<VerifyingClient>,
+    remote_forward_targets: &RemoteForwardTargets,
+) {
+    match forward {
+        LivePortForward::Listener(stop) => {
+            let _ = stop.send(());
+        }
+        LivePortForward::Remote { bind, port } => {
+            let _ = session.cancel_tcpip_forward(bind.clone(), port).await;
+            if let Ok(mut targets) = remote_forward_targets.lock() {
+                targets.remove(&(bind, port));
+            }
+        }
+    }
+}
+
 fn x11_auth_cookie() -> String {
     rand::random::<[u8; 16]>()
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect()
+}
+
+#[cfg(test)]
+mod ssh_port_forward_tests {
+    use super::*;
+
+    #[test]
+    fn parses_socks5_ipv4_domain_and_ipv6_targets() {
+        assert_eq!(
+            parse_socks5_target(&[1, 127, 0, 0, 1, 0x01, 0xbb]).unwrap(),
+            ("127.0.0.1".to_string(), 443)
+        );
+        assert_eq!(
+            parse_socks5_target(&[
+                3, 11, b'e', b'x', b'a', b'm', b'p', b'l', b'e', b'.', b'c', b'o', b'm', 0, 80
+            ])
+            .unwrap(),
+            ("example.com".to_string(), 80)
+        );
+        assert_eq!(
+            parse_socks5_target(&[
+                4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0x20, 0xfb
+            ])
+            .unwrap(),
+            ("::1".to_string(), 8443)
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_socks5_targets() {
+        assert!(parse_socks5_target(&[]).is_err());
+        assert!(parse_socks5_target(&[3, 0, 0, 80]).is_err());
+        assert!(parse_socks5_target(&[9, 127, 0, 0, 1, 0, 80]).is_err());
+    }
 }
 
 fn native_ssh_client_config() -> client::Config {
@@ -2528,6 +2853,7 @@ mod tests {
             known_hosts_path: config.known_hosts_path,
             x11_forwarding: None,
             socks_proxy: None,
+            remote_forward_targets: None,
         })
         .await?;
 

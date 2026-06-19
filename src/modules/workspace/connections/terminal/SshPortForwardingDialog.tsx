@@ -2,11 +2,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Actions, Btn, DIcon, Field, Sheet, Switch, TextInput } from "../../../../app/ui/dialog";
-import { invokeCommand, isTauriRuntime } from "../../../../lib/tauri";
+import { invokeCommand, isTauriRuntime, openExternalUrl } from "../../../../lib/tauri";
 import type { Connection, SshPortForwardMode, SshPortForwarding } from "../../../../types";
 import { useWorkspaceStore } from "../../../../store";
 import { connectionPasswordOwnerId, resolveSshSocksProxyRequest } from "../utils";
-import { sshForwardBindConflict } from "./sshPortForwardingModel";
+import { sshForwardBindConflict, sshForwardBrowserUrl } from "./sshPortForwardingModel";
 
 type ForwardingDraft = Record<SshPortForwardMode, {
   bind: string;
@@ -29,7 +29,7 @@ const MODES: Array<{
 
 const DEFAULT_DRAFT: ForwardingDraft = {
   L: { bind: "127.0.0.1", listenPort: "8080", destHost: "localhost", destPort: "3000" },
-  R: { bind: "127.0.0.1", listenPort: "9000", destHost: "localhost", destPort: "3000" },
+  R: { bind: "0.0.0.0", listenPort: "9000", destHost: "localhost", destPort: "3000" },
   D: { bind: "127.0.0.1", listenPort: "1080", destHost: "", destPort: "" },
 };
 
@@ -468,14 +468,16 @@ export function SshPortForwardingDialog({
   return (
     <div className="dialog-backdrop connection-dialog-backdrop sshf-backdrop" role="presentation">
       <Sheet
+        ariaLabel={t("terminal.sshPortForwardingTitle")}
         className="sshf"
+        closeAriaLabel={t("common.close")}
         eyebrow={t("terminal.sshPortForwardingTitle")}
         footer={
           <Actions
             primary={<Btn kind="primary" icon="plus" onClick={() => void handleAdd()}>{t("terminal.addForward")}</Btn>}
-            cancel={<Btn onClick={onClose}>{t("common.close")}</Btn>}
           />
         }
+        onClose={onClose}
         width={760}
       >
         <div className="sshf-body">
@@ -515,7 +517,23 @@ export function SshPortForwardingDialog({
                 {visibleForwardings.map((forwarding) => (
                   <div className="sa-row" key={forwarding.id}>
                     <span className={`sa-dot ${forwarding.enabled ? "active" : ""}`} />
-                    <span className="sa-local">{forwarding.bind}:{forwarding.listenPort}</span>
+                    {forwarding.mode === "L" && forwarding.enabled ? (
+                      <button
+                        className="sa-local sa-local-link"
+                        onClick={() => {
+                          const url = sshForwardBrowserUrl(forwarding.bind, forwarding.listenPort);
+                          void openExternalUrl(url).catch((openError) => {
+                            setError(openError instanceof Error ? openError.message : String(openError));
+                          });
+                        }}
+                        title={sshForwardBrowserUrl(forwarding.bind, forwarding.listenPort)}
+                        type="button"
+                      >
+                        {forwarding.bind}:{forwarding.listenPort}
+                      </button>
+                    ) : (
+                      <span className="sa-local">{forwarding.bind}:{forwarding.listenPort}</span>
+                    )}
                     <span className="sa-arr">-&gt;</span>
                     <span className="sa-remote">{forwardingEndpoint(forwarding)}</span>
                     <span className="sa-time">{busyId === forwarding.id ? t("terminal.opening") : forwarding.enabled ? t("terminal.active") : t("terminal.disabled")}</span>

@@ -46,10 +46,27 @@ export function sshForwardBindConflict(
   if (!candidate.enabled) {
     return false;
   }
+  if (candidate.mode === "R") {
+    return false;
+  }
   return existing.some((forwarding) => (
     forwarding.enabled &&
+    forwarding.mode !== "R" &&
     forwarding.id !== candidate.id &&
     forwarding.listenPort === candidate.listenPort &&
     bindAddressesOverlap(forwarding.bind, candidate.bind)
   ));
+}
+
+export function sshForwardBrowserUrl(bind: string, port: number) {
+  const protocol = port === 443 || port === 8443 ? "https" : "http";
+  const normalized = bind.trim().toLowerCase();
+  const host = normalized === "0.0.0.0"
+    ? "127.0.0.1"
+    : normalized === "::"
+      ? "[::1]"
+      : normalized.includes(":") && !normalized.startsWith("[")
+        ? `[${normalized}]`
+        : normalized || "127.0.0.1";
+  return `${protocol}://${host}:${port}`;
 }

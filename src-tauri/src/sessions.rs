@@ -8,7 +8,7 @@ use std::{
     ffi::OsString,
     fs::{self, File},
     io::{Read, Write},
-    net::{IpAddr, Ipv4Addr, TcpListener as StdTcpListener},
+    net::{IpAddr, TcpListener as StdTcpListener},
     path::{Path, PathBuf},
     process::Command as ProcessCommand,
     sync::Mutex,
@@ -33,7 +33,9 @@ struct SshPortForwardSession {
     forward_id: String,
     session_id: String,
     handle: ssh::NativeSshPortForwardHandle,
-    bind_ip: IpAddr,
+    mode: String,
+    bind: String,
+    bind_ip: Option<IpAddr>,
     local_port: u16,
 }
 
@@ -1185,15 +1187,15 @@ impl SessionManager {
         request: StartSshPortForwardRequest,
     ) -> Result<SshPortForwardStarted, String> {
         let mode = request.mode.as_deref().unwrap_or("L").to_uppercase();
-        if mode != "L" {
-            return Err("KKTerm can start local SSH forwards today. Remote and dynamic forwards are saved but not yet supported.".to_string());
+        if !matches!(mode.as_str(), "L" | "R" | "D") {
+            return Err("SSH port forward mode must be L, R, or D".to_string());
         }
         let dest_host = request
             .dest_host
             .clone()
             .unwrap_or_else(|| "127.0.0.1".to_string());
         let remote_port = request.remote_port.or(request.dest_port).unwrap_or(0);
-        if remote_port == 0 {
+        if mode != "D" && remote_port == 0 {
             return Err("destination port must be between 1 and 65535".to_string());
         }
         let forward_id = request.forward_id.clone().unwrap_or_else(|| {
@@ -1213,7 +1215,7 @@ impl SessionManager {
                 local_port: existing.local_port,
                 remote_port,
                 dest_host,
-                url: format!("http://127.0.0.1:{}", existing.local_port),
+                url: ssh_port_forward_url(&existing.bind, existing.local_port),
             });
         }
 
@@ -1238,45 +1240,80 @@ impl SessionManager {
             }
         };
         let listen_port = request.listen_port.unwrap_or(0);
-        let bind_ip = request
+        if listen_port == 0 {
+            return Err("listener port must be between 1 and 65535".to_string());
+        }
+        let bind = request
             .bind
             .as_deref()
-            .unwrap_or("127.0.0.1")
-            .parse::<IpAddr>()
-            .unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST));
-        if self
-            .ssh_port_forwards
-            .lock()
-            .map_err(|_| "SSH port forward lock is poisoned".to_string())?
-            .values()
-            .any(|existing| {
-                existing.local_port == listen_port
-                    && ssh_forward_bind_addresses_overlap(existing.bind_ip, bind_ip)
-            })
+            .unwrap_or(if mode == "R" { "0.0.0.0" } else { "127.0.0.1" })
+            .trim()
+            .to_string();
+        let bind_ip =
+            if mode == "R" {
+                None
+            } else {
+                Some(bind.parse::<IpAddr>().map_err(|_| {
+                    "local SSH forward bind address must be an IP address".to_string()
+                })?)
+            };
+        if mode != "R"
+            && self
+                .ssh_port_forwards
+                .lock()
+                .map_err(|_| "SSH port forward lock is poisoned".to_string())?
+                .values()
+                .any(|existing| {
+                    existing.mode != "R"
+                        && existing.local_port == listen_port
+                        && existing
+                            .bind_ip
+                            .zip(bind_ip)
+                            .is_some_and(|(existing, candidate)| {
+                                ssh_forward_bind_addresses_overlap(existing, candidate)
+                            })
+                })
         {
             return Err("ssh-port-forward-bind-conflict".to_string());
         }
-        let listener = StdTcpListener::bind((bind_ip, listen_port)).map_err(|error| {
-            if error.kind() == std::io::ErrorKind::AddrInUse {
-                "ssh-port-forward-bind-conflict".to_string()
-            } else {
-                format!("failed to bind local port forward listener: {error}")
-            }
-        })?;
-        listener
-            .set_nonblocking(true)
-            .map_err(|error| format!("failed to configure local port forward listener: {error}"))?;
+        let listener = if let Some(bind_ip) = bind_ip {
+            let listener = StdTcpListener::bind((bind_ip, listen_port)).map_err(|error| {
+                if error.kind() == std::io::ErrorKind::AddrInUse {
+                    "ssh-port-forward-bind-conflict".to_string()
+                } else {
+                    format!("failed to bind local port forward listener: {error}")
+                }
+            })?;
+            listener.set_nonblocking(true).map_err(|error| {
+                format!("failed to configure local port forward listener: {error}")
+            })?;
+            Some(listener)
+        } else {
+            None
+        };
         let local_port = listener
-            .local_addr()
-            .map_err(|error| format!("failed to read local port forward address: {error}"))?
-            .port();
-        handle.start(
-            forward_id.clone(),
-            listener,
-            dest_host.clone(),
-            remote_port,
-            Duration::from_secs(15),
-        )?;
+            .as_ref()
+            .and_then(|listener| listener.local_addr().ok())
+            .map(|address| address.port())
+            .unwrap_or(listen_port);
+        let kind = match mode.as_str() {
+            "L" => ssh::NativeSshPortForwardKind::Local {
+                listener: listener.expect("local forwarding listener exists"),
+                dest_host: dest_host.clone(),
+                dest_port: remote_port,
+            },
+            "D" => ssh::NativeSshPortForwardKind::Dynamic {
+                listener: listener.expect("dynamic forwarding listener exists"),
+            },
+            "R" => ssh::NativeSshPortForwardKind::Remote {
+                bind: bind.clone(),
+                listen_port,
+                dest_host: dest_host.clone(),
+                dest_port: remote_port,
+            },
+            _ => unreachable!(),
+        };
+        handle.start(forward_id.clone(), kind, Duration::from_secs(15))?;
         self.ssh_port_forwards
             .lock()
             .map_err(|_| "SSH port forward lock is poisoned".to_string())?
@@ -1286,6 +1323,8 @@ impl SessionManager {
                     forward_id: forward_id.clone(),
                     session_id,
                     handle,
+                    mode: mode.clone(),
+                    bind: bind.clone(),
                     bind_ip,
                     local_port,
                 },
@@ -1295,7 +1334,7 @@ impl SessionManager {
             local_port,
             remote_port,
             dest_host,
-            url: format!("http://127.0.0.1:{local_port}"),
+            url: ssh_port_forward_url(&bind, local_port),
         })
     }
 
@@ -1733,6 +1772,22 @@ fn ssh_forward_bind_addresses_overlap(left: IpAddr, right: IpAddr) -> bool {
         }
         _ => false,
     }
+}
+
+fn ssh_port_forward_url(bind: &str, port: u16) -> String {
+    let protocol = if matches!(port, 443 | 8443) {
+        "https"
+    } else {
+        "http"
+    };
+    let host = match bind.trim() {
+        "0.0.0.0" => "127.0.0.1".to_string(),
+        "::" => "[::1]".to_string(),
+        value if value.contains(':') && !value.starts_with('[') => format!("[{value}]"),
+        "" => "127.0.0.1".to_string(),
+        value => value.to_string(),
+    };
+    format!("{protocol}://{host}:{port}")
 }
 
 fn terminal_request_for_tmux(request: &TmuxConnectionRequest) -> StartTerminalSessionRequest {

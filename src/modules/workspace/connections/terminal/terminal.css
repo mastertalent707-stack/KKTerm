@@ -1130,6 +1130,25 @@
   white-space: nowrap;
 }
 
+.sa-local-link {
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 2px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.sa-local-link:hover,
+.sa-local-link:focus-visible {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+  outline: none;
+}
+
 .sa-remote,
 .sa-time {
   color: var(--text-muted);

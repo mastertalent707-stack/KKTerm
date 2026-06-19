@@ -48,11 +48,32 @@ test("SSH forwarding bind conflicts follow address-family and wildcard rules", a
   assert.equal(sshForwardBindConflict(forwarding("127.0.0.1", 8080), [forwarding("127.0.0.1", 8080, false)]), false);
   assert.equal(
     sshForwardBindConflict(
+      { ...forwarding("0.0.0.0", 8080, true, "remote"), mode: "R" },
+      [forwarding("0.0.0.0", 8080, true, "local")],
+    ),
+    false,
+  );
+  assert.equal(
+    sshForwardBindConflict(
       forwarding("127.0.0.1", 8080, true, "same"),
       [forwarding("127.0.0.1", 8080, true, "same")],
     ),
     false,
   );
+});
+
+test("Local forwarding browser URLs infer TLS and replace wildcard binds", async () => {
+  const { sshForwardBrowserUrl } = await importTypeScriptModule(
+    new URL(
+      "../src/modules/workspace/connections/terminal/sshPortForwardingModel.ts",
+      import.meta.url,
+    ),
+  );
+
+  assert.equal(sshForwardBrowserUrl("127.0.0.1", 8080), "http://127.0.0.1:8080");
+  assert.equal(sshForwardBrowserUrl("localhost", 443), "https://localhost:443");
+  assert.equal(sshForwardBrowserUrl("0.0.0.0", 8443), "https://127.0.0.1:8443");
+  assert.equal(sshForwardBrowserUrl("::", 3000), "http://[::1]:3000");
 });
 
 test("SSH forwarding starts through the Pane's live Session", async () => {
@@ -80,4 +101,8 @@ test("SSH forwarding starts through the Pane's live Session", async () => {
   assert.match(startForwardSource, /TerminalTransport::NativeSsh\(session\) => session\.port_forward_handle\(\)/);
   assert.doesNotMatch(startForwardSource, /NativeSshConnectionRequest/);
   assert.match(sshSource, /channel_open_direct_tcpip/);
+  assert.match(sshSource, /tcpip_forward/);
+  assert.match(sshSource, /server_channel_open_forwarded_tcpip/);
+  assert.match(sshSource, /run_live_ssh_dynamic_forward/);
+  assert.doesNotMatch(startForwardSource, /Remote and dynamic forwards are saved but not yet supported/);
 });
