@@ -15,11 +15,13 @@ test("SSH forwarding fields use unfiltered editable dropdowns for detected sugge
   const source = await readFile(dialogUrl, "utf8");
 
   assert.match(source, /invokeCommand\("network_interfaces", undefined\)/);
+  assert.match(source, /invokeCommand\("list_local_tcp_listeners", undefined\)/);
   assert.match(source, /invokeCommand\("list_remote_network_addresses", \{[\s\S]*?sessionId,[\s\S]*?\}\)/);
   assert.match(source, /invokeCommand\("list_remote_loopback_ports", \{/);
   assert.doesNotMatch(source, /\.filter\(\(networkInterface\) => networkInterface\.isUp\)/);
   assert.match(source, /mode === "R" \? remoteInterfaceAddresses : localInterfaceAddresses/);
   assert.match(source, /mode === "L" && isLoopbackHost\(current\.destHost\).*remoteLoopbackPorts\.map\(String\)/s);
+  assert.match(source, /localListenerPortOptions\(current\.destHost, localTcpListeners\)/);
   assert.match(source, /function EditableDropdownInput\(/);
   assert.match(source, /options\.map\(\(option\) =>/);
   assert.match(source, /<EditableDropdownInput[\s\S]*?options=\{bindAddressOptions\}/);
@@ -54,7 +56,18 @@ test("enabled Local forwarding bind text opens in the external browser", async (
   assert.match(source, /import \{[^}]*openExternalUrl[^}]*\} from "\.\.\/\.\.\/\.\.\/\.\.\/lib\/tauri"/);
   assert.match(source, /forwarding\.mode === "L" && forwarding\.enabled/);
   assert.match(source, /sshForwardBrowserUrl\(forwarding\.bind, forwarding\.listenPort\)/);
-  assert.match(source, /className="sa-local sa-local-link"/);
+  assert.match(source, /className="sa-local sa-endpoint-link"/);
+});
+
+test("enabled reachable Remote listeners render on the right and open externally", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+  const css = await readFile(cssUrl, "utf8");
+
+  assert.match(source, /sshForwardDisplayEndpoints\(forwarding\)/);
+  assert.match(source, /sshRemoteForwardBrowserUrl\(forwarding\.bind, forwarding\.listenPort, connection\.host\)/);
+  assert.match(source, /forwarding\.mode === "R" && forwarding\.enabled && remoteUrl/);
+  assert.match(source, /className="sa-remote sa-endpoint-link"/);
+  assert.match(css, /\.sa-endpoint-link/);
 });
 
 test("SSH forwarding dialog uses a top-right close button as its only dismiss action", async () => {

@@ -1130,7 +1130,7 @@
   white-space: nowrap;
 }
 
-.sa-local-link {
+.sa-endpoint-link {
   min-width: 0;
   padding: 0;
   text-align: left;
@@ -1142,8 +1142,8 @@
   cursor: pointer;
 }
 
-.sa-local-link:hover,
-.sa-local-link:focus-visible {
+.sa-endpoint-link:hover,
+.sa-endpoint-link:focus-visible {
   color: var(--accent);
   text-decoration-color: currentColor;
   outline: none;

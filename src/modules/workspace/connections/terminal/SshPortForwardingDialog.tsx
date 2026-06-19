@@ -6,7 +6,14 @@ import { invokeCommand, isTauriRuntime, openExternalUrl } from "../../../../lib/
 import type { Connection, SshPortForwardMode, SshPortForwarding } from "../../../../types";
 import { useWorkspaceStore } from "../../../../store";
 import { connectionPasswordOwnerId, resolveSshSocksProxyRequest } from "../utils";
-import { sshForwardBindConflict, sshForwardBrowserUrl } from "./sshPortForwardingModel";
+import {
+  localListenerPortOptions,
+  sshForwardBindConflict,
+  sshForwardBrowserUrl,
+  sshForwardDisplayEndpoints,
+  sshRemoteForwardBrowserUrl,
+  type LocalTcpListener,
+} from "./sshPortForwardingModel";
 
 type ForwardingDraft = Record<SshPortForwardMode, {
   bind: string;
@@ -212,10 +219,6 @@ function EditableDropdownInput({
   );
 }
 
-function shortAddress(value: string) {
-  return value === "localhost" ? "localhost" : value || "127.0.0.1";
-}
-
 function forwardingCommand(connection: Connection, mode: SshPortForwardMode, draft: ForwardingDraft[SshPortForwardMode]) {
   const modeInfo = MODES.find((entry) => entry.key === mode) ?? MODES[0];
   const spec = mode === "D"
@@ -227,13 +230,6 @@ function forwardingCommand(connection: Connection, mode: SshPortForwardMode, dra
 function modeLabel(mode: SshPortForwardMode, t: (key: string) => string) {
   const info = MODES.find((entry) => entry.key === mode);
   return info ? t(info.nameKey) : mode;
-}
-
-function forwardingEndpoint(forwarding: SshPortForwarding) {
-  if (forwarding.mode === "D") {
-    return "SOCKS5";
-  }
-  return `${shortAddress(forwarding.destHost ?? "")}:${forwarding.destPort ?? ""}`;
 }
 
 function sshConnectionRequest(connection: Connection) {
@@ -270,6 +266,7 @@ export function SshPortForwardingDialog({
   const [drafts, setDrafts] = useState<ForwardingDraft>(DEFAULT_DRAFT);
   const [forwardings, setForwardings] = useState<SshPortForwarding[]>(connection.sshPortForwardings ?? []);
   const [localInterfaceAddresses, setLocalInterfaceAddresses] = useState<string[]>([]);
+  const [localTcpListeners, setLocalTcpListeners] = useState<LocalTcpListener[]>([]);
   const [remoteInterfaceAddresses, setRemoteInterfaceAddresses] = useState<string[]>([]);
   const [remoteLoopbackPorts, setRemoteLoopbackPorts] = useState<number[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -287,6 +284,13 @@ export function SshPortForwardingDialog({
           interfaces
             .flatMap((networkInterface) => networkInterface.addresses.map((address) => address.ip)),
         ));
+      })
+      .catch(() => undefined);
+    void invokeCommand("list_local_tcp_listeners", undefined)
+      .then((listeners) => {
+        if (!cancelled) {
+          setLocalTcpListeners(listeners);
+        }
       })
       .catch(() => undefined);
     void invokeCommand("list_remote_network_addresses", {
@@ -343,6 +347,7 @@ export function SshPortForwardingDialog({
   const destinationPortOptions = uniqueOptions([
     DEFAULT_DRAFT[mode].destPort,
     ...(mode === "L" && isLoopbackHost(current.destHost) ? remoteLoopbackPorts.map(String) : []),
+    ...(mode === "R" ? localListenerPortOptions(current.destHost, localTcpListeners) : []),
     ...forwardings.filter((forwarding) => forwarding.mode === mode).map((forwarding) => forwarding.destPort ? String(forwarding.destPort) : undefined),
   ]);
 
@@ -529,12 +534,16 @@ export function SshPortForwardingDialog({
               <div className="sa-empty">{t("terminal.noSshForwards", { mode: modeLabel(mode, t).toLowerCase() })}</div>
             ) : (
               <div className="sa-list">
-                {visibleForwardings.map((forwarding) => (
-                  <div className="sa-row" key={forwarding.id}>
+                {visibleForwardings.map((forwarding) => {
+                  const endpoints = sshForwardDisplayEndpoints(forwarding);
+                  const remoteUrl = forwarding.mode === "R"
+                    ? sshRemoteForwardBrowserUrl(forwarding.bind, forwarding.listenPort, connection.host)
+                    : null;
+                  return <div className="sa-row" key={forwarding.id}>
                     <span className={`sa-dot ${forwarding.enabled ? "active" : ""}`} />
                     {forwarding.mode === "L" && forwarding.enabled ? (
                       <button
-                        className="sa-local sa-local-link"
+                        className="sa-local sa-endpoint-link"
                         onClick={() => {
                           const url = sshForwardBrowserUrl(forwarding.bind, forwarding.listenPort);
                           void openExternalUrl(url).catch((openError) => {
@@ -544,13 +553,26 @@ export function SshPortForwardingDialog({
                         title={sshForwardBrowserUrl(forwarding.bind, forwarding.listenPort)}
                         type="button"
                       >
-                        {forwarding.bind}:{forwarding.listenPort}
+                        {endpoints.left}
                       </button>
                     ) : (
-                      <span className="sa-local">{forwarding.bind}:{forwarding.listenPort}</span>
+                      <span className="sa-local">{endpoints.left}</span>
                     )}
                     <span className="sa-arr">-&gt;</span>
-                    <span className="sa-remote">{forwardingEndpoint(forwarding)}</span>
+                    {forwarding.mode === "R" && forwarding.enabled && remoteUrl ? (
+                      <button
+                        className="sa-remote sa-endpoint-link"
+                        onClick={() => void openExternalUrl(remoteUrl).catch((openError) => {
+                          setError(openError instanceof Error ? openError.message : String(openError));
+                        })}
+                        title={remoteUrl}
+                        type="button"
+                      >
+                        {endpoints.right}
+                      </button>
+                    ) : (
+                      <span className="sa-remote">{endpoints.right}</span>
+                    )}
                     <span className="sa-time">{busyId === forwarding.id ? t("terminal.opening") : forwarding.enabled ? t("terminal.active") : t("terminal.disabled")}</span>
                     <Switch
                       ariaLabel={t("terminal.enableForwarding")}
@@ -561,8 +583,8 @@ export function SshPortForwardingDialog({
                     <button className="sa-del danger" onClick={() => void handleRemove(forwarding.id)} title={t("common.delete")} type="button">
                       <DIcon name="close" size={13} />
                     </button>
-                  </div>
-                ))}
+                  </div>;
+                })}
               </div>
             )}
           </div>
