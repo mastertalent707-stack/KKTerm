@@ -73,7 +73,7 @@ Per-row actions:
 `terminal.mouseOn` / `terminal.mouseOff` enables or disables tmux mouse mode in the attached session.
 When tmux mouse mode is off, wheel input over the Pane is kept in KKTerm's terminal scrollback path instead of being sent to the remote shell as cursor-key input.
 
-## SSH local port forwarding
+## SSH port forwarding
 
 For SSH port forwarding:
 
@@ -82,15 +82,17 @@ For SSH port forwarding:
 - The dialog has Local (`-L`), Remote (`-R`), and Dynamic (`-D`) mode tabs. Counts on the tabs show enabled mappings for the saved SSH Connection.
 - Bind address, listener port, destination host, and destination port remain editable text fields with dropdown suggestions. Bind suggestions include loopback, all-interface, and detected local interface addresses. A loopback destination in Local mode suggests listening ports discovered on the remote SSH host.
 - Mappings are non-secret per-Connection settings. Child Connection Tabs, split Panes, additional Tabs, and Dashboard-spawned surfaces share the parent SSH Connection's mapping list instead of owning independent forwarding settings.
-- Starting an already-running mapping reuses that mapping's stable forward id, so opening additional Child Connection Tabs, Panes, or Tabs for the same parent Connection does not recreate duplicate local tunnels. A new local forward reuses the authenticated native SSH Session for the Pane that opened the dialog, including Sessions authenticated by entering a password interactively.
+- Starting an already-running mapping reuses that mapping's stable forward id, so opening additional Child Connection Tabs, Panes, or Tabs for the same parent Connection does not recreate duplicate tunnels. New forwards reuse the authenticated native SSH Session for the Pane that opened the dialog, including Sessions authenticated by entering a password interactively.
 - Each saved mapping has an enabled switch immediately before delete. New mappings start enabled; switching one off closes its live tunnel but preserves the mapping so it can be enabled again later.
-- Enabled mappings cannot use overlapping local listeners. An exact bind address and port cannot be added twice, and a wildcard listener such as `0.0.0.0:8080` also conflicts with a specific IPv4 listener on port 8080.
-- The current runtime can start Local forwards. Remote and Dynamic mappings can be saved in the dialog but return an unsupported-runtime error if started until those tunnel modes are implemented in the backend.
+- Enabled Local and Dynamic mappings cannot use overlapping local listeners. An exact bind address and port cannot be added twice, and a wildcard listener such as `0.0.0.0:8080` also conflicts with a specific IPv4 listener on port 8080. Remote listeners are checked by the SSH server instead because they bind on the remote host.
+- Local (`-L`) forwards open a listener on this PC and send connections to the configured destination through SSH. The enabled Local listener text in the running list is clickable and opens the forwarded target in the external browser. Ports 443 and 8443 use HTTPS; other ports use HTTP. A wildcard `0.0.0.0` listener opens through `127.0.0.1`.
+- Remote (`-R`) forwards ask the SSH server to open the listener and bridge incoming connections to the configured destination on this PC. New Remote mappings default the server listener to `0.0.0.0`, which exposes it on all remote IPv4 interfaces when the SSH server's forwarding and gateway policy permits it.
+- Dynamic (`-D`) forwards run a local unauthenticated SOCKS5 CONNECT proxy over the existing SSH Session. Configure applications to use the displayed listener as a SOCKS5 proxy; DNS names supplied by the application are resolved through the SSH destination side.
 - Deleting the last enabled mapping removes the green toolbar tunnel button from open SSH Panes after the Connection metadata refreshes.
 
 Tutorial target: `terminal.sshPortRedirect`.
 
-The Local forward runtime uses native SSH forwarding and does not create a second terminal Pane or tmux shell.
+The forwarding runtime uses native SSH channels and does not create a second terminal Pane, tmux shell, or SSH login.
 
 ## Local X server launcher
 

@@ -39,6 +39,28 @@ test("Remote mode reverses headings without moving its field groups", async () =
   );
 });
 
+test("Remote forwarding defaults to a wildcard IPv4 listener", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+
+  assert.match(source, /R:\s*\{ bind: "0\.0\.0\.0"/);
+});
+
+test("enabled Local forwarding bind text opens in the external browser", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+
+  assert.match(source, /import \{[^}]*openExternalUrl[^}]*\} from "\.\.\/\.\.\/\.\.\/\.\.\/lib\/tauri"/);
+  assert.match(source, /forwarding\.mode === "L" && forwarding\.enabled/);
+  assert.match(source, /sshForwardBrowserUrl\(forwarding\.bind, forwarding\.listenPort\)/);
+  assert.match(source, /className="sa-local sa-local-link"/);
+});
+
+test("SSH forwarding dialog uses a top-right close button as its only dismiss action", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+
+  assert.match(source, /<Sheet[\s\S]*?onClose=\{onClose\}/);
+  assert.doesNotMatch(source, /cancel=\{<Btn onClick=\{onClose\}>/);
+});
+
 test("SSH forwarding inputs use the themed surface color", async () => {
   const css = await readFile(cssUrl, "utf8");
 

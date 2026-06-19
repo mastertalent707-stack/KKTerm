@@ -107,6 +107,7 @@ export function Sheet({
   footer,
   className = "",
   ariaLabel,
+  closeAriaLabel,
 }: {
   width?: number;
   height?: number;
@@ -120,6 +121,7 @@ export function Sheet({
   footer?: ReactNode;
   className?: string;
   ariaLabel?: string;
+  closeAriaLabel?: string;
 }) {
   const hasHead = Boolean(eyebrow || title || sub || onClose);
   return (
@@ -136,7 +138,7 @@ export function Sheet({
           {title && <h2 className="kk-dlg-title">{title}</h2>}
           {sub && <p className="kk-dlg-sub">{sub}</p>}
           {onClose && (
-            <button className="kk-dlg-close" onClick={onClose} type="button" aria-label={ariaLabel}>
+            <button className="kk-dlg-close" onClick={onClose} type="button" aria-label={closeAriaLabel ?? ariaLabel}>
               <DIcon name="close" size={14} />
             </button>
           )}
