@@ -215,11 +215,13 @@ export function TerminalSettings() {
     });
   }
 
-  const customFontTerminalOptions = customFonts.map((font) => ({
+  const customFontTerminalOptions = [...customFonts]
+    .sort((a, b) => Number(b.isMonospace) - Number(a.isMonospace) || a.name.localeCompare(b.name))
+    .map((font) => ({
     key: font.path,
     label: font.name,
     value: terminalFontCssValue(font.name),
-  }));
+    }));
   const terminalFontOptions = getRecommendedFontOptions(
     "terminal",
     undefined,

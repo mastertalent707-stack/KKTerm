@@ -168,12 +168,32 @@ pub(crate) fn custom_font_entry(path: PathBuf) -> Option<CustomFontEntry> {
         .and_then(|name| name.to_str())
         .or_else(|| path.file_name().and_then(|name| name.to_str()))?
         .to_string();
+    let (family, weight, style, is_monospaced) = fs::read(&path)
+        .ok()
+        .and_then(|data| custom_font_metadata(&data))
+        .unwrap_or_else(|| (name.clone(), 400, "normal".to_string(), false));
 
     Some(CustomFontEntry {
         name,
+        family,
         path: path.to_string_lossy().into_owned(),
         extension,
+        weight,
+        style,
+        is_monospaced,
     })
+}
+
+fn custom_font_metadata(data: &[u8]) -> Option<(String, u16, String, bool)> {
+    let face = ttf_parser::Face::parse(data, 0).ok()?;
+    let family = preferred_face_family_name(&face)?;
+    let style = if face.is_italic() { "italic" } else { "normal" };
+    Some((
+        family,
+        face.weight().to_number(),
+        style.to_string(),
+        face.is_monospaced(),
+    ))
 }
 
 pub(crate) fn is_supported_font_extension(extension: &str) -> bool {
@@ -279,31 +299,35 @@ fn collect_family_names(data: &[u8], out: &mut std::collections::BTreeSet<String
             Ok(face) => face,
             Err(_) => continue,
         };
-        let mut candidates: Vec<FontFamilyNameCandidate> = Vec::new();
-        for name in face.names() {
-            if !matches!(
-                name.name_id,
-                ttf_parser::name_id::TYPOGRAPHIC_FAMILY | ttf_parser::name_id::FAMILY
-            ) {
-                continue;
-            }
-            let Some(decoded) = name.to_string() else {
-                continue;
-            };
-            candidates.push(FontFamilyNameCandidate::new(
-                decoded,
-                name.name_id,
-                name.platform_id == ttf_parser::PlatformId::Windows
-                    && name.language_id & 0x03ff == 0x09,
-            ));
-        }
-        if let Some(name) = preferred_family_name(candidates) {
+        if let Some(name) = preferred_face_family_name(&face) {
             let trimmed = name.trim();
             if !trimmed.is_empty() {
                 out.insert(trimmed.to_string());
             }
         }
     }
+}
+
+fn preferred_face_family_name(face: &ttf_parser::Face<'_>) -> Option<String> {
+    let mut candidates: Vec<FontFamilyNameCandidate> = Vec::new();
+    for name in face.names() {
+        if !matches!(
+            name.name_id,
+            ttf_parser::name_id::TYPOGRAPHIC_FAMILY | ttf_parser::name_id::FAMILY
+        ) {
+            continue;
+        }
+        let Some(decoded) = name.to_string() else {
+            continue;
+        };
+        candidates.push(FontFamilyNameCandidate::new(
+            decoded,
+            name.name_id,
+            name.platform_id == ttf_parser::PlatformId::Windows
+                && name.language_id & 0x03ff == 0x09,
+        ));
+    }
+    preferred_family_name(candidates)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

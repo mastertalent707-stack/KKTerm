@@ -511,8 +511,12 @@ export interface SystemAccentColor {
 
 export interface CustomFont {
   name: string;
+  family: string;
   path: string;
   extension: string;
+  weight: number;
+  style: "normal" | "italic";
+  isMonospace: boolean;
 }
 
 export interface SshSettings {

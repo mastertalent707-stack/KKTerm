@@ -4,28 +4,58 @@ import type { AppearanceSettings, CustomFont } from "../types";
 import { invokeCommand, isTauriRuntime } from "./tauri";
 
 const CUSTOM_FONT_FALLBACK = '"Segoe UI", ui-sans-serif, system-ui, sans-serif';
+export const CUSTOM_FONTS_LOADED_EVENT = "kkterm:custom-fonts-loaded";
 
-const loadedFontFamilies = new Set<string>();
+const loadedFontFaces = new Set<string>();
 
-export interface CustomFontOption extends CustomFont {
+export interface CustomFontOption {
+  name: string;
+  path: string;
+  faces: CustomFont[];
+  isMonospace: boolean;
   cssFamily: string;
   cssValue: string;
 }
 
-export function customFontCssFamily(path: string) {
-  return `KKTerm Custom Font ${hashPath(path)}`;
+export function customFontCssFamily(family: string) {
+  return `KKTerm Custom Font ${hashText(family.trim().toLowerCase())}`;
 }
 
-export function customFontCssValue(path: string) {
-  return `"${customFontCssFamily(path)}", ${CUSTOM_FONT_FALLBACK}`;
+export function customFontCssValue(family: string) {
+  return `"${customFontCssFamily(family)}", ${CUSTOM_FONT_FALLBACK}`;
 }
 
 export function toCustomFontOptions(fonts: CustomFont[]): CustomFontOption[] {
-  return fonts.map((font) => ({
-    ...font,
-    cssFamily: customFontCssFamily(font.path),
-    cssValue: customFontCssValue(font.path),
-  }));
+  const groups = new Map<string, CustomFont[]>();
+  for (const font of fonts) {
+    const key = font.family.trim().toLowerCase();
+    const group = groups.get(key);
+    if (group) group.push(font);
+    else groups.set(key, [font]);
+  }
+
+  return [...groups.values()]
+    .map((faces) => {
+      faces.sort(compareCustomFontFaces);
+      const name = faces[0].family;
+      return {
+        name,
+        path: faces[0].path,
+        faces,
+        isMonospace: faces.some((face) => face.isMonospace),
+        cssFamily: customFontCssFamily(name),
+        cssValue: customFontCssValue(name),
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function fontFaceDescriptors(font: CustomFont): FontFaceDescriptors {
+  return { display: "swap", style: font.style, weight: String(font.weight) };
+}
+
+export function notifyCustomFontsLoaded(target: EventTarget = document) {
+  target.dispatchEvent(new Event(CUSTOM_FONTS_LOADED_EVENT));
 }
 
 export async function listCustomFontOptions() {
@@ -44,18 +74,7 @@ export async function loadCustomFontOptions(fonts: CustomFontOption[]) {
   }
 
   await Promise.allSettled(
-    fonts.map(async (font) => {
-      // Register each custom font under two families backed by the same file:
-      // an internal synthetic family used by the app UI font picker, and the
-      // font's human-readable file name. The terminal font field is free text,
-      // so users reference dropped-in fonts (e.g. Nerd Fonts) by the name they
-      // see and type rather than an opaque synthetic id.
-      const families = [font.cssFamily, font.name].filter(
-        (family) => family.length > 0 && !loadedFontFamilies.has(family),
-      );
-      if (families.length === 0) {
-        return;
-      }
+    fonts.flatMap((option) => option.faces.map(async (font) => {
       // Fetch through the asset protocol so the WebView downloads and decodes
       // the font on its own (native, off-main-thread) resource pipeline. This
       // keeps multi-megabyte fonts off the UI thread on startup: no base64
@@ -69,16 +88,22 @@ export async function loadCustomFontOptions(fonts: CustomFontOption[]) {
       // outlines are dropped, so only Latin text picks up the font. A plain
       // fetch sends no Range header, so the protocol returns the whole file.
       const buffer = await (await fetch(convertFileSrc(font.path))).arrayBuffer();
+      const families = [option.cssFamily, option.name, font.name];
       await Promise.allSettled(
         families.map(async (family) => {
-          const face = new FontFace(family, buffer.slice(0), { display: "swap" });
+          const key = `${family.toLowerCase()}|${font.weight}|${font.style}`;
+          if (!family || loadedFontFaces.has(key)) return;
+          const face = new FontFace(family, buffer.slice(0), fontFaceDescriptors(font));
           await face.load();
           document.fonts.add(face);
-          loadedFontFamilies.add(family);
+          loadedFontFaces.add(key);
         }),
       );
-    }),
+    })),
   );
+  if (fonts.length > 0) {
+    notifyCustomFontsLoaded();
+  }
 }
 
 export function normalizeAvailableAppearance(
@@ -89,7 +114,9 @@ export function normalizeAvailableAppearance(
     return settings;
   }
 
-  const customFont = customFonts.find((font) => font.path === settings.customFontPath);
+  const customFont = customFonts.find((font) =>
+    font.faces.some((face) => face.path === settings.customFontPath),
+  );
   if (!customFont) {
     return defaultAppearanceSettings;
   }
@@ -104,10 +131,16 @@ export function normalizeAvailableAppearance(
   return settings;
 }
 
-function hashPath(path: string) {
+function compareCustomFontFaces(a: CustomFont, b: CustomFont) {
+  const aStyle = a.style === "normal" ? 0 : 1;
+  const bStyle = b.style === "normal" ? 0 : 1;
+  return aStyle - bStyle || Math.abs(a.weight - 400) - Math.abs(b.weight - 400) || a.name.localeCompare(b.name);
+}
+
+function hashText(value: string) {
   let hash = 2166136261;
-  for (let index = 0; index < path.length; index += 1) {
-    hash ^= path.charCodeAt(index);
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0).toString(36);

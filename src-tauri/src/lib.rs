@@ -85,8 +85,12 @@ struct AppBootstrap {
 #[serde(rename_all = "camelCase")]
 struct CustomFontEntry {
     name: String,
+    family: String,
     path: String,
     extension: String,
+    weight: u16,
+    style: String,
+    is_monospaced: bool,
 }
 
 #[derive(Serialize)]

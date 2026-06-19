@@ -2,6 +2,7 @@ import { confirmTrustedSshHostKey, connectionPasswordOwnerId, connectionToolbarT
 import { resolveLocalShellForLaunch } from "./pwshPreflight";
 import { ConfirmDialog } from "../../../../app/ConfirmDialog";
 import { readFromClipboard, writeToClipboard } from "../../../../lib/clipboard";
+import { CUSTOM_FONTS_LOADED_EVENT } from "../../../../lib/customFonts";
 import { ScreenshotMenu } from "../../ScreenshotMenu";
 
 import { RemoteDesktopWorkspace } from "../remote-desktop/RemoteDesktopWorkspace";
@@ -2157,6 +2158,21 @@ function TerminalPaneView({
   useEffect(() => {
     terminalRendererRef.current?.setBackgroundOpacity(terminalOpacity);
   }, [terminalOpacity]);
+
+  useEffect(() => {
+    terminalRendererRef.current?.setFontFamily(terminalSettings.fontFamily);
+    fitAndResizeRef.current();
+  }, [terminalSettings.fontFamily]);
+
+  useEffect(() => {
+    function refreshLoadedCustomFont() {
+      terminalRendererRef.current?.setFontFamily(terminalSettings.fontFamily);
+      fitAndResizeRef.current();
+    }
+
+    document.addEventListener(CUSTOM_FONTS_LOADED_EVENT, refreshLoadedCustomFont);
+    return () => document.removeEventListener(CUSTOM_FONTS_LOADED_EVENT, refreshLoadedCustomFont);
+  }, [terminalSettings.fontFamily]);
 
   useEffect(() => {
     terminalRendererRef.current?.setWheelScrollbackOverride(

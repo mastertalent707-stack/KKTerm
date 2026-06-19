@@ -46,6 +46,16 @@ test("one refresh publishes system and custom fonts to every subscriber", async 
       async () => [{
         cssFamily: "kkterm-custom-test",
         cssValue: '"kkterm-custom-test", "Test Font", sans-serif',
+        faces: [{
+          extension: "otf",
+          family: "Test Font",
+          isMonospace: false,
+          name: "TestFont-Regular",
+          path: "C:/fonts/TestFont.otf",
+          style: "normal",
+          weight: 400,
+        }],
+        isMonospace: false,
         name: "Test Font",
         path: "C:/fonts/TestFont.otf",
       }],

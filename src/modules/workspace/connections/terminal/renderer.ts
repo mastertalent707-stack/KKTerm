@@ -59,6 +59,7 @@ export interface TerminalRenderer {
   write: (data: string) => void;
   writeln: (data: string) => void;
   setFontSize: (size: number) => void;
+  setFontFamily: (family: string) => void;
   getFontSize: () => number;
   getBufferText: () => string;
   onFocus: (handler: () => void) => IDisposable;
@@ -341,6 +342,18 @@ class XtermTerminalRenderer implements TerminalRenderer {
       this.trimRowsToVisibleScreen();
     } catch {
       // Fit may throw if the host is detached; safe to ignore.
+    }
+  }
+
+  setFontFamily(family: string) {
+    this.terminal.options.fontFamily = family;
+    try {
+      this.terminal.clearTextureAtlas();
+      if (this.terminal.rows > 0) {
+        this.terminal.refresh(0, this.terminal.rows - 1);
+      }
+    } catch {
+      // The host may be detached while switching Tabs; activation will fit and redraw it.
     }
   }
 
