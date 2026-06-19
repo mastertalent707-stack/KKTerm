@@ -32,13 +32,18 @@ test("all platform release producers trigger mirror reconciliation", async () =>
 
 test("main release workflow orchestrates all platform release jobs in order", async () => {
   const source = await readFile(new URL("../.github/workflows/release.yml", import.meta.url), "utf8");
-  assert.match(source, /runs-on:\s*windows-latest/);
+  assert.match(source, /runs-on:\s*windows-2025/);
   assert.match(source, /runs-on:\s*macos/);
   assert.match(source, /runs-on:\s*ubuntu-24\.04/);
   assert.match(source, /scripts\/release-github-both-arch\.ps1/);
   assert.match(source, /scripts\/release-github-macos\.sh/);
   assert.match(source, /scripts\/release-github-linux\.sh/);
   assert.match(source, /release-macos:[\s\S]*needs:\s*release/);
-  assert.match(source, /release-linux:[\s\S]*needs:\s*release-macos/);
-  assert.match(source, /mirror-final:[\s\S]*needs:\s*release-linux/);
+  assert.match(source, /release-linux:[\s\S]*needs:\s*\[release,\s*release-macos\]/);
+  assert.match(source, /release-linux:[\s\S]*--tag "\$\{\{\s*needs\.release\.outputs\.tag\s*\}\}"/);
+  assert.match(source, /mirror-final:[\s\S]*needs:\s*\[release,\s*release-linux\]/);
+  assert.match(source, /mirror-final:[\s\S]*tag:\s*\$\{\{\s*needs\.release\.outputs\.tag\s*\}\}/);
+  assert.match(source, /release-macos:[\s\S]*timeout-minutes:\s*180/);
+  assert.doesNotMatch(source, /base64\s+--decode/);
+  assert.match(source, /security list-keychains/);
 });

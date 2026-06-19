@@ -45,7 +45,8 @@ concurrency:
 jobs:
   release:
     name: GitHub Release (Windows x64/ARM64)
-    runs-on: windows-latest
+    runs-on: windows-2025
+    timeout-minutes: 180
     outputs:
       tag: ${{ steps.release_info.outputs.tag }}
     env:
@@ -101,6 +102,7 @@ jobs:
   release-macos:
     name: GitHub Release (macOS Apple Silicon)
     runs-on: macos-15
+    timeout-minutes: 180
     needs: release
     if: ${{ inputs.dry_run != true }}
     env:
@@ -142,12 +144,13 @@ jobs:
         run: |
           CERT_PATH="$RUNNER_TEMP/kkterm-signing.p12"
           KEYCHAIN_PATH="$RUNNER_TEMP/kkterm-signing.keychain-db"
-          printf '%s' "$APPLE_CERTIFICATE_P12" | base64 --decode > "$CERT_PATH"
+          export CERT_PATH
+          node -e "require('node:fs').writeFileSync(process.env.CERT_PATH, Buffer.from(process.env.APPLE_CERTIFICATE_P12, 'base64'))"
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychain -d user | sed 's/[\" ]//g')
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/[\" ]//g')
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
       - name: Write App Store Connect API key
@@ -162,7 +165,8 @@ jobs:
   release-linux:
     name: GitHub Release (Linux AppImage)
     runs-on: ubuntu-24.04
-    needs: release-macos
+    timeout-minutes: 120
+    needs: [release, release-macos]
     if: ${{ inputs.dry_run != true }}
     env:
       GH_TOKEN: ${{ github.token }}
@@ -206,7 +210,7 @@ jobs:
 
   mirror-final:
     name: Final Cloudflare mirror reconciliation
-    needs: release-linux
+    needs: [release, release-linux]
     if: ${{ inputs.dry_run != true && inputs.draft != true && inputs.prerelease != true }}
     uses: ./.github/workflows/mirror-release.yml
     with:
