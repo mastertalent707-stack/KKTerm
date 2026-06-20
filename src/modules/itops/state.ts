@@ -6,6 +6,7 @@
 import { create } from "zustand";
 import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
 import type {
+  Automation,
   HostGroup,
   HostGroupFilter,
   ItopsTransport,
@@ -13,6 +14,7 @@ import type {
   RunEvent,
   RunHistoryEntry,
 } from "../../types";
+import type { WatchdogConfig } from "../../watchdog/types";
 
 export interface HostGroupInput {
   name: string;
@@ -119,6 +121,17 @@ interface ItOpsState {
   startBatchRun: (hostGroupId: string, body: string) => Promise<string>;
   cancelRun: (runId: string) => Promise<void>;
   loadRunHistory: () => Promise<void>;
+
+  // ── Automations (Phase 3) ──
+  automations: Automation[];
+  automationsLoaded: boolean;
+  newAutomationRequest: number;
+  requestNewAutomation: () => void;
+  loadAutomations: () => Promise<void>;
+  createAutomation: (name: string, config: WatchdogConfig, enabled: boolean) => Promise<Automation>;
+  updateAutomation: (id: string, name: string, config: WatchdogConfig) => Promise<Automation>;
+  setAutomationEnabled: (id: string, enabled: boolean) => Promise<void>;
+  removeAutomation: (id: string) => Promise<void>;
 }
 
 export const useItOpsStore = create<ItOpsState>((set, get) => ({
@@ -227,5 +240,53 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
     }
     const runHistory = await invokeCommand("itops_list_run_history", { limit: 25 });
     set({ runHistory, historyLoaded: true });
+  },
+
+  // ── Automations ──
+  automations: [],
+  automationsLoaded: false,
+  newAutomationRequest: 0,
+
+  requestNewAutomation() {
+    set({ newAutomationRequest: get().newAutomationRequest + 1 });
+  },
+
+  async loadAutomations() {
+    if (!isTauriRuntime()) {
+      set({ automationsLoaded: true });
+      return;
+    }
+    const automations = await invokeCommand("itops_list_automations");
+    set({ automations, automationsLoaded: true });
+  },
+
+  async createAutomation(name, config, enabled) {
+    const created = await invokeCommand("itops_create_automation", { name, config, enabled });
+    set({ automations: [...get().automations, created] });
+    return created;
+  },
+
+  async updateAutomation(id, name, config) {
+    const updated = await invokeCommand("itops_update_automation", { id, name, config });
+    set({
+      automations: get().automations.map((automation) =>
+        automation.id === id ? updated : automation,
+      ),
+    });
+    return updated;
+  },
+
+  async setAutomationEnabled(id, enabled) {
+    const updated = await invokeCommand("itops_set_automation_enabled", { id, enabled });
+    set({
+      automations: get().automations.map((automation) =>
+        automation.id === id ? updated : automation,
+      ),
+    });
+  },
+
+  async removeAutomation(id) {
+    await invokeCommand("itops_remove_automation", { id });
+    set({ automations: get().automations.filter((automation) => automation.id !== id) });
   },
 }));

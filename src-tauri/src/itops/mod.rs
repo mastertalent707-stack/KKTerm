@@ -3,6 +3,8 @@
 // Groups (the `itops_host_groups` table, CRUD commands, and the run-time
 // resolver); Batch Runs and the Automation runtime arrive in later phases.
 
+pub mod automation_commands;
+pub mod automation_storage;
 pub mod commands;
 mod ids;
 pub mod run_storage;

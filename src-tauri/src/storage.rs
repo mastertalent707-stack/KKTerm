@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 30;
+const SCHEMA_USER_VERSION: i32 = 31;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -307,6 +307,20 @@ CREATE TABLE IF NOT EXISTS itops_run_history (
 
 CREATE INDEX IF NOT EXISTS idx_itops_run_history_source
     ON itops_run_history(source, started_at);
+
+-- A durable Automation (docs/ITOPS.md Phase 3): the persistent definition of a
+-- Watchdog. Enabled rows are re-armed into the live WatchdogRegistry on launch;
+-- the running Watchdog state stays in-memory only. config_json holds a
+-- serialized WatchdogConfig (the existing trigger/condition/action shape). v31.
+CREATE TABLE IF NOT EXISTS itops_automations (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    sort_order  INTEGER NOT NULL,
+    enabled     INTEGER NOT NULL DEFAULT 1,
+    config_json TEXT NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 "#;
 
 pub struct Storage {

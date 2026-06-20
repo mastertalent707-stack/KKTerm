@@ -1,6 +1,7 @@
 import { invoke, Channel } from "@tauri-apps/api/core";
 import { getVersion as getTauriAppVersion } from "@tauri-apps/api/app";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import type { WatchdogConfig } from "../watchdog/types";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import {
   confirm as confirmDialog,
@@ -42,6 +43,7 @@ import type {
   ResolvedHost,
   BatchTask,
   RunHistoryEntry,
+  Automation,
   HostUsageSnapshot,
   ImportedDatabaseSnapshot,
   SelectiveExportInfo,
@@ -1085,6 +1087,26 @@ type CommandMap = {
   itops_list_run_history: {
     args: { limit?: number } | undefined;
     result: RunHistoryEntry[];
+  };
+  itops_list_automations: {
+    args: undefined;
+    result: Automation[];
+  };
+  itops_create_automation: {
+    args: { name: string; config: WatchdogConfig; enabled: boolean };
+    result: Automation;
+  };
+  itops_update_automation: {
+    args: { id: string; name: string; config: WatchdogConfig };
+    result: Automation;
+  };
+  itops_set_automation_enabled: {
+    args: { id: string; enabled: boolean };
+    result: Automation;
+  };
+  itops_remove_automation: {
+    args: { id: string };
+    result: void;
   };
   list_workspaces: {
     args: undefined;

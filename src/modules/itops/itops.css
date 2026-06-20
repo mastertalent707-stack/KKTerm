@@ -1186,6 +1186,24 @@
   color: var(--green);
   font-weight: 600;
 }
+.itops-page .au-del {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.itops-page .au-del:hover {
+  background: var(--press);
+  color: var(--red);
+}
 
 /* armed toggle */
 .itops-page .au-toggle {

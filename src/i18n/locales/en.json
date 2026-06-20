@@ -1006,7 +1006,18 @@
         "target": "Target {{target}}",
         "sampledValue": "Sampled value",
         "evaluatedBy": "evaluated by the pure predicate"
-      }
+      },
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Disk usage alert",
+      "metricLabel": "Metric",
+      "conditionLabel": "Condition",
+      "thresholdLabel": "Threshold",
+      "pollLabel": "Check every (seconds)",
+      "notifyLabel": "Notification",
+      "savedNotice": "Saved Automation “{{name}}”.",
+      "deletedNotice": "Deleted Automation “{{name}}”.",
+      "deleteTitle": "Delete Automation?",
+      "deleteBody": "“{{name}}” will be removed and its Watchdog disarmed."
     },
     "errorNotice": "IT Ops: {{message}}"
   },

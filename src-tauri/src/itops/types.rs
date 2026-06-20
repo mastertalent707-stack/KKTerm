@@ -1,7 +1,25 @@
-// IT Ops durable types (docs/ITOPS.md). Phase 1 covers Host Groups; the
-// Automation/Batch types arrive with later phases.
+// IT Ops durable types (docs/ITOPS.md). Phase 1 covers Host Groups, Phase 2 the
+// Batch Run report shapes, and Phase 3 the durable Automation.
 
 use serde::{Deserialize, Serialize};
+
+use crate::watchdog::types::WatchdogConfig;
+
+/// A durable Automation (docs/ITOPS.md Phase 3): the persistent definition of a
+/// Watchdog. The live Watchdog runtime is what executes it — the same way a
+/// Connection is durable and a Session is its live runtime. Phase 3 stores the
+/// existing `WatchdogConfig` verbatim (the decomposed trigger/condition/action
+/// schema lands with the Phase 4 action catalog); `enabled` rows are re-armed
+/// into the live `WatchdogRegistry` on launch.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Automation {
+    pub id: String,
+    pub name: String,
+    pub sort_order: i64,
+    pub enabled: bool,
+    pub config: WatchdogConfig,
+}
 
 /// How a Batch Run reaches one host. Stored per Host Group as the default;
 /// `Auto` means "derive from the Connection at run time" (resolved in Phase 2+).

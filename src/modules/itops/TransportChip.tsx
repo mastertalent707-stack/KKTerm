@@ -2,16 +2,16 @@
 // technical token rendered verbatim, not translatable chrome.
 
 import { ItIcon, type ItIconName } from "./icons";
-import type { Transport } from "./data";
+import type { ItopsTransport } from "../../types";
 
-const TRANSPORT_ICON: Record<Transport, ItIconName> = {
+const TRANSPORT_ICON: Record<ItopsTransport, ItIconName> = {
   ssh: "ssh",
   winrm: "windows",
   psexec: "psexec",
   auto: "server",
 };
 
-export function TransportChip({ transport }: { transport: Transport }) {
+export function TransportChip({ transport }: { transport: ItopsTransport }) {
   return (
     <span className={`tport ${transport}`}>
       <span className="tport-ic">

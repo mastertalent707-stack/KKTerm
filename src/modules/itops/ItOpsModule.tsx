@@ -14,7 +14,6 @@ import { BatchRunsTab } from "./BatchRunsTab";
 import { BatchRunDialog } from "./BatchRunDialog";
 import { AutomationsTab } from "./AutomationsTab";
 import { useItOpsStore } from "./state";
-import { AUTOMATIONS } from "./data";
 
 type TabId = "groups" | "runs" | "autos";
 
@@ -39,9 +38,12 @@ export function ItOpsModule({ onOpenAssistant }: { onOpenAssistant?: () => void 
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
 
   const hostGroupCount = useItOpsStore((state) => state.hostGroups.length);
+  const automationCount = useItOpsStore((state) => state.automations.length);
   const loadHostGroups = useItOpsStore((state) => state.loadHostGroups);
   const requestNewHostGroup = useItOpsStore((state) => state.requestNewHostGroup);
+  const requestNewAutomation = useItOpsStore((state) => state.requestNewAutomation);
   const loadRunHistory = useItOpsStore((state) => state.loadRunHistory);
+  const loadAutomations = useItOpsStore((state) => state.loadAutomations);
   const applyRunEvent = useItOpsStore((state) => state.applyRunEvent);
   const activeRun = useItOpsStore((state) => state.activeRun);
   const newRunRequest = useItOpsStore((state) => state.newRunRequest);
@@ -50,7 +52,8 @@ export function ItOpsModule({ onOpenAssistant }: { onOpenAssistant?: () => void 
   useEffect(() => {
     void loadHostGroups();
     void loadRunHistory();
-  }, [loadHostGroups, loadRunHistory]);
+    void loadAutomations();
+  }, [loadHostGroups, loadRunHistory, loadAutomations]);
 
   // Stream live Batch Run progress into the store.
   useEffect(() => {
@@ -90,8 +93,9 @@ export function ItOpsModule({ onOpenAssistant }: { onOpenAssistant?: () => void 
       requestNewHostGroup();
     } else if (tab === "runs") {
       openBatchRunDialog();
+    } else {
+      requestNewAutomation();
     }
-    // Automation creation arrives with Phase 3.
   }
 
   return (
@@ -131,7 +135,7 @@ export function ItOpsModule({ onOpenAssistant }: { onOpenAssistant?: () => void 
             tabDef.id === "groups"
               ? hostGroupCount
               : tabDef.id === "autos"
-                ? AUTOMATIONS.length
+                ? automationCount
                 : null;
           return (
             <button
@@ -157,7 +161,7 @@ export function ItOpsModule({ onOpenAssistant }: { onOpenAssistant?: () => void 
       <div className="it-content">
         {tab === "groups" ? <HostGroupsTab /> : null}
         {tab === "runs" ? <BatchRunsTab onNewBatchRun={() => openBatchRunDialog()} /> : null}
-        {tab === "autos" ? <AutomationsTab empty={false} /> : null}
+        {tab === "autos" ? <AutomationsTab /> : null}
       </div>
 
       {batchDialogOpen ? (

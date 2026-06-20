@@ -1,4 +1,5 @@
 import type { AccentName, DashboardBackground, IconName, WidgetLayoutEnforcement } from "./modules/dashboard/types";
+import type { WatchdogConfig } from "./watchdog/types";
 
 export type ConnectionType =
   | "local"
@@ -213,6 +214,17 @@ export type RunEvent =
     }
   | { kind: "finished"; runId: string; report: RunReport }
   | { kind: "canceled"; runId: string };
+
+// A durable Automation (docs/ITOPS.md Phase 3): the persistent definition of a
+// Watchdog. `config` is the existing WatchdogConfig; enabling arms a live
+// Watchdog, which re-arms on launch.
+export interface Automation {
+  id: string;
+  name: string;
+  sortOrder: number;
+  enabled: boolean;
+  config: WatchdogConfig;
+}
 
 export interface CreateConnectionRequest {
   name: string;
