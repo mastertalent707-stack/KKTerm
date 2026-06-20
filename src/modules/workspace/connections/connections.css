@@ -688,6 +688,32 @@
   background: var(--border-strong);
 }
 
+.status-sync-input {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--green);
+  animation: status-sync-input-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes status-sync-input-pulse {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-sync-input {
+    animation: none;
+  }
+}
+
 .folder-actions {
   display: flex;
   flex: 0 0 auto;

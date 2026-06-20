@@ -40,7 +40,7 @@ import { confirmTrustedSshHostKey, connectionPasswordOwnerId, connectionSshSocks
 import { RECENT_CONNECTION_LIMIT, loadCollapsedFolderIds, loadRecentConnectionIds, notifyConnectionTreeInvalidated, saveCollapsedFolderIds, saveRecentConnectionIds } from "./connectionSidebarState";
 import { collectConnectionFolderIds, countConnections, countFolders, filterConnectedConnections, filterConnectionTree, findConnectionInTree, flattenConnections, flattenFolders, visibleFlatConnections as flattenVisibleConnections, withLiveConnectionStatuses } from "./treeUtils";
 import { WorkspaceIcon } from "../workspaceIcons";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, CircleDot, Folder, FolderPlus, KeyRound, LayoutDashboard, List, Maximize2, Minimize2, PanelRight, Pencil, Pin, PinOff, Play, Plus, RotateCcw, Save, Search, Settings, SquarePlus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, CircleDot, Folder, FolderPlus, KeyRound, LayoutDashboard, List, Maximize2, Minimize2, PanelRight, Pencil, Pin, PinOff, Play, Plus, Radio, RotateCcw, Save, Search, Settings, SquarePlus, Trash2, X } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent as ReactDragEvent, FormEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
@@ -5099,7 +5099,10 @@ function ConnectionChildTabRow({
           )}
         </span>
       </button>
-      <span className={`status-dot ${connected ? "connected" : "idle"}`} />
+      <ConnectionStatusIndicator
+        connectionType={connection.type}
+        status={connected ? "connected" : "idle"}
+      />
       <button
         aria-label={t("workspace.closeTab", { title })}
         className="connection-child-tab-close"
@@ -5216,7 +5219,33 @@ function ConnectionRow({
           </span>
         </button>
       )}
-      <span className={`status-dot ${connection.status}`} />
+      <ConnectionStatusIndicator
+        connectionType={connection.type}
+        status={connection.status}
+      />
     </div>
   );
+}
+
+function ConnectionStatusIndicator({
+  connectionType,
+  status,
+}: {
+  connectionType: ConnectionType;
+  status: ConnectionStatus;
+}) {
+  const syncInputEnabled = useWorkspaceStore((state) => state.syncInputEnabled);
+  const isConnectedTerminal =
+    status === "connected" &&
+    ["local", "ssh", "telnet", "serial"].includes(connectionType);
+
+  if (syncInputEnabled && isConnectedTerminal) {
+    return (
+      <span className="status-sync-input" aria-hidden="true">
+        <Radio size={13} strokeWidth={2.25} />
+      </span>
+    );
+  }
+
+  return <span className={`status-dot ${status}`} />;
 }

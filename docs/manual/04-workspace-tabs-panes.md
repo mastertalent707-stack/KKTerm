@@ -59,6 +59,8 @@ When opening a Connection from the tree with a target Pane focused, the `connect
 
 You can also drag a Connection from the Connection Tree onto the Workspace Canvas to place it spatially, Visual Studio-style. While dragging over any active Tab surface, a docking overlay appears: a faint outline frames the Pane under the pointer and an accent-tinted highlight previews the snap region. The highlight follows the nearest edge - left, right, top, or bottom - and glides between edges and Panes as you move. Releasing splits that specific Pane in the previewed direction (it does not require the Pane to be focused first). Dropping onto a standalone Connection Tab, such as File Explorer, Document, URL, RDP/VNC, FTP, or SFTP, first converts that Tab into the shared split-Pane layout and keeps the original surface as the first Pane. Dropping a Connection onto an empty Canvas (no Tab open) opens it as a new Tab. This is a pointer interaction with no menu label.
 
+Split Panes use a narrow gutter so panorama layouts keep as much Canvas space as possible for Session content.
+
 ### Focus
 
 `terminal.focusPane` switches the active Pane. Pane focus follows mouse click and keyboard tab cycling. Terminal Panes use xterm.js, which is backed by a hidden textarea — WebView2 focus quirks can affect input. Validate focus behaviour with the real Tauri runtime, not a browser preview.
