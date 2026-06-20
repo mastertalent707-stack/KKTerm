@@ -40,6 +40,8 @@ import type {
   HostGroupFilter,
   ItopsTransport,
   ResolvedHost,
+  BatchTask,
+  RunHistoryEntry,
   HostUsageSnapshot,
   ImportedDatabaseSnapshot,
   SelectiveExportInfo,
@@ -1071,6 +1073,18 @@ type CommandMap = {
   itops_resolve_host_group: {
     args: { id: string };
     result: ResolvedHost[];
+  };
+  itops_start_batch_run: {
+    args: { hostGroupId: string; task: BatchTask };
+    result: string;
+  };
+  itops_cancel_batch_run: {
+    args: { runId: string };
+    result: void;
+  };
+  itops_list_run_history: {
+    args: { limit?: number } | undefined;
+    result: RunHistoryEntry[];
   };
   list_workspaces: {
     args: undefined;

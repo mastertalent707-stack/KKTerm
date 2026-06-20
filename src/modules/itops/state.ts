@@ -5,13 +5,92 @@
 
 import { create } from "zustand";
 import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
-import type { HostGroup, HostGroupFilter, ItopsTransport, ResolvedHost } from "../../types";
+import type {
+  HostGroup,
+  HostGroupFilter,
+  ItopsTransport,
+  ResolvedHost,
+  RunEvent,
+  RunHistoryEntry,
+} from "../../types";
 
 export interface HostGroupInput {
   name: string;
   memberIds: string[];
   filter: HostGroupFilter | null;
   transport: ItopsTransport;
+}
+
+export type LiveRunHostStatus = "pending" | "running" | "ok" | "failed";
+
+export interface LiveRunHost {
+  connectionId: string;
+  name: string;
+  host: string;
+  transport: ItopsTransport;
+  status: LiveRunHostStatus;
+  exitCode?: number | null;
+  output?: string;
+  durationMs?: number;
+  error?: string | null;
+}
+
+export interface LiveRun {
+  runId: string;
+  hostGroupId?: string | null;
+  taskSummary: string;
+  hosts: LiveRunHost[];
+  state: "running" | "done" | "canceled";
+}
+
+// Fold a streamed `itops://run` event into the live run snapshot. Events for a
+// stale run id are ignored so a new run cleanly supersedes the previous one.
+function reduceRun(run: LiveRun | null, event: RunEvent): LiveRun | null {
+  switch (event.kind) {
+    case "started":
+      return {
+        runId: event.runId,
+        hostGroupId: event.hostGroupId,
+        taskSummary: event.taskSummary,
+        hosts: event.hosts.map((host) => ({ ...host, status: "pending" as const })),
+        state: "running",
+      };
+    case "hostStarted":
+      if (!run || run.runId !== event.runId) return run;
+      return {
+        ...run,
+        hosts: run.hosts.map((host) =>
+          host.connectionId === event.connectionId
+            ? { ...host, status: "running" }
+            : host,
+        ),
+      };
+    case "hostFinished":
+      if (!run || run.runId !== event.runId) return run;
+      return {
+        ...run,
+        hosts: run.hosts.map((host) =>
+          host.connectionId === event.connectionId
+            ? {
+                ...host,
+                status: event.ok ? "ok" : "failed",
+                exitCode: event.exitCode,
+                output: event.output,
+                durationMs: event.durationMs,
+                error: event.error,
+              }
+            : host,
+        ),
+      };
+    case "finished":
+      if (!run || run.runId !== event.runId) return run;
+      return { ...run, state: "done" };
+    case "canceled":
+      if (!run || run.runId !== event.runId) return run;
+      return { ...run, state: "canceled" };
+    default:
+      return run;
+  }
 }
 
 interface ItOpsState {
@@ -27,6 +106,19 @@ interface ItOpsState {
   updateHostGroup: (id: string, input: HostGroupInput) => Promise<HostGroup>;
   removeHostGroup: (id: string) => Promise<void>;
   resolveHostGroup: (id: string) => Promise<ResolvedHost[]>;
+
+  // ── Batch Runs (Phase 2) ──
+  activeRun: LiveRun | null;
+  runHistory: RunHistoryEntry[];
+  historyLoaded: boolean;
+  /** Bumped to open the Batch Run launcher; pendingRunGroupId preselects a group. */
+  newRunRequest: number;
+  pendingRunGroupId: string | null;
+  requestNewBatchRun: (hostGroupId?: string) => void;
+  applyRunEvent: (event: RunEvent) => void;
+  startBatchRun: (hostGroupId: string, body: string) => Promise<string>;
+  cancelRun: (runId: string) => Promise<void>;
+  loadRunHistory: () => Promise<void>;
 }
 
 export const useItOpsStore = create<ItOpsState>((set, get) => ({
@@ -88,5 +180,52 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
       return [];
     }
     return invokeCommand("itops_resolve_host_group", { id });
+  },
+
+  // ── Batch Runs ──
+  activeRun: null,
+  runHistory: [],
+  historyLoaded: false,
+  newRunRequest: 0,
+  pendingRunGroupId: null,
+
+  requestNewBatchRun(hostGroupId) {
+    set({
+      newRunRequest: get().newRunRequest + 1,
+      pendingRunGroupId: hostGroupId ?? null,
+    });
+  },
+
+  applyRunEvent(event) {
+    set({ activeRun: reduceRun(get().activeRun, event) });
+    if (event.kind === "finished" || event.kind === "canceled") {
+      void get().loadRunHistory();
+    }
+  },
+
+  async startBatchRun(hostGroupId, body) {
+    // The Started event populates activeRun; clear any prior run first so the
+    // grid does not briefly show stale hosts.
+    set({ activeRun: null });
+    return invokeCommand("itops_start_batch_run", {
+      hostGroupId,
+      task: { kind: "script", body },
+    });
+  },
+
+  async cancelRun(runId) {
+    if (!isTauriRuntime()) {
+      return;
+    }
+    await invokeCommand("itops_cancel_batch_run", { runId });
+  },
+
+  async loadRunHistory() {
+    if (!isTauriRuntime()) {
+      set({ historyLoaded: true });
+      return;
+    }
+    const runHistory = await invokeCommand("itops_list_run_history", { limit: 25 });
+    set({ runHistory, historyLoaded: true });
   },
 }));

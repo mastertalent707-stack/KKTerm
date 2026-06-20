@@ -3221,6 +3221,7 @@ pub fn run() {
             #[cfg(not(target_os = "windows"))]
             app.manage(rdp_client::RdpClientSessionManager::new());
             app.manage(std::sync::Arc::new(net::stream::StreamRegistry::new()));
+            app.manage(itops::commands::ItopsRunRegistry::default());
             app.manage(std::sync::Arc::new(watchdog::WatchdogRegistry::new()));
             app.manage(std::sync::Arc::new(watchdog::SessionActivityTracker::new()));
             app.manage(installer::InstallerRuntime::new());
@@ -3604,6 +3605,9 @@ pub fn run() {
             itops::commands::itops_remove_host_group,
             itops::commands::itops_reorder_host_groups,
             itops::commands::itops_resolve_host_group,
+            itops::commands::itops_start_batch_run,
+            itops::commands::itops_cancel_batch_run,
+            itops::commands::itops_list_run_history,
             // ── Install Helper
             installer::commands::installer_load_catalog,
             installer::commands::installer_load_detection_cache,

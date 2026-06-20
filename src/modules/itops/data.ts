@@ -1,36 +1,15 @@
-// Placeholder run/automation fixtures for the IT Ops Module, ported from the
+// Placeholder automation fixtures for the IT Ops Module, ported from the
 // redesign mockup (itops-data.jsx).
 //
-// Phase 1 wired durable Host Groups to the backend, so those fixtures are gone.
-// The Batch Run grid and the Automations list still render against these
-// fixtures until Phases 2–3 wire their commands (see docs/ITOPS.md). The values
-// here are sample *content* (host names, addresses, commands) — the kind of
-// user/runtime data a backend will later supply — not translatable UI chrome.
+// Host Groups (Phase 1) and Batch Runs (Phase 2) are wired to the backend, so
+// their fixtures are gone. The Automations list/builder still render against
+// these fixtures until Phase 3 wires the durable Automation runtime (see
+// docs/ITOPS.md). The values here are sample *content* — not translatable chrome.
 
 import { IT_ACCENTS, type ItIconName } from "./icons";
 
+// Still used by TransportChip (a chip rendered for both Host Groups and Runs).
 export type Transport = "ssh" | "winrm" | "psexec" | "auto";
-export type RunStatus = "ok" | "failed" | "running" | "pending";
-
-export type RunSnapshot = {
-  status: RunStatus;
-  code?: number;
-  dur?: string;
-  note?: string;
-};
-
-export type RunHost = {
-  id: string;
-  name: string;
-  host: string;
-  transport: Transport;
-  expanded?: boolean;
-  live: RunSnapshot;
-  report: RunSnapshot;
-};
-
-export type OutputSegment = { cls: string; txt: string };
-export type OutputToken = OutputSegment | { cursor: true };
 
 export type Automation = {
   id: string;
@@ -46,67 +25,6 @@ export type Automation = {
 };
 
 export type BuilderActionKind = "bell" | "mail" | "run" | "bot" | "popup" | "webhook";
-
-export const seg = (cls: string, txt: string): OutputSegment => ({ cls, txt });
-export const CURSOR = { cursor: true } as const;
-
-/* ----------------------------- batch run ----------------------------- */
-export const RUN_HEADER = {
-  task: "sudo apt-get update && sudo apt-get upgrade -y",
-  kind: "script",
-  group: "Production Web",
-  startedAt: "14:32:07",
-};
-
-// per-host run rows. `live` and `report` give the two snapshot states.
-export const RUN_HOSTS: RunHost[] = [
-  { id: "c1", name: "web-01", host: "10.0.4.11", transport: "ssh",
-    live: { status: "ok", code: 0, dur: "12.4s" }, report: { status: "ok", code: 0, dur: "12.4s" } },
-  { id: "c2", name: "web-02", host: "10.0.4.12", transport: "ssh",
-    live: { status: "ok", code: 0, dur: "11.8s" }, report: { status: "ok", code: 0, dur: "11.8s" } },
-  { id: "c3", name: "web-03", host: "10.0.4.13", transport: "ssh", expanded: true,
-    live: { status: "running", dur: "0:06" }, report: { status: "ok", code: 0, dur: "13.1s" } },
-  { id: "c4", name: "web-04", host: "10.0.4.14", transport: "ssh",
-    live: { status: "running", dur: "0:05" }, report: { status: "ok", code: 0, dur: "14.0s" } },
-  { id: "c5", name: "lb-01", host: "10.0.4.20", transport: "ssh",
-    live: { status: "ok", code: 0, dur: "9.2s" }, report: { status: "ok", code: 0, dur: "9.2s" } },
-  { id: "c6", name: "lb-02", host: "10.0.4.21", transport: "ssh", expanded: true,
-    live: { status: "failed", code: 100, dur: "3.0s" }, report: { status: "failed", code: 100, dur: "3.0s" } },
-  { id: "c7", name: "win-build-01", host: "10.0.6.5", transport: "winrm",
-    live: { status: "pending" }, report: { status: "ok", code: 0, dur: "22.6s" } },
-  { id: "c8", name: "edge-cache", host: "10.0.4.9", transport: "ssh",
-    live: { status: "pending" }, report: { status: "failed", code: -1, dur: "120s", note: "transport timeout" } },
-];
-
-/* streamed output bodies keyed by host id (read-only terminal surface) */
-export const RUN_OUTPUT: Record<string, OutputToken[][]> = {
-  c3: [
-    [seg("c-dim", "$ "), seg("c-key", "sudo "), seg("", "apt-get update")],
-    [seg("c-cm", "Hit:1 http://archive.ubuntu.com/ubuntu jammy InRelease")],
-    [seg("c-cm", "Get:2 http://security.ubuntu.com jammy-security InRelease [110 kB]")],
-    [seg("c-val", "Fetched 110 kB in 1s (98.4 kB/s)")],
-    [seg("", "Reading package lists... "), seg("c-prompt", "Done")],
-    [seg("c-dim", "$ "), seg("c-key", "sudo "), seg("", "apt-get upgrade -y")],
-    [seg("", "The following packages will be upgraded:")],
-    [seg("c-path", "  libssl3 openssl curl libcurl4 tzdata")],
-    [seg("c-cm", "Setting up libssl3:amd64 (3.0.2-0ubuntu1.15) ...")],
-    [seg("c-cm", "Setting up openssl (3.0.2-0ubuntu1.15) ..."), CURSOR],
-  ],
-  c6: [
-    [seg("c-dim", "$ "), seg("c-key", "sudo "), seg("", "apt-get update")],
-    [seg("c-err", "E: Could not get lock /var/lib/dpkg/lock-frontend")],
-    [seg("c-err", "   - open (11: Resource temporarily unavailable)")],
-    [seg("c-warn", "E: Unable to acquire the dpkg frontend lock; is another")],
-    [seg("c-warn", "   process using it? (unattended-upgrades, pid 41207)")],
-    [seg("c-dim", "command exited with status "), seg("c-err", "100")],
-  ],
-  c1: [
-    [seg("c-cm", "Reading package lists... Done")],
-    [seg("c-cm", "Building dependency tree... Done")],
-    [seg("c-prompt", "0 upgraded, 0 newly installed, 0 to remove")],
-    [seg("c-dim", "command exited with status "), seg("c-val", "0")],
-  ],
-};
 
 /* ----------------------------- automations ----------------------------- */
 export const AUTOMATIONS: Automation[] = [

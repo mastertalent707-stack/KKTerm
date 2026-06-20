@@ -84,3 +84,134 @@ pub struct ResolvedHost {
     pub connection_type: String,
     pub transport: Transport,
 }
+
+/// What a Batch Run executes on each targeted host (docs/ITOPS.md). Phase 2
+/// implements `Script`; `Playbook` arrives in Phase 7.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum BatchTask {
+    Script {
+        body: String,
+        #[serde(default)]
+        shell: Option<String>,
+    },
+}
+
+impl BatchTask {
+    /// A redacted, one-line label for the run-history audit log — never the full
+    /// script body, which may embed secrets.
+    pub fn summary(&self) -> String {
+        match self {
+            BatchTask::Script { body, .. } => {
+                let first = body
+                    .lines()
+                    .map(str::trim)
+                    .find(|line| !line.is_empty())
+                    .unwrap_or("");
+                let mut label = first.chars().take(80).collect::<String>();
+                if first.chars().count() > 80 {
+                    label.push('…');
+                }
+                if label.is_empty() {
+                    "script".to_string()
+                } else {
+                    label
+                }
+            }
+        }
+    }
+}
+
+/// The outcome of running a Batch Task on one host. `ok` means the transport
+/// reached the host and the command exited 0.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExecOutcome {
+    pub ok: bool,
+    pub exit_code: Option<i32>,
+    pub output: String,
+    /// Set when the transport itself failed (connect/auth/timeout).
+    pub error: Option<String>,
+}
+
+/// One host's row in the consolidated, persisted run report.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostReport {
+    pub connection_id: String,
+    pub name: String,
+    pub host: String,
+    pub transport: Transport,
+    pub ok: bool,
+    pub exit_code: Option<i32>,
+    pub bytes_out: u64,
+    pub duration_ms: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+/// The consolidated report blob stored in `itops_run_history.report_json`.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RunReport {
+    pub ok: usize,
+    pub failed: usize,
+    pub total: usize,
+    pub hosts: Vec<HostReport>,
+}
+
+/// A persisted run-history entry (one finished Batch Run).
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunHistoryEntry {
+    pub id: String,
+    pub source: String,
+    pub host_group_id: Option<String>,
+    pub task_summary: String,
+    pub started_at: String,
+    pub finished_at: Option<String>,
+    pub report: RunReport,
+}
+
+/// A host as announced in the run's `Started` event (before execution).
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunEventHost {
+    pub connection_id: String,
+    pub name: String,
+    pub host: String,
+    pub transport: Transport,
+}
+
+/// Live Batch Run progress streamed to the frontend on the `itops://run`
+/// channel. In-memory only; the durable record is the `RunReport`.
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum RunEvent {
+    Started {
+        run_id: String,
+        host_group_id: Option<String>,
+        task_summary: String,
+        hosts: Vec<RunEventHost>,
+    },
+    HostStarted {
+        run_id: String,
+        connection_id: String,
+    },
+    HostFinished {
+        run_id: String,
+        connection_id: String,
+        ok: bool,
+        exit_code: Option<i32>,
+        output: String,
+        duration_ms: u64,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
+    },
+    Finished {
+        run_id: String,
+        report: RunReport,
+    },
+    Canceled {
+        run_id: String,
+    },
+}

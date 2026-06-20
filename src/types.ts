@@ -152,6 +152,68 @@ export interface ResolvedHost {
   transport: ItopsTransport;
 }
 
+// A Batch Run task (docs/ITOPS.md Phase 2). Only the script kind exists yet.
+export type BatchTask = { kind: "script"; body: string; shell?: string | null };
+
+export interface HostReport {
+  connectionId: string;
+  name: string;
+  host: string;
+  transport: ItopsTransport;
+  ok: boolean;
+  exitCode?: number | null;
+  bytesOut: number;
+  durationMs: number;
+  error?: string | null;
+}
+
+export interface RunReport {
+  ok: number;
+  failed: number;
+  total: number;
+  hosts: HostReport[];
+}
+
+export interface RunHistoryEntry {
+  id: string;
+  source: string;
+  hostGroupId?: string | null;
+  taskSummary: string;
+  startedAt: string;
+  finishedAt?: string | null;
+  report: RunReport;
+}
+
+export interface RunEventHost {
+  connectionId: string;
+  name: string;
+  host: string;
+  transport: ItopsTransport;
+}
+
+// Live Batch Run progress streamed on the `itops://run` channel.
+export type RunEvent =
+  | {
+      kind: "started";
+      runId: string;
+      hostGroupId?: string | null;
+      taskSummary: string;
+      hosts: RunEventHost[];
+    }
+  | { kind: "hostStarted"; runId: string; connectionId: string }
+  | {
+      kind: "hostFinished";
+      runId: string;
+      connectionId: string;
+      ok: boolean;
+      exitCode?: number | null;
+      output: string;
+      durationMs: number;
+      error?: string | null;
+    }
+  | { kind: "finished"; runId: string; report: RunReport }
+  | { kind: "canceled"; runId: string };
+
 export interface CreateConnectionRequest {
   name: string;
   host?: string;

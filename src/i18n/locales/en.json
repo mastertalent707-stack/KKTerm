@@ -925,7 +925,8 @@
       "more": "More",
       "create": "Create",
       "delete": "Delete",
-      "edit": "Edit"
+      "edit": "Edit",
+      "run": "Run"
     },
     "transport": {
       "auto": "Auto"
@@ -978,7 +979,18 @@
       "codeExit": "exit {{code}}",
       "codeRunning": "running",
       "codeQueued": "queued",
-      "savedReport": "Consolidated report saved to run history · source manual · {{ok}}/{{total}} succeeded"
+      "savedReport": "Consolidated report saved to run history · source manual · {{ok}}/{{total}} succeeded",
+      "launchTitle": "New Batch Run",
+      "hostGroupLabel": "Host Group",
+      "scriptLabel": "Script",
+      "scriptPlaceholder": "sudo apt-get update && sudo apt-get upgrade -y",
+      "noGroups": "Create a Host Group first to run a Batch Run.",
+      "startedNotice": "Batch Run started.",
+      "stateCanceled": "Canceled",
+      "progressComplete": "{{done}} of {{total}} complete",
+      "historyHeading": "Recent runs",
+      "historySummary": "{{ok}}/{{total}} ok",
+      "waitingOutput": "Waiting for output…"
     },
     "automations": {
       "emptyTitle": "No Automations yet",

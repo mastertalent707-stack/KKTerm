@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 29;
+const SCHEMA_USER_VERSION: i32 = 30;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -288,6 +288,25 @@ CREATE TABLE IF NOT EXISTS itops_host_groups (
     created_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- One completed Batch Run (docs/ITOPS.md Phase 2). Append-only audit log; the
+-- host_group_id is a soft reference (no FK) so a run survives its group being
+-- deleted. Live run progress is in-memory only and never lands here. v30.
+CREATE TABLE IF NOT EXISTS itops_run_history (
+    id             TEXT PRIMARY KEY,
+    -- 'manual' or 'automation:<automation_id>'.
+    source         TEXT NOT NULL,
+    host_group_id  TEXT,
+    -- Redacted one-line task label, never a secret-bearing script body.
+    task_summary   TEXT NOT NULL,
+    started_at     TEXT NOT NULL,
+    finished_at    TEXT,
+    -- Consolidated report: per-host {connectionId,host,transport,exitCode,ok,bytesOut} rows.
+    report_json    TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_itops_run_history_source
+    ON itops_run_history(source, started_at);
 "#;
 
 pub struct Storage {

@@ -1,16 +1,20 @@
 // IT Ops Module shell: header, three tabs (Host Groups, Batch Runs,
-// Automations) and the content router. Ported from the redesign mockup
-// (itops-app.jsx). Phase 0 renders the full design against placeholder
-// fixtures; later phases swap the tab bodies onto real backend data.
+// Automations) and the content router. Host Groups (Phase 1) and Batch Runs
+// (Phase 2) are backed by real commands; the Automations tab still renders the
+// Phase 0 fixtures until Phase 3.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { listen } from "@tauri-apps/api/event";
+import { isTauriRuntime } from "../../lib/tauri";
+import type { RunEvent } from "../../types";
 import { ItIcon, type ItIconName } from "./icons";
 import { HostGroupsTab } from "./HostGroupsTab";
 import { BatchRunsTab } from "./BatchRunsTab";
+import { BatchRunDialog } from "./BatchRunDialog";
 import { AutomationsTab } from "./AutomationsTab";
 import { useItOpsStore } from "./state";
-import { AUTOMATIONS, RUN_HOSTS } from "./data";
+import { AUTOMATIONS } from "./data";
 
 type TabId = "groups" | "runs" | "autos";
 
@@ -29,24 +33,65 @@ const PRIMARY: Record<TabId, { labelKey: string; icon: ItIconName; size: number 
 export function ItOpsModule({ onOpenAssistant }: { onOpenAssistant?: () => void }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<TabId>("groups");
+  const [batchDialogGroupId, setBatchDialogGroupId] = useState<string | null | undefined>(
+    undefined,
+  );
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false);
+
   const hostGroupCount = useItOpsStore((state) => state.hostGroups.length);
   const loadHostGroups = useItOpsStore((state) => state.loadHostGroups);
   const requestNewHostGroup = useItOpsStore((state) => state.requestNewHostGroup);
+  const loadRunHistory = useItOpsStore((state) => state.loadRunHistory);
+  const applyRunEvent = useItOpsStore((state) => state.applyRunEvent);
+  const activeRun = useItOpsStore((state) => state.activeRun);
+  const newRunRequest = useItOpsStore((state) => state.newRunRequest);
+  const pendingRunGroupId = useItOpsStore((state) => state.pendingRunGroupId);
 
   useEffect(() => {
     void loadHostGroups();
-  }, [loadHostGroups]);
+    void loadRunHistory();
+  }, [loadHostGroups, loadRunHistory]);
+
+  // Stream live Batch Run progress into the store.
+  useEffect(() => {
+    if (!isTauriRuntime()) {
+      return;
+    }
+    const unlisten = listen<RunEvent>("itops://run", (event) => applyRunEvent(event.payload));
+    return () => {
+      void unlisten.then((dispose) => dispose());
+    };
+  }, [applyRunEvent]);
+
+  function openBatchRunDialog(groupId?: string | null) {
+    setBatchDialogGroupId(groupId);
+    setBatchDialogOpen(true);
+  }
+
+  // The "Run task" / "Re-run" affordances request a run; switch to the Batch
+  // Runs tab and open the launcher preselected to that group.
+  const seenNewRunRequest = useRef(newRunRequest);
+  useEffect(() => {
+    if (newRunRequest !== seenNewRunRequest.current) {
+      seenNewRunRequest.current = newRunRequest;
+      setTab("runs");
+      openBatchRunDialog(pendingRunGroupId);
+    }
+  }, [newRunRequest, pendingRunGroupId]);
 
   const prim = PRIMARY[tab];
-  const runningCount = RUN_HOSTS.filter(
-    (r) => r.live.status === "running" || r.live.status === "pending",
-  ).length;
+  const runningCount = activeRun
+    ? activeRun.hosts.filter((host) => host.status === "running" || host.status === "pending")
+        .length
+    : 0;
 
   function handlePrimary() {
     if (tab === "groups") {
       requestNewHostGroup();
+    } else if (tab === "runs") {
+      openBatchRunDialog();
     }
-    // Batch Run / Automation creation arrive with Phases 2–3.
+    // Automation creation arrives with Phase 3.
   }
 
   return (
@@ -111,9 +156,17 @@ export function ItOpsModule({ onOpenAssistant }: { onOpenAssistant?: () => void 
       {/* content */}
       <div className="it-content">
         {tab === "groups" ? <HostGroupsTab /> : null}
-        {tab === "runs" ? <BatchRunsTab empty={false} /> : null}
+        {tab === "runs" ? <BatchRunsTab onNewBatchRun={() => openBatchRunDialog()} /> : null}
         {tab === "autos" ? <AutomationsTab empty={false} /> : null}
       </div>
+
+      {batchDialogOpen ? (
+        <BatchRunDialog
+          defaultGroupId={batchDialogGroupId}
+          onClose={() => setBatchDialogOpen(false)}
+          onStarted={() => setTab("runs")}
+        />
+      ) : null}
     </div>
   );
 }

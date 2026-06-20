@@ -45,6 +45,7 @@ export function HostGroupsTab() {
   const updateHostGroup = useItOpsStore((state) => state.updateHostGroup);
   const removeHostGroup = useItOpsStore((state) => state.removeHostGroup);
   const resolveHostGroup = useItOpsStore((state) => state.resolveHostGroup);
+  const requestNewBatchRun = useItOpsStore((state) => state.requestNewBatchRun);
   const newGroupRequest = useItOpsStore((state) => state.newGroupRequest);
 
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -218,8 +219,11 @@ export function HostGroupsTab() {
             >
               <ItIcon name="trash" size={15} />
             </button>
-            {/* Run task lands with Phase 2 (Batch Runs); shown for continuity. */}
-            <button type="button" className="it-btn">
+            <button
+              type="button"
+              className="it-btn"
+              onClick={() => requestNewBatchRun(activeGroup.id)}
+            >
               <span className="it-btn-ic">
                 <ItIcon name="run" size={13} />
               </span>
