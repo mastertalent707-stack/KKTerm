@@ -2154,9 +2154,18 @@ export function ConnectionSidebar({
     }
   }
 
+  function findOpenTabForConnection(connectionId: string) {
+    return tabs.find(
+      (tab) =>
+        tab.connection?.id === connectionId ||
+        tab.panes.some((pane) => pane.connection?.id === connectionId),
+    );
+  }
+
   // Opens every connection in the folder (recursively, child folders included).
   // "tabs" gives each its own Tab via the standard open path so per-type handling
-  // applies; "panorama" lays them all out as split Panes inside one Tab.
+  // applies; "panorama" lays unopened Connections out as split Panes inside one
+  // Tab. Existing Sessions stay where they are and are reused rather than rebuilt.
   function handleTreeMenuOpenAllInFolder(menu: TreeContextMenuState, mode: "tabs" | "panorama") {
     setTreeContextMenu(null);
     if (menu.kind !== "folder") {
@@ -2167,11 +2176,28 @@ export function ConnectionSidebar({
       folders: menu.folder.folders,
     });
     if (mode === "panorama") {
-      openConnectionsInPanorama(folderConnections, { title: menu.folder.name });
+      const unopenedConnections = folderConnections.filter(
+        (connection) => !findOpenTabForConnection(connection.id),
+      );
+      if (unopenedConnections.length > 0) {
+        openConnectionsInPanorama(unopenedConnections, { title: menu.folder.name });
+      } else {
+        const existingTab = folderConnections
+          .map((connection) => findOpenTabForConnection(connection.id))
+          .find((tab) => Boolean(tab));
+        if (existingTab) {
+          activateTab(existingTab.id);
+        }
+      }
       return;
     }
     for (const connection of folderConnections) {
-      openConnection(connection);
+      const existingTab = findOpenTabForConnection(connection.id);
+      if (existingTab) {
+        activateTab(existingTab.id);
+      } else {
+        openConnection(connection);
+      }
     }
   }
 
