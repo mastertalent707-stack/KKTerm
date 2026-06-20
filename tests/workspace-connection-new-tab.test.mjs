@@ -59,7 +59,7 @@ test("Connection Tree supports forced new Tabs from Ctrl-click and Add to menu",
   );
   assert.match(
     sidebarSource,
-    /<span className=\{`status-dot \$\{connected \? "connected" : "idle"\}`\}/,
+    /<ConnectionStatusIndicator[\s\S]*?status=\{connected \? "connected" : "idle"\}/,
     "Child Connection Tab rows should show their own connection status dot",
   );
   assert.match(
