@@ -453,6 +453,7 @@ function WorkspaceIconPicker({
                 onChange(nextIcon);
                 setOpen(false);
               }}
+              searchPlaceholder={t("common.searchForMore")}
               value={icon}
             />
           </div>

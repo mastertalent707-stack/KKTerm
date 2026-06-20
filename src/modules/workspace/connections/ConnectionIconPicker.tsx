@@ -170,6 +170,7 @@ export function ConnectionIconPicker({
             }}
             savedImageLabelForIndex={(index) => t("connections.selectSavedIcon", { index: index + 1 })}
             savedImageDataUrls={currentSavedImageDataUrl ? [currentSavedImageDataUrl, ...reusableIconDataUrls] : reusableIconDataUrls}
+            searchPlaceholder={t("common.searchForMore")}
             staticOptions={predefinedOptions}
             value={currentIconDataUrl}
           />

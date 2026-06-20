@@ -32,6 +32,7 @@ export function IconLibraryPicker({
   onSelect,
   savedImageDataUrls = [],
   savedImageLabelForIndex = (index) => String(index + 1),
+  searchPlaceholder,
   staticOptions: extraStaticOptions = [],
   value,
 }: {
@@ -44,6 +45,7 @@ export function IconLibraryPicker({
   onSelect: (value: string | null) => void;
   savedImageDataUrls?: readonly string[];
   savedImageLabelForIndex?: (index: number) => string;
+  searchPlaceholder?: string;
   staticOptions?: readonly IconLibraryStaticOption[];
   value: string | null;
 }) {
@@ -78,7 +80,7 @@ export function IconLibraryPicker({
         <input
           aria-label={t("common.search")}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={t("common.search")}
+          placeholder={searchPlaceholder ?? t("common.search")}
           type="search"
           value={query}
         />
