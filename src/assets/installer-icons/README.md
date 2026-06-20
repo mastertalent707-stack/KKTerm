@@ -45,3 +45,5 @@ limited to small app-identification assets.
 - `bentopdf.svg`: `goodtab/bentopdf`,
   `public/images/favicon.svg`, Apache License 2.0 (copyright Abdullah Alam;
   trademark notice applies).
+- `openflowkit.svg`: `Vrun-design/openflowkit`,
+  `public/Logo_openflowkit.svg`, MIT License (trademark notice applies).

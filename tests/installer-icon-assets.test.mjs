@@ -8,6 +8,7 @@ for (const { id, asset } of [
   { id: "codex-desktop", asset: "codex.svg" },
   { id: "ffmpeg", asset: "ffmpeg.svg" },
   { id: "bentopdf", asset: "bentopdf.svg" },
+  { id: "openflowkit", asset: "openflowkit.svg" },
 ]) {
   test(`${id} uses a bundled Install Helper icon`, async () => {
     const iconsSource = await readFile(
