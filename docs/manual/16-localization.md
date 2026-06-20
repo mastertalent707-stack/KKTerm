@@ -43,6 +43,61 @@ Detailed rules are in `docs/ARCHITECTURE.md` §Internationalization. Summary:
 4. Only update non-English locale files when intentionally translating; keep all 14 locale JSON files structurally aligned. `en.json` defines the canonical namespace/key order for every locale. Insert translated keys in the same relative position, run `npm run i18n:normalize` if order drifts, and always run `npm run i18n:check` during translation runs to compare every locale against `en.json` for missing, redundant, and misordered keys.
 5. Renames must update every locale file plus the matching `docs/localization_todo/` filename.
 6. Related regional locales must be translated independently. Cross-locale translation bleed is strictly forbidden even when scripts or words overlap: `zh-CN` and `zh-TW`, `es-ES` and `es-MX`, and `pt-PT` and `pt-BR` must use their own script, spelling, and regional terminology.
+
+### CRITICAL — zh-TW must never contain Mainland Chinese terminology
+
+`zh-TW.json` targets Traditional Chinese users in **Taiwan**. It must use Taiwan computing terminology and Taiwan phrasing — never Mainland Chinese terms, even when the characters are traditional. This is a hard review gate: any zh-TW string that uses a Mainland term is a bug that blocks the translation pass.
+
+**Forbidden Mainland → required Taiwan term mapping** (non-exhaustive; apply the same principle to any term not listed):
+
+| English | Mainland (forbidden in zh-TW) | Taiwan (required in zh-TW) |
+|---------|-------------------------------|---------------------------|
+| connection (noun) | 连接 / 連接 | 連線 |
+| connect (verb) | 连接 / 連接 | 連線 |
+| port | 端口 | 連接埠 |
+| terminal | 终端 / 終端 | 終端機 |
+| window | 窗口 | 視窗 |
+| current | 当前 / 當前 | 目前 |
+| save | 保存 | 儲存 |
+| default | 默认 / 默認 | 預設 |
+| data | 数据 / 數據 | 資料 |
+| information | 信息 | 資訊 |
+| software | 软件 / 軟件 | 軟體 |
+| network | 网络 / 網絡 | 網路 |
+| mouse | 鼠标 / 鼠標 | 滑鼠 |
+| access | 访问 / 訪問 | 存取 |
+| memory | 内存 / 內存 | 記憶體 |
+| disk | 硬盘 / 硬盤 | 硬碟 |
+| print | 打印 | 列印 |
+| help | 帮助 / 幫助 | 說明 |
+| search | 搜索 | 搜尋 |
+| client | 客户端 (Mainland spelling) / 用戶端 | 客戶端 |
+| server | 服务器 / 服務器 | 伺服器 |
+| wildcard | 通配符 | 萬用字元 |
+| loopback | 回环 / 回環 | 回送 |
+| interface | 接口 | 介面 |
+| remote | 远程 / 遠程 | 遠端 |
+| user | 用户 / 用戶 | 使用者 |
+| program (code) | 程序 | 程式 |
+| process | 进程 / 進程 | 處理程序 |
+| screen | 屏幕 | 螢幕 |
+| menu | 菜单 / 菜單 | 選單 |
+| cursor | 光标 / 光標 | 游標 |
+| video | 视频 / 視頻 | 影片 |
+| audio | 音频 / 音頻 | 音訊 |
+| activate | 激活 / 激話 | 啟用 |
+| username | 用户名 / 用戶名 | 使用者名稱 |
+| sender | 发件人 / 發件人 | 寄件人 |
+| folder | 文件夹 / 文件夾 | 資料夾 |
+| File Explorer | 文件资源管理器 | 檔案總管 |
+| load | 加载 / 加載 | 載入 |
+| package | 软件包 / 軟件包 | 套件 |
+
+**Notes:**
+- `連接埠` (port) is correct Taiwan terminology — the `連接` in `連接埠` is not a Mainland term; it's a compound noun. The standalone verb/noun `連接` for "connect/connection" is what must become `連線`.
+- `處理程序` (process) is the Taiwan term — do not confuse with `程序` (program, Mainland).
+- All characters must be traditional, never simplified.
+- When in doubt, consult an established Taiwan computing glossary. Do not copy from `zh-CN.json` and convert characters — the vocabulary itself differs.
 7. Prefer context-specific keys over reusing one key. When a single English word covers meanings that other languages translate differently — e.g. "Play" for start-media vs. run vs. a theatrical play — add a separate key per context and name it after the meaning, not the spelling. Reuse a key only when the meaning is identical everywhere it appears.
 8. Keep placeholders translation-safe. Use named i18next placeholders (`{{count}}`, `{{host}}`) so translators can reorder them, keep one full sentence per key (never concatenate keys or fragments around a variable), and confirm every `{{…}}` token survives unchanged in each locale. Prefer i18next plural/context features over English-shaped string assembly.
 

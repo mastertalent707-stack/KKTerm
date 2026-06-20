@@ -84,6 +84,13 @@ Strong success criteria let you loop independently.
   translation-safe: use named `{{…}}` placeholders, one full sentence per key,
   no concatenated fragments around a variable. See
   `docs/manual/16-localization.md` and `docs/ARCHITECTURE.md`.
+- **zh-TW must never contain Mainland Chinese terminology.** This is a critical
+  review gate. `zh-TW.json` uses Taiwan computing terminology — never Mainland
+  terms, even in traditional characters. See the forbidden→required term mapping
+  in `docs/manual/16-localization.md` (e.g. 連線 not 連接, 終端機 not 終端,
+  儲存 not 保存, 預設 not 默認, 資料 not 數據, 伺服器 not 服務器, 客戶端 not
+  用戶端, 使用者 not 用戶, 程式 not 程序, 螢幕 not 屏幕, 萬用字元 not 通配符,
+  介面 not 接口). Never copy from `zh-CN.json` and convert characters.
 - The UI design language (tokens, dialog primitives, the `ConfirmSheet`
   confirmation template, button order, and the SFTP file-browser pattern) lives
   in `docs/DESIGN_LANGUAGE.md`. Read it before adding any dialog, sheet, settings
