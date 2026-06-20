@@ -772,6 +772,20 @@ fn connection_icon_data_url_updates_for_any_connection_type() {
 }
 
 #[test]
+fn connection_brand_icon_ref_updates_for_any_connection_type() {
+    let storage =
+        Storage::open(temp_db_path("connection-brand-icon-ref")).expect("storage opens");
+    let created = create_test_ssh_connection(&storage, "Claude", "claude.internal", None);
+
+    let updated = storage
+        .update_connection_icon_data_url(created.id.clone(), Some("brand:claude-code".to_string()))
+        .expect("brand icon ref is updated")
+        .expect("changed icon returns the updated connection");
+
+    assert_eq!(updated.icon_data_url.as_deref(), Some("brand:claude-code"));
+}
+
+#[test]
 fn connection_icon_background_color_updates_for_any_connection_type() {
     let storage = Storage::open(temp_db_path("connection-icon-background")).expect("storage opens");
     let created = create_test_ssh_connection(&storage, "Bastion", "bastion.internal", None);
