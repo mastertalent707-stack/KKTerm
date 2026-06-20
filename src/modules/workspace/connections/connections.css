@@ -731,13 +731,6 @@
   padding-top: 4px;
 }
 
-/* macOS footer order: authored primary-first, flipped to [Cancel] [Primary]
-   while staying right-aligned (row-reverse + flex-start packs at the right). */
-.dialog-actions.mac-order {
-  flex-direction: row-reverse;
-  justify-content: flex-start;
-}
-
 .connection-dialog-header.compact {
   justify-content: flex-start;
 }
@@ -1016,7 +1009,7 @@
   background: var(--connection-swatch);
   border: 0;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.18);
+  box-shadow: inset 0 0 0 0.5px var(--border-strong);
   transition: transform 0.1s ease;
 }
 
@@ -1646,6 +1639,138 @@ fieldset.connection-specific-options > legend {
 }
 .connection-dialog select:disabled {
   opacity: 0.55;
+}
+
+.local-startup-script-field {
+  display: grid;
+  gap: 6px;
+}
+
+.local-environment-label-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.local-environment-label-row > label {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.local-environment-label-row .toolbar-button {
+  flex: 0 0 auto;
+  height: 28px;
+}
+
+.local-environment-unsupported {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.connection-environment-subdialog {
+  z-index: 100;
+}
+
+.connection-environment-dialog {
+  max-height: min(680px, calc(100vh - 40px));
+}
+
+.connection-environment-guidance {
+  max-width: none;
+  margin: -2px 0 0;
+}
+
+.connection-environment-list {
+  display: grid;
+  gap: 8px;
+}
+
+.connection-environment-headings,
+.connection-environment-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.75fr) minmax(220px, 1.25fr) 30px;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.connection-environment-headings {
+  color: var(--text-faint);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.connection-environment-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.connection-environment-remove:hover {
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 9%, transparent);
+}
+
+.connection-environment-add {
+  justify-self: start;
+  padding-inline: 7px;
+}
+
+.connection-cli-account-fields {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(190px, 1.2fr);
+  gap: 12px;
+}
+
+.connection-cli-account-path {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.connection-cli-account-path > span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.connection-cli-account-path code {
+  min-width: 0;
+  padding: 8px 10px;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+@media (max-width: 720px) {
+  .connection-environment-headings {
+    display: none;
+  }
+
+  .connection-environment-row,
+  .connection-cli-account-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .connection-environment-remove {
+    justify-self: end;
+  }
 }
 
 /* Primary action is accent-blue (matches the design language), not green. */

@@ -38,6 +38,9 @@ limited to small app-identification assets.
 - `claude-code.svg`: LobeHub Icons `@lobehub/icons-static-svg`, `claudecode-color.svg`.
 - `codex.svg`: LobeHub Icons `@lobehub/icons-static-svg`, `codex-color.svg`.
 - `powershell.svg`: Wikimedia Commons `File:Ps black 128.svg`, the official PowerShell mark released by Microsoft under the MIT License (copyright Microsoft Corporation; trademark notice applies).
+- `oh-my-posh.svg`: `JanDeDobbeleer/oh-my-posh`,
+  `website/static/img/favicons.svg`, MIT License; see
+  `LICENSE.oh-my-posh.txt` (trademark notice applies).
 - `antigravity.svg`: compact app tile mark based on Google Antigravity's
   simple geometric/text logo from `https://antigravity.google/`, cross-checked
   against Wikimedia Commons `File:Google Antigravity Logo.svg` (PD textlogo,
@@ -45,3 +48,5 @@ limited to small app-identification assets.
 - `bentopdf.svg`: `goodtab/bentopdf`,
   `public/images/favicon.svg`, Apache License 2.0 (copyright Abdullah Alam;
   trademark notice applies).
+- `openflowkit.svg`: `Vrun-design/openflowkit`,
+  `public/Logo_openflowkit.svg`, MIT License (trademark notice applies).

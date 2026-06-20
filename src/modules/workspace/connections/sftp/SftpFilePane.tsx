@@ -44,6 +44,7 @@ export function FilePane({
   onDeleteSelected,
   onOpenFolder,
   onOpenFile,
+  onOpenTerminalHere,
   onPathSubmit,
   recentPaths = [],
   onSelectionChange,
@@ -82,6 +83,7 @@ export function FilePane({
   onDeleteSelected?: () => void;
   onOpenFolder?: (folderName: string) => void;
   onOpenFile?: (fileName: string) => void;
+  onOpenTerminalHere?: () => void;
   onPathSubmit?: (path: string) => void | Promise<void>;
   recentPaths?: string[];
   onSelectionChange?: (fileNames: string[]) => void;
@@ -509,6 +511,18 @@ export function FilePane({
           </div>
         )}
         <div className="sftp-pane-head-actions">
+          {onOpenTerminalHere ? (
+            <button
+              className="sftp-icon-btn"
+              aria-label={t("sftp.openTerminalHereAria", { pane: title.toLowerCase() })}
+              disabled={isLoading}
+              onClick={onOpenTerminalHere}
+              title={t("sftp.openTerminalHereAria", { pane: title.toLowerCase() })}
+              type="button"
+            >
+              <DIcon name="terminal" size={16} />
+            </button>
+          ) : null}
           <button
             className="sftp-icon-btn"
             aria-label={t("sftp.openParentFolderAria", { pane: title.toLowerCase() })}

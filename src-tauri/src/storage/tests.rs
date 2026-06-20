@@ -2359,20 +2359,28 @@ fn sftp_settings_round_trip_through_settings_table() {
     let defaults = storage.sftp_settings().expect("default SFTP settings load");
     assert_eq!(defaults.overwrite_behavior, "fail");
     assert_eq!(defaults.file_explorer_open_mode, "external");
+    assert_eq!(defaults.file_explorer_terminal_shell, default_file_explorer_terminal_shell());
+    assert!(!defaults.file_explorer_terminal_elevated);
 
     let updated = storage
         .update_sftp_settings(SftpSettings {
             overwrite_behavior: "  REPLACE  ".to_string(),
             file_explorer_open_mode: "inline-editor".to_string(),
+            file_explorer_terminal_shell: "powershell.exe".to_string(),
+            file_explorer_terminal_elevated: cfg!(target_os = "windows"),
         })
         .expect("SFTP settings update");
 
     assert_eq!(updated.overwrite_behavior, "overwrite");
     assert_eq!(updated.file_explorer_open_mode, "inlineEditor");
+    assert_eq!(updated.file_explorer_terminal_shell, "powershell.exe");
+    assert_eq!(updated.file_explorer_terminal_elevated, cfg!(target_os = "windows"));
 
     let reloaded = storage.sftp_settings().expect("SFTP settings reload");
     assert_eq!(reloaded.overwrite_behavior, "overwrite");
     assert_eq!(reloaded.file_explorer_open_mode, "inlineEditor");
+    assert_eq!(reloaded.file_explorer_terminal_shell, "powershell.exe");
+    assert_eq!(reloaded.file_explorer_terminal_elevated, cfg!(target_os = "windows"));
 }
 
 #[test]

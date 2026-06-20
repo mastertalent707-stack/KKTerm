@@ -2208,6 +2208,31 @@ async fn list_remote_loopback_ports(
 }
 
 #[tauri::command]
+async fn list_remote_network_addresses(
+    app: tauri::AppHandle,
+    request: sessions::TmuxConnectionRequest,
+    session_id: Option<String>,
+) -> Result<Vec<String>, String> {
+    run_blocking_command("SSH remote network address discovery", move || {
+        let sessions = app.state::<sessions::SessionManager>();
+        let secrets = app.state::<secrets::Secrets>();
+        sessions.list_remote_network_addresses(app.clone(), &secrets, request, session_id)
+    })
+    .await
+}
+
+#[tauri::command]
+async fn list_local_tcp_listeners(
+    app: tauri::AppHandle,
+) -> Result<Vec<sessions::LocalTcpListener>, String> {
+    run_blocking_command("local TCP listener discovery", move || {
+        app.state::<sessions::SessionManager>()
+            .list_local_tcp_listeners()
+    })
+    .await
+}
+
+#[tauri::command]
 async fn start_ssh_port_forward(
     app: tauri::AppHandle,
     request: sessions::StartSshPortForwardRequest,
@@ -3490,6 +3515,8 @@ pub fn run() {
             inspect_ssh_system_context,
             detect_ssh_remote_os,
             list_remote_loopback_ports,
+            list_remote_network_addresses,
+            list_local_tcp_listeners,
             start_ssh_port_forward,
             close_ssh_port_forward,
             is_app_elevated,

@@ -114,6 +114,30 @@ Connection form-validation error.
 
 Local terminal Add/Edit Connection uses the `connections.shell` tabbed selector for the local shell choice and still stores the selected `localShell` value on the Connection.
 
+Beside `connections.localStartupScript`, `connections.environmentVariables`
+opens a compact manager for non-secret environment variables specific to that
+Local Connection. It supports Command Prompt, PowerShell/PowerShell 7, WSL,
+Bash, and zsh. Apply writes one marked, shell-appropriate block into the visible
+Startup script draft; applying again replaces that block, and removing every
+row removes it, while commands outside the block stay unchanged. The values are
+stored as Startup script text, so `connections.environmentVariablesNonSecret`
+warns not to put passwords, tokens, or API keys there.
+
+Inside that manager, `connections.cliAccountHelper` opens a guided Claude Code
+or Codex account wizard. It adds `CLAUDE_CONFIG_DIR` or `CODEX_HOME` as a managed
+variable and creates its stable per-user account directory when the Connection
+starts; the user signs in normally after opening the terminal. KKTerm never asks
+for or stores the CLI's API keys, OAuth tokens, or passwords.
+
+Each account directory isolates the selected CLI's broader local state as well
+as authentication, so settings, history/sessions, memory, and tool configuration
+may also differ between account Connections. Keep the generated directory stable
+after login. Current Claude Code CLI releases namespace macOS Keychain entries by
+the `CLAUDE_CONFIG_DIR` path; if macOS profiles collide or repeatedly lose their
+login, update Claude Code before recreating the account Connection. OpenCode is
+not offered because its documented config-directory override does not document
+isolating its credential store.
+
 File Explorer Add/Edit Connection uses `connections.localFilesRootDirectory` for the optional starting folder. On creation, leaving the starting folder at its default home-folder behavior, or explicitly choosing the detected home folder, uses the localized `connections.homeDirectory` Connection name. Choosing or typing a different starting folder means the folder name becomes the default Connection name unless the user enters an explicit name.
 
 Document Add/Edit Connection uses `connections.fileViewPath` for the target file, picked through a native open-file dialog (`connections.fileViewPickerTitle`). The file's base name becomes the default Connection name unless the user enters an explicit name. The path is stored in the Connection's `local_startup_directory` slot (reused as the file path). The per-Connection option `connections.fileViewOpenExternal` opens that saved Document through the operating system's default app instead of creating a KKTerm Tab; its hint is `connections.fileViewOpenExternalHint`.
@@ -130,7 +154,7 @@ For SSH (password auth) and Telnet Connections the password is optional: the fie
 
 For SSH, Telnet, RDP, VNC, and FTP Connections, the password area can reuse saved Connection password credentials from the same Connection type. The dropdown label is `connections.savedPassword`; each option shows the saved credential's username and original host. Choosing `connections.typeNewPassword` and typing a password creates a new credential in the selected backend for the saved Connection. If another credential already exists for the exact same host and Connection type, the generated credential label appends `#2`, `#3`, and so on.
 
-For saved Connections, the properties/Add Connection header includes Connection icon presentation controls. `connections.editIcon` changes the icon image through default protocol icons, Lucide icon choices (`connections.lucideIcons` / `connections.selectLucideIcon`), Material icon choices, bundled OS/Linux-distribution logos, bundled coding-tool and terminal logos, saved images, or a newly chosen image. The coding-tool and terminal logos cover common AI coding tools (OpenAI Codex, Claude Code, OpenCode, Cursor, GitHub Copilot, Windsurf, Codeium, Gemini CLI, Google Antigravity, Visual Studio Code) plus shell/terminal identities (GNU Bash, Zsh, fish shell, PowerShell, Windows Terminal, WSL, iTerm2, WezTerm, Alacritty, tmux). The OS logos cover common Linux distributions (Ubuntu, Debian, Fedora, Red Hat, CentOS, AlmaLinux, Rocky, openSUSE/SUSE, Arch, Alpine, Mint, Kali, Gentoo, and more), the BSDs (FreeBSD, OpenBSD, NetBSD), macOS and Windows, Raspberry Pi, and appliance platforms (Proxmox VE, TrueNAS, pfSense, OpenWrt). They are searchable in the picker by distribution/product name or keywords such as `linux`, `rhel`, `bsd`, `nas`, `router`, `ai`, `coding`, `shell`, or `terminal`. `connections.editIconBackground` opens the circular icon background picker; `connections.iconBackground` labels the picker, `connections.transparentIconBackground` clears the color back to the default transparent state, and `connections.selectIconBackground` applies a palette color. The chosen background is shown behind Connection icons in the Connection Tree and on pinned/connected Activity Rail Connection shortcuts. Folder rows use the same picker through `connections.changeIcon`, storing the selected Material icon, Lucide icon, saved image, or chosen image on the folder. Workspace Tab rename is runtime-only Tab UI state and does not update the saved Connection `name`, icon, background, or `tabTitle`.
+For saved Connections, the properties/Add Connection header includes Connection icon presentation controls. `connections.editIcon` changes the icon image through default protocol icons, Lucide icon choices (`connections.lucideIcons` / `connections.selectLucideIcon`), Material icon choices, bundled OS/Linux-distribution logos, bundled coding-tool and terminal logos, saved images, or a newly chosen image. The picker search placeholder is `common.searchForMore` because the initial grid shows only a bounded subset of the bundled icon catalog. The coding-tool and terminal logos cover common AI coding tools (OpenAI Codex, Claude Code, OpenCode, Cursor, GitHub Copilot, Windsurf, Codeium, Gemini CLI, Google Antigravity, Visual Studio Code) plus shell/terminal identities (GNU Bash, Zsh, fish shell, PowerShell, Windows Terminal, WSL, iTerm2, WezTerm, Alacritty, tmux). The picker also includes one choice for every distinct artwork bundled with the Install Helper. Product names and English semantic terms remain searchable in every UI language, while equivalent terms in the active local language map to the same results. The OS logos cover common Linux distributions (Ubuntu, Debian, Fedora, Red Hat, CentOS, AlmaLinux, Rocky, openSUSE/SUSE, Arch, Alpine, Mint, Kali, Gentoo, and more), the BSDs (FreeBSD, OpenBSD, NetBSD), macOS and Windows, Raspberry Pi, and appliance platforms (Proxmox VE, TrueNAS, pfSense, OpenWrt). They are searchable in the picker by distribution/product name or keywords such as `linux`, `rhel`, `bsd`, `nas`, `router`, `ai`, `coding`, `shell`, or `terminal`. `connections.editIconBackground` opens the circular icon background picker; `connections.iconBackground` labels the picker, `connections.transparentIconBackground` clears the color back to the default transparent state, and `connections.selectIconBackground` applies a palette color, including a visibly bounded white choice. The chosen background is shown behind Connection icons in the Connection Tree and on pinned/connected Activity Rail Connection shortcuts. Folder rows use the same picker through `connections.changeIcon`, storing the selected Material icon, Lucide icon, saved image, or chosen image on the folder. Workspace Tab rename is runtime-only Tab UI state and does not update the saved Connection `name`, icon, background, or `tabTitle`.
 
 ### SSH remote-OS icon auto-detection
 

@@ -54,6 +54,16 @@ For an inline cautionary banner inside a `Sheet` body (e.g. the credential-expor
 passphrase warning), use the shared `.kk-dlg-warn` class rather than hand-rolling
 an amber callout.
 
+### Transient feedback
+
+The bottom Status Bar popup is the only transient notification surface. Route
+every informational outcome, success confirmation, warning, and error through
+`showStatusBarNotice` with the matching `tone`; use `showStatusBarProgress` for
+determinate work. Dialogs and pages must not render transient results inline or
+create local toast, banner, snackbar, or status-message systems. Static guidance
+and cautions that are part of the form before an action occurs are content, not
+transient notifications, and may remain beside the relevant controls.
+
 `TextInput` and `TextArea` default to the shared technical-input behaviour from
 `src/lib/inputBehavior.ts`, disabling autocorrect, autocapitalization, and
 spellcheck for machine-oriented dialog fields. Callers may override those props
@@ -71,19 +81,24 @@ the default-options mode is on.
 
 ### Button order
 
-KKTerm uses Windows-style dialog button order: the primary/confirm action comes
-**immediately before** Cancel, and the action group anchors bottom-right. `Actions` defaults to this via
-`DialogConventionProvider` value `windows`. Do not reorder per-dialog.
+KKTerm follows the host platform. macOS ends its bottom-right action group with
+Cancel then the primary/confirm action, placing the primary action at the outer
+right edge. Windows and Linux end with the primary/confirm action then Cancel.
+Auxiliary actions stay left of the spacer on every platform. `Actions` selects
+the convention from the runtime platform; `DialogConventionProvider` exists
+only for explicit previews and tests. Do not reorder per-dialog or use CSS row
+reversal.
 
 ### Footer & buttons
 
 Build every dialog footer from the kit — never hand-roll the action row:
 
 - Primitive dialogs (`Sheet`): pass `footer={<Actions … />}` built from `Btn`s.
-  `Actions` packs the group bottom-right in Windows order automatically.
+  `Actions` packs the group bottom-right in host-platform order automatically.
 - Legacy `.connection-dialog` surfaces: use the styled `.dialog-actions` row
-  (right-anchored, gapped) with `.approve-button` primary + `.toolbar-button`
-  cancel, and put a glyph on the primary (e.g. lucide `<Save size={15} />`).
+  through `LegacyDialogActions`, passing named `primary`, `cancel`, and optional
+  `extraLeft` slots. Keep `.approve-button` primary + `.toolbar-button` cancel,
+  and put a glyph on the primary (e.g. lucide `<Save size={15} />`).
 - The primary action carries an icon; primary and Cancel share one button size.
 
 **Never use the `connection-dialog-footer` class.** It has no CSS rule, so it
@@ -100,7 +115,7 @@ truly needs it — put supporting text in the body near the relevant control).
 
 Use `ConfirmSheet` for every confirmation; do not hand-roll alert dialogs. It is
 a compact sheet with a tinted glyph, single title, optional body, footer in
-Windows order, and no title-bar X. Three presets:
+host-platform order, and no title-bar X. Three presets:
 
 - `tone="info"` — informational / run-command confirmations (accent glyph).
 - `tone="danger"` — destructive deletes (red glyph, danger confirm button).
@@ -127,9 +142,11 @@ Copy Path / Get Info. Reuse `FilePane` and these patterns for new browser UIs.
 
 1. Read tokens; never hard-code colors.
 2. Compose from `src/app/ui/dialog` primitives; confirmations use `ConfirmSheet`.
-3. Windows button order; one concise title; close-X only without a footer dismiss.
-   Footer from `Actions`/`.dialog-actions` with an icon'd primary — never
+3. Host-platform button order; one concise title; close-X only without a footer dismiss.
+   Footer from `Actions`/`LegacyDialogActions` with an icon'd primary — never
    `connection-dialog-footer`.
-4. Route every string through `t()`; add `en.json` keys + a
+4. Route transient information, success, warning, and error outcomes through
+   `showStatusBarNotice`; use `showStatusBarProgress` for determinate work.
+5. Route every string through `t()`; add `en.json` keys + a
    `docs/localization_todo/` pending file (see that README).
-5. Verify in Default and Dark plus one extra scheme in the real Tauri runtime.
+6. Verify in Default and Dark plus one extra scheme in the real Tauri runtime.

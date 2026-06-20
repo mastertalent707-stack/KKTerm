@@ -8,19 +8,14 @@ use std::{
     ffi::OsString,
     fs::{self, File},
     io::{Read, Write},
-    net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener as StdTcpListener},
+    net::{IpAddr, TcpListener as StdTcpListener},
     path::{Path, PathBuf},
     process::Command as ProcessCommand,
     sync::Mutex,
-    thread::{self, JoinHandle},
+    thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Emitter, Manager};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream},
-    sync::oneshot,
-};
 
 pub struct SessionManager {
     sessions: Mutex<HashMap<String, TerminalSession>>,
@@ -35,19 +30,18 @@ struct TerminalSession {
 }
 
 struct SshPortForwardSession {
-    stop: Option<oneshot::Sender<()>>,
-    worker: Option<JoinHandle<()>>,
+    forward_id: String,
+    session_id: String,
+    handle: ssh::NativeSshPortForwardHandle,
+    mode: String,
+    bind: String,
+    bind_ip: Option<IpAddr>,
     local_port: u16,
 }
 
 impl Drop for SshPortForwardSession {
     fn drop(&mut self) {
-        if let Some(stop) = self.stop.take() {
-            let _ = stop.send(());
-        }
-        if let Some(worker) = self.worker.take() {
-            let _ = worker.join();
-        }
+        self.handle.stop(self.forward_id.clone());
     }
 }
 
@@ -156,6 +150,7 @@ pub struct ScrollTmuxPaneRequest {
 pub struct StartSshPortForwardRequest {
     #[serde(flatten)]
     pub connection: TmuxConnectionRequest,
+    pub session_id: Option<String>,
     pub forward_id: Option<String>,
     pub mode: Option<String>,
     pub bind: Option<String>,
@@ -176,6 +171,13 @@ pub struct CloseSshPortForwardRequest {
 pub struct RemoteLoopbackPort {
     pub port: u16,
     pub address: String,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalTcpListener {
+    pub address: String,
+    pub port: u16,
 }
 
 /// Raw remote-OS facts gathered on first SSH connect for icon auto-detection.
@@ -216,6 +218,7 @@ pub struct TmuxSession {
 #[serde(rename_all = "camelCase")]
 pub struct LaunchElevatedTerminalRequest {
     pub shell: String,
+    pub initial_directory: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -1185,22 +1188,59 @@ impl SessionManager {
         ))
     }
 
-    pub fn start_ssh_port_forward(
+    pub fn list_remote_network_addresses(
         &self,
         app: AppHandle,
         secrets: &secrets::Secrets,
+        request: TmuxConnectionRequest,
+        session_id: Option<String>,
+    ) -> Result<Vec<String>, String> {
+        let output = self.run_ssh_probe_command(
+            app,
+            secrets,
+            &request,
+            session_id.as_deref(),
+            remote_network_address_command(),
+            Duration::from_secs(5),
+        )?;
+        Ok(parse_remote_network_addresses(&output))
+    }
+
+    pub fn list_local_tcp_listeners(&self) -> Result<Vec<LocalTcpListener>, String> {
+        let mut command = local_tcp_listener_command();
+        hide_console_window(&mut command);
+        command
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped());
+        let output = run_command_with_timeout(command, Duration::from_secs(5))
+            .map_err(|error| error.replace("system ssh", "local TCP listener discovery"))?;
+        if !output.status.success() {
+            return Err(format!(
+                "local TCP listener discovery failed: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ));
+        }
+        let stdout = String::from_utf8(output.stdout)
+            .map_err(|error| format!("local TCP listener discovery returned invalid UTF-8: {error}"))?;
+        Ok(parse_local_tcp_listeners(&stdout))
+    }
+
+    pub fn start_ssh_port_forward(
+        &self,
+        _app: AppHandle,
+        _secrets: &secrets::Secrets,
         request: StartSshPortForwardRequest,
     ) -> Result<SshPortForwardStarted, String> {
         let mode = request.mode.as_deref().unwrap_or("L").to_uppercase();
-        if mode != "L" {
-            return Err("KKTerm can start local SSH forwards today. Remote and dynamic forwards are saved but not yet supported.".to_string());
+        if !matches!(mode.as_str(), "L" | "R" | "D") {
+            return Err("SSH port forward mode must be L, R, or D".to_string());
         }
         let dest_host = request
             .dest_host
             .clone()
             .unwrap_or_else(|| "127.0.0.1".to_string());
         let remote_port = request.remote_port.or(request.dest_port).unwrap_or(0);
-        if remote_port == 0 {
+        if mode != "D" && remote_port == 0 {
             return Err("destination port must be between 1 and 65535".to_string());
         }
         let forward_id = request.forward_id.clone().unwrap_or_else(|| {
@@ -1220,95 +1260,127 @@ impl SessionManager {
                 local_port: existing.local_port,
                 remote_port,
                 dest_host,
-                url: format!("http://127.0.0.1:{}", existing.local_port),
+                url: ssh_port_forward_url(&existing.bind, existing.local_port),
             });
         }
 
-        let mut terminal_request = terminal_request_for_tmux(&request.connection);
-        resolve_terminal_socks_proxy(secrets, &mut terminal_request)?;
-        let password = connection_password_for(secrets, &terminal_request);
-        let auth_method = ssh_auth_method_for(&terminal_request, password.as_deref())?;
-        if !uses_native_ssh(&terminal_request, password.as_deref(), &auth_method, false) {
-            return Err(
-                "SSH port forwarding currently requires a native SSH Connection without ProxyJump"
-                    .to_string(),
-            );
-        }
-
-        let connection = ssh::NativeSshConnectionRequest {
-            host: terminal_request.host.clone(),
-            user: terminal_request.user.clone(),
-            port: terminal_request.port.unwrap_or(22),
-            auth: native_ssh_auth_for(&terminal_request, password, &auth_method)?,
-            known_hosts_path: ssh::app_known_hosts_path(&app)?,
-            x11_forwarding: None,
-            socks_proxy: terminal_request.ssh_socks_proxy.clone(),
+        let session_id = request
+            .session_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| "ssh-port-forward-session-unavailable".to_string())?
+            .to_string();
+        let handle = {
+            let sessions = self
+                .sessions
+                .lock()
+                .map_err(|_| "terminal session lock is poisoned".to_string())?;
+            let session = sessions
+                .get(&session_id)
+                .ok_or_else(|| "ssh-port-forward-session-unavailable".to_string())?;
+            match &session.transport {
+                TerminalTransport::NativeSsh(session) => session.port_forward_handle(),
+                _ => return Err("ssh-port-forward-session-unavailable".to_string()),
+            }
         };
         let listen_port = request.listen_port.unwrap_or(0);
-        let bind_ip = request
+        if listen_port == 0 {
+            return Err("listener port must be between 1 and 65535".to_string());
+        }
+        let bind = request
             .bind
             .as_deref()
-            .unwrap_or("127.0.0.1")
-            .parse::<IpAddr>()
-            .unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST));
-        let listener = StdTcpListener::bind((bind_ip, listen_port))
-            .map_err(|error| format!("failed to bind local port forward listener: {error}"))?;
-        listener
-            .set_nonblocking(true)
-            .map_err(|error| format!("failed to configure local port forward listener: {error}"))?;
-        let local_port = listener
-            .local_addr()
-            .map_err(|error| format!("failed to read local port forward address: {error}"))?
-            .port();
-        let (stop_tx, stop_rx) = oneshot::channel();
-        let (ready_tx, ready_rx) = std::sync::mpsc::sync_channel(1);
-        let worker_forward_id = forward_id.clone();
-        let worker_dest_host = dest_host.clone();
-        let worker = thread::spawn(move || {
-            let result = run_ssh_port_forward_thread(
-                listener,
-                connection,
-                worker_dest_host,
-                remote_port,
-                stop_rx,
-                ready_tx,
-            );
-            if let Err(error) = result {
-                eprintln!("SSH port forward {worker_forward_id} stopped: {error}");
-            }
-        });
-
-        match ready_rx.recv_timeout(Duration::from_secs(15)) {
-            Ok(Ok(())) => {
-                self.ssh_port_forwards
-                    .lock()
-                    .map_err(|_| "SSH port forward lock is poisoned".to_string())?
-                    .insert(
-                        forward_id.clone(),
-                        SshPortForwardSession {
-                            stop: Some(stop_tx),
-                            worker: Some(worker),
-                            local_port,
-                        },
-                    );
-                Ok(SshPortForwardStarted {
-                    forward_id,
-                    local_port,
-                    remote_port,
-                    dest_host,
-                    url: format!("http://127.0.0.1:{local_port}"),
+            .unwrap_or(if mode == "R" { "0.0.0.0" } else { "127.0.0.1" })
+            .trim()
+            .to_string();
+        let bind_ip =
+            if mode == "R" {
+                None
+            } else {
+                Some(bind.parse::<IpAddr>().map_err(|_| {
+                    "local SSH forward bind address must be an IP address".to_string()
+                })?)
+            };
+        if mode != "R"
+            && self
+                .ssh_port_forwards
+                .lock()
+                .map_err(|_| "SSH port forward lock is poisoned".to_string())?
+                .values()
+                .any(|existing| {
+                    existing.mode != "R"
+                        && existing.local_port == listen_port
+                        && existing
+                            .bind_ip
+                            .zip(bind_ip)
+                            .is_some_and(|(existing, candidate)| {
+                                ssh_forward_bind_addresses_overlap(existing, candidate)
+                            })
                 })
-            }
-            Ok(Err(error)) => {
-                let _ = worker.join();
-                Err(error)
-            }
-            Err(_) => {
-                let _ = stop_tx.send(());
-                let _ = worker.join();
-                Err("timed out while starting SSH port forward".to_string())
-            }
+        {
+            return Err("ssh-port-forward-bind-conflict".to_string());
         }
+        let listener = if let Some(bind_ip) = bind_ip {
+            let listener = StdTcpListener::bind((bind_ip, listen_port)).map_err(|error| {
+                if error.kind() == std::io::ErrorKind::AddrInUse {
+                    "ssh-port-forward-bind-conflict".to_string()
+                } else {
+                    format!("failed to bind local port forward listener: {error}")
+                }
+            })?;
+            listener.set_nonblocking(true).map_err(|error| {
+                format!("failed to configure local port forward listener: {error}")
+            })?;
+            Some(listener)
+        } else {
+            None
+        };
+        let local_port = listener
+            .as_ref()
+            .and_then(|listener| listener.local_addr().ok())
+            .map(|address| address.port())
+            .unwrap_or(listen_port);
+        let kind = match mode.as_str() {
+            "L" => ssh::NativeSshPortForwardKind::Local {
+                listener: listener.expect("local forwarding listener exists"),
+                dest_host: dest_host.clone(),
+                dest_port: remote_port,
+            },
+            "D" => ssh::NativeSshPortForwardKind::Dynamic {
+                listener: listener.expect("dynamic forwarding listener exists"),
+            },
+            "R" => ssh::NativeSshPortForwardKind::Remote {
+                bind: bind.clone(),
+                listen_port,
+                dest_host: dest_host.clone(),
+                dest_port: remote_port,
+            },
+            _ => unreachable!(),
+        };
+        handle.start(forward_id.clone(), kind, Duration::from_secs(15))?;
+        self.ssh_port_forwards
+            .lock()
+            .map_err(|_| "SSH port forward lock is poisoned".to_string())?
+            .insert(
+                forward_id.clone(),
+                SshPortForwardSession {
+                    forward_id: forward_id.clone(),
+                    session_id,
+                    handle,
+                    mode: mode.clone(),
+                    bind: bind.clone(),
+                    bind_ip,
+                    local_port,
+                },
+            );
+        Ok(SshPortForwardStarted {
+            forward_id,
+            local_port,
+            remote_port,
+            dest_host,
+            url: ssh_port_forward_url(&bind, local_port),
+        })
     }
 
     pub fn close_ssh_port_forward(
@@ -1368,6 +1440,10 @@ impl SessionManager {
     }
 
     pub fn close_terminal_session(&self, session_id: String) -> Result<(), String> {
+        self.ssh_port_forwards
+            .lock()
+            .map_err(|_| "SSH port forward lock is poisoned".to_string())?
+            .retain(|_, forwarding| forwarding.session_id != session_id);
         let session = self
             .sessions
             .lock()
@@ -1389,7 +1465,13 @@ impl SessionManager {
 }
 
 pub fn launch_elevated_terminal(request: LaunchElevatedTerminalRequest) -> Result<(), String> {
-    launch_elevated_terminal_impl(normalize_elevated_shell(&request.shell)?)
+    let shell = normalize_elevated_shell(&request.shell)?;
+    let initial_directory = request
+        .initial_directory
+        .as_deref()
+        .map(str::trim)
+        .filter(|directory| !directory.is_empty());
+    launch_elevated_terminal_impl(shell, initial_directory)
 }
 
 pub fn is_app_elevated() -> bool {
@@ -1421,19 +1503,24 @@ fn normalize_elevated_shell(shell: &str) -> Result<&'static str, String> {
 }
 
 #[cfg(target_os = "windows")]
-fn launch_elevated_terminal_impl(shell: &str) -> Result<(), String> {
+fn launch_elevated_terminal_impl(
+    shell: &str,
+    initial_directory: Option<&str>,
+) -> Result<(), String> {
     use std::ptr::{null, null_mut};
     use windows_sys::Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOWNORMAL};
 
     let operation = wide_string("runas");
     let file = wide_string(shell);
+    let directory = initial_directory.map(wide_string);
+    let directory_ptr = directory.as_ref().map_or(null(), |value| value.as_ptr());
     let result = unsafe {
         ShellExecuteW(
             null_mut(),
             operation.as_ptr(),
             file.as_ptr(),
             null(),
-            null(),
+            directory_ptr,
             SW_SHOWNORMAL,
         )
     } as isize;
@@ -1446,7 +1533,10 @@ fn launch_elevated_terminal_impl(shell: &str) -> Result<(), String> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn launch_elevated_terminal_impl(_shell: &str) -> Result<(), String> {
+fn launch_elevated_terminal_impl(
+    _shell: &str,
+    _initial_directory: Option<&str>,
+) -> Result<(), String> {
     Err("elevated local terminals are only available on Windows".to_string())
 }
 
@@ -1658,159 +1748,81 @@ fn run_ssh_command(
     run_system_ssh_command(&terminal_request, command, timeout)
 }
 
-fn run_ssh_port_forward_thread(
-    listener: StdTcpListener,
-    connection: ssh::NativeSshConnectionRequest,
-    dest_host: String,
-    remote_port: u16,
-    stop_rx: oneshot::Receiver<()>,
-    ready_tx: std::sync::mpsc::SyncSender<Result<(), String>>,
-) -> Result<(), String> {
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|error| format!("failed to create SSH port forward runtime: {error}"))?;
-
-    runtime.block_on(run_ssh_port_forward(
-        listener,
-        connection,
-        dest_host,
-        remote_port,
-        stop_rx,
-        ready_tx,
-    ))
-}
-
-async fn run_ssh_port_forward(
-    listener: StdTcpListener,
-    connection: ssh::NativeSshConnectionRequest,
-    dest_host: String,
-    remote_port: u16,
-    mut stop_rx: oneshot::Receiver<()>,
-    ready_tx: std::sync::mpsc::SyncSender<Result<(), String>>,
-) -> Result<(), String> {
-    let ssh_session = match tokio::time::timeout(
-        Duration::from_secs(15),
-        ssh::connect_verified_client(connection),
-    )
-    .await
-    {
-        Ok(Ok(session)) => session,
-        Ok(Err(error)) => {
-            let _ = ready_tx.send(Err(error.clone()));
-            return Err(error);
-        }
-        Err(_) => {
-            let error = "timed out while connecting SSH port forward".to_string();
-            let _ = ready_tx.send(Err(error.clone()));
-            return Err(error);
-        }
-    };
-    let listener = match TcpListener::from_std(listener) {
-        Ok(listener) => listener,
-        Err(error) => {
-            let _ = ready_tx.send(Err(format!(
-                "failed to start local port forward listener: {error}"
-            )));
-            return Err(format!(
-                "failed to start local port forward listener: {error}"
-            ));
-        }
-    };
-    let _ = ready_tx.send(Ok(()));
-    let ssh_session = std::sync::Arc::new(tokio::sync::Mutex::new(ssh_session));
-
-    loop {
-        tokio::select! {
-            _ = &mut stop_rx => break,
-            accepted = listener.accept() => {
-                let (stream, originator) = accepted
-                    .map_err(|error| format!("failed to accept local port forward connection: {error}"))?;
-                let ssh_session = std::sync::Arc::clone(&ssh_session);
-                let dest_host = dest_host.clone();
-                tokio::spawn(async move {
-                    if let Err(error) = forward_local_stream(stream, originator, dest_host, remote_port, ssh_session).await {
-                        eprintln!("SSH port forward connection failed: {error}");
-                    }
-                });
-            }
-        }
-    }
-
-    if let Ok(session) = std::sync::Arc::try_unwrap(ssh_session) {
-        let session = session.into_inner();
-        let _ = ssh::disconnect_ssh_session(&session, "port forward closed").await;
-    }
-    Ok(())
-}
-
-async fn forward_local_stream(
-    mut stream: TcpStream,
-    originator: SocketAddr,
-    dest_host: String,
-    remote_port: u16,
-    ssh_session: std::sync::Arc<tokio::sync::Mutex<russh::client::Handle<ssh::VerifyingClient>>>,
-) -> Result<(), String> {
-    let originator_ip = originator.ip().to_string();
-    let originator_port = u32::from(originator.port());
-    let mut channel = {
-        let session = ssh_session.lock().await;
-        session
-            .channel_open_direct_tcpip(
-                dest_host,
-                u32::from(remote_port),
-                originator_ip,
-                originator_port,
-            )
-            .await
-            .map_err(|error| format!("failed to open SSH direct-tcpip channel: {error}"))?
-    };
-
-    let mut stream_closed = false;
-    let mut buffer = vec![0_u8; 64 * 1024];
-    loop {
-        tokio::select! {
-            read = stream.read(&mut buffer), if !stream_closed => {
-                match read {
-                    Ok(0) => {
-                        stream_closed = true;
-                        channel
-                            .eof()
-                            .await
-                            .map_err(|error| format!("failed to close SSH channel input: {error}"))?;
-                    }
-                    Ok(count) => {
-                        channel
-                            .data(&buffer[..count])
-                            .await
-                            .map_err(|error| format!("failed to write SSH channel data: {error}"))?;
-                    }
-                    Err(error) => return Err(format!("failed to read local forwarded connection: {error}")),
-                }
-            }
-            message = channel.wait() => {
-                match message {
-                    Some(russh::ChannelMsg::Data { data }) | Some(russh::ChannelMsg::ExtendedData { data, .. }) => {
-                        stream
-                            .write_all(&data)
-                            .await
-                            .map_err(|error| format!("failed to write local forwarded connection: {error}"))?;
-                    }
-                    Some(russh::ChannelMsg::Eof) | Some(russh::ChannelMsg::Close) | None => {
-                        break;
-                    }
-                    _ => {}
-                }
-            }
-        }
-    }
-    let _ = channel.close().await;
-    let _ = stream.shutdown().await;
-    Ok(())
-}
-
 fn remote_loopback_port_command() -> String {
     "if command -v ss >/dev/null 2>&1; then ss -H -ltn; elif command -v netstat >/dev/null 2>&1; then netstat -ltn; elif command -v lsof >/dev/null 2>&1; then lsof -nP -iTCP -sTCP:LISTEN; else printf 'KKTerm: no ss, netstat, or lsof available\\n' >&2; fi".to_string()
+}
+
+fn remote_network_address_command() -> String {
+    "if command -v ip >/dev/null 2>&1; then ip -o addr show | awk '{print $4}'; elif command -v ifconfig >/dev/null 2>&1; then ifconfig | awk '/^[[:space:]]*inet / {print $2} /^[[:space:]]*inet6 / {print $2}'; elif command -v hostname >/dev/null 2>&1; then hostname -I; else printf 'KKTerm: no ip, ifconfig, or hostname address discovery available\\n' >&2; fi".to_string()
+}
+
+#[cfg(windows)]
+fn local_tcp_listener_command() -> ProcessCommand {
+    let mut command = ProcessCommand::new("powershell.exe");
+    command.args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); Get-NetTCPConnection -State Listen -ErrorAction Stop | ForEach-Object { \"{0}`t{1}\" -f $_.LocalAddress, $_.LocalPort }",
+    ]);
+    command
+}
+
+#[cfg(not(windows))]
+fn local_tcp_listener_command() -> ProcessCommand {
+    let mut command = ProcessCommand::new("/bin/sh");
+    command.args([
+        "-lc",
+        r#"if command -v lsof >/dev/null 2>&1; then
+  lsof -nP -iTCP -sTCP:LISTEN -Fn | awk 'function emit(value) { port=value; sub(/^.*:/,"",port); address=value; sub(/:[^:]*$/,"",address); gsub(/^\[/,"",address); gsub(/\]$/,"",address); if (address=="*") address="0.0.0.0"; print address "\t" port } /^n/ { emit(substr($0,2)) }'
+elif command -v ss >/dev/null 2>&1; then
+  ss -H -ltn | awk 'function emit(value) { port=value; sub(/^.*:/,"",port); address=value; sub(/:[^:]*$/,"",address); gsub(/^\[/,"",address); gsub(/\]$/,"",address); if (address=="*") address="0.0.0.0"; print address "\t" port } { emit($4) }'
+else
+  exit 127
+fi"#,
+    ]);
+    command
+}
+
+fn parse_local_tcp_listeners(output: &str) -> Vec<LocalTcpListener> {
+    let mut listeners = std::collections::BTreeSet::new();
+    for line in output.lines() {
+        let Some((address, port)) = line.trim().split_once('\t') else {
+            continue;
+        };
+        let address = address.trim().trim_matches(['[', ']']);
+        let Ok(parsed_address) = address.parse::<IpAddr>() else {
+            continue;
+        };
+        let Ok(port) = port.trim().parse::<u16>() else {
+            continue;
+        };
+        if port > 0 {
+            listeners.insert(LocalTcpListener {
+                address: parsed_address.to_string(),
+                port,
+            });
+        }
+    }
+    listeners.into_iter().collect()
+}
+
+fn parse_remote_network_addresses(output: &str) -> Vec<String> {
+    let mut addresses = Vec::new();
+    for token in output.split_whitespace() {
+        let candidate = token
+            .trim_matches(|character: char| character == ',' || character == '"' || character == '\'')
+            .split('/')
+            .next()
+            .unwrap_or_default()
+            .split('%')
+            .next()
+            .unwrap_or_default();
+        if candidate.parse::<IpAddr>().is_ok() && !addresses.iter().any(|entry| entry == candidate) {
+            addresses.push(candidate.to_string());
+        }
+    }
+    addresses
 }
 
 fn parse_remote_loopback_ports(output: &str) -> Vec<RemoteLoopbackPort> {
@@ -1880,6 +1892,34 @@ fn is_loopback_host(host: &str) -> bool {
         || host
             .parse::<IpAddr>()
             .is_ok_and(|address| address.is_loopback())
+}
+
+fn ssh_forward_bind_addresses_overlap(left: IpAddr, right: IpAddr) -> bool {
+    match (left, right) {
+        (IpAddr::V4(left), IpAddr::V4(right)) => {
+            left == right || left.is_unspecified() || right.is_unspecified()
+        }
+        (IpAddr::V6(left), IpAddr::V6(right)) => {
+            left == right || left.is_unspecified() || right.is_unspecified()
+        }
+        _ => false,
+    }
+}
+
+fn ssh_port_forward_url(bind: &str, port: u16) -> String {
+    let protocol = if matches!(port, 443 | 8443) {
+        "https"
+    } else {
+        "http"
+    };
+    let host = match bind.trim() {
+        "0.0.0.0" => "127.0.0.1".to_string(),
+        "::" => "[::1]".to_string(),
+        value if value.contains(':') && !value.starts_with('[') => format!("[{value}]"),
+        "" => "127.0.0.1".to_string(),
+        value => value.to_string(),
+    };
+    format!("{protocol}://{host}:{port}")
 }
 
 fn terminal_request_for_tmux(request: &TmuxConnectionRequest) -> StartTerminalSessionRequest {
@@ -2937,6 +2977,36 @@ mod tests {
     }
 
     #[test]
+    fn ssh_forward_bind_conflicts_follow_wildcard_and_address_family_rules() {
+        let localhost_v4 = "127.0.0.1".parse::<IpAddr>().unwrap();
+        let another_v4 = "127.0.0.2".parse::<IpAddr>().unwrap();
+        let wildcard_v4 = "0.0.0.0".parse::<IpAddr>().unwrap();
+        let localhost_v6 = "::1".parse::<IpAddr>().unwrap();
+        let wildcard_v6 = "::".parse::<IpAddr>().unwrap();
+
+        assert!(ssh_forward_bind_addresses_overlap(
+            localhost_v4,
+            localhost_v4
+        ));
+        assert!(ssh_forward_bind_addresses_overlap(
+            localhost_v4,
+            wildcard_v4
+        ));
+        assert!(ssh_forward_bind_addresses_overlap(
+            localhost_v6,
+            wildcard_v6
+        ));
+        assert!(!ssh_forward_bind_addresses_overlap(
+            localhost_v4,
+            another_v4
+        ));
+        assert!(!ssh_forward_bind_addresses_overlap(
+            localhost_v4,
+            wildcard_v6
+        ));
+    }
+
+    #[test]
     fn native_auth_errors_fallback_to_interactive_ssh() {
         assert!(should_fallback_to_interactive_ssh(
             "SSH agent authentication was unavailable: Pageant agent failed to list SSH agent identities: early eof"
@@ -3195,6 +3265,52 @@ python 124 user 22u IPv4 0x0 0t0 TCP TCP@localhost:8000 (LISTEN)
         assert_eq!(ports.len(), 2);
         assert_eq!(ports[0].port, 5173);
         assert_eq!(ports[1].port, 8000);
+    }
+
+    #[test]
+    fn parses_remote_network_addresses_from_probe_output() {
+        let output = "127.0.0.1/8\n10.0.0.42/24\nfe80::1234%eth0/64\n::1/128\ninvalid\n";
+
+        assert_eq!(
+            parse_remote_network_addresses(output),
+            vec![
+                "127.0.0.1".to_string(),
+                "10.0.0.42".to_string(),
+                "fe80::1234".to_string(),
+                "::1".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn parses_local_tcp_listener_endpoints() {
+        let output = "127.0.0.1\t1420\n0.0.0.0\t3000\n::1\t8443\ninvalid\tvalue\n";
+
+        assert_eq!(
+            parse_local_tcp_listeners(output),
+            vec![
+                LocalTcpListener {
+                    address: "0.0.0.0".into(),
+                    port: 3000,
+                },
+                LocalTcpListener {
+                    address: "127.0.0.1".into(),
+                    port: 1420,
+                },
+                LocalTcpListener {
+                    address: "::1".into(),
+                    port: 8443,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn local_tcp_listener_parser_deduplicates() {
+        assert_eq!(
+            parse_local_tcp_listeners("127.0.0.1\t3000\n127.0.0.1\t3000\n").len(),
+            1
+        );
     }
 
     #[test]

@@ -656,23 +656,7 @@ function stableIdFromPath(path: string) {
 }
 
 function localTerminalToolbarTitle(connection: Connection) {
-  const shell = connection.localShell?.trim();
-  const normalizedShell = shell?.toLowerCase() ?? "";
-  if (normalizedShell.endsWith("cmd.exe") || normalizedShell === "cmd") {
-    return i18next.t("settings.commandPrompt");
-  }
-  if (
-    normalizedShell.endsWith("powershell.exe") ||
-    normalizedShell === "powershell" ||
-    normalizedShell.endsWith("pwsh.exe") ||
-    normalizedShell === "pwsh"
-  ) {
-    return i18next.t("settings.powerShell");
-  }
-  if (normalizedShell.endsWith("wsl.exe") || normalizedShell === "wsl") {
-    return i18next.t("settings.wsl");
-  }
-  return shell || connection.name;
+  return connection.name;
 }
 
 function terminalPaneTitleForConnection(connection: Connection) {
@@ -1088,6 +1072,7 @@ interface WorkspaceState {
   activeSessionCounts: Record<string, number>;
   performanceMetrics: PerformanceMetrics;
   statusBarNotice?: StatusBarNotice;
+  localTerminalPopup?: WorkspaceTab;
   /** DOM node in the global Status Bar that the active Document Connection portals
    * its status segments into. Set by `StatusBar`; null when the bar is hidden. */
   documentStatusSlot: HTMLElement | null;
@@ -1177,7 +1162,9 @@ interface WorkspaceState {
   openFileViewerPath: (path: string, options?: { sourceConnection?: Connection }) => void;
   openTerminalHere: (connection: Connection, remotePath: string) => void;
   openLocalTerminal: (options?: { name?: string; shell?: string }) => void;
-  openElevatedLocalTerminal: (option: LocalShellOption) => Promise<void>;
+  openLocalTerminalHere: (cwd: string, options?: { name?: string; shell?: string }) => void;
+  closeLocalTerminalPopup: () => void;
+  openElevatedLocalTerminal: (option: LocalShellOption, options?: { cwd?: string }) => Promise<void>;
   splitTerminalPane: (tabId: string) => void;
   splitTerminalPaneDirected: (tabId: string, direction: SplitDirection) => void;
   addConnectionToTerminalPane: (
@@ -2311,7 +2298,48 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       status: "idle",
     });
   },
-  openElevatedLocalTerminal: async (option) => {
+  openLocalTerminalHere: (cwd, options) => {
+    const normalizedCwd = cwd.trim() || ".";
+    const id = `local-popup-${Date.now()}`;
+    const { sshSettings, terminalSettings } = get();
+    const shell = options?.shell ?? terminalSettings.defaultShell;
+    const appearance = resolveDefaultTerminalAppearance("local", sshSettings, terminalSettings);
+    const connection: Connection = {
+      id,
+      name: options?.name ?? shell,
+      host: "localhost",
+      user: "local",
+      localShell: shell,
+      localStartupDirectory: normalizedCwd,
+      terminalOpacity: appearance.terminalOpacity,
+      terminalBackground: appearance.terminalBackground,
+      type: "local",
+      status: "idle",
+    };
+    const paneId = createPaneId(id);
+    set({
+      localTerminalPopup: {
+        id: `popup-${id}`,
+        workspaceId: get().activeWorkspaceId,
+        title: connection.name,
+        toolbarTitle: connection.name,
+        subtitle: normalizedCwd,
+        kind: "terminal",
+        panes: [{
+          id: paneId,
+          title: connection.name,
+          toolbarTitle: connection.name,
+          cwd: normalizedCwd,
+          buffer: "",
+          connection,
+        }],
+        focusedPaneId: paneId,
+        connection,
+      },
+    });
+  },
+  closeLocalTerminalPopup: () => set({ localTerminalPopup: undefined }),
+  openElevatedLocalTerminal: async (option, options) => {
     const isAppElevated = await invokeCommand("is_app_elevated", undefined).catch(() => false);
     const action = elevatedLocalShellAction({
       adminLabel: i18next.t("connections.admin"),
@@ -2320,12 +2348,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
 
     if (action.mode === "embedded") {
-      get().openLocalTerminal({ name: action.name, shell: action.shell });
+      if (options?.cwd) {
+        get().openLocalTerminalHere(options.cwd, { name: action.name, shell: action.shell });
+      } else {
+        get().openLocalTerminal({ name: action.name, shell: action.shell });
+      }
       return;
     }
 
     await invokeCommand("launch_elevated_terminal", {
-      request: { shell: action.shell },
+      request: { shell: action.shell, initialDirectory: options?.cwd },
     });
   },
   splitTerminalPane: (tabId) => {

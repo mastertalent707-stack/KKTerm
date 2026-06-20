@@ -12,7 +12,7 @@ test("File Explorer can open local files in the inline Document", async () => {
         new URL("../src/modules/workspace/connections/sftp/SftpWorkspace.tsx", import.meta.url),
         "utf8",
       ),
-      readFile(new URL("../src/modules/settings/WorkspaceSettings.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../src/modules/settings/FileExplorerSettings.tsx", import.meta.url), "utf8"),
       readFile(
         new URL("../src/modules/workspace/connections/file-viewer/file-viewer.css", import.meta.url),
         "utf8",
@@ -29,6 +29,8 @@ test("File Explorer can open local files in the inline Document", async () => {
     /fileExplorerOpenMode: "external"/,
     "File Explorer should keep opening files externally by default",
   );
+  assert.match(defaultsSource, /fileExplorerTerminalShell: defaultLocalShell\(\)/);
+  assert.match(defaultsSource, /fileExplorerTerminalElevated: false/);
   assert.match(
     storeSource,
     /openFileViewerPath: \(path: string, options\?: \{ sourceConnection\?: Connection \}\) => void;/,
@@ -41,7 +43,7 @@ test("File Explorer can open local files in the inline Document", async () => {
   );
   assert.match(
     workspaceSource,
-    /const fileExplorerOpenMode = useWorkspaceStore\(\(state\) => state\.sftpSettings\.fileExplorerOpenMode\);/,
+    /const sftpSettings = useWorkspaceStore\(\(state\) => state\.sftpSettings\);[\s\S]*const fileExplorerOpenMode = sftpSettings\.fileExplorerOpenMode;/,
     "File Explorer should read the persisted open mode",
   );
   assert.match(
@@ -54,6 +56,8 @@ test("File Explorer can open local files in the inline Document", async () => {
     /<legend>\{t\("settings\.fileExplorer"\)\}<\/legend>[\s\S]*settings\.fileExplorerOpenMode[\s\S]*settings\.fileExplorerOpenModeExternal[\s\S]*settings\.fileExplorerOpenModeInlineEditor/,
     "Workspace Settings should expose the File Explorer open-mode selector",
   );
+  assert.match(settingsSource, /fileExplorerTerminalOptionsForPlatform\(\s*terminalSettings\.customShells/);
+  assert.match(settingsSource, /settings\.fileExplorerTerminal/);
   assert.match(
     fileViewerCss,
     /\.file-viewer-workspace\s*\{[\s\S]*?display:\s*none;/,

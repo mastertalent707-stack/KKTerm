@@ -1982,9 +1982,33 @@ type CommandMap = {
     };
     result: RemoteLoopbackPort[];
   };
+  list_remote_network_addresses: {
+    args: {
+      request: {
+        host: string;
+        user: string;
+        port?: number;
+        keyPath?: string;
+        proxyJump?: string;
+        sshSocksProxy?: string;
+        sshSocksProxyUsername?: string;
+        sshSocksProxySecretOwnerId?: string;
+        sshSocksProxyInheritDefaults?: boolean;
+        authMethod?: "keyFile" | "password" | "agent";
+        secretOwnerId?: string;
+      };
+      sessionId?: string;
+    };
+    result: string[];
+  };
+  list_local_tcp_listeners: {
+    args: undefined;
+    result: Array<{ address: string; port: number }>;
+  };
   start_ssh_port_forward: {
     args: {
       request: {
+        sessionId: string;
         host: string;
         user: string;
         port?: number;
@@ -2016,7 +2040,7 @@ type CommandMap = {
     result: boolean;
   };
   launch_elevated_terminal: {
-    args: { request: { shell: string } };
+    args: { request: { shell: string; initialDirectory?: string } };
     result: null;
   };
   start_sftp_session: {

@@ -15,8 +15,8 @@ import { isMacPlatform } from "../../../lib/platform";
 import { DIcon, type DialogIconName } from "./icons";
 
 /* --------------------- UI convention (mac / windows) ------------------- */
-// macOS:   [ destructive … ]   spacer   Cancel   Primary
-// Windows: [ … ]              spacer   Primary  destructive  Cancel
+// macOS:        [ auxiliary … ]   spacer   Cancel   Primary
+// Windows/Linux:[ auxiliary … ]   spacer   Primary  Cancel
 // The default follows the host platform; a provider can override for previews.
 export type DialogConvention = "mac" | "windows";
 const ConvCtx = createContext<DialogConvention>(isMacPlatform() ? "mac" : "windows");
@@ -43,14 +43,14 @@ export function Actions({
   extraLeft?: ReactNode;
 }) {
   const conv = useDialogConvention();
-  // Windows: right-aligned [ Primary  Auxiliary  Cancel ].
-  // macOS:   [ Auxiliary … ] spacer [ Cancel  Primary ].
+  // Windows/Linux: [ Auxiliary … ] spacer [ Primary  Cancel ].
+  // macOS:         [ Auxiliary … ] spacer [ Cancel  Primary ].
   if (conv === "windows") {
     return (
       <>
+        {extraLeft ?? null}
         <span className="kk-spacer" />
         {primary}
-        {extraLeft ?? null}
         {cancel}
       </>
     );
@@ -107,6 +107,7 @@ export function Sheet({
   footer,
   className = "",
   ariaLabel,
+  closeAriaLabel,
 }: {
   width?: number;
   height?: number;
@@ -120,6 +121,7 @@ export function Sheet({
   footer?: ReactNode;
   className?: string;
   ariaLabel?: string;
+  closeAriaLabel?: string;
 }) {
   const hasHead = Boolean(eyebrow || title || sub || onClose);
   return (
@@ -136,7 +138,7 @@ export function Sheet({
           {title && <h2 className="kk-dlg-title">{title}</h2>}
           {sub && <p className="kk-dlg-sub">{sub}</p>}
           {onClose && (
-            <button className="kk-dlg-close" onClick={onClose} type="button" aria-label={ariaLabel}>
+            <button className="kk-dlg-close" onClick={onClose} type="button" aria-label={closeAriaLabel ?? ariaLabel}>
               <DIcon name="close" size={14} />
             </button>
           )}
@@ -397,6 +399,7 @@ export const DIALOG_ACCENTS = [
   "#34c759",
   "#30b0c7",
   "#8e8e93",
+  "#ffffff",
 ] as const;
 
 export function Swatches({

@@ -40,6 +40,7 @@ import type { Connection, LayoutNode, SplitDirection, TerminalPane, WorkspacePan
 import { QuickCommandBar } from "./QuickCommandBar";
 import { TerminalBackgroundLayer, TerminalBackgroundPopover } from "./TerminalBackgroundPopover";
 import { SshPortForwardingDialog, hasEnabledSshPortForwardings } from "./SshPortForwardingDialog";
+import { startEnabledSshPortForwardings } from "./sshPortForwardingModel";
 
 type TerminalContextMenuState = {
   x: number;
@@ -87,12 +88,14 @@ export function TerminalWorkspace({
   onOpenAssistant = () => undefined,
   showSftpButton = true,
   tab,
+  trackConnectionSession = true,
 }: {
   allowPaneLayoutControls?: boolean;
   isActive: boolean;
   onOpenAssistant?: () => void;
   showSftpButton?: boolean;
   tab: WorkspaceTab;
+  trackConnectionSession?: boolean;
 }) {
   const splitTerminalPaneDirected = useWorkspaceStore(
     (state) => state.splitTerminalPaneDirected,
@@ -113,6 +116,7 @@ export function TerminalWorkspace({
     tab.panes.filter(isTerminalPane).length > 1;
   const [sftpDialogConnection, setSftpDialogConnection] = useState<Connection | null>(null);
   const [sshPortForwardingDialogConnection, setSshPortForwardingDialogConnection] = useState<Connection | null>(null);
+  const [sshPortForwardingDialogSessionId, setSshPortForwardingDialogSessionId] = useState<string | null>(null);
   const sftpFocusRestorePaneIdRef = useRef<string | null>(null);
   const sshPortForwardingFocusRestorePaneIdRef = useRef<string | null>(null);
   const { t } = useTranslation();
@@ -124,7 +128,8 @@ export function TerminalWorkspace({
     : undefined;
   const layout = useMemo(() => ensureLayout(tab.layout, tab.panes), [tab.layout, tab.panes]);
   const isSingleEmbeddedPane = tab.panes.length === 1 && tab.panes[0] !== undefined && !isTerminalPane(tab.panes[0]);
-  const canCloseSinglePane = tab.kind === "terminal" && generalSettings.hideTopTabButtons;
+  const canCloseSinglePane =
+    allowPaneLayoutControls && tab.kind === "terminal" && generalSettings.hideTopTabButtons;
   const quickCommandBarVisible = Boolean(tab.quickCommandBarVisible) && !isSingleEmbeddedPane;
   const focusedTerminalPane = tab.panes.find((pane): pane is TerminalPane => (
     isTerminalPane(pane) && pane.id === focusedPaneId
@@ -193,14 +198,16 @@ export function TerminalWorkspace({
     const restorePaneId = sshPortForwardingFocusRestorePaneIdRef.current;
     sshPortForwardingFocusRestorePaneIdRef.current = null;
     setSshPortForwardingDialogConnection(null);
+    setSshPortForwardingDialogSessionId(null);
     if (restorePaneId) {
       focusTerminalPaneAfterDialogClose(restorePaneId);
     }
   }
 
-  function openSshPortForwardingDialog(connection: Connection, paneId: string) {
+  function openSshPortForwardingDialog(connection: Connection, paneId: string, sessionId: string | null) {
     sshPortForwardingFocusRestorePaneIdRef.current = paneId === focusedPaneId ? paneId : null;
     setSshPortForwardingDialogConnection(connection);
+    setSshPortForwardingDialogSessionId(sessionId);
   }
 
   function handleSplit(paneId: string, direction: "right" | "left" | "down" | "up") {
@@ -482,6 +489,7 @@ export function TerminalWorkspace({
             onSplit={handleSplit}
             quickCommandBarVisible={quickCommandBarVisible}
             onToggleQuickCommandBar={() => setQuickCommandBarVisible(tab.id, !quickCommandBarVisible)}
+            trackConnectionSession={trackConnectionSession}
           />
         ) : null}
       </div>
@@ -504,6 +512,7 @@ export function TerminalWorkspace({
       {sshPortForwardingDialogConnection ? createPortal(
         <SshPortForwardingDialog
           connection={sshPortForwardingDialogConnection}
+          sessionId={sshPortForwardingDialogSessionId}
           onClose={closeSshPortForwardingDialog}
           onConnectionUpdated={(updatedConnection) => {
             refreshOpenConnectionMetadata(updatedConnection);
@@ -536,6 +545,7 @@ function TerminalLayoutView({
   onSplit,
   quickCommandBarVisible,
   onToggleQuickCommandBar,
+  trackConnectionSession,
 }: {
   isActive: boolean;
   tabId: string;
@@ -550,12 +560,13 @@ function TerminalLayoutView({
   onFontChange: (delta: number | "reset") => void;
   onOpenAssistant: () => void;
   onOpenSftp: (connection: Connection, paneId: string) => void;
-  onOpenSshPortForwarding: (connection: Connection, paneId: string) => void;
+  onOpenSshPortForwarding: (connection: Connection, paneId: string, sessionId: string | null) => void;
   onSaveBuffer: (paneId: string) => void;
   showSftpButton: boolean;
   onSplit: (paneId: string, direction: "right" | "left" | "down" | "up") => void;
   quickCommandBarVisible: boolean;
   onToggleQuickCommandBar: () => void;
+  trackConnectionSession: boolean;
 }) {
   if (layout.type === "leaf") {
     const pane = panes.find((entry) => entry.id === layout.paneId);
@@ -595,6 +606,7 @@ function TerminalLayoutView({
             onSplit={onSplit}
             quickCommandBarVisible={quickCommandBarVisible}
             onToggleQuickCommandBar={onToggleQuickCommandBar}
+            trackConnectionSession={trackConnectionSession}
           />
         ) : (
           <EmbeddedConnectionPane
@@ -642,6 +654,7 @@ function TerminalLayoutView({
           onSplit={onSplit}
           quickCommandBarVisible={quickCommandBarVisible}
           onToggleQuickCommandBar={onToggleQuickCommandBar}
+          trackConnectionSession={trackConnectionSession}
         />
       ))}
     </div>
@@ -1419,6 +1432,7 @@ function TerminalPaneView({
   onSplit,
   quickCommandBarVisible,
   onToggleQuickCommandBar,
+  trackConnectionSession,
 }: {
   isActive: boolean;
   tabId: string;
@@ -1431,12 +1445,13 @@ function TerminalPaneView({
   usePaneTerminalBackgrounds: boolean;
   onOpenAssistant: () => void;
   onOpenSftp: (connection: Connection, paneId: string) => void;
-  onOpenSshPortForwarding: (connection: Connection, paneId: string) => void;
+  onOpenSshPortForwarding: (connection: Connection, paneId: string, sessionId: string | null) => void;
   onSaveBuffer: (paneId: string) => void;
   showSftpButton: boolean;
   onSplit: (paneId: string, direction: "right" | "left" | "down" | "up") => void;
   quickCommandBarVisible: boolean;
   onToggleQuickCommandBar: () => void;
+  trackConnectionSession: boolean;
 }) {
   const paneRef = useRef<HTMLElement | null>(null);
   const terminalElementRef = useRef<HTMLDivElement | null>(null);
@@ -1972,13 +1987,37 @@ function TerminalPaneView({
             pane.id,
             result.x11ForwardingStatus ?? x11ForwardingStatus,
           );
+          void startEnabledSshPortForwardings(
+            connection.sshPortForwardings ?? [],
+            (forwarding) => invokeCommand("start_ssh_port_forward", {
+              request: {
+                ...tmuxConnectionRequest(connection),
+                forwardId: forwarding.id,
+                mode: forwarding.mode,
+                bind: forwarding.bind,
+                listenPort: forwarding.listenPort,
+                destHost: forwarding.destHost,
+                destPort: forwarding.destPort,
+                remotePort: forwarding.destPort,
+                sessionId: result.sessionId,
+              },
+            }),
+          ).then((failures) => {
+            if (!disposed && failures.length > 0) {
+              showStatusBarNotice(t("terminal.sshPortForwardStartupFailed", {
+                message: failures[0] instanceof Error ? failures[0].message : String(failures[0]),
+              }), { tone: "warning" });
+            }
+          });
         }
         sessionStarted = true;
         const startupInput = localStartupInputFor(connection);
         if (startupInput) {
           writeInputToSession(startupInput);
         }
-        markConnectionSessionStarted(connection.id);
+        if (trackConnectionSession) {
+          markConnectionSessionStarted(connection.id);
+        }
         void maybeAutoDetectOsIcon(connection, result.sessionId);
       } catch (error) {
         terminal.writeln("");
@@ -2020,7 +2059,7 @@ function TerminalPaneView({
       } else if (sessionId) {
         void invokeCommand("close_terminal_session", { sessionId });
       }
-      if (sessionStarted && !preservingRuntime) {
+      if (sessionStarted && !preservingRuntime && trackConnectionSession) {
         markConnectionSessionEnded(connection.id);
       }
       sessionIdRef.current = null;
@@ -2337,7 +2376,7 @@ function TerminalPaneView({
     if (pane.connection?.type !== "ssh") {
       return;
     }
-    onOpenSshPortForwarding(pane.connection, pane.id);
+    onOpenSshPortForwarding(pane.connection, pane.id, sessionIdRef.current);
   }
 
   function handleSplit(direction: "right" | "left" | "down" | "up") {

@@ -10,15 +10,19 @@ const cssUrl = new URL(
   "../src/modules/workspace/connections/terminal/terminal.css",
   import.meta.url,
 );
+const backendUrl = new URL("../src-tauri/src/lib.rs", import.meta.url);
 
 test("SSH forwarding fields use unfiltered editable dropdowns for detected suggestions", async () => {
   const source = await readFile(dialogUrl, "utf8");
 
   assert.match(source, /invokeCommand\("network_interfaces", undefined\)/);
+  assert.match(source, /invokeCommand\("list_local_tcp_listeners", undefined\)/);
+  assert.match(source, /invokeCommand\("list_remote_network_addresses", \{[\s\S]*?sessionId,[\s\S]*?\}\)/);
   assert.match(source, /invokeCommand\("list_remote_loopback_ports", \{/);
   assert.doesNotMatch(source, /\.filter\(\(networkInterface\) => networkInterface\.isUp\)/);
-  assert.match(source, /\["127\.0\.0\.1", "0\.0\.0\.0", \.\.\.localInterfaceAddresses\]/);
+  assert.match(source, /mode === "R" \? remoteInterfaceAddresses : localInterfaceAddresses/);
   assert.match(source, /mode === "L" && isLoopbackHost\(current\.destHost\).*remoteLoopbackPorts\.map\(String\)/s);
+  assert.match(source, /localListenerPortOptions\(current\.destHost, localTcpListeners\)/);
   assert.match(source, /function EditableDropdownInput\(/);
   assert.match(source, /options\.map\(\(option\) =>/);
   assert.match(source, /<EditableDropdownInput[\s\S]*?options=\{bindAddressOptions\}/);
@@ -26,17 +30,71 @@ test("SSH forwarding fields use unfiltered editable dropdowns for detected sugge
   assert.doesNotMatch(source, /<datalist\b|\blist=\{/);
 });
 
-test("Remote mode reverses headings without moving its field groups", async () => {
+test("Remote mode assigns the local destination and remote listener to the correct machines", async () => {
   const source = await readFile(dialogUrl, "utf8");
 
   assert.match(
     source,
-    /mode === "R" \? t\("terminal\.forwardTo"\) : t\("terminal\.localListener"\)[\s\S]*?<Field label=\{t\("terminal\.bindAddress"\)\}>/,
+    /mode === "R"[\s\S]*?t\("terminal\.forwardTo"\)[\s\S]*?value=\{current\.destHost\}[\s\S]*?value=\{current\.destPort\}/,
   );
   assert.match(
     source,
-    /mode === "R" \? t\("terminal\.remoteListener"\) : t\("terminal\.destination"\)[\s\S]*?<Field label=\{t\("terminal\.host"\)\}>/,
+    /mode === "R"[\s\S]*?t\("terminal\.remoteListener"\)[\s\S]*?value=\{current\.bind\}[\s\S]*?value=\{current\.listenPort\}/,
   );
+});
+
+test("Remote forwarding defaults to a wildcard IPv4 listener", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+
+  assert.match(source, /R:\s*\{ bind: "0\.0\.0\.0"/);
+});
+
+test("enabled Local forwarding bind text opens in the external browser", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+
+  assert.match(source, /import \{[^}]*openExternalUrl[^}]*\} from "\.\.\/\.\.\/\.\.\/\.\.\/lib\/tauri"/);
+  assert.match(source, /forwarding\.mode === "L" && forwarding\.enabled/);
+  assert.match(source, /sshForwardBrowserUrl\(forwarding\.bind, forwarding\.listenPort\)/);
+  assert.match(source, /className="sa-local sa-endpoint-link"/);
+});
+
+test("enabled reachable Remote listeners render on the right and open externally", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+  const css = await readFile(cssUrl, "utf8");
+
+  assert.match(source, /sshForwardDisplayEndpoints\(forwarding\)/);
+  assert.match(source, /sshRemoteForwardBrowserUrl\(forwarding\.bind, forwarding\.listenPort, connection\.host\)/);
+  assert.match(source, /forwarding\.mode === "R" && forwarding\.enabled && remoteUrl/);
+  assert.match(source, /className="sa-remote sa-endpoint-link"/);
+  assert.match(css, /\.sa-endpoint-link/);
+});
+
+test("local listener discovery runs off the Tauri command thread", async () => {
+  const backend = await readFile(backendUrl, "utf8");
+  const command = backend.slice(
+    backend.indexOf("async fn list_local_tcp_listeners"),
+    backend.indexOf("async fn start_ssh_port_forward"),
+  );
+
+  assert.match(command, /run_blocking_command\("local TCP listener discovery"/);
+});
+
+test("SSH forwarding dialog uses a top-right close button as its only dismiss action", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+
+  assert.match(source, /<Sheet[\s\S]*?onClose=\{onClose\}/);
+  assert.doesNotMatch(source, /cancel=\{<Btn onClick=\{onClose\}>/);
+});
+
+test("Remote forwarding shows a translated GatewayPorts reminder at the footer left", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+  const css = await readFile(cssUrl, "utf8");
+
+  assert.match(
+    source,
+    /footer=\{[\s\S]*?mode === "R"[\s\S]*?terminal\.sshRemoteGatewayPortsHint[\s\S]*?<Actions/,
+  );
+  assert.match(css, /\.sshf-gateway-ports-hint\s*\{[^}]*color:\s*var\(--text-muted\);/s);
 });
 
 test("SSH forwarding inputs use the themed surface color", async () => {
@@ -46,6 +104,54 @@ test("SSH forwarding inputs use the themed surface color", async () => {
     css,
     /\.sshf-pair \.kk-inp\s*\{[^}]*background:\s*var\(--surface\);[^}]*\}/,
   );
+});
+
+test("SSH forwarding Listening chips use the shared green status token", async () => {
+  const css = await readFile(cssUrl, "utf8");
+
+  assert.match(css, /\.sshf-listen-chip\s*\{[^}]*background:\s*var\(--green\);/s);
+});
+
+test("SSH forwarding diagram renders third-host target fans from saved mappings", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+  const css = await readFile(cssUrl, "utf8");
+
+  assert.match(source, /sshForwardDiagramTargets\(mode, forwardings,/);
+  assert.match(source, /function ForwardTargetFan\(/);
+  assert.match(source, /mode === "R"[\s\S]*?<ForwardTargetFan/);
+  assert.match(source, /mode === "L"[\s\S]*?<ForwardTargetFan/);
+  assert.match(css, /\.sshf-fan\s*\{/);
+  assert.match(css, /\.sshf-targets\s*\{/);
+  assert.match(css, /\.tg-node\s*\{/);
+});
+
+test("SSH forwarding satellite nodes show hosts without draft-derived ports", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+  const fanSource = source.slice(
+    source.indexOf("function ForwardTargetFan"),
+  );
+
+  assert.match(fanSource, /<span className="nm">\{target\.host\}<\/span>/);
+  assert.doesNotMatch(fanSource, /target\.ports/);
+});
+
+test("SSH forwarding main diagram nodes omit draft endpoint captions", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+  const diagramSource = source.slice(
+    source.indexOf('<div className="sshf-diagram">'),
+    source.indexOf('<div className="sshf-active">'),
+  );
+
+  assert.doesNotMatch(diagramSource, /<ForwardNode icon="(?:monitor|server)"[^>]*\bendpoint=/);
+});
+
+test("SSH forwarding dialog routes user-facing errors through the Status Bar", async () => {
+  const source = await readFile(dialogUrl, "utf8");
+
+  assert.match(source, /const showStatusBarNotice = useWorkspaceStore\(\(state\) => state\.showStatusBarNotice\)/);
+  assert.match(source, /function showError\(error: unknown\)/);
+  assert.match(source, /showStatusBarNotice\(message, \{ tone: "error" \}\)/);
+  assert.doesNotMatch(source, /\[error, setError\]|\bsetError\(|className="form-error"/);
 });
 
 test("SSH forwarding dropdowns portal below the input outside dialog clipping", async () => {

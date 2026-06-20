@@ -116,6 +116,8 @@ export const defaultSshSettings: SshSettings = {
 export const defaultSftpSettings: SftpSettings = {
   overwriteBehavior: "fail",
   fileExplorerOpenMode: "external",
+  fileExplorerTerminalShell: defaultLocalShell(),
+  fileExplorerTerminalElevated: false,
 };
 
 export const defaultUrlSettings: UrlSettings = {

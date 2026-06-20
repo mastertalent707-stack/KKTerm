@@ -92,9 +92,11 @@ Strong success criteria let you loop independently.
 - App-owned popup dialogs use a single concise title by default. Do not add a
   subtitle or explanatory header copy unless the flow truly needs it; put
   supporting text in the dialog body near the relevant controls instead.
-- Dialog footers follow Windows button order: the primary/confirm action comes
-  immediately before Cancel, and the action group anchors to the bottom right
-  unless an existing platform pattern in the same dialog family differs.
+- Dialog footers follow the host platform: macOS ends with Cancel then the
+  primary/confirm action; Windows and Linux end with the primary/confirm action
+  then Cancel. Auxiliary actions stay left of the bottom-right action group.
+  Build the order with shared `Actions` or `LegacyDialogActions`; do not rely on
+  per-dialog source order or CSS reversal.
 - App-owned popup dialogs must not show a title-bar close X when the footer
   already has a bottom-right dismiss action such as Cancel, Skip, Later, or
   Close. Keep one obvious dismiss path instead of duplicating the same action.
@@ -116,8 +118,11 @@ Strong success criteria let you loop independently.
 - Do not put live Session state into the durable Connection model.
 - `withLiveConnectionStatuses` is display-only. Do not pass its fresh
   Connection objects to workspace components that own Session lifecycles.
-- User-facing transient status belongs in the bottom Status Bar via
-  `showStatusBarNotice`; do not add one-off toast/status implementations.
+- Every user-facing transient notification—information, success confirmation,
+  warning, or error—belongs in the bottom Status Bar popup via
+  `showStatusBarNotice` with the matching `tone`. Do not render transient
+  outcome text inline in dialogs/pages and do not add one-off toast, banner, or
+  status implementations. Use `showStatusBarProgress` for determinate work.
 - Do not use `window.alert`, `window.confirm`, or `window.prompt`; use
   translated app-owned dialogs/popovers.
 - RDP ActiveX overlay parking is RDP-only. Do not extend that workaround to

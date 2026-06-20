@@ -3,6 +3,96 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.95/kkterm-0.1.95-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.95/kkterm-0.1.95-windows-arm64-setup.exe)
+
+## Highlights
+- Improved handling for update asset URLs and added checksum validation logic (so your updates behave a bit less like “mystery network traffic”).  
+
+## Improved
+- Refactored update asset URL handling and checksum validation logic.  
+
+## Internal
+- Updated update-related logic in `src-tauri/src/app_updates.rs` and refreshed documentation (`docs/ARCHITECTURE.md`, `docs/RELEASE.md`, `docs/manual/15-settings.md`).  
+  - Commit: `c7f62c9` — “refactor: enhance update asset URL handling and checksum validation logic”  
+
+---
+
+## 精選重點
+- 改善更新資產（update asset）URL 的處理方式，並新增檢查碼（checksum）驗證邏輯（讓更新別再那麼像「神秘網路流量」）。  
+
+## 改善
+- 重構更新資產 URL 的處理流程，並加入 checksum 驗證邏輯。  
+
+## 內部
+- 於 `src-tauri/src/app_updates.rs` 更新相關邏輯，並同步更新文件（`docs/ARCHITECTURE.md`、`docs/RELEASE.md`、`docs/manual/15-settings.md`）。  
+  - 提交：`c7f62c9` — 「refactor: enhance update asset URL handling and checksum validation logic」
+
+## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.94/kkterm-0.1.94-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.94/kkterm-0.1.94-windows-arm64-setup.exe)
+
+## KKTerm v0.1.94 Release Notes
+
+### Highlights
+- Improved SSH port forwarding UX in the Connection → Terminal flow: saved forwards now start on connect, and remote listener presentation/status notifications have been streamlined via the Status Bar. (No more “where did that message go?” moments.)
+- More consistent dialog footer actions across platforms, so Pane-and-dialog button placement won’t play whack-a-mole with your muscle memory.
+
+### New
+- SSH forwarding: add **GatewayPorts forwarding reminder** for clarity during setup. (172046b, c0c2be6)
+- SSH forwarding: **remote network address discovery for SSH connections**. (5299882)
+
+### Improved
+- SSH port forwarding dialog redesign:
+  - Status Bar is the sole transient notification surface (info/success/warning/error tones).
+  - Clearer visuals for saved mappings (including third-host target fans) and grouped non-loopback destinations by host. (c337534)
+- Dialog footer actions are standardized across platforms using a shared `LegacyDialogActions` approach. (c648975, 7d7c018)
+- Local listener discovery for SSH forwarding runs off the command thread. (ac38c29)
+- SSH forwarding listener/status visuals updated (green listener status). (77f5027)
+
+### Fixed
+- SSH port forwarding: **start saved SSH forwards on connect**. (f90d41a)
+- SSH port forwarding: **present and open SSH remote listeners correctly**. (0825c88)
+- SSH port forwarding: **define SSH remote forward presentation rules**. (fffad7c)
+- SSH remote gateway ports hint updated for clarity (Traditional Chinese update). (d3310c7)
+
+### Internal
+- macOS-specific handling for URL overlay visibility in the webview, including lifecycle test coverage. (172046b)
+- Added/updated tests for dialog footer policy and SSH port forwarding behaviors. (c648975, 7d7c018, c337534, ac38c29, 0825c88, fffad7c)
+- Internal refactors and merging activity included as part of this release. (8c32246)
+
+---
+
+## KKTerm v0.1.94 更新說明（繁體中文版／台灣）
+
+### Highlights
+- 在 Connection → Terminal 的 SSH 轉送流程中，體驗更完整：**已保存的轉送會在連線時自動啟動**，而且遠端監聽器的呈現與通知也改由 Status Bar 統一處理。（至少不會再發生「訊息跑哪去了？」的迷路時刻。）
+- 各平台的對話框頁尾按鈕動作更一致：Pane 與對話框的按鈕擺放不再跟你的手感玩躲貓貓。
+
+### New
+- SSH 轉送：加入 **GatewayPorts 轉送提醒**，讓設定更清楚。（172046b, c0c2be6）
+- SSH 轉送：**遠端網路位址（remote network address）探索**支援。（5299882）
+
+### Improved
+- SSH 轉送對話框重新整理：
+  - Status Bar 成為唯一的短暫通知面板（info/success/warning/error），並套用對應語氣。
+  - 已保存映射的視覺更清楚（包含第三方主機 target fans），並依主機群組化不同的非迴圈目的地。 (c337534)
+- 各平台對話框頁尾動作已標準化：使用共用 `LegacyDialogActions` 做一致化。 (c648975, 7d7c018)
+- SSH 轉送的本機監聽器探索不再佔用命令執行緒。 (ac38c29)
+- SSH 轉送監聽器狀態視覺更新（綠色監聽狀態）。 (77f5027)
+
+### Fixed
+- SSH 轉送：**連線時啟動已保存的 SSH 轉送**。 (f90d41a)
+- SSH 轉送：**正確呈現並開啟遠端 SSH listeners**。 (0825c88)
+- SSH 轉送：**定義遠端轉送的呈現規則**。 (fffad7c)
+- SSH 遠端 gateway ports 提示文字更新以提升清楚度（僅繁體中文內容更新）。 (d3310c7)
+
+### Internal
+- macOS：webview 的 URL overlay 可見性加入特定處理，並補上生命週期測試。 (172046b)
+- 增修 dialog footer 政策與 SSH 轉送行為的測試。 (c648975, 7d7c018, c337534, ac38c29, 0825c88, fffad7c)
+- 本版包含內部重構與合併活動。 (8c32246)
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.93/kkterm-0.1.93-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.93/kkterm-0.1.93-windows-arm64-setup.exe)
 

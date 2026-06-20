@@ -9,6 +9,7 @@ import {
 import {
   Bot,
   Coffee,
+  FolderOpen,
   Info,
   KeyRound,
   LayoutDashboard,
@@ -27,6 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { LegacyDialogActions } from "../../app/ui/dialog";
 import { AI_PROVIDER_SECRET_OWNER_ID } from "../../lib/settings";
 import { supportsInstallerHelper, supportsRdp } from "../../lib/platform";
 import { AboutSettings } from "./AboutSettings";
@@ -36,6 +38,7 @@ import { DashboardSettings } from "./DashboardSettings";
 import { DontSleepSettings } from "./DontSleepSettings";
 import { CredentialsSettings } from "./CredentialsSettings";
 import { GeneralSettings } from "./GeneralSettings";
+import { FileExplorerSettings } from "./FileExplorerSettings";
 import { InstallerSettings } from "./InstallerSettings";
 import { ItOpsSettings } from "./ItOpsSettings";
 import { RdpSettings } from "./RdpSettings";
@@ -61,6 +64,7 @@ const SETTINGS_SECTION_IDS: readonly SettingsSectionId[] = [
   "appearance-settings",
   "dashboard-settings",
   "workspace-settings",
+  "file-explorer-settings",
   "itops-settings",
   "installer-settings",
   "credentials-settings",
@@ -87,6 +91,7 @@ const SETTINGS_NAV: readonly {
   { id: "general-settings", Icon: SettingsIcon, color: "#8e8e93", labelKey: "settings.sectionGeneral" },
   { id: "appearance-settings", Icon: Palette, color: "#ff2d55", labelKey: "settings.sectionAppearance" },
   { id: "workspace-settings", Icon: SquareStack, color: "#5e5ce6", labelKey: "settings.sectionWorkspace" },
+  { id: "file-explorer-settings", Icon: FolderOpen, color: "#14b8a6", labelKey: "settings.fileExplorer" },
   { id: "dashboard-settings", Icon: LayoutDashboard, color: "#0a84ff", labelKey: "settings.sectionDashboard" },
   { id: "itops-settings", Icon: ServerCog, color: "#30c48d", labelKey: "settings.sectionItOps" },
   { id: "installer-settings", Icon: Package, color: "#ff9f0a", labelKey: "settings.sectionInstaller", requires: "installer" },
@@ -295,6 +300,7 @@ export function SettingsPage({
             )}
             {renderSettingsSection("dashboard-settings", <DashboardSettings />)}
             {renderSettingsSection("workspace-settings", <WorkspaceSettings />)}
+            {renderSettingsSection("file-explorer-settings", <FileExplorerSettings />)}
             {renderSettingsSection("itops-settings", <ItOpsSettings />)}
             {installerSupported
               ? renderSettingsSection("installer-settings", <InstallerSettings />)
@@ -325,30 +331,31 @@ export function SettingsPage({
             <div className="connection-dialog-body">
               <p>{t("settings.unsavedQuitBody")}</p>
             </div>
-            <footer className="dialog-actions">
-              <button
+            <LegacyDialogActions
+              as="footer"
+              extraLeft={<button
                 className="secondary-button danger-button"
                 onClick={handleQuitWithoutSaving}
                 type="button"
               >
                 {t("settings.quitWithoutSaving")}
-              </button>
-              <button
+              </button>}
+              primary={<button
                 className="primary-button"
                 onClick={() => void handleSaveAllDirty({ quitAfter: true })}
                 type="button"
               >
                 <Save size={15} />
                 {t("settings.saveAndQuit")}
-              </button>
-              <button
+              </button>}
+              cancel={<button
                 className="secondary-button"
                 onClick={() => setUnsavedQuitDialogOpen(false)}
                 type="button"
               >
                 {t("common.cancel")}
-              </button>
-            </footer>
+              </button>}
+            />
           </section>
         </div>
       ) : null}

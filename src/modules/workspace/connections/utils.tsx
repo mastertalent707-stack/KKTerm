@@ -3,6 +3,7 @@ import { confirmNativeDialog, invokeCommand, type SshHostKeyPreview } from "../.
 import i18next from "../../../i18n/config";
 import type { Connection, ConnectionType, SshSettings, TerminalCustomShell, WorkspaceTab } from "../../../types";
 import { defaultLocalShell, isWindowsPlatform } from "../../../lib/platform";
+import { isWslShell, wslShellSelectorValue } from "./connection-dialog/wslLocalShell";
 
 const WINDOWS_LOCAL_SHELL_OPTIONS = [
   { labelKey: "settings.powerShell", value: "powershell.exe" },
@@ -46,6 +47,12 @@ export function resolveAvailableLocalShell(shell: string | undefined, options: L
   const requested = shell?.trim();
   if (!requested) {
     return fallback;
+  }
+  if (
+    isWslShell(requested) &&
+    options.some((option) => (option.value ?? "") === wslShellSelectorValue(requested))
+  ) {
+    return requested;
   }
   return options.some((option) => (option.value ?? "") === requested) ? requested : fallback;
 }
@@ -158,23 +165,7 @@ export function connectionToolbarTitle(connection: Connection) {
 }
 
 function localTerminalToolbarTitle(connection: Connection) {
-  const shell = connection.localShell?.trim();
-  const normalizedShell = shell?.toLowerCase() ?? "";
-  if (normalizedShell.endsWith("cmd.exe") || normalizedShell === "cmd") {
-    return i18next.t("settings.commandPrompt");
-  }
-  if (
-    normalizedShell.endsWith("powershell.exe") ||
-    normalizedShell === "powershell" ||
-    normalizedShell.endsWith("pwsh.exe") ||
-    normalizedShell === "pwsh"
-  ) {
-    return i18next.t("settings.powerShell");
-  }
-  if (normalizedShell.endsWith("wsl.exe") || normalizedShell === "wsl") {
-    return i18next.t("settings.wsl");
-  }
-  return shell || connection.name;
+  return connection.name;
 }
 
 export function connectionIconForType(type: ConnectionType) {

@@ -8,7 +8,7 @@
 
 ## Software updates
 
-Automatic and manual checks normally read `https://kkterm.ryantsai.com/releases/latest.json`. If that app-owned Cloudflare endpoint is unavailable or returns invalid metadata, KKTerm falls back to GitHub Releases. A successful check records its time; automatic startup checks are limited to once per 24 hours, while `settings.checkForUpdates` always performs a fresh manual check.
+Automatic and manual checks normally read `https://kkterm.ryantsai.com/releases/latest.json`. If that app-owned Cloudflare endpoint is unavailable or returns invalid metadata, KKTerm falls back to GitHub Releases. On Windows, installer and checksum downloads also retry the same release asset on the other trusted host if the selected host cannot complete the fetch. A successful check records its time; automatic startup checks are limited to once per 24 hours, while `settings.checkForUpdates` always performs a fresh manual check.
 
 Update checks are not telemetry. They do not upload Connection, Session, Tab, terminal, credential, or usage data. Windows downloads remain protected by the published SHA-256 checksum, and macOS/Linux updates retain Tauri signature verification regardless of whether Cloudflare or GitHub serves the files.
 
@@ -26,6 +26,7 @@ Settings tutorial targets:
 - General: `settings.language`, `settings.workspaceAccess`, `settings.useDirectxScreenCapture`, `settings.statusBar`, `settings.settingsData`, `settings.debug`.
 - Appearance: `settings.appUiFontFamily`, `settings.appearance.colorScheme`, `settings.resetLayout`.
 - Workspace: `settings.connectedConnectionsRail`, `settings.hideTopTabButtons`, `settings.doubleClickOpensConnection`, `settings.submitAiAttachmentsDirectly`, `settings.separateSplitTerminalBackgrounds`.
+- File Explorer: `settings.fileExplorerOpenMode`, `settings.fileExplorerTerminal`.
 - Dashboard: `settings.dashboardDefaultLanding`, `settings.dashboardUseRandomDynamicBackground`, `settings.dashboardMaxActiveScriptWidgets`.
 - Credentials: `settings.credentialStorage`, `settings.encryptedSecretStoreSetupTitle`,
   `settings.encryptedSecretStoreSetupAction`, `settings.encryptedSecretStoreSetupRequiredTitle`, `settings.credentialsStored`,
@@ -46,6 +47,7 @@ Settings tutorial targets:
   - `settings.sectionAppearance`
   - `settings.sectionDashboard`
   - `settings.sectionWorkspace`
+  - `settings.fileExplorer`
   - `settings.sectionInstaller`
   - `settings.sectionCredentials`
   - `settings.sectionAiAssistant`
@@ -94,12 +96,15 @@ Settings tutorial targets:
 - Tabs group `settings.workspaceTabs`.
 - Toggle `settings.hideTopTabButtons` (hint `settings.hideTopTabButtonsDesc`). When on, the top `workspace.tabStrip` buttons are hidden and new Tabs opened from saved Connections become **Child Connection Tabs**. Child Connection Tabs are shown as italic rows under their parent Connection in the active Workspace's Connection Tree, persist across launches, open lazily when selected, can be renamed, and expose `connections.childConnectionProperties` for child icon/color edits.
 - Toggle `settings.doubleClickOpensConnection` (hint `settings.doubleClickOpensConnectionDesc`). The default is off: a single click opens a Connection from the Connection Tree. When on, a single click only selects the Connection row and a double-click opens it; users can rename Connections with `connections.rename` from the context menu.
-- File Explorer group `settings.fileExplorer`: selector `settings.fileExplorerOpenMode` chooses how File Explorer (`localFiles`) opens local files. `settings.fileExplorerOpenModeExternal` keeps the default OS-app behavior; `settings.fileExplorerOpenModeInlineEditor` opens files in the inline Document/light editor surface when selected. Hint `settings.fileExplorerOpenModeHint`.
 - AI Assistant group `settings.sectionAiAssistant`.
 - Toggle `settings.submitAiAttachmentsDirectly` (hint `settings.submitAiAttachmentsDirectlyDesc`). The default is on: Workspace Send to AI Assistant actions submit the captured screenshot or terminal buffer with `ai.directAttachmentPrompt`. When off, they only attach the context to the composer.
 - Terminal backgrounds group `settings.terminalBackgrounds`.
 - Toggle `settings.separateSplitTerminalBackgrounds` (hint `settings.separateSplitTerminalBackgroundsDesc`). The default is off: a Connection Tab paints one background behind the terminal workspace content area. When on, split terminal Panes can keep per-Pane terminal backgrounds; a single terminal Tab behaves the same as the default shared mode.
 - Save status: `settings.workspaceSaved`.
+
+## File Explorer
+
+Section header `settings.fileExplorer`. Selector `settings.fileExplorerOpenMode` chooses how File Explorer (`localFiles`) opens local files. `settings.fileExplorerOpenModeExternal` keeps the default OS-app behavior; `settings.fileExplorerOpenModeInlineEditor` opens files in the inline Document/light editor surface when selected. Hint `settings.fileExplorerOpenModeHint`. Selector `settings.fileExplorerTerminal` chooses the shell used by the local-pane terminal icon (`sftp.openTerminalHereAria`): Windows offers normal and administrator variants of Command Prompt, PowerShell, and PowerShell 7 and defaults to normal PowerShell; macOS defaults to zsh; Linux defaults to bash. Named custom shells from Terminal settings are also available as normal launches. Hint `settings.fileExplorerTerminalHint`. Save status `settings.fileExplorerSaved`.
 
 ## Dashboard
 
@@ -191,9 +196,9 @@ Manual app update checks live in General -> `settings.softwareUpdates`, not Abou
 
 ## Built-in MCP Server
 
-- Location: Settings → AI Assistant section on Windows. The built-in MCP rows are hidden on macOS and Linux because the named-pipe bridge is Windows-only.
+- Location: Settings → AI Assistant section on Windows, macOS, and Linux. The bridge transport is a named pipe on Windows and a `0600` Unix domain socket on macOS/Linux; the built-in MCP rows are shown on all three.
 - Toggle keys: `settings.builtInMcpServerEnabled` (`settings.builtInMcpServerEnabledHint`) and `settings.builtInMcpAllowAllDangerous` (`settings.builtInMcpAllowAllDangerousHint`).
 - Config dialog keys: `settings.builtInMcpShowConfig`, `settings.builtInMcpConfigTitle`, `settings.builtInMcpConfigIntro`, `settings.builtInMcpConfigFormatJson`, `settings.builtInMcpConfigFormatToml`, `settings.builtInMcpConfigCopy`, `settings.builtInMcpConfigCopied`, `settings.builtInMcpConfigLocationsTitle`, `settings.builtInMcpConfig*Header`, and `settings.builtInMcpConfigMethod*`.
-- Config dialog behavior: opens only when the user activates `settings.builtInMcpShowConfig`; changing either MCP toggle never opens the dialog. It shows copyable JSON (`mcpServers.kkterm`) and TOML (`[mcp_servers.kkterm]`) snippets for stdio MCP clients using the resolved `kkterm-cli.exe` path beside the running `KKTerm.exe`. The setup table shows localized Agent/Method/Project/Global headings. Codex and Claude Code rows include documented CLI commands where supported; VS Code/GitHub Copilot, Antigravity, and OpenCode rows use `settings.builtInMcpConfigMethodManualEdit` and list config locations.
+- Config dialog behavior: opens only when the user activates `settings.builtInMcpShowConfig`; changing either MCP toggle never opens the dialog. It shows copyable JSON (`mcpServers.kkterm`) and TOML (`[mcp_servers.kkterm]`) snippets for stdio MCP clients using the resolved `kkterm-cli` path beside the running KKTerm executable (`kkterm-cli.exe` on Windows). The setup table shows localized Agent/Method/Project/Global headings. Codex and Claude Code rows include documented CLI commands where supported; VS Code/GitHub Copilot, Antigravity, and OpenCode rows use `settings.builtInMcpConfigMethodManualEdit` and list config locations.
 - Purpose: enable/disable the local built-in MCP server surface and control whether built-in MCP tools with a `dangerous` namespace segment, such as `kkterm.workspace.quick_commands.dangerous.create`, require confirmation prompts or run in allow-all mode.
 - Debug logging: debug builds write built-in and remote MCP request/response records to `mcp.debug.log` beside `kkterm.log`; release builds write the same MCP log when `settings.advancedDebugging` is enabled. Built-in MCP logging redacts terminal send input, terminal buffer reads, Dashboard widget source/body JSON, and secret-looking argument fields before writing debug records.

@@ -33,6 +33,8 @@ import n8n from "../../assets/installer-icons/n8n.svg?url";
 import nodedotjs from "../../assets/installer-icons/nodedotjs.svg?url";
 import notepadpp from "../../assets/installer-icons/notepadpp.svg?url";
 import ollama from "../../assets/installer-icons/ollama.svg?url";
+import ohMyPosh from "../../assets/installer-icons/oh-my-posh.svg?url";
+import openflowkit from "../../assets/installer-icons/openflowkit.svg?url";
 import openWebui from "../../assets/installer-icons/open-webui.png?url";
 import openclaw from "../../assets/installer-icons/openclaw.png?url";
 import opencode from "../../assets/installer-icons/opencode.svg?url";
@@ -60,7 +62,7 @@ const RECIPE_ICON_URLS: Record<string, string> = {
   wsl: linux,
   "docker-desktop": docker,
   nssm: defaultIcon,
-  "oh-my-posh": defaultIcon,
+  "oh-my-posh": ohMyPosh,
   "claude-code-cli": claudeCode,
   "codex-cli": codex,
   "antigravity-cli": antigravity,
@@ -91,6 +93,7 @@ const RECIPE_ICON_URLS: Record<string, string> = {
   ffmpeg,
   excalidraw,
   bentopdf,
+  openflowkit,
   openclaw,
 };
 
