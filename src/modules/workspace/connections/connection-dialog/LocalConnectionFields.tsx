@@ -1,11 +1,11 @@
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
-import { Command, ListTree, Shell, SquareTerminal, Terminal, type LucideIcon } from "lucide-react";
+import { Command, Shell, SquareTerminal, Terminal, WandSparkles, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { technicalInputProps } from "../../../../lib/inputBehavior";
 import { invokeCommand, isTauriRuntime } from "../../../../lib/tauri";
 import type { Connection } from "../../../../types";
 import { resolveAvailableLocalShell, type LocalShellOption } from "../utils";
-import { EnvironmentVariablesDialog } from "./EnvironmentVariablesDialog";
+import { CliAccountDialog } from "./EnvironmentVariablesDialog";
 import { classifyEnvironmentShell, retargetEnvironmentBlock } from "./environmentVariables";
 import {
   buildWslDistributionShell,
@@ -46,7 +46,7 @@ export function LocalConnectionFields({
     const family = classifyEnvironmentShell(defaultLocalShell);
     return family ? retargetEnvironmentBlock(script, family) : script;
   });
-  const [environmentDialogOpen, setEnvironmentDialogOpen] = useState(false);
+  const [cliAccountDialogOpen, setCliAccountDialogOpen] = useState(false);
   useEffect(() => {
     setSelectedLocalShell((currentShell) => resolveAvailableLocalShell(wslShellSelectorValue(currentShell), localShellOptions));
   }, [localShellOptions]);
@@ -188,17 +188,18 @@ export function LocalConnectionFields({
         <div className="local-environment-label-row">
           <label htmlFor="local-startup-script">{t("connections.localStartupScript")}</label>
           <button
-            className="toolbar-button"
+            aria-label={t("connections.cliAccountAlternateProfileHint")}
+            className="kk-qc-ai-btn local-cli-account-trigger"
             disabled={!environmentShellFamily}
-            onClick={() => setEnvironmentDialogOpen(true)}
+            onClick={() => setCliAccountDialogOpen(true)}
+            title={t("connections.cliAccountAlternateProfileHint")}
             type="button"
           >
-            <ListTree size={14} aria-hidden />
-            {t("connections.environmentVariables")}
+            <WandSparkles size={13} aria-hidden />
           </button>
         </div>
         {!environmentShellFamily ? (
-          <small className="local-environment-unsupported">{t("connections.environmentVariablesUnsupportedShell")}</small>
+          <small className="local-environment-unsupported">{t("connections.cliAccountUnsupportedShell")}</small>
         ) : null}
         <textarea
           id="local-startup-script"
@@ -210,14 +211,14 @@ export function LocalConnectionFields({
           value={localStartupScript}
         />
       </div>
-      {environmentDialogOpen && environmentShellFamily ? (
-        <EnvironmentVariablesDialog
+      {cliAccountDialogOpen && environmentShellFamily ? (
+        <CliAccountDialog
           connectionName={connectionName}
           onApply={(script) => {
             setLocalStartupScript(script);
-            setEnvironmentDialogOpen(false);
+            setCliAccountDialogOpen(false);
           }}
-          onCancel={() => setEnvironmentDialogOpen(false)}
+          onCancel={() => setCliAccountDialogOpen(false)}
           shellFamily={environmentShellFamily}
           startupScript={localStartupScript}
         />

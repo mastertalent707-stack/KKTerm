@@ -1659,9 +1659,13 @@ fieldset.connection-specific-options > legend {
   font-weight: 700;
 }
 
-.local-environment-label-row .toolbar-button {
+.local-cli-account-trigger {
   flex: 0 0 auto;
-  height: 28px;
+}
+
+.local-cli-account-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .local-environment-unsupported {
@@ -1671,67 +1675,54 @@ fieldset.connection-specific-options > legend {
   line-height: 1.4;
 }
 
-.connection-environment-subdialog {
-  z-index: 100;
-}
-
-.connection-environment-dialog {
-  max-height: min(680px, calc(100vh - 40px));
-}
-
 .connection-environment-guidance {
   max-width: none;
   margin: -2px 0 0;
-}
-
-.connection-environment-list {
-  display: grid;
-  gap: 8px;
-}
-
-.connection-environment-headings,
-.connection-environment-row {
-  display: grid;
-  grid-template-columns: minmax(150px, 0.75fr) minmax(220px, 1.25fr) 30px;
-  gap: 8px;
-  align-items: center;
-  min-width: 0;
-}
-
-.connection-environment-headings {
-  color: var(--text-faint);
-  font-size: 11.5px;
-  font-weight: 600;
-}
-
-.connection-environment-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  color: var(--text-muted);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.connection-environment-remove:hover {
-  color: var(--red);
-  background: color-mix(in srgb, var(--red) 9%, transparent);
-}
-
-.connection-environment-add {
-  justify-self: start;
-  padding-inline: 7px;
 }
 
 .connection-cli-account-fields {
   display: grid;
   grid-template-columns: minmax(150px, 0.8fr) minmax(190px, 1.2fr);
   gap: 12px;
+}
+
+.connection-cli-tool-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.connection-cli-tool-option {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+  height: 34px;
+  padding: 0 9px;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.connection-cli-tool-option:hover {
+  background: var(--hover);
+}
+
+.connection-cli-tool-option[data-selected="true"] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.connection-cli-tool-option img {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: 4px;
 }
 
 .connection-cli-account-path {
@@ -1759,17 +1750,8 @@ fieldset.connection-specific-options > legend {
 }
 
 @media (max-width: 720px) {
-  .connection-environment-headings {
-    display: none;
-  }
-
-  .connection-environment-row,
   .connection-cli-account-fields {
     grid-template-columns: 1fr;
-  }
-
-  .connection-environment-remove {
-    justify-self: end;
   }
 }
 
