@@ -132,6 +132,29 @@ test("SFTP titlebar stays compact with equal vertical padding", async () => {
   );
 });
 
+test("SFTP open-terminal action is wired only on the local pane", async () => {
+  const sftpWorkspaceSource = await readFile(
+    new URL("../src/modules/workspace/connections/sftp/SftpWorkspace.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    sftpWorkspaceSource,
+    /const openLocalTerminalHere = useWorkspaceStore\(\(state\) => state\.openLocalTerminalHere\);/,
+    "the file browser should use the ephemeral local terminal opener",
+  );
+  assert.match(
+    sftpWorkspaceSource,
+    /const handleOpenLocalTerminalHere = async \(\) => \{[\s\S]*?openLocalTerminalHere\(localPath,[\s\S]*?<FilePane[\s\S]*?side="local"[\s\S]*?onOpenTerminalHere=\{\(\) => void handleOpenLocalTerminalHere\(\)\}/,
+    "the local pane should expose Open Terminal Here for the current local path",
+  );
+  assert.doesNotMatch(
+    sftpWorkspaceSource,
+    /<FilePane[\s\S]*?side="remote"[\s\S]*?onOpenTerminalHere=/,
+    "the remote SFTP pane must not show the local terminal icon",
+  );
+});
+
 test("SFTP popup close button is anchored to the dialog top right", async () => {
   const terminalStyles = await readFile(
     new URL("../src/modules/workspace/connections/terminal/terminal.css", import.meta.url),

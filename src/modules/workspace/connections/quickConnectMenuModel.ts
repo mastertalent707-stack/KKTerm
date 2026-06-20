@@ -74,9 +74,10 @@ export function elevatedLocalShellAction({
     return { mode: "external", shell };
   }
 
+  const adminSuffix = ` (${adminLabel})`;
   return {
     mode: "embedded",
-    name: `${option.label} (${adminLabel})`,
+    name: option.label.endsWith(adminSuffix) ? option.label : `${option.label}${adminSuffix}`,
     shell,
   };
 }

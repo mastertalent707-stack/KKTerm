@@ -570,6 +570,10 @@ pub struct SftpSettings {
     overwrite_behavior: String,
     #[serde(default = "default_file_explorer_open_mode")]
     file_explorer_open_mode: String,
+    #[serde(default = "default_file_explorer_terminal_shell")]
+    file_explorer_terminal_shell: String,
+    #[serde(default)]
+    file_explorer_terminal_elevated: bool,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -4293,11 +4297,23 @@ fn default_sftp_settings() -> SftpSettings {
     SftpSettings {
         overwrite_behavior: "fail".to_string(),
         file_explorer_open_mode: default_file_explorer_open_mode(),
+        file_explorer_terminal_shell: default_file_explorer_terminal_shell(),
+        file_explorer_terminal_elevated: false,
     }
 }
 
 fn default_file_explorer_open_mode() -> String {
     "external".to_string()
+}
+
+fn default_file_explorer_terminal_shell() -> String {
+    if cfg!(target_os = "windows") {
+        "powershell.exe".to_string()
+    } else if cfg!(target_os = "macos") {
+        "/bin/zsh".to_string()
+    } else {
+        "/bin/bash".to_string()
+    }
 }
 
 fn default_url_settings() -> UrlSettings {
@@ -4841,6 +4857,25 @@ fn validate_sftp_settings(mut settings: SftpSettings) -> Result<SftpSettings, St
         "inlineeditor" | "inline_editor" | "inline-editor" => "inlineEditor".to_string(),
         _ => return Err("File Explorer open mode must be external or inlineEditor".to_string()),
     };
+    settings.file_explorer_terminal_shell = required_field(
+        "File Explorer terminal shell",
+        settings.file_explorer_terminal_shell,
+    )?;
+    if settings.file_explorer_terminal_shell.len() > 1000
+        || settings
+            .file_explorer_terminal_shell
+            .chars()
+            .any(|character| character.is_control())
+    {
+        return Err("File Explorer terminal shell must be a valid command line".to_string());
+    }
+    let elevated_shell = settings.file_explorer_terminal_shell.to_lowercase();
+    settings.file_explorer_terminal_elevated = settings.file_explorer_terminal_elevated
+        && cfg!(target_os = "windows")
+        && matches!(
+            elevated_shell.as_str(),
+            "cmd.exe" | "powershell.exe" | "pwsh.exe"
+        );
     Ok(settings)
 }
 

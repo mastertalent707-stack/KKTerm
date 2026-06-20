@@ -562,6 +562,8 @@ export type FileExplorerOpenMode = "external" | "inlineEditor";
 export interface SftpSettings {
   overwriteBehavior: SftpOverwriteBehavior;
   fileExplorerOpenMode: FileExplorerOpenMode;
+  fileExplorerTerminalShell: string;
+  fileExplorerTerminalElevated: boolean;
 }
 
 export interface UrlSettings {

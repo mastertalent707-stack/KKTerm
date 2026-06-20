@@ -1161,7 +1161,8 @@ interface WorkspaceState {
   openFileViewerPath: (path: string, options?: { sourceConnection?: Connection }) => void;
   openTerminalHere: (connection: Connection, remotePath: string) => void;
   openLocalTerminal: (options?: { name?: string; shell?: string }) => void;
-  openElevatedLocalTerminal: (option: LocalShellOption) => Promise<void>;
+  openLocalTerminalHere: (cwd: string, options?: { name?: string; shell?: string }) => void;
+  openElevatedLocalTerminal: (option: LocalShellOption, options?: { cwd?: string }) => Promise<void>;
   splitTerminalPane: (tabId: string) => void;
   splitTerminalPaneDirected: (tabId: string, direction: SplitDirection) => void;
   addConnectionToTerminalPane: (
@@ -2295,7 +2296,26 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       status: "idle",
     });
   },
-  openElevatedLocalTerminal: async (option) => {
+  openLocalTerminalHere: (cwd, options) => {
+    const normalizedCwd = cwd.trim() || ".";
+    const id = `local-${Date.now()}`;
+    const { sshSettings, terminalSettings } = get();
+    const shell = options?.shell ?? terminalSettings.defaultShell;
+    const appearance = resolveDefaultTerminalAppearance("local", sshSettings, terminalSettings);
+    get().openConnection({
+      id,
+      name: options?.name ?? shell,
+      host: "localhost",
+      user: "local",
+      localShell: shell,
+      localStartupDirectory: normalizedCwd,
+      terminalOpacity: appearance.terminalOpacity,
+      terminalBackground: appearance.terminalBackground,
+      type: "local",
+      status: "idle",
+    });
+  },
+  openElevatedLocalTerminal: async (option, options) => {
     const isAppElevated = await invokeCommand("is_app_elevated", undefined).catch(() => false);
     const action = elevatedLocalShellAction({
       adminLabel: i18next.t("connections.admin"),
@@ -2304,12 +2324,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
 
     if (action.mode === "embedded") {
-      get().openLocalTerminal({ name: action.name, shell: action.shell });
+      if (options?.cwd) {
+        get().openLocalTerminalHere(options.cwd, { name: action.name, shell: action.shell });
+      } else {
+        get().openLocalTerminal({ name: action.name, shell: action.shell });
+      }
       return;
     }
 
     await invokeCommand("launch_elevated_terminal", {
-      request: { shell: action.shell },
+      request: { shell: action.shell, initialDirectory: options?.cwd },
     });
   },
   splitTerminalPane: (tabId) => {

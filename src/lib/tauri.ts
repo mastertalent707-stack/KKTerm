@@ -1964,7 +1964,7 @@ type CommandMap = {
     result: boolean;
   };
   launch_elevated_terminal: {
-    args: { request: { shell: string } };
+    args: { request: { shell: string; initialDirectory?: string } };
     result: null;
   };
   start_sftp_session: {

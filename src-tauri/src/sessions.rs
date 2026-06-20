@@ -218,6 +218,7 @@ pub struct TmuxSession {
 #[serde(rename_all = "camelCase")]
 pub struct LaunchElevatedTerminalRequest {
     pub shell: String,
+    pub initial_directory: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -1464,7 +1465,13 @@ impl SessionManager {
 }
 
 pub fn launch_elevated_terminal(request: LaunchElevatedTerminalRequest) -> Result<(), String> {
-    launch_elevated_terminal_impl(normalize_elevated_shell(&request.shell)?)
+    let shell = normalize_elevated_shell(&request.shell)?;
+    let initial_directory = request
+        .initial_directory
+        .as_deref()
+        .map(str::trim)
+        .filter(|directory| !directory.is_empty());
+    launch_elevated_terminal_impl(shell, initial_directory)
 }
 
 pub fn is_app_elevated() -> bool {
@@ -1496,19 +1503,24 @@ fn normalize_elevated_shell(shell: &str) -> Result<&'static str, String> {
 }
 
 #[cfg(target_os = "windows")]
-fn launch_elevated_terminal_impl(shell: &str) -> Result<(), String> {
+fn launch_elevated_terminal_impl(
+    shell: &str,
+    initial_directory: Option<&str>,
+) -> Result<(), String> {
     use std::ptr::{null, null_mut};
     use windows_sys::Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOWNORMAL};
 
     let operation = wide_string("runas");
     let file = wide_string(shell);
+    let directory = initial_directory.map(wide_string);
+    let directory_ptr = directory.as_ref().map_or(null(), |value| value.as_ptr());
     let result = unsafe {
         ShellExecuteW(
             null_mut(),
             operation.as_ptr(),
             file.as_ptr(),
             null(),
-            null(),
+            directory_ptr,
             SW_SHOWNORMAL,
         )
     } as isize;
@@ -1521,7 +1533,10 @@ fn launch_elevated_terminal_impl(shell: &str) -> Result<(), String> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn launch_elevated_terminal_impl(_shell: &str) -> Result<(), String> {
+fn launch_elevated_terminal_impl(
+    _shell: &str,
+    _initial_directory: Option<&str>,
+) -> Result<(), String> {
     Err("elevated local terminals are only available on Windows".to_string())
 }
 

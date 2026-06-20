@@ -23,6 +23,10 @@ import type { DashboardBackground } from "../../../dashboard/types";
 import { FILE_PANE_ZOOM_DEFAULT, FilePane } from "./SftpFilePane";
 import { fileBrowserConnectionIconSrc } from "../fileBrowserConnectionIcons";
 import {
+  fileExplorerTerminalOptionsForPlatform,
+  resolveFileExplorerTerminalOption,
+} from "./fileExplorerTerminalOptions";
+import {
   ConfirmRemoteDeleteDialog,
   NewRemoteFolderDialog,
   SftpContextMenu,
@@ -119,8 +123,13 @@ export function SftpWorkspace({
 }) {
   const { t } = useTranslation();
   const appearanceSettings = useWorkspaceStore((state) => state.appearanceSettings);
-  const fileExplorerOpenMode = useWorkspaceStore((state) => state.sftpSettings.fileExplorerOpenMode);
+  const sftpSettings = useWorkspaceStore((state) => state.sftpSettings);
+  const terminalSettings = useWorkspaceStore((state) => state.terminalSettings);
+  const fileExplorerOpenMode = sftpSettings.fileExplorerOpenMode;
   const openFileViewerPath = useWorkspaceStore((state) => state.openFileViewerPath);
+  const openLocalTerminalHere = useWorkspaceStore((state) => state.openLocalTerminalHere);
+  const openElevatedLocalTerminal = useWorkspaceStore((state) => state.openElevatedLocalTerminal);
+  const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const connection = tab.connection;
   const isLocalFilesBrowser = tab.kind === "localFiles";
   const commands = useMemo<FileBrowserCommands | null>(
@@ -528,6 +537,31 @@ export function SftpWorkspace({
 
   const refreshLocalDirectory = async () => {
     await loadLocalDirectory(localPath || undefined);
+  };
+
+  const handleOpenLocalTerminalHere = async () => {
+    if (!localPath || isLocalDrivePicker) {
+      return;
+    }
+    const option = resolveFileExplorerTerminalOption(
+      {
+        shell: sftpSettings.fileExplorerTerminalShell,
+        elevated: sftpSettings.fileExplorerTerminalElevated,
+      },
+      fileExplorerTerminalOptionsForPlatform(terminalSettings.customShells),
+    );
+    try {
+      if (option.elevated) {
+        await openElevatedLocalTerminal(
+          { canElevate: true, label: option.label, value: option.shell },
+          { cwd: localPath },
+        );
+        return;
+      }
+      openLocalTerminalHere(localPath, { name: option.label, shell: option.shell });
+    } catch (error) {
+      showStatusBarNotice(error instanceof Error ? error.message : String(error), { tone: "error" });
+    }
   };
 
   const openLocalFolder = async (folderName: string) => {
@@ -1584,6 +1618,7 @@ export function SftpWorkspace({
           onDeleteSelected={!isLocalDrivePicker ? handleDeleteLocalPath : undefined}
           onOpenFolder={openLocalFolder}
           onOpenFile={(fileName) => void handleOpenLocalFile(fileName)}
+          onOpenTerminalHere={() => void handleOpenLocalTerminalHere()}
           onPathSubmit={(path) => void loadLocalDirectory(path)}
           recentPaths={recentLocalPaths}
           onSelectionChange={setSelectedLocalNames}
