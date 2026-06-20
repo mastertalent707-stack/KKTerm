@@ -1900,6 +1900,16 @@ export function ConnectionSidebar({
         iconSvg: nativeMenuIcons.pencil,
         action: () => setFolderIconDialog({ folder: menu.folder }),
       });
+      items.unshift(
+        {
+          kind: "item",
+          label: t("connections.openAllInFolder"),
+          iconSvg: nativeMenuIcons.folderOpen,
+          disabled: countConnections(menu.folder) === 0,
+          action: () => handleTreeMenuOpenAllInFolder(menu),
+        },
+        { kind: "separator" },
+      );
       return items;
     }
 
@@ -2116,6 +2126,22 @@ export function ConnectionSidebar({
     setTreeContextMenu(null);
     if (menu.kind === "connection") {
       void handleOpenConnectionInNewTab(menu.connection);
+    }
+  }
+
+  // Opens every connection in the folder (recursively, child folders included),
+  // each in its own Tab via the standard open path so per-type handling applies.
+  function handleTreeMenuOpenAllInFolder(menu: TreeContextMenuState) {
+    setTreeContextMenu(null);
+    if (menu.kind !== "folder") {
+      return;
+    }
+    const folderConnections = flattenConnections({
+      connections: menu.folder.connections,
+      folders: menu.folder.folders,
+    });
+    for (const connection of folderConnections) {
+      openConnection(connection);
     }
   }
 
