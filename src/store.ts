@@ -1332,6 +1332,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       tabs: remainingTabs,
       activeWorkspaceId: nextActiveWorkspaceId,
       activeTabId: nextActiveTabId,
+      syncInputEnabled:
+        state.syncInputEnabled && closingTabs.some((tab) => tab.panes.some(isTerminalPane))
+          ? false
+          : state.syncInputEnabled,
       activeSessionCounts: decrementActiveSessionCounts(
         state.activeSessionCounts,
         closingTabs.flatMap(urlConnectionIdsForTab),
@@ -1499,10 +1503,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }));
   },
   closeAllTabs: () => {
-    const urlConnectionIds = get().tabs.flatMap(urlConnectionIdsForTab);
+    const closingTabs = get().tabs;
+    const urlConnectionIds = closingTabs.flatMap(urlConnectionIdsForTab);
     set((state) => ({
       tabs: [],
       activeTabId: "",
+      syncInputEnabled:
+        state.syncInputEnabled && closingTabs.some((tab) => tab.panes.some(isTerminalPane))
+          ? false
+          : state.syncInputEnabled,
       activeSessionCounts: decrementActiveSessionCounts(
         state.activeSessionCounts,
         urlConnectionIds,
@@ -1524,6 +1533,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         get().activeSessionCounts,
         closingTab ? urlConnectionIdsForTab(closingTab) : [],
       ),
+      syncInputEnabled:
+        get().syncInputEnabled && closingTab?.panes.some(isTerminalPane)
+          ? false
+          : get().syncInputEnabled,
     });
   },
   openConnection: (connection) => {
@@ -2554,10 +2567,19 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         closingPane?.kind === "webview"
           ? decrementActiveSessionCounts(s.activeSessionCounts, [closingPane.connection.id])
           : s.activeSessionCounts,
+      syncInputEnabled:
+        s.syncInputEnabled && closingPane && isTerminalPane(closingPane)
+          ? false
+          : s.syncInputEnabled,
     }));
   },
   closeChildConnection: (childConnectionId) => {
     let removed = false;
+    const closesTerminalPane = get().tabs.some((tab) =>
+      tab.panes.some(
+        (pane) => pane.childConnectionId === childConnectionId && isTerminalPane(pane),
+      ),
+    );
     set((state) => {
       const closedUrlConnectionIds: string[] = [];
       const tabs = state.tabs.flatMap((tab) => {
@@ -2612,6 +2634,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           state.activeSessionCounts,
           closedUrlConnectionIds,
         ),
+        syncInputEnabled:
+          state.syncInputEnabled && closesTerminalPane
+            ? false
+            : state.syncInputEnabled,
       };
     });
     if (removed) {

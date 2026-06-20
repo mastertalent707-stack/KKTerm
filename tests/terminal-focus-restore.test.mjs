@@ -48,6 +48,19 @@ test("terminal focus restore does not subscribe to native app-window activation"
   );
 });
 
+test("terminal toolbar toggles restore text focus after activation", () => {
+  assert.match(
+    terminalWorkspaceSource,
+    /setSyncInputEnabled\(next\);[\s\S]*?focusTerminalRenderer\(\);/,
+    "the command sync toggle should return focus to the terminal renderer",
+  );
+  assert.match(
+    terminalWorkspaceSource,
+    /onToggleQuickCommandBar\(\);[\s\S]*?focusTerminalRenderer\(\);/,
+    "the Quick Command Bar toggle should return focus to the terminal renderer",
+  );
+});
+
 test("terminal content HWND command is not registered", () => {
   assert.doesNotMatch(
     tauriLibSource,

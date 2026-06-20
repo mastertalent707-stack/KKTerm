@@ -2548,6 +2548,7 @@ function TerminalPaneView({
               if (next) {
                 showStatusBarNotice(t("workspace.syncInputEnabledNotice"), { tone: "warning" });
               }
+              focusTerminalRenderer();
             }}
             title={t("workspace.syncInput")}
             type="button"
@@ -2558,7 +2559,10 @@ function TerminalPaneView({
             className={`terminal-pane-action quick-command-toggle${quickCommandBarVisible ? " active" : ""}`}
             aria-label={quickCommandBarVisible ? t("terminal.quickCommandsHide") : t("terminal.quickCommandsShow")}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={onToggleQuickCommandBar}
+            onClick={() => {
+              onToggleQuickCommandBar();
+              focusTerminalRenderer();
+            }}
             title={quickCommandBarVisible ? t("terminal.quickCommandsHide") : t("terminal.quickCommandsShow")}
             type="button"
           >
