@@ -35,6 +35,8 @@ _Avoid_: Space, vault, environment, project, tab
 
 SSH Connections may persist non-secret tmux launch preferences, including whether KKTerm should start terminal Panes inside named tmux sessions. The remote tmux process itself remains live Session/runtime state and is not the durable Connection.
 
+Local PowerShell Connections may persist a non-secret **psmux** launch preference (`usePsmuxSessions`, default off). psmux is the native Windows tmux clone; it is the local-shell counterpart to SSH tmux, offered only for PowerShell / PowerShell 7 shells and giving the Pane the same session-list toolbar and name pool. The flag is local-only and mutually exclusive with SSH tmux by Connection type; the live psmux process is runtime state, not the durable Connection.
+
 **URL Connection**:
 A Connection of kind `url`. It stores an http(s) URL plus an optional `dataPartition` label. The address bar accepts hosts without a scheme; the backend assumes `https://` when no scheme is present. The embedded WebView2 browser runs in a stable, owned, borderless overlay `WebviewWindow` positioned over the Pane instead of Tauri's `unstable` child-webview API. The `dataPartition` field is persisted but currently a no-op until embedded browser isolation is revisited.
 _Avoid_: Web tab, browser bookmark, URL profile
@@ -190,6 +192,7 @@ _Avoid_: settings nav, settings menu
 - A **Child Connection Tab** is a named, saved frontend Tab instance under a parent **Connection**; opening it creates or activates the corresponding **Tab** and then the live **Session**.
 - A **Child Connection Tab** may remember a tmux session id or last terminal directory, but those values remain workspace presentation/reopen hints rather than durable backend **Connection** fields.
 - A tmux-enabled SSH terminal **Pane** may start or attach to a named remote tmux session. If `tmux` is unavailable on the remote host, the Pane falls back to the normal remote shell.
+- A psmux-enabled local PowerShell **Pane** may start or attach to a named local psmux session via the same toolbar session list. If `psmux` is not installed, the Pane falls back to the normal PowerShell shell.
 - A **Tab** is UI state only and is not the durable backend model.
 - Switching the active **Tab** does not end, disconnect, or recreate its **Session**.
 - A native SSH **Session** must not use an app-side idle timeout. Quiet, unfocused SSH Sessions are expected to remain connected unless the remote server, network, or an explicit user close ends them.

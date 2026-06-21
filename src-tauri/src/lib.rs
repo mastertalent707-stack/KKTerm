@@ -2168,6 +2168,38 @@ async fn capture_tmux_pane(
 }
 
 #[tauri::command]
+async fn list_psmux_sessions() -> Result<Vec<sessions::TmuxSession>, String> {
+    run_blocking_command("psmux list sessions", sessions::list_psmux_sessions).await
+}
+
+#[tauri::command]
+async fn close_psmux_session(psmux_session_id: String) -> Result<(), String> {
+    run_blocking_command("psmux close session", move || {
+        sessions::close_psmux_session(psmux_session_id)
+    })
+    .await
+}
+
+#[tauri::command]
+async fn rename_psmux_session(
+    psmux_session_id: String,
+    new_psmux_session_id: String,
+) -> Result<(), String> {
+    run_blocking_command("psmux rename session", move || {
+        sessions::rename_psmux_session(psmux_session_id, new_psmux_session_id)
+    })
+    .await
+}
+
+#[tauri::command]
+async fn set_psmux_mouse(psmux_session_id: String, enabled: bool) -> Result<(), String> {
+    run_blocking_command("psmux set mouse", move || {
+        sessions::set_psmux_session_mouse(psmux_session_id, enabled)
+    })
+    .await
+}
+
+#[tauri::command]
 async fn inspect_ssh_system_context(
     app: tauri::AppHandle,
     request: sessions::TmuxConnectionRequest,
@@ -3509,6 +3541,10 @@ pub fn run() {
             close_tmux_session,
             rename_tmux_session,
             set_tmux_mouse,
+            list_psmux_sessions,
+            close_psmux_session,
+            rename_psmux_session,
+            set_psmux_mouse,
             scroll_tmux_pane,
             capture_tmux_pane,
             // ── SSH system context, port forwarding & elevation

@@ -853,8 +853,16 @@ function TmuxSessionTag({
   const renameTmuxSessionInOpenPanes = useWorkspaceStore((state) => state.renameTmuxSessionInOpenPanes);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
 
-  const enabled = connection.type === "ssh" && connection.useTmuxSessions !== false && sessionId;
-  const tagLabel = isChildConnection ? "tmux" : `tmux ${sessionId}`;
+  // psmux is the local-shell counterpart to SSH tmux. The popover UI is shared;
+  // only the transport differs (one-shot local psmux.exe vs SSH channel).
+  const isPsmux = connection.type === "local" && connection.usePsmuxSessions === true;
+  const enabled =
+    Boolean(sessionId) &&
+    (isPsmux || (connection.type === "ssh" && connection.useTmuxSessions !== false));
+  const multiplexerLabel = isPsmux ? "psmux" : "tmux";
+  const showLabel = isPsmux ? t("terminal.showPsmux") : t("terminal.showTmux");
+  const sessionsLabel = isPsmux ? t("terminal.psmuxSessions") : t("terminal.tmuxSessions");
+  const tagLabel = isChildConnection ? multiplexerLabel : `${multiplexerLabel} ${sessionId}`;
   const renameInputId = useMemo(
     () => `tmux-session-name-${tabId}-${editingSessionId ?? sessionId ?? "active"}`.replace(/[^A-Za-z0-9_-]/g, "-"),
     [editingSessionId, sessionId, tabId],
@@ -948,6 +956,56 @@ function TmuxSessionTag({
     return null;
   }
 
+  async function fetchSessions() {
+    if (isPsmux) {
+      return invokeCommand("list_psmux_sessions", {});
+    }
+    return invokeCommand("list_tmux_sessions", {
+      request: tmuxConnectionRequest(connection),
+    });
+  }
+
+  async function invokeCloseSession(targetSessionId: string) {
+    if (isPsmux) {
+      return invokeCommand("close_psmux_session", { psmuxSessionId: targetSessionId });
+    }
+    return invokeCommand("close_tmux_session", {
+      request: { ...tmuxConnectionRequest(connection), tmuxSessionId: targetSessionId },
+    });
+  }
+
+  async function invokeRenameSession(targetSessionId: string, nextSessionId: string) {
+    if (isPsmux) {
+      return invokeCommand("rename_psmux_session", {
+        psmuxSessionId: targetSessionId,
+        newPsmuxSessionId: nextSessionId,
+      });
+    }
+    return invokeCommand("rename_tmux_session", {
+      request: {
+        ...tmuxConnectionRequest(connection),
+        tmuxSessionId: targetSessionId,
+        newTmuxSessionId: nextSessionId,
+      },
+    });
+  }
+
+  async function invokeSetMouse(targetSessionId: string, nextEnabled: boolean) {
+    if (isPsmux) {
+      return invokeCommand("set_psmux_mouse", {
+        psmuxSessionId: targetSessionId,
+        enabled: nextEnabled,
+      });
+    }
+    return invokeCommand("set_tmux_mouse", {
+      request: {
+        ...tmuxConnectionRequest(connection),
+        tmuxSessionId: targetSessionId,
+        enabled: nextEnabled,
+      },
+    });
+  }
+
   async function loadSessions() {
     if (!enabled || !isTauriRuntime()) {
       setSessions([]);
@@ -957,9 +1015,7 @@ function TmuxSessionTag({
     setLoading(true);
     setError("");
     try {
-      const result = await invokeCommand("list_tmux_sessions", {
-        request: tmuxConnectionRequest(connection),
-      });
+      const result = await fetchSessions();
       setSessions(result);
     } catch (loadError) {
       setSessions([]);
@@ -982,12 +1038,7 @@ function TmuxSessionTag({
     setLoading(true);
     setError("");
     try {
-      await invokeCommand("close_tmux_session", {
-        request: {
-          ...tmuxConnectionRequest(connection),
-          tmuxSessionId: targetSessionId,
-        },
-      });
+      await invokeCloseSession(targetSessionId);
       forgetTmuxSessionId(connection.id, targetSessionId);
       setMouseEnabledIds((prev) => {
         const next = new Set(prev);
@@ -1043,13 +1094,7 @@ function TmuxSessionTag({
     setRenaming(true);
     setRenameError("");
     try {
-      await invokeCommand("rename_tmux_session", {
-        request: {
-          ...tmuxConnectionRequest(connection),
-          tmuxSessionId: editingSessionId,
-          newTmuxSessionId: nextSessionId,
-        },
-      });
+      await invokeRenameSession(editingSessionId, nextSessionId);
       renameTmuxSessionInOpenPanes(connection.id, editingSessionId, nextSessionId);
       setMouseEnabledIds((prev) => {
         const next = new Set(prev);
@@ -1075,13 +1120,7 @@ function TmuxSessionTag({
   async function handleToggleMouse(targetSessionId: string) {
     const nextEnabled = !mouseEnabledIds.has(targetSessionId);
     try {
-      await invokeCommand("set_tmux_mouse", {
-        request: {
-          ...tmuxConnectionRequest(connection),
-          tmuxSessionId: targetSessionId,
-          enabled: nextEnabled,
-        },
-      });
+      await invokeSetMouse(targetSessionId, nextEnabled);
       setMouseEnabledIds((prev) => {
         const next = new Set(prev);
         if (nextEnabled) {
@@ -1132,7 +1171,7 @@ function TmuxSessionTag({
           {...dialogButtonAria(open)}
           onClick={() => void handleToggle()}
           ref={triggerRef}
-          title={t("terminal.showTmux")}
+          title={showLabel}
           type="button"
         >
           <span>{tagLabel}</span>
@@ -1142,11 +1181,11 @@ function TmuxSessionTag({
         <div
           className="tmux-session-menu tmux-session-menu-portal"
           role="dialog"
-          aria-label={t("terminal.tmuxSessions")}
+          aria-label={sessionsLabel}
           ref={menuRef}
         >
           <header>
-            <strong>{t("terminal.tmuxSessions")}</strong>
+            <strong>{sessionsLabel}</strong>
             <button
               className="terminal-pane-action"
               aria-label={t("terminal.refreshTmux")}
@@ -1987,6 +2026,8 @@ function TerminalPaneView({
             rows: terminalDimensions.rows,
             useTmux: connection.type === "ssh" && connection.useTmuxSessions !== false,
             tmuxSessionId: pane.tmuxSessionId,
+            usePsmux: connection.type === "local" && connection.usePsmuxSessions === true,
+            psmuxSessionId: connection.type === "local" ? pane.tmuxSessionId : undefined,
             sshBufferLines: connection.type === "ssh" ? sshSettings.bufferLines : undefined,
           },
         });

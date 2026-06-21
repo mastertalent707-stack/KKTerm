@@ -257,6 +257,30 @@ function loadStoredTmuxSessionIds(connectionId: string): string[] {
   }
 }
 
+function loadReservedPsmuxSessionIds(connectionId: string): string[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  const currentConnectionKey = `${TMUX_SESSION_STORAGE_PREFIX}${connectionId}`;
+  const reserved = new Set<string>();
+  try {
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (!key?.startsWith(TMUX_SESSION_STORAGE_PREFIX) || key === currentConnectionKey) {
+        continue;
+      }
+      const raw = window.localStorage.getItem(key);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      if (Array.isArray(parsed)) {
+        parsed.filter(isCurrentTmuxSessionId).forEach((sessionId) => reserved.add(sessionId));
+      }
+    }
+  } catch {
+    return [];
+  }
+  return Array.from(reserved);
+}
+
 function persistTmuxSessionIds(connectionId: string, sessionIds: string[]) {
   if (typeof window === "undefined") {
     return;
@@ -337,28 +361,46 @@ function connectionUsesTmux(connection: Connection) {
   return connection.type === "ssh" && connection.useTmuxSessions !== false;
 }
 
+// psmux is the local-shell counterpart to SSH tmux: a native Windows multiplexer
+// opted into per local PowerShell Connection. Both reuse the same pane session-id
+// pool (ai.tmuxSessionLabels) and pane.tmuxSessionId slot, since a pane is either
+// SSH-tmux or local-psmux, never both.
+export function connectionUsesPsmux(connection: Connection) {
+  return connection.type === "local" && connection.usePsmuxSessions === true;
+}
+
+function connectionUsesMultiplexer(connection: Connection) {
+  return connectionUsesTmux(connection) || connectionUsesPsmux(connection);
+}
+
 function isRemoteDesktopConnection(connection: Connection) {
   return connection.type === "rdp" || connection.type === "vnc";
 }
 
 export function tmuxSessionIdsForConnection(connection: Connection, count: number) {
-  if (!connectionUsesTmux(connection)) {
+  if (!connectionUsesMultiplexer(connection)) {
     return [];
   }
   const sessionIds = loadStoredTmuxSessionIds(connection.id).slice(0, count);
+  const reservedSessionIds = connectionUsesPsmux(connection)
+    ? loadReservedPsmuxSessionIds(connection.id)
+    : [];
   while (sessionIds.length < count) {
-    sessionIds.push(generateTmuxSessionId(sessionIds));
+    sessionIds.push(generateTmuxSessionId([...sessionIds, ...reservedSessionIds]));
   }
   persistTmuxSessionIds(connection.id, sessionIds);
   return sessionIds;
 }
 
 export function appendTmuxSessionId(connection: Connection) {
-  if (!connectionUsesTmux(connection)) {
+  if (!connectionUsesMultiplexer(connection)) {
     return undefined;
   }
   const sessionIds = loadStoredTmuxSessionIds(connection.id);
-  const sessionId = generateTmuxSessionId(sessionIds);
+  const reservedSessionIds = connectionUsesPsmux(connection)
+    ? loadReservedPsmuxSessionIds(connection.id)
+    : [];
+  const sessionId = generateTmuxSessionId([...sessionIds, ...reservedSessionIds]);
   sessionIds.push(sessionId);
   persistTmuxSessionIds(connection.id, sessionIds);
   return sessionId;
@@ -920,7 +962,9 @@ function refreshTerminalPaneConnection(
   connection: Connection,
   toolbarTitle = toolbarTitleForConnection(connection),
 ): TerminalPane {
-  const tmuxDisabled = connection.type === "ssh" && connection.useTmuxSessions === false;
+  const tmuxDisabled =
+    (connection.type === "ssh" && connection.useTmuxSessions === false) ||
+    (connection.type === "local" && connection.usePsmuxSessions !== true);
   return {
     ...pane,
     connection,

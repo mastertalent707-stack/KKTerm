@@ -1,5 +1,5 @@
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
-import { Command, Shell, SquareTerminal, Terminal, WandSparkles, type LucideIcon } from "lucide-react";
+import { Command, Layers, Shell, SquareTerminal, Terminal, WandSparkles, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { technicalInputProps } from "../../../../lib/inputBehavior";
 import { invokeCommand, isTauriRuntime } from "../../../../lib/tauri";
@@ -7,6 +7,7 @@ import type { Connection } from "../../../../types";
 import { resolveAvailableLocalShell, type LocalShellOption } from "../utils";
 import { CliAccountDialog } from "./EnvironmentVariablesDialog";
 import { classifyEnvironmentShell, retargetEnvironmentBlock } from "./environmentVariables";
+import { ensurePsmuxAvailable, isPowerShellFamilyShell } from "./psmuxPreflight";
 import {
   buildWslDistributionShell,
   distroFromWslShell,
@@ -47,6 +48,8 @@ export function LocalConnectionFields({
     return family ? retargetEnvironmentBlock(script, family) : script;
   });
   const [cliAccountDialogOpen, setCliAccountDialogOpen] = useState(false);
+  const [usePsmuxSessions, setUsePsmuxSessions] = useState(initialConnection?.usePsmuxSessions ?? false);
+  const [psmuxBusy, setPsmuxBusy] = useState(false);
   useEffect(() => {
     setSelectedLocalShell((currentShell) => resolveAvailableLocalShell(wslShellSelectorValue(currentShell), localShellOptions));
   }, [localShellOptions]);
@@ -78,6 +81,29 @@ export function LocalConnectionFields({
       ? buildWslDistributionShell(selectedWslDistro)
       : selectedLocalShell;
   const environmentShellFamily = classifyEnvironmentShell(submittedLocalShell);
+  // psmux session management is offered only for PowerShell / PowerShell 7 local
+  // shells. Switching to any other shell forces the toggle back off.
+  const powerShellSelected = isPowerShellFamilyShell(submittedLocalShell);
+  useEffect(() => {
+    if (!powerShellSelected && usePsmuxSessions) {
+      setUsePsmuxSessions(false);
+    }
+  }, [powerShellSelected, usePsmuxSessions]);
+  async function handlePsmuxToggle(next: boolean) {
+    if (!next) {
+      setUsePsmuxSessions(false);
+      return;
+    }
+    setPsmuxBusy(true);
+    try {
+      // Enabling checks for psmux and, if missing, runs the Install Helper
+      // recipe. The toggle only stays on when psmux ends up available.
+      const status = await ensurePsmuxAvailable();
+      setUsePsmuxSessions(status === "available");
+    } finally {
+      setPsmuxBusy(false);
+    }
+  }
   useEffect(() => {
     onWslDistroIconChange?.(wslSelected ? osIconRefForWslDistro(selectedWslDistro) : null);
   }, [onWslDistroIconChange, selectedWslDistro, wslSelected]);
@@ -166,6 +192,19 @@ export function LocalConnectionFields({
                 </option>
               ))}
             </select>
+          </label>
+        ) : null}
+        {powerShellSelected ? (
+          <label className="connection-session-toggle local-psmux-toggle">
+            <Layers className="option-glyph" size={17} aria-hidden />
+            <span>{psmuxBusy ? t("installer.psmux.installing") : t("connections.usePsmux")}</span>
+            <input
+              checked={usePsmuxSessions}
+              disabled={psmuxBusy}
+              name="usePsmuxSessions"
+              onChange={(event) => void handlePsmuxToggle(event.currentTarget.checked)}
+              type="checkbox"
+            />
           </label>
         ) : null}
       </div>

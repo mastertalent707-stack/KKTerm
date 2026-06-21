@@ -735,7 +735,9 @@ export function ConnectionSidebar({
     const tmuxSessionId =
       connection.type === "ssh" && connection.useTmuxSessions !== false
         ? (await preferredTmuxSessionIdForNewTab(connection)) ?? appendTmuxSessionId(connection)
-        : undefined;
+        : connection.type === "local" && connection.usePsmuxSessions === true
+          ? appendTmuxSessionId(connection)
+          : undefined;
     const name = tmuxSessionId || `${connection.name}#${existing.length + 1}`;
     const id =
       typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -4086,6 +4088,7 @@ function ConnectionDialog({
       usesSshDefaults && sshUsesDefaultOptions
         ? sshSettings.defaultUseTmuxSessions
         : form.get("useTmuxSessions") === "on";
+    const usePsmuxSessions = connectionType === "local" && form.get("usePsmuxSessions") === "on";
     const inheritRdpDefaults = form.get("rdpInheritDefaults") === "on";
     const inheritVncDefaults = form.get("vncInheritDefaults") === "on";
 
@@ -4113,6 +4116,7 @@ function ConnectionDialog({
       sshSocksProxyPassword: usesSshDefaults && !sshUsesDefaultOptions ? sshSocksProxyPassword || undefined : undefined,
       authMethod: usesSshDefaults ? authMethod : undefined,
       useTmuxSessions: usesSshDefaults ? useTmuxSessions : undefined,
+      usePsmuxSessions: connectionType === "local" ? usePsmuxSessions : undefined,
       localShell: connectionType === "local" ? selectedLocalShell || undefined : undefined,
       localStartupDirectory:
         connectionType === "local" || connectionType === "localFiles"

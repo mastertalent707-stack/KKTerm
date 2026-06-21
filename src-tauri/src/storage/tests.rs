@@ -57,6 +57,7 @@ fn create_test_ssh_connection(
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -95,6 +96,7 @@ fn create_test_ssh_connection_in_workspace(
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -147,6 +149,7 @@ fn create_test_local_connection(storage: &Storage, name: &str, shell: &str) -> S
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -234,6 +237,7 @@ fn create_connection_can_persist_root_ssh_connection() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -287,6 +291,7 @@ fn ssh_socks_proxy_username_round_trips_without_storing_passwords_in_sqlite() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -370,6 +375,7 @@ fn local_connection_persists_startup_directory_and_script() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -409,6 +415,87 @@ fn local_connection_persists_startup_directory_and_script() {
 }
 
 #[test]
+fn local_connection_persists_psmux_preference() {
+    let storage = Storage::open(temp_db_path("local-psmux-preference")).expect("storage opens");
+
+    let created = storage
+        .create_connection(CreateConnectionRequest {
+            name: "psmux Shell".to_string(),
+            host: "localhost".to_string(),
+            user: "local".to_string(),
+            connection_type: "local".to_string(),
+            folder_id: None,
+            port: None,
+            key_path: None,
+            proxy_jump: None,
+            ssh_socks_proxy: None,
+            ssh_socks_proxy_username: None,
+            ssh_socks_proxy_inherit_defaults: None,
+            auth_method: None,
+            local_shell: Some("pwsh.exe".to_string()),
+            local_startup_directory: None,
+            local_startup_script: None,
+            url: None,
+            data_partition: None,
+            use_tmux_sessions: None,
+            use_psmux_sessions: Some(true),
+            serial_line: None,
+            serial_speed: None,
+            rdp_options: None,
+            vnc_options: None,
+            ftp_options: None,
+            file_view_open_external: false,
+            ssh_port_forwardings: None,
+            workspace_id: None,
+        })
+        .expect("local psmux connection is created");
+    assert!(created.use_psmux_sessions);
+
+    let reloaded = storage
+        .list_connection_tree()
+        .expect("connection tree loads")
+        .connections
+        .into_iter()
+        .find(|connection| connection.id == created.id)
+        .expect("local psmux connection reloads");
+    assert!(reloaded.use_psmux_sessions);
+
+    // psmux is local-only: an SSH Connection ignores the flag even when set.
+    let ssh = storage
+        .create_connection(CreateConnectionRequest {
+            name: "Remote".to_string(),
+            host: "remote.internal".to_string(),
+            user: "admin".to_string(),
+            connection_type: "ssh".to_string(),
+            folder_id: None,
+            port: None,
+            key_path: None,
+            proxy_jump: None,
+            ssh_socks_proxy: None,
+            ssh_socks_proxy_username: None,
+            ssh_socks_proxy_inherit_defaults: None,
+            auth_method: Some("agent".to_string()),
+            local_shell: None,
+            local_startup_directory: None,
+            local_startup_script: None,
+            url: None,
+            data_partition: None,
+            use_tmux_sessions: None,
+            use_psmux_sessions: Some(true),
+            serial_line: None,
+            serial_speed: None,
+            rdp_options: None,
+            vnc_options: None,
+            ftp_options: None,
+            file_view_open_external: false,
+            ssh_port_forwardings: None,
+            workspace_id: None,
+        })
+        .expect("ssh connection is created");
+    assert!(!ssh.use_psmux_sessions);
+}
+
+#[test]
 fn local_files_connection_can_be_created_with_starting_directory() {
     let storage = Storage::open(temp_db_path("local-files-connection")).expect("storage opens");
 
@@ -432,6 +519,7 @@ fn local_files_connection_can_be_created_with_starting_directory() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -478,6 +566,7 @@ fn file_view_connection_persists_file_path_and_no_host() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -538,6 +627,7 @@ fn create_connection_can_persist_remote_desktop_connections() {
             url: None,
             data_partition: None,
             use_tmux_sessions: Some(true),
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -577,6 +667,7 @@ fn create_connection_can_persist_remote_desktop_connections() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -617,6 +708,7 @@ fn create_connection_can_persist_telnet_and_serial_connections() {
             url: None,
             data_partition: None,
             use_tmux_sessions: Some(true),
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -654,6 +746,7 @@ fn create_connection_can_persist_telnet_and_serial_connections() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: Some("COM7".to_string()),
             serial_speed: Some(115200),
             rdp_options: None,
@@ -696,6 +789,7 @@ fn url_credentials_round_trip_without_storing_passwords_in_sqlite() {
             url: Some("router.internal".to_string()),
             data_partition: Some("ops".to_string()),
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -910,6 +1004,7 @@ fn stored_credential_candidates_include_connection_url_and_widget_metadata() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -940,6 +1035,7 @@ fn stored_credential_candidates_include_connection_url_and_widget_metadata() {
             url: Some("https://portal.example".to_string()),
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -1056,6 +1152,7 @@ fn assigning_connection_password_credential_requires_matching_type() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -1193,6 +1290,7 @@ fn update_connection_edits_fields_and_moves_folder() {
             url: None,
             data_partition: None,
             use_tmux_sessions: Some(false),
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -1253,6 +1351,7 @@ fn update_connection_preserves_existing_tmux_preference_when_omitted() {
             url: None,
             data_partition: None,
             use_tmux_sessions: Some(false),
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -1284,6 +1383,7 @@ fn update_connection_preserves_existing_tmux_preference_when_omitted() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -1539,6 +1639,7 @@ fn deleting_folder_removes_connections_in_that_folder() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: None,
@@ -2533,6 +2634,7 @@ fn remote_desktop_connection_options_are_optional_protocol_overrides() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: Some(RdpConnectionOptions {
@@ -2584,6 +2686,7 @@ fn remote_desktop_connection_options_are_optional_protocol_overrides() {
             url: None,
             data_partition: None,
             use_tmux_sessions: None,
+            use_psmux_sessions: None,
             serial_line: None,
             serial_speed: None,
             rdp_options: Some(RdpConnectionOptions {
