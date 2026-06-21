@@ -424,7 +424,6 @@
   display: grid;
   grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
   gap: 16px;
-  margin-top: 12px;
 }
 
 .theme-card {
@@ -1177,6 +1176,7 @@
 .settings-fieldset legend,
 .settings-fieldset.ai-tool-settings legend,
 .settings-section-heading {
+  margin-block-end: 12px;
   padding: 0;
   color: var(--text-muted);
   font-size: 12.5px;
@@ -2320,8 +2320,8 @@
 
 .settings-backdrop {
   position: fixed;
-  inset: var(--app-titlebar-height, 0px) 0 0 48px;
-  z-index: 90;
+  inset: var(--app-titlebar-height, 0px) 0 0;
+  z-index: 130;
   display: grid;
   place-items: center;
   padding: 10px;
@@ -2518,7 +2518,7 @@
 
 @media (max-width: 860px) {
   .settings-backdrop {
-    inset: var(--app-titlebar-height, 0px) 0 0 48px;
+    inset: var(--app-titlebar-height, 0px) 0 0;
     padding: 14px;
   }
 

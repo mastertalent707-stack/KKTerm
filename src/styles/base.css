@@ -496,7 +496,7 @@ h2 {
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 130;
   display: grid;
   place-items: center;
   padding: 20px;
@@ -513,7 +513,7 @@ h2 {
 .connection-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 130;
   display: grid;
   place-items: center;
   overflow: auto;

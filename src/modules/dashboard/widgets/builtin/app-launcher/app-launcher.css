@@ -311,7 +311,7 @@
 }
 
 .dialog-backdrop.app-launcher-dialog-backdrop {
-  z-index: 100;
+  z-index: 130;
 }
 
 .app-launcher-dialog {

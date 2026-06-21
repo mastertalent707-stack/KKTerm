@@ -31,7 +31,7 @@
 .kk-dlg-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 130;
   display: grid;
   place-items: center;
   overflow: auto;
@@ -1046,6 +1046,6 @@ textarea.kk-inp {
    backdrop already dims the app, so this layer stays transparent — it only
    raises the z-index, never adds a second visual dim over the manager. */
 .kk-dlg-backdrop.kk-qc-subdialog {
-  z-index: 96;
+  z-index: 136;
   background: transparent;
 }

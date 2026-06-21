@@ -485,7 +485,7 @@
 }
 
 .dashboard-dialog-backdrop {
-  z-index: 100;
+  z-index: 130;
 }
 
 .dashboard-agent-dialog {

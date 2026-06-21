@@ -36,6 +36,14 @@ Build dialogs from these typed primitives instead of bespoke markup. Import from
 `@/app/ui/dialog` (relative `src/app/ui/dialog`). All text is passed in **already
 translated** — primitives contain no English.
 
+Blocking dialog backdrops cover the full app content area, including the
+Activity Rail, and stack above the rail so its controls are both dimmed and
+non-interactive while a dialog is open. Do not inset a blocking backdrop around
+the rail or assign it a lower layer. **All new blocking dialogs must use
+`DialogShell`; do not create custom backdrop elements or per-dialog backdrop
+layer rules.** Existing legacy dialogs use the shared
+`.dialog-backdrop.connection-dialog-backdrop` classes until migrated.
+
 - `DialogShell` — portal + dimmed backdrop (`onBackdrop` for click-to-dismiss).
 - `Sheet` — the panel: `width`, optional `eyebrow`/`title`/`sub`, `footer`,
   `onClose`. **Only pass `onClose` when there is no footer dismiss action**
@@ -110,6 +118,11 @@ reappears or if the Delete Workspace confirmation stops using `ConfirmSheet`.
 
 One concise title by default (no subtitle/explanatory header unless the flow
 truly needs it — put supporting text in the body near the relevant control).
+
+Settings subsection titles and equivalent section titles inside app-owned
+dialogs use a 12px bottom margin before the section's normal layout gap. Keep
+that spacing on the shared heading/legend rule rather than adding margin to the
+first control, so every section retains the same title-to-content rhythm.
 
 ## Confirmation template — `ConfirmSheet`
 

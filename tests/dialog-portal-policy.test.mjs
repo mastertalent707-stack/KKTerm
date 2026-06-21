@@ -91,6 +91,53 @@ test("Quick Command subdialogs stack above the manager dialog", async () => {
   );
 });
 
+test("blocking dialog backdrops cover and intercept the Activity Rail", async () => {
+  const [appStyles, baseStyles, dialogStyles, settingsStyles, dashboardStyles, launcherStyles, sftpStyles] =
+    await Promise.all([
+      readFile(new URL("../src/app/app.css", import.meta.url), "utf8"),
+      readFile(new URL("../src/styles/base.css", import.meta.url), "utf8"),
+      readFile(new URL("../src/app/ui/dialog/dialogs.css", import.meta.url), "utf8"),
+      readFile(new URL("../src/modules/settings/settings.css", import.meta.url), "utf8"),
+      readFile(new URL("../src/modules/dashboard/dashboard.css", import.meta.url), "utf8"),
+      readFile(
+        new URL("../src/modules/dashboard/widgets/builtin/app-launcher/app-launcher.css", import.meta.url),
+        "utf8",
+      ),
+      readFile(new URL("../src/modules/workspace/connections/sftp/sftp.css", import.meta.url), "utf8"),
+    ]);
+
+  const ruleBody = (styles, selector) => {
+    const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return styles.match(new RegExp(`${escapedSelector}\\s*\\{(?<body>[^}]*)\\}`, "s"))?.groups?.body ?? "";
+  };
+  const zIndex = (styles, selector) =>
+    Number(ruleBody(styles, selector).match(/z-index:\s*(\d+);/)?.[1] ?? Number.NaN);
+
+  const railZIndex = zIndex(appStyles, ".activity-rail");
+  const blockingBackdrops = [
+    [baseStyles, ".dialog-backdrop"],
+    [baseStyles, ".connection-dialog-backdrop"],
+    [dialogStyles, ".kk-dlg-backdrop"],
+    [settingsStyles, ".settings-backdrop"],
+    [dashboardStyles, ".dashboard-dialog-backdrop"],
+    [launcherStyles, ".dialog-backdrop.app-launcher-dialog-backdrop"],
+    [sftpStyles, ".sftp-conflict-z"],
+  ];
+
+  assert.ok(Number.isFinite(railZIndex), "Activity Rail should define a z-index");
+  for (const [styles, selector] of blockingBackdrops) {
+    const backdropZIndex = zIndex(styles, selector);
+    assert.ok(Number.isFinite(backdropZIndex), `${selector} should define a z-index`);
+    assert.ok(backdropZIndex > railZIndex, `${selector} should block the Activity Rail`);
+  }
+
+  assert.doesNotMatch(
+    settingsStyles,
+    /\.settings-backdrop\s*\{[^}]*inset:[^;]*48px;/s,
+    "Settings backdrop should cover the Activity Rail column",
+  );
+});
+
 test("Assistant image preview escapes the AI Assistant Panel and remains RDP-blocking", async () => {
   const assistantSource = await readFile(new URL("../src/ai/AssistantMessageView.tsx", import.meta.url), "utf8");
   const assistantStyles = await readFile(new URL("../src/ai/assistant.css", import.meta.url), "utf8");
