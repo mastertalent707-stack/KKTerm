@@ -78,6 +78,7 @@
     "prismjs": "^1.30.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.7",
+    "react-colorful": "^5.7.0",
     "react-dom": "^19.2.7",
     "react-grid-layout": "^2.2.3",
     "react-i18next": "^17.0.8",

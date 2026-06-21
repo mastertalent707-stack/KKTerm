@@ -2739,6 +2739,8 @@
     },
     "queued": "待機中",
     "done": "完了",
+    "customColor": "カスタムカラー",
+    "hexColor": "16進カラー",
     "failed": "失敗",
     "canceled": "キャンセル済み",
     "waiting": "待機中",

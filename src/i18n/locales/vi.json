@@ -2739,6 +2739,8 @@
     },
     "queued": "queued",
     "done": "done",
+    "customColor": "Màu tùy chỉnh",
+    "hexColor": "Màu thập lục phân",
     "failed": "failed",
     "canceled": "canceled",
     "waiting": "Waiting",

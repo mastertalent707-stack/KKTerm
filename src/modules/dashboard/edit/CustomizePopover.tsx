@@ -8,6 +8,7 @@ import { ToggleSwitch } from "../../settings/ToggleSwitch";
 import { useDashboardStore } from "../state/dashboardStore";
 import { parseNotesSettingsJson } from "../widgets/builtin/notes/NotesWidget";
 import { ACCENT_PALETTE } from "../registry/palette";
+import { ColorPalettePicker, isHexColor } from "../../../app/ui/ColorPalettePicker";
 import { parseScriptBodyForEditor, updateScriptBodySourceJson } from "./scriptSourceEditor";
 import {
   dashboardWidgetSecretOwnerId,
@@ -280,6 +281,11 @@ function CommonSection({ instance }: { instance: DashboardWidgetInstance }) {
               />
             );
           })}
+          <ColorPalettePicker
+            className="dw-custom-color-picker"
+            onChange={(accentName) => updateInstance(instance.id, { accentName })}
+            value={isHexColor(instance.accentName) ? instance.accentName : null}
+          />
         </div>
       </section>
 

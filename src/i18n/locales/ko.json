@@ -2739,6 +2739,8 @@
     },
     "queued": "대기 중",
     "done": "완료",
+    "customColor": "사용자 지정 색상",
+    "hexColor": "16진수 색상",
     "failed": "실패",
     "canceled": "취소됨",
     "waiting": "대기 중",

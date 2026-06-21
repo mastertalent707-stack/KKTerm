@@ -66,7 +66,7 @@ Fields:
 - **Title**: `dashboard.titleLabel`, placeholder `dashboard.titlePlaceholder`. Untitled widgets show `dashboard.untitledWidget`. On the panel and hero presets the title text in the Widget Instance title bar is also inline-editable: double-click it (tooltip `dashboard.renameTitleHint`) to edit, Enter or blur to commit, Escape to cancel; committing an empty value clears the custom title and reverts to the default. This sets the same `customTitle` field as this Title field.
 - **Advanced**: `dashboard.advanced`.
 
-Presets are CSS wrappers that read the Instance's `--w-accent` / `--w-accent-soft` variables — presets do not encode their own palette.
+Presets are CSS wrappers that read the Instance's `--w-accent` / `--w-accent-soft` variables — presets do not encode their own palette. Widget customization offers both the named accent palette and the shared rainbow selector for a custom hex accent.
 
 ## View background
 

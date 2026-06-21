@@ -4,6 +4,7 @@ import type { ComponentType, CSSProperties, PointerEvent as ReactPointerEvent } 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "../../../../app/ConfirmDialog";
+import { ColorPalettePicker, isHexColor } from "../../../../app/ui/ColorPalettePicker";
 import {
   Actions,
   Btn,
@@ -101,6 +102,7 @@ const QUICK_COMMAND_ACCENT_COLORS: Record<AccentName, string> = {
 };
 
 function quickCommandColor(accentName: string): string {
+  if (isHexColor(accentName)) return accentName;
   return QUICK_COMMAND_ACCENT_COLORS[accentName as AccentName] ?? QUICK_COMMAND_ACCENT_COLORS.default;
 }
 
@@ -613,6 +615,11 @@ function CustomCommandDialog({
                     aria-label={accent.name}
                   />
                 ))}
+                <ColorPalettePicker
+                  className="kk-custom-color-picker"
+                  onChange={(accentName) => setDraft({ ...draft, accentName })}
+                  value={isHexColor(draft.accentName) ? draft.accentName : null}
+                />
               </div>
             ) : null}
           </div>

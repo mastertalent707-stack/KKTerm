@@ -42,7 +42,7 @@ AI Created Widget text is UTF-8 end to end. Titles, summaries, labels, placehold
 
 **Visual Preset** — one of three framing styles applied per widget instance: `panel`, `ambient`, `hero`. Implemented in `presetRegistry.tsx` as thin CSS-driven chrome wrappers. Each preset reads `--w-accent` and `--w-accent-soft` for the widget's accent color; presets do not encode their own palette. Ambient supports optional frosted-glass background and hides its title bar by default.
 
-**Accent** — a palette name (not a hex), persisted on each instance. Resolved to color values from a shared palette table at render time so future palette tweaks affect all dashboards uniformly.
+**Accent** — a named palette value or a strict six-digit custom hex color, persisted on each instance. Named values resolve through the shared palette table; custom colors derive their soft tint and readable title text at render time.
 
 **Icon** — a lucide icon name from a curated whitelist of ~50 entries in `palette.ts`. The whitelist bounds the visual language and keeps the bundle predictable.
 
@@ -147,7 +147,7 @@ Each command is a thin handler over the storage layer with up-front validation:
 Rust validation invariants:
 
 - `preset` is one of the three known names (`panel`, `ambient`, `hero`).
-- `accent_name` is in the palette whitelist.
+- `accent_name` is in the palette whitelist or is a strict `#RRGGBB` custom color.
 - `icon_name` is in the lucide icon whitelist.
 - Grid bounds: `w ≥ 1`, `h ≥ 1`, `x ≥ 0`, `y ≥ 0`, `x + w ≤ 12`.
 - Script source is required and ≤ 64 KB; `pollSeconds ≥ 1`; only declared `permissions` values are accepted.
@@ -222,7 +222,7 @@ Drag and resize commit via a debounced pipeline: local state updates immediately
 The customize popover is anchored to a widget's settings (⚙) button and contains shared display sections plus a collapsible Advanced section:
 
 1. **Preset** — three chips (`panel`, `ambient`, `hero`), click to apply.
-2. **Accent** — palette swatches.
+2. **Accent** — palette swatches plus a rainbow button that opens the shared custom color selector.
 3. **Icon** — scrollable grid of the curated lucide set.
 4. **Title** — text input; empty clears the override.
 5. **Widget settings** — for AI Created Widgets with `settings_schema_json`, KKTerm renders text, number, boolean, select, and secret fields. Non-secret values are stored on the instance. Secret values are written to the OS keychain under the `widgetSecret` kind and the instance stores only a reference.

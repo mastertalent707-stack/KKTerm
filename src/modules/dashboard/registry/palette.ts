@@ -29,6 +29,19 @@ export const ACCENT_PALETTE: AccentDefinition[] = [
 
 export function resolveAccent(name: AccentName): AccentDefinition {
   const found = ACCENT_PALETTE.find((p) => p.name === name);
+  if (!found && /^#[0-9a-f]{6}$/i.test(name)) {
+    const rgb = [1, 3, 5].map((offset) => Number.parseInt(name.slice(offset, offset + 2), 16) / 255);
+    const luminance = rgb.reduce((sum, channel, index) => {
+      const linear = channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      return sum + linear * [0.2126, 0.7152, 0.0722][index];
+    }, 0);
+    return {
+      name,
+      color: name,
+      soft: `color-mix(in srgb, ${name} 12%, transparent)`,
+      titleText: luminance > 0.42 ? "#0f172a" : "#f8fafc",
+    };
+  }
   if (!found) return ACCENT_PALETTE[0];
   return found;
 }
@@ -37,7 +50,7 @@ export const ACCENT_NAMES_ALL = ACCENT_NAMES;
 export const ICON_NAMES_ALL = ICON_NAMES;
 
 export function isAccentName(value: string): value is AccentName {
-  return (ACCENT_NAMES as readonly string[]).includes(value);
+  return (ACCENT_NAMES as readonly string[]).includes(value) || /^#[0-9a-f]{6}$/i.test(value);
 }
 
 export function isIconName(value: string): value is IconName {

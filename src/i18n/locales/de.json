@@ -2739,6 +2739,8 @@
     },
     "queued": "in Warteschlange",
     "done": "fertig",
+    "customColor": "Benutzerdefinierte Farbe",
+    "hexColor": "Hex-Farbe",
     "failed": "fehlgeschlagen",
     "canceled": "abgebrochen",
     "waiting": "Warten",

@@ -2739,6 +2739,8 @@
     },
     "queued": "antre",
     "done": "selesai",
+    "customColor": "Warna kustom",
+    "hexColor": "Warna heksadesimal",
     "failed": "gagal",
     "canceled": "dibatalkan",
     "waiting": "Menunggu",

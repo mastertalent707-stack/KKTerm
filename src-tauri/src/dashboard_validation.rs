@@ -310,7 +310,10 @@ pub fn validate_preset(value: &str) -> Result<(), ValidationError> {
 }
 
 pub fn validate_accent(value: &str) -> Result<(), ValidationError> {
-    if ACCENTS.contains(&value) {
+    let is_hex_color = value.len() == 7
+        && value.starts_with('#')
+        && value[1..].bytes().all(|byte| byte.is_ascii_hexdigit());
+    if ACCENTS.contains(&value) || is_hex_color {
         Ok(())
     } else {
         Err(ValidationError::InvalidAccent)
@@ -1424,6 +1427,12 @@ mod tests {
     #[test]
     fn accent_unknown() {
         assert_eq!(validate_accent("neon"), Err(ValidationError::InvalidAccent));
+        assert_eq!(validate_accent("#12345"), Err(ValidationError::InvalidAccent));
+    }
+
+    #[test]
+    fn accent_accepts_hex_color() {
+        assert_eq!(validate_accent("#1a2B3c"), Ok(()));
     }
 
     #[test]

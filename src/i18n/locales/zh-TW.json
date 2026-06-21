@@ -2739,6 +2739,8 @@
     },
     "queued": "已排入佇列",
     "done": "已完成",
+    "customColor": "自訂色彩",
+    "hexColor": "十六進位色彩",
     "failed": "失敗",
     "canceled": "已取消",
     "waiting": "等待中",

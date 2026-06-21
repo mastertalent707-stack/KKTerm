@@ -2739,6 +2739,8 @@
     },
     "queued": "en attente",
     "done": "terminé",
+    "customColor": "Couleur personnalisée",
+    "hexColor": "Couleur hexadécimale",
     "failed": "échoué",
     "canceled": "annulé",
     "waiting": "En attente",

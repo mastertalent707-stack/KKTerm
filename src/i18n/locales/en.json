@@ -2739,6 +2739,8 @@
     },
     "queued": "queued",
     "done": "done",
+    "customColor": "Custom color",
+    "hexColor": "Hex color",
     "failed": "failed",
     "canceled": "canceled",
     "waiting": "Waiting",

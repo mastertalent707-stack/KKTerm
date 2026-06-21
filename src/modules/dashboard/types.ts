@@ -46,7 +46,7 @@ export const ACCENT_NAMES = [
   "default", "blue", "indigo", "teal", "green", "amber", "red", "purple", "pink",
   "slate", "cyan", "orange", "rose", "emerald", "sky",
 ] as const;
-export type AccentName = (typeof ACCENT_NAMES)[number];
+export type AccentName = (typeof ACCENT_NAMES)[number] | `#${string}`;
 
 export const ICON_NAMES = [
   "Hash","Network","Terminal","Server","Cpu","Activity","Bolt","Sun",

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { ariaPressed } from "../../../lib/aria";
+import { ColorPalettePicker, isHexColor } from "../../../app/ui/ColorPalettePicker";
 
 // Apple system hues, matching the connection-dialog redesign palette verbatim.
 const CONNECTION_ICON_BACKGROUND_COLORS = [
@@ -24,6 +25,13 @@ export function ConnectionIconBackgroundPicker({
 }) {
   const { t } = useTranslation();
   const currentColor = color ?? null;
+  const isCustomColor = Boolean(
+    currentColor
+      && isHexColor(currentColor)
+      && !CONNECTION_ICON_BACKGROUND_COLORS.some(
+        (accent) => accent.color.toLowerCase() === currentColor.toLowerCase(),
+      ),
+  );
 
   return (
     <div className="connection-swatches" role="group" aria-label={t("connections.iconBackground")}>
@@ -48,6 +56,11 @@ export function ConnectionIconBackgroundPicker({
           />
         );
       })}
+      <ColorPalettePicker
+        className="connection-custom-color"
+        onChange={onChange}
+        value={isCustomColor ? currentColor : null}
+      />
     </div>
   );
 }
