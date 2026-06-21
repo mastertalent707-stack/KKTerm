@@ -152,6 +152,7 @@
 
 /* ============================== buttons ================================ */
 .kk-btn {
+  --button-shadow-color: var(--border-strong);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -167,6 +168,7 @@
   letter-spacing: -0.005em;
   white-space: nowrap;
   cursor: pointer;
+  box-shadow: var(--button-shadow);
   transition: background 0.12s, border-color 0.12s, transform 0.04s, box-shadow 0.12s;
 }
 .kk-btn:hover {
@@ -180,19 +182,21 @@
   box-shadow: var(--ring);
 }
 .kk-btn.primary {
+  --button-shadow-color: var(--accent);
   background: var(--accent);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  box-shadow: var(--button-shadow);
 }
 .kk-btn.primary:hover {
   background: var(--accent-press);
 }
 .kk-btn.danger {
+  --button-shadow-color: var(--red);
   background: var(--red);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--red) 30%, transparent);
+  box-shadow: var(--button-shadow);
 }
 .kk-btn.danger:hover {
   background: var(--red-press);
@@ -200,6 +204,7 @@
 .kk-btn.ghost {
   border-color: transparent;
   background: transparent;
+  box-shadow: none;
 }
 .kk-btn.ghost:hover {
   background: var(--hover);
@@ -242,6 +247,7 @@
 }
 
 .kk-inp {
+  --control-shadow-color: var(--border-strong);
   width: 100%;
   height: var(--field-h);
   padding: 0 11px;
@@ -252,6 +258,7 @@
   font: inherit;
   font-size: 13px;
   outline: none;
+  box-shadow: var(--control-shadow);
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 .kk-inp::placeholder {
@@ -259,7 +266,7 @@
 }
 .kk-inp:focus {
   border-color: var(--accent);
-  box-shadow: var(--ring);
+  box-shadow: var(--ring), var(--control-shadow);
 }
 textarea.kk-inp {
   height: auto;
@@ -303,6 +310,7 @@ textarea.kk-inp {
   display: block;
 }
 .kk-sel select {
+  --control-shadow-color: var(--border-strong);
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
@@ -316,11 +324,12 @@ textarea.kk-inp {
   font-size: 13px;
   outline: none;
   cursor: pointer;
+  box-shadow: var(--control-shadow);
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 .kk-sel select:focus {
   border-color: var(--accent);
-  box-shadow: var(--ring);
+  box-shadow: var(--ring), var(--control-shadow);
 }
 .kk-sel .kk-chev {
   position: absolute;

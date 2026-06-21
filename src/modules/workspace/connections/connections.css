@@ -24,12 +24,15 @@
 }
 
 .quick-connect {
+  --button-shadow-color: var(--accent);
   width: 100%;
   color: #ffffff;
   background: var(--accent);
+  box-shadow: var(--button-shadow);
 }
 
 [data-color-scheme="blue-green-white"] .quick-connect {
+  --button-shadow-color: var(--green);
   color: #ffffff;
   background: var(--green);
 }

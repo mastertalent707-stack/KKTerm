@@ -219,6 +219,7 @@
 
 /* text button */
 .fv-btn {
+  --button-shadow-color: var(--border-strong);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -232,6 +233,7 @@
   border: 0.5px solid var(--border);
   background: var(--bg);
   color: var(--text);
+  box-shadow: var(--button-shadow);
   transition: background 0.12s, transform 0.04s;
 }
 .fv-btn:hover {
@@ -241,6 +243,7 @@
   transform: translateY(0.5px);
 }
 .fv-btn.primary {
+  --button-shadow-color: var(--accent);
   background: var(--accent);
   color: #fff;
   border-color: transparent;

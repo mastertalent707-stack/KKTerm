@@ -20,6 +20,15 @@ Core: `--app-bg`, `--surface`, `--surface-muted`, `--chrome`, `--chrome-strong`,
 `--accent`, `--accent-soft`, `--green`, `--amber`, `--red`, `--shadow`,
 `--app-ui-font-family`.
 
+Raised controls use `--control-shadow`. Text inputs, textareas, and selects tint
+it with neutral `--border-strong`; their focus ring layers above the shadow.
+Action buttons use the `--button-shadow` alias and set `--button-shadow-color`
+to their own surface color (`--accent`, `--green`, `--red`, or neutral
+`--border-strong`) so elevation follows the active color scheme. Keep flat
+navigation, tabs, segmented controls, menu rows, swatches, and title-bar chrome
+shadowless; those controls communicate selection or navigation rather than
+elevation.
+
 Design-language surface tokens (added for this language): `--hover`, `--press`,
 `--hairline`, `--accent-press`, `--sel`, `--sel-soft`, `--folder-top`,
 `--folder-bot`, `--doc-fill`, `--doc-stroke`, `--ring`. Exact values are authored

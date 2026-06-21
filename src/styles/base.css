@@ -131,9 +131,11 @@ h2 {
 }
 
 .icon-button {
+  --button-shadow-color: var(--border-strong);
   color: var(--text-muted);
   background: var(--surface-muted);
   border: 1px solid var(--border);
+  box-shadow: var(--button-shadow);
 }
 
 .icon-button:hover {
@@ -173,9 +175,11 @@ h2 {
 
 
 .toolbar-button {
+  --button-shadow-color: var(--border-strong);
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
+  box-shadow: var(--button-shadow);
 }
 
 .toolbar-button:disabled {
@@ -186,8 +190,10 @@ h2 {
 }
 
 .approve-button {
+  --button-shadow-color: var(--green);
   color: #ffffff;
   background: var(--green);
+  box-shadow: var(--button-shadow);
 }
 
 .approve-button:disabled {
@@ -459,10 +465,11 @@ h2 {
 }
 
 .primary-button {
+  --button-shadow-color: var(--accent);
   color: #ffffff;
   background: var(--accent);
   border: 0.5px solid transparent;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  box-shadow: var(--button-shadow);
 }
 
 .primary-button:hover:not(:disabled) {
@@ -470,9 +477,11 @@ h2 {
 }
 
 .secondary-button {
+  --button-shadow-color: var(--border-strong);
   color: var(--text);
   background: var(--surface);
   border: 0.5px solid var(--border-strong);
+  box-shadow: var(--button-shadow);
 }
 
 .secondary-button:hover:not(:disabled) {
@@ -480,10 +489,11 @@ h2 {
 }
 
 .secondary-button.danger {
+  --button-shadow-color: var(--red);
   color: #ffffff;
   background: var(--red);
   border-color: transparent;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--red) 30%, transparent);
+  box-shadow: var(--button-shadow);
 }
 
 .primary-button:disabled,
@@ -649,6 +659,7 @@ h2 {
 }
 
 .approve-button.danger {
+  --button-shadow-color: var(--red);
   color: #fff;
   background: var(--red);
   border-color: var(--red);
@@ -709,6 +720,16 @@ h2 {
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 
+:is(.connection-dialog, .settings-dialog, .settings-section)
+  :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+    select,
+    textarea
+  ) {
+  --control-shadow-color: var(--border-strong);
+  box-shadow: var(--control-shadow);
+}
+
 /* Connection-dialog fields sit on the white sheet with a hairline border —
    a white fill, not a grey one (design language). */
 .connection-dialog input,
@@ -762,6 +783,15 @@ h2 {
 .settings-section textarea:focus {
   border-color: var(--accent);
   box-shadow: var(--ring);
+}
+
+:is(.connection-dialog, .settings-dialog, .settings-section)
+  :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+    select,
+    textarea
+  ):focus {
+  box-shadow: var(--ring), var(--control-shadow);
 }
 
 .connection-dialog input:disabled,

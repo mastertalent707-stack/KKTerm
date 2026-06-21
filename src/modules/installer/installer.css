@@ -70,6 +70,7 @@
 }
 
 .installer-button {
+  --button-shadow-color: var(--border-strong);
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -81,6 +82,7 @@
   color: inherit;
   font-size: 0.875rem;
   cursor: pointer;
+  box-shadow: var(--button-shadow);
 }
 
 .installer-button__count {
@@ -108,12 +110,14 @@
 }
 
 .installer-button.primary {
+  --button-shadow-color: var(--accent);
   background: var(--accent);
   border-color: var(--accent);
   color: white;
 }
 
 .installer-button.danger {
+  --button-shadow-color: var(--red);
   border-color: var(--red);
   color: var(--red);
 }
