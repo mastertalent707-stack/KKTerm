@@ -35,6 +35,34 @@
   box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 12%, transparent);
 }
 
+.dw-unit-category-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-muted);
+}
+
+.dw-unit-category-tabs button {
+  min-width: 0;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.dw-unit-category-tabs button.is-active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 12%, transparent);
+}
+
 .dw-converter-panel {
   display: flex;
   flex: 1 1 auto;
@@ -57,8 +85,7 @@
 }
 
 .dw-converter-panel input,
-.dw-converter-panel select,
-.dw-converter-panel output {
+.dw-converter-panel select {
   min-width: 0;
   padding: 6px 8px;
   border: 1px solid var(--border);
@@ -70,15 +97,6 @@
 
 .dw-converter-panel input {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-}
-
-.dw-converter-panel output {
-  color: var(--w-accent, var(--accent));
-  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 18px;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
 }
 
 .dw-currency-footer {

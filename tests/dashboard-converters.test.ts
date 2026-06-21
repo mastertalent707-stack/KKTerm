@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   convertUnit,
   resolveCurrencyPair,
+  resolveUnitPair,
   formatConvertedValue,
   normalizeFrankfurterRates,
 } from "../src/modules/dashboard/widgets/builtin/converters/converterTools";
@@ -18,6 +19,17 @@ test("convertUnit handles temperature offsets", () => {
   assert.equal(formatConvertedValue(convertUnit("temperature", 0, "celsius", "fahrenheit")), "32");
   assert.equal(formatConvertedValue(convertUnit("temperature", 32, "fahrenheit", "celsius")), "0");
   assert.equal(formatConvertedValue(convertUnit("temperature", 300, "kelvin", "celsius")), "26.8500");
+});
+
+test("unit amounts can be edited from either side", () => {
+  assert.deepEqual(resolveUnitPair("source", "1", "length", "meter", "foot"), {
+    source: "1",
+    target: "3.28084",
+  });
+  assert.deepEqual(resolveUnitPair("target", "3.280839895013123", "length", "meter", "foot"), {
+    source: "1",
+    target: "3.280839895013123",
+  });
 });
 
 test("normalizeFrankfurterRates builds a base-to-target lookup with refresh metadata", () => {

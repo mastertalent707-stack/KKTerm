@@ -63,6 +63,24 @@ export function convertUnit(category: UnitCategory, value: number, from: string,
   return (value * fromUnit.toBase) / toUnit.toBase;
 }
 
+export function resolveUnitPair(
+  editedSide: "source" | "target",
+  value: string,
+  category: UnitCategory,
+  from: string,
+  to: string,
+): { source: string; target: string } {
+  const amount = Number(value);
+  const converted = Number.isFinite(amount)
+    ? editedSide === "source"
+      ? convertUnit(category, amount, from, to)
+      : convertUnit(category, amount, to, from)
+    : Number.NaN;
+  return editedSide === "source"
+    ? { source: value, target: formatConvertedValue(converted) }
+    : { source: formatConvertedValue(converted), target: value };
+}
+
 function convertTemperature(value: number, from: string, to: string): number {
   const celsius =
     from === "fahrenheit" ? (value - 32) * (5 / 9) : from === "kelvin" ? value - 273.15 : value;

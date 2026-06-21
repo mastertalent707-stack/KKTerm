@@ -7,9 +7,8 @@ import type { BuiltInWidgetBodyProps } from "../../../registry/builtInRegistry";
 import { useWidgetConfig } from "../../widgetLocalStorage";
 import {
   UNIT_DEFINITIONS,
-  convertUnit,
-  formatConvertedValue,
   resolveCurrencyPair,
+  resolveUnitPair,
   type CurrencyRates,
   type UnitCategory,
 } from "./converterTools";
@@ -20,6 +19,7 @@ interface ConvertersConfig {
   mode: ConverterMode;
   unitCategory: UnitCategory;
   amount: string;
+  targetAmount: string;
   fromUnit: string;
   toUnit: string;
   currencyAmount: string;
@@ -32,6 +32,7 @@ const DEFAULT_CONFIG: ConvertersConfig = {
   mode: "unit",
   unitCategory: "length",
   amount: "1",
+  targetAmount: "1",
   fromUnit: "meter",
   toUnit: "foot",
   currencyAmount: "1",
@@ -55,6 +56,7 @@ function normalizeConfig(value: unknown): ConvertersConfig {
     mode: candidate.mode === "currency" ? "currency" : "unit",
     unitCategory,
     amount: typeof candidate.amount === "string" ? candidate.amount : "1",
+    targetAmount: typeof candidate.targetAmount === "string" ? candidate.targetAmount : "1",
     fromUnit: units.some((unit) => unit.id === candidate.fromUnit) ? candidate.fromUnit! : units[0].id,
     toUnit: units.some((unit) => unit.id === candidate.toUnit) ? candidate.toUnit! : units[1]?.id ?? units[0].id,
     currencyAmount: typeof candidate.currencyAmount === "string" ? candidate.currencyAmount : "1",
@@ -72,13 +74,17 @@ export function ConvertersBody({ instance }: BuiltInWidgetBodyProps) {
     normalizeConfig,
   );
   const [rates, setRates] = useState<CurrencyRates | null>(null);
+  const [unitEditSide, setUnitEditSide] = useState<"source" | "target">("source");
   const [currencyEditSide, setCurrencyEditSide] = useState<"source" | "target">("source");
   const [currencyState, setCurrencyState] = useState<"idle" | "loading" | "error">("idle");
   const units = UNIT_DEFINITIONS[config.unitCategory];
-  const amount = Number(config.amount);
-  const unitResult = Number.isFinite(amount)
-    ? convertUnit(config.unitCategory, amount, config.fromUnit, config.toUnit)
-    : Number.NaN;
+  const unitPair = resolveUnitPair(
+    unitEditSide,
+    unitEditSide === "source" ? config.amount : config.targetAmount,
+    config.unitCategory,
+    config.fromUnit,
+    config.toUnit,
+  );
 
   const currencyPair = resolveCurrencyPair(
     currencyEditSide,
@@ -120,18 +126,43 @@ export function ConvertersBody({ instance }: BuiltInWidgetBodyProps) {
       </div>
       {config.mode === "unit" ? (
         <div className="dw-converter-panel">
-          <select value={config.unitCategory} onChange={(event) => updateCategory(event.currentTarget.value as UnitCategory)} aria-label={t("dashboard.unitCategoryLabel")}>
+          <div className="dw-unit-category-tabs" role="tablist" aria-label={t("dashboard.unitCategoryLabel")}>
             {(["length", "mass", "area", "temperature"] as UnitCategory[]).map((category) => (
-              <option key={category} value={category}>{t(`dashboard.unitCategory.${category}`)}</option>
+              <button
+                key={category}
+                type="button"
+                role="tab"
+                aria-selected={config.unitCategory === category}
+                className={config.unitCategory === category ? "is-active" : ""}
+                onClick={() => updateCategory(category)}
+              >
+                {t(`dashboard.unitCategory.${category}`)}
+              </button>
             ))}
-          </select>
+          </div>
           <div className="dw-converter-grid">
             <div className="dw-converter-row">
-              <input value={config.amount} onChange={(event) => setConfig({ ...config, amount: event.currentTarget.value })} aria-label={t("dashboard.converterAmount")} {...technicalInputProps} />
+              <input
+                value={unitPair.source}
+                onChange={(event) => {
+                  setUnitEditSide("source");
+                  setConfig({ ...config, amount: event.currentTarget.value });
+                }}
+                aria-label={t("dashboard.converterAmount")}
+                {...technicalInputProps}
+              />
               <UnitSelect units={units} value={config.fromUnit} onChange={(fromUnit) => setConfig({ ...config, fromUnit })} />
             </div>
             <div className="dw-converter-row">
-              <output>{formatConvertedValue(unitResult)}</output>
+              <input
+                value={unitPair.target}
+                onChange={(event) => {
+                  setUnitEditSide("target");
+                  setConfig({ ...config, targetAmount: event.currentTarget.value });
+                }}
+                aria-label={t("dashboard.converterAmount")}
+                {...technicalInputProps}
+              />
               <UnitSelect units={units} value={config.toUnit} onChange={(toUnit) => setConfig({ ...config, toUnit })} />
             </div>
           </div>

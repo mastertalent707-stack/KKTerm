@@ -121,7 +121,7 @@ prose surface and may keep spelling assistance.
 
 **Converters** — `dashboard.convertersTitle` / `dashboard.convertersSummary`. Tabs `dashboard.convertersTab.unit`, `…currency`:
 
-- **Unit** — converts `dashboard.unitCategory.length`, `…mass`, `…area`, and `…temperature` across metric, imperial, and local units. Area includes `dashboard.converterUnit.ping` for Taiwan and `dashboard.converterUnit.tsubo`; mass includes `dashboard.converterUnit.cattyTaiwan`.
+- **Unit** — category tabs switch between `dashboard.unitCategory.length`, `…mass`, `…area`, and `…temperature` across metric, imperial, and local units. Source and target are editable amount/unit rows; typing in either amount recalculates the other for quick direction changes. Area includes `dashboard.converterUnit.ping` for Taiwan and `dashboard.converterUnit.tsubo`; mass includes `dashboard.converterUnit.cattyTaiwan`.
 - **Currency** — presents source and target as two editable amount/currency rows; typing in either amount recalculates the other after rates load, making direction changes immediate. It fetches no-key estimate rates from Frankfurter on demand with `dashboard.currencyFetchLatest` / `dashboard.currencyRefresh`, shows `dashboard.currencyLastRefresh`, and keeps `dashboard.currencyEstimate` visible so users know rates are estimates rather than financial-grade quotes.
 
 These two widgets replace the old per-request script utilities for the most common operator tasks. For anything outside this set, the AI Assistant still creates a per-request script widget.
