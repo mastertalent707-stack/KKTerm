@@ -3,6 +3,76 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.98/kkterm-0.1.98-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.98/kkterm-0.1.98-windows-arm64-setup.exe)
+
+## KKTerm v0.1.98 Release Notes
+
+### Highlights
+- **IT Ops:** Enjoy *live* Batch Run output, a **Run Report** viewer for finished runs, and an **n8n-style Automation editor** (PR #408 by @ryantsai): more signal, fewer SSH “wait… it’s buffering… right?” moments.
+- **PowerShell Sessions:** Add **psmux session management** for **local PowerShell / PowerShell 7** connections via an opt-in toggle (PR #409 by @ryantsai).
+
+### New
+- **IT Ops module upgrades (PR #408):**
+  - Live per-host stdout/stderr streaming during Batch Runs, with automatic reveal as it runs.
+  - Persist per-host output (capped) and open a read-only **Run Report viewer** from recent runs.
+  - Keep streamed output visible on the live grid when a host times out.
+- **Automation editor (PR #408):**
+  - Replace the create dialog with an **n8n-style node editor** (draggable trigger → condition → action canvas), including ping/TCP triggers.
+  - Add a **Test** action to sample the trigger once, report whether the condition would fire, and dry-run actions (no email/webhook and no Batch Run start).
+- **psmux session management for local PowerShell (PR #409):**
+  - New opt-in toggle: **Use psmux session management** for local **PowerShell / pwsh** connections.
+  - Local shell launch uses `psmux new-session -A -s <id> -- <pwsh>` with fallback when `psmux` isn’t available.
+
+### Improved
+- **UI consistency work** across module headers/top bars and related components (e.g., shared compact module header).
+- **Dashboard Widget Instance color customization (PRs leading to v0.1.98):**
+  - Custom color picker for dashboard/connection settings with strict six-digit hex validation.
+- **AI Assistant layout** improvements for more responsive behavior.
+
+### Fixed
+- **psmux session isolation & command errors (PR #409 includes related fix):**
+  - Improved **psmux Session** isolation and reduced command error cases affecting local session behavior.
+
+### Internal
+- Documentation, localization, and UI styling refinements (including translations across many locales for IT Ops-related strings).
+- Release workflow/tooling documentation updates (e.g., Linux build dependency mention).
+
+---
+
+## KKTerm v0.1.98 更新說明（繁體中文／台灣）
+
+### Highlights
+- **IT Ops：** 支援 **Batch Run 即時輸出**、可在結束後開啟 **Run Report** 瀏覽器，並提供 **n8n 風格 Automation 編輯器**（PR #408，@ryantsai）：資訊更到位，少點「等一下…是不是卡在緩衝區？」的網路線上折磨。
+- **PowerShell Session：** 為 **本機 PowerShell / PowerShell 7 連線**加入 **psmux Session 管理**（可透過選項開啟）（PR #409，@ryantsai）。
+
+### New
+- **IT Ops 模組強化（PR #408）：**
+  - Batch Run 執行期間，**逐主機**串流 stdout/stderr，即時自動揭露正在跑的內容。
+  - 為每個主機的輸出做持久化（有上限），並可從最近的執行清單開啟唯讀 **Run Report**。
+  - 當主機逾時時，保留直播網格上的串流輸出，不會直接空白掉。
+- **Automation 編輯器（PR #408）：**
+  - 用 **n8n 風格節點編輯器**取代原本的建立對話框（可拖曳的觸發 → 條件 → 動作畫布），支援 ping/TCP 觸發。
+  - 提供 **Test**：抽樣一次觸發、回報條件是否會觸發，並在**不會送出 email/webhook、也不會啟動 Batch Run** 的前提下進行動作乾跑（dry-run）。
+- **本機 PowerShell 的 psmux Session 管理（PR #409）：**
+  - 新增選項切換：**Use psmux session management**（用在本機 **PowerShell / pwsh** 連線）。
+  - 本機啟動會使用 `psmux new-session -A -s <id> -- <pwsh>`，若找不到 psmux 則會回退。
+
+### Improved
+- 針對模組標題 / 上方列等介面一致性調整（包含共享的精簡模組標題）。
+- **Dashboard Widget Instance 自訂顏色（相關 PR 進入本版）：**
+  - 提供自訂色彩選擇器，並在輸入驗證上要求嚴格的六位十六進位色碼格式。
+- **AI 助理版面**調整為更符合響應式需求。
+
+### Fixed
+- **psmux Session 隔離與命令錯誤（PR #409 含相關修正）：**
+  - 強化 **psmux Session** 的隔離，改善影響本機 Session 行為的部分命令錯誤情況。
+
+### Internal
+- 文件與在地化、以及 UI 樣式微調（包含 IT Ops 相關字串在多個語系的翻譯）。
+- 發行流程／工具文件更新（例如在 Linux 建置流程中提到的套件依賴說明）。
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.97/kkterm-0.1.97-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.97/kkterm-0.1.97-windows-arm64-setup.exe)
 
