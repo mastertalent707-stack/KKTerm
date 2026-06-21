@@ -3,6 +3,52 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.97/kkterm-0.1.97-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.97/kkterm-0.1.97-windows-arm64-setup.exe)
+
+## Highlights
+- Smoother UI transitions across Connection and AI panels (less “jumpy” focus and panel motion—your Tab switching should feel less like herding mice in a dark terminal).
+
+## New
+- Connection/AI panel transitions: animation classes added for panel transitions. (`9e630b7`, `804c1d1`)
+- Dialog styling updates: dialog backdrop and z-index adjusted to ensure proper stacking over the Activity Rail. (`3eb1364`)
+
+## Improved
+- Assistant Panel focus behavior: added `focusWithoutScrolling` to prevent unwanted scroll behavior. (`9e630b7`)
+- Panel animations and layout management: improved panel animation + layout management for AI and connection panels. (`a3292ee`)
+- App shell styles: removed min-width and disabled animation during panel transitions. (`b0d9986`)
+
+## Fixed
+- Installer handoff on Windows: updated and refactored the installer handoff command to improve process handling and cleanup logic. (`94be613`, `294ee13`)
+
+## Internal
+- Updated UI/behavior coverage with related tests (assistant panel focus + titlebar theme, dialog portal policy). (`9e630b7`, `3eb1364`, `b0d9986`)
+- Merged changes from `main` (release content consolidation). (`52b2deb`, `513ddc5`)
+- Documentation updates for installer/settings related areas. (`294ee13`)
+
+---
+
+## 亮點
+- Connection 與 AI 面板的介面切換更順了（減少「焦點亂跳」與面板動作帶來的干擾——Tab 切換體感更像順暢的終端機，而不是在黑暗中抓老鼠）。
+
+## 新增
+- Connection/AI 面板切換動畫：加入面板過渡的動畫類別。 (`9e630b7`, `804c1d1`)
+- 對話框樣式更新：更新對話框遮罩（backdrop）與 z-index，確保層級正確並覆蓋在 Activity Rail 之上。 (`3eb1364`)
+
+## 改善
+- Assistant 面板焦點行為：新增 `focusWithoutScrolling`，避免不必要的捲動。 (`9e630b7`)
+- 面板動畫與版面管理：強化 AI 與連線（connection）面板的動畫與版面管理。 (`a3292ee`)
+- App shell 樣式：移除 min-width，並在面板切換時停用動畫。 (`b0d9986`)
+
+## 修正
+- Windows 安裝程式交接（handoff）：更新並重構安裝程式交接指令，以改善程序處理與清理邏輯。 (`94be613`, `294ee13`)
+
+## Internal
+- 補強相關測試（Assistant 面板焦點、標題列主題、對話框 portal policy）。 (`9e630b7`, `3eb1364`, `b0d9986`)
+- 合併 `main` 分支內容（針對發版彙整）。 (`52b2deb`, `513ddc5`)
+- 文件更新（與安裝程式/設定相關）。 (`294ee13`)
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.96/kkterm-0.1.96-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.96/kkterm-0.1.96-windows-arm64-setup.exe)
 
