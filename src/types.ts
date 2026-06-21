@@ -93,6 +93,7 @@ export interface Connection {
   url?: string;
   dataPartition?: string;
   useTmuxSessions?: boolean;
+  usePsmuxSessions?: boolean;
   tmuxConnectionId?: string;
   passwordCredentialId?: string | null;
   urlCredentialUsername?: string;
@@ -271,6 +272,7 @@ export interface CreateConnectionRequest {
   url?: string;
   dataPartition?: string;
   useTmuxSessions?: boolean;
+  usePsmuxSessions?: boolean;
   rdpOptions?: RdpConnectionOptions;
   vncOptions?: VncConnectionOptions;
   ftpOptions?: FtpConnectionOptions;

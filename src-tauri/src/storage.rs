@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS connections (
     url TEXT,
     data_partition TEXT,
     use_tmux_sessions INTEGER NOT NULL DEFAULT 1,
+    use_psmux_sessions INTEGER NOT NULL DEFAULT 0,
     tmux_connection_id TEXT,
     serial_line TEXT,
     serial_speed INTEGER,
@@ -1097,6 +1098,7 @@ pub struct SavedConnection {
     url: Option<String>,
     data_partition: Option<String>,
     use_tmux_sessions: bool,
+    use_psmux_sessions: bool,
     tmux_connection_id: Option<String>,
     serial_line: Option<String>,
     serial_speed: Option<u32>,
@@ -1197,6 +1199,8 @@ pub struct CreateConnectionRequest {
     url: Option<String>,
     data_partition: Option<String>,
     use_tmux_sessions: Option<bool>,
+    #[serde(default)]
+    use_psmux_sessions: Option<bool>,
     serial_line: Option<String>,
     serial_speed: Option<u32>,
     rdp_options: Option<RdpConnectionOptions>,
@@ -1237,6 +1241,8 @@ pub struct UpdateConnectionRequest {
     url: Option<String>,
     data_partition: Option<String>,
     use_tmux_sessions: Option<bool>,
+    #[serde(default)]
+    use_psmux_sessions: Option<bool>,
     serial_line: Option<String>,
     serial_speed: Option<u32>,
     rdp_options: Option<RdpConnectionOptions>,
@@ -2127,6 +2133,14 @@ impl Storage {
             "ssh_port_forwardings_json",
             "TEXT",
         )?;
+        // psmux session management for local PowerShell Connections (defaults off).
+        // Added after the table rebuilds above so older databases keep the column.
+        ensure_column(
+            &connection,
+            "connections",
+            "use_psmux_sessions",
+            "INTEGER NOT NULL DEFAULT 0",
+        )?;
         connection
             .execute_batch(&format!("PRAGMA user_version = {SCHEMA_USER_VERSION}"))
             .map_err(to_storage_error)?;
@@ -2917,7 +2931,7 @@ fn list_root_connections_for_workspace(
     let mut statement = connection
         .prepare(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json
+                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE folder_id IS NULL AND workspace_id = ?1
@@ -2980,7 +2994,7 @@ fn list_connections_for_folder(
     let mut statement = connection
         .prepare(&format!(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json
+                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE {where_clause}
@@ -3356,7 +3370,7 @@ fn get_connection_by_id(
     let saved_connection = connection
         .query_row(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json
+                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE connections.id = ?1",
@@ -3383,6 +3397,7 @@ fn get_connection_by_id(
                     url: row.get(15)?,
                     data_partition: row.get(16)?,
                     use_tmux_sessions: row.get(17)?,
+                    use_psmux_sessions: row.get(34)?,
                     tmux_connection_id: row.get(18)?,
                     connection_type: row.get(19)?,
                     serial_line: row.get(20)?,
@@ -3437,6 +3452,7 @@ fn saved_connection_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SavedC
         url: row.get(15)?,
         data_partition: row.get(16)?,
         use_tmux_sessions: row.get(17)?,
+        use_psmux_sessions: row.get(34)?,
         tmux_connection_id: row.get(18)?,
         connection_type: row.get(19)?,
         serial_line: row.get(20)?,
@@ -3693,6 +3709,12 @@ fn normalize_data_partition(
 
 fn normalize_use_tmux_sessions(value: Option<bool>, connection_type: &str) -> bool {
     connection_type == "ssh" && value.unwrap_or(true)
+}
+
+/// psmux session management is a local-only feature (the native Windows tmux).
+/// Unlike SSH tmux it defaults **off** and is opted into per Connection.
+fn normalize_use_psmux_sessions(value: Option<bool>, connection_type: &str) -> bool {
+    connection_type == "local" && value.unwrap_or(false)
 }
 
 fn normalize_file_view_open_external(value: bool, connection_type: &str) -> bool {

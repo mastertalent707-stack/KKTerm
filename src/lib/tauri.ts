@@ -156,6 +156,8 @@ export interface StartTerminalSessionRequest {
   rows?: number;
   useTmux?: boolean;
   tmuxSessionId?: string;
+  usePsmux?: boolean;
+  psmuxSessionId?: string;
   sshBufferLines?: number;
 }
 
@@ -1936,6 +1938,22 @@ type CommandMap = {
       };
     };
     result: string;
+  };
+  list_psmux_sessions: {
+    args: Record<string, never>;
+    result: TmuxSession[];
+  };
+  close_psmux_session: {
+    args: { psmuxSessionId: string };
+    result: null;
+  };
+  rename_psmux_session: {
+    args: { psmuxSessionId: string; newPsmuxSessionId: string };
+    result: null;
+  };
+  set_psmux_mouse: {
+    args: { psmuxSessionId: string; enabled: boolean };
+    result: null;
   };
   inspect_ssh_system_context: {
     args: {

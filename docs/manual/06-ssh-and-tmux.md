@@ -4,7 +4,8 @@
 
 - Keys: `terminal.verifyingHostKey`, `terminal.sshHostKeyChanged`, `terminal.sshHostKeyChangedDetail`, `terminal.sshHostKeyChangeDetail`, `terminal.trustHostKey`, `terminal.hostKeyNotTrusted`, `terminal.selectKeyFile`, `terminal.sshContextUnavailable`, `terminal.showTmux`, `terminal.editTmuxSession`, `terminal.tmuxSessionName`, `terminal.tmuxSessionNameRequired`, `terminal.tmuxSessionNameInvalid`, `terminal.tmuxSessionRenamed`, `terminal.tmuxSessions`, `terminal.refreshTmux`, `terminal.noTmuxSessions`, `terminal.attached`, `terminal.detached`, `terminal.detachTmux`, `terminal.closeTmux`, `terminal.openInPane`, `terminal.openLeft`, `terminal.openRight`, `terminal.openAbove`, `terminal.openBelow`, `terminal.mouseOn`, `terminal.mouseOff`, `terminal.sshPortRedirect`, `terminal.sshPortForwardingTitle`, `terminal.addForward`, `terminal.localListener`, `terminal.remoteListener`, `terminal.destination`, `terminal.forwardTo`, `terminal.bindAddress`, `terminal.listenPort`, `terminal.socksPort`, `terminal.runningForwards`, `terminal.noSshForwards`, `terminal.enableForwarding`, `terminal.disabled`, `terminal.sshPortForwardOpened`, `settings.xServer`, `settings.xServerManaged`, `settings.xServerLaunch`
 - Topics: SSH host key trust, tmux session list, attach / detach / rename tmux, Child Connection Tab tmux resume, SSH local port forward for remote loopback services, SOCKS proxy troubleshooting, managed VcXsrv launch for local X11 windows, tutorial targets `terminal.tmuxSessions`, `terminal.sshPortRedirect`
-- Synonyms: "trust this host", "key fingerprint changed", "MITM warning", "tmux session", "screen", "child tmux tab", "saved tmux tab", "port forward", "tunnel", "SOCKS", "proxy", "early eof", "Tinyproxy", "PuTTY", "X11", "X forwarding", "X server", "VcXsrv"
+- Synonyms: "trust this host", "key fingerprint changed", "MITM warning", "tmux session", "screen", "child tmux tab", "saved tmux tab", "port forward", "tunnel", "SOCKS", "proxy", "early eof", "Tinyproxy", "PuTTY", "X11", "X forwarding", "X server", "VcXsrv", "psmux", "native Windows tmux", "local session multiplexer", "PowerShell sessions"
+- psmux keys: `connections.usePsmux`, `installer.psmux.installTitle`, `installer.psmux.installPrompt`, `installer.psmux.installing`, `terminal.showPsmux`, `terminal.psmuxSessions`. Connection field `usePsmuxSessions`; backend column `use_psmux_sessions`; Tauri commands `list_psmux_sessions`, `close_psmux_session`, `rename_psmux_session`, `set_psmux_mouse`.
 
 ## Host key trust
 
@@ -72,6 +73,27 @@ Per-row actions:
 
 `terminal.mouseOn` / `terminal.mouseOff` enables or disables tmux mouse mode in the attached session.
 When tmux mouse mode is off, wheel input over the Pane is kept in KKTerm's terminal scrollback path instead of being sent to the remote shell as cursor-key input.
+
+## Local psmux sessions
+
+[psmux](https://github.com/psmux/psmux) is the native Windows "tmux for PowerShell". KKTerm offers it as the local-shell counterpart to SSH tmux: a per-Connection opt-in that gives a local PowerShell terminal Pane the same toolbar session list, with the same options and the same localized session-name pool (`ai.tmuxSessionLabels`).
+
+### Enabling the toggle
+
+In the local Connection dialog, a **`connections.usePsmux`** ("Use psmux session management") toggle appears **only when the selected shell is PowerShell or PowerShell 7 (pwsh)** — not for Command Prompt, WSL, or Git Bash. It **defaults off**.
+
+Turning it on checks whether psmux is installed (`local_shell_available` for `psmux.exe`):
+
+- If psmux is already installed, the toggle simply turns on.
+- If psmux is missing, KKTerm prompts (`installer.psmux.installPrompt` / `installer.psmux.installTitle`) and, on accept, runs the Install Helper's `psmux` recipe (`installer.psmux.installing`). The toggle stays on only when psmux ends up available; declining or a failed install reverts it to off.
+
+The preference persists as the local-only `usePsmuxSessions` Connection flag (backend column `use_psmux_sessions`, normalized off for any non-local Connection). It is mutually exclusive with SSH tmux by Connection type — a Pane is either SSH-tmux or local-psmux, never both, and both reuse the same `pane.tmuxSessionId` slot and name pool.
+
+### Launch and session list
+
+When enabled, opening the Connection launches the chosen PowerShell shell wrapped as `psmux new-session -A -s <session-id> -- <shell>` (attach-or-create), and the Pane toolbar shows a **`terminal.showPsmux`** session popover (header `terminal.psmuxSessions`) mirroring the tmux popover: list / refresh, open-in-pane and split variants, rename (`terminal.editTmuxSession`), close (`terminal.closeTmux`), and the mouse toggle. psmux is CLI-compatible with tmux, so the same `list-sessions -F` format string and `kill-session` / `rename-session` / `set-option mouse` commands are reused — but they run as one-shot local `psmux.exe` processes (`list_psmux_sessions`, `close_psmux_session`, `rename_psmux_session`, `set_psmux_mouse`) instead of over an SSH channel.
+
+If psmux is not installed when the Pane launches, the Pane silently falls back to the plain PowerShell shell — no error dialog — matching the tmux-unavailable behavior.
 
 ## SSH port forwarding
 

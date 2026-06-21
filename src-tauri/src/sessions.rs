@@ -85,6 +85,8 @@ pub struct StartTerminalSessionRequest {
     pub rows: Option<u16>,
     pub use_tmux: Option<bool>,
     pub tmux_session_id: Option<String>,
+    pub use_psmux: Option<bool>,
+    pub psmux_session_id: Option<String>,
     pub ssh_buffer_lines: Option<u32>,
 }
 
@@ -1962,6 +1964,8 @@ fn terminal_request_for_tmux(request: &TmuxConnectionRequest) -> StartTerminalSe
         rows: None,
         use_tmux: None,
         tmux_session_id: None,
+        use_psmux: None,
+        psmux_session_id: None,
         ssh_buffer_lines: None,
     }
 }
@@ -2351,6 +2355,81 @@ fn parse_tmux_sessions(output: &str) -> Vec<TmuxSession> {
         .collect()
 }
 
+/// The native Windows tmux. psmux ships a tmux-compatible CLI (same
+/// `list-sessions -F` format variables, `new-session`/`attach`/`rename-session`/
+/// `kill-session`/`set-option`), so its session management mirrors the SSH tmux
+/// path but runs as a one-shot local child process instead of over SSH.
+const PSMUX_PROGRAM: &str = "psmux.exe";
+
+/// psmux accepts the same `#{session_*}` format string as tmux, so its output is
+/// parsed with [`parse_tmux_sessions`].
+fn psmux_list_format() -> &'static str {
+    "#{session_name}\t#{session_attached}\t#{session_windows}\t#{session_created}\t#{session_last_attached}\t#{session_path}\t#{session_id}"
+}
+
+fn is_powershell_family_program(program: &str) -> bool {
+    let lower = program.to_ascii_lowercase();
+    let name = std::path::Path::new(&lower)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or(lower.as_str());
+    matches!(name, "powershell.exe" | "pwsh.exe" | "powershell" | "pwsh")
+}
+
+fn psmux_session_id_for_launch(value: Option<&str>) -> Option<String> {
+    let trimmed = value.map(str::trim).unwrap_or_default();
+    if trimmed.is_empty() {
+        return None;
+    }
+    required_tmux_session_id(trimmed.to_string()).ok()
+}
+
+/// Run a one-shot local `psmux.exe` command and capture stdout. psmux runs
+/// natively on this machine, so unlike the SSH tmux path there is no SSH channel
+/// — just a short-lived child process. A missing psmux binary is reported as an
+/// error; an empty session list is normal and yields empty stdout.
+fn run_psmux_command(args: &[&str]) -> Result<String, String> {
+    if !local_shell_available(PSMUX_PROGRAM) {
+        return Err("psmux is not installed".to_string());
+    }
+    let mut command = ProcessCommand::new(PSMUX_PROGRAM);
+    command.args(args);
+    command.stdin(std::process::Stdio::null());
+    command.stdout(std::process::Stdio::piped());
+    command.stderr(std::process::Stdio::piped());
+    hide_console_window(&mut command);
+    let output = run_command_with_timeout(command, Duration::from_secs(10))?;
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+pub fn list_psmux_sessions() -> Result<Vec<TmuxSession>, String> {
+    let output = run_psmux_command(&["list-sessions", "-F", psmux_list_format()])?;
+    Ok(parse_tmux_sessions(&output))
+}
+
+pub fn close_psmux_session(psmux_session_id: String) -> Result<(), String> {
+    let id = required_tmux_session_id(psmux_session_id)?;
+    run_psmux_command(&["kill-session", "-t", &id])?;
+    Ok(())
+}
+
+pub fn rename_psmux_session(
+    psmux_session_id: String,
+    new_psmux_session_id: String,
+) -> Result<(), String> {
+    let id = required_tmux_session_id(psmux_session_id)?;
+    let new_id = required_tmux_session_id(new_psmux_session_id)?;
+    run_psmux_command(&["rename-session", "-t", &id, &new_id])?;
+    Ok(())
+}
+
+pub fn set_psmux_session_mouse(psmux_session_id: String, enabled: bool) -> Result<(), String> {
+    let id = required_tmux_session_id(psmux_session_id)?;
+    let mouse = if enabled { "on" } else { "off" };
+    run_psmux_command(&["set-option", "-t", &id, "mouse", mouse])?;
+    Ok(())
+}
+
 fn command_for(request: &StartTerminalSessionRequest) -> Result<CommandBuilder, String> {
     match request.connection_type.trim().to_lowercase().as_str() {
         "local" => {
@@ -2369,13 +2448,42 @@ fn command_for(request: &StartTerminalSessionRequest) -> Result<CommandBuilder, 
                 });
             let parsed = parse_local_shell_command_line(&program)?;
             let is_cmd = is_windows_cmd_shell(&parsed.program);
-            let mut command = CommandBuilder::new(resolved_local_shell_program(parsed.program));
-            if is_cmd {
-                command.arg("/D");
-            }
-            for arg in parsed.args {
-                command.arg(arg);
-            }
+            let resolved_program = resolved_local_shell_program(parsed.program);
+            // psmux session management wraps the chosen PowerShell shell in a
+            // `psmux new-session -A -s <name>` (attach-or-create), mirroring the
+            // SSH tmux launch path. It applies only to PowerShell/pwsh shells, and
+            // silently falls back to the plain shell when psmux is not installed
+            // or no session id was supplied.
+            let psmux_session_id = request
+                .use_psmux
+                .unwrap_or(false)
+                .then(|| psmux_session_id_for_launch(request.psmux_session_id.as_deref()))
+                .flatten()
+                .filter(|_| is_powershell_family_program(&resolved_program))
+                .filter(|_| local_shell_available(PSMUX_PROGRAM));
+            let mut command = if let Some(session_id) = psmux_session_id {
+                let mut command =
+                    CommandBuilder::new(resolved_local_shell_program(PSMUX_PROGRAM.to_string()));
+                command.arg("new-session");
+                command.arg("-A");
+                command.arg("-s");
+                command.arg(&session_id);
+                command.arg("--");
+                command.arg(&resolved_program);
+                for arg in &parsed.args {
+                    command.arg(arg);
+                }
+                command
+            } else {
+                let mut command = CommandBuilder::new(resolved_program);
+                if is_cmd {
+                    command.arg("/D");
+                }
+                for arg in &parsed.args {
+                    command.arg(arg);
+                }
+                command
+            };
             sanitize_windows_local_environment(&mut command);
             set_terminal_environment(&mut command);
             apply_managed_terminal_environment(&mut command, &request.environment_variables)?;
@@ -3037,6 +3145,8 @@ mod tests {
             rows: None,
             use_tmux: None,
             tmux_session_id: None,
+            use_psmux: None,
+            psmux_session_id: None,
             ssh_buffer_lines: None,
         }
     }
@@ -3172,6 +3282,8 @@ mod tests {
             rows: None,
             use_tmux: None,
             tmux_session_id: None,
+            use_psmux: None,
+            psmux_session_id: None,
             ssh_buffer_lines: None,
         }
     }
@@ -3388,6 +3500,30 @@ mod tests {
         assert!(required_tmux_session_id("has space".to_string()).is_err());
         assert!(required_tmux_session_id("has:colon".to_string()).is_err());
         assert!(required_tmux_session_id("has:semicolon".to_string()).is_err());
+    }
+
+    #[test]
+    fn psmux_wrapping_targets_only_powershell_family_shells() {
+        // psmux session management mirrors SSH tmux but applies only to the
+        // PowerShell family; cmd / bash / wsl shells are launched plainly.
+        assert!(is_powershell_family_program("powershell.exe"));
+        assert!(is_powershell_family_program("pwsh.exe"));
+        assert!(is_powershell_family_program(r"C:\Program Files\PowerShell\7\pwsh.exe"));
+        assert!(!is_powershell_family_program("cmd.exe"));
+        assert!(!is_powershell_family_program("bash.exe"));
+        assert!(!is_powershell_family_program("wsl.exe"));
+    }
+
+    #[test]
+    fn psmux_session_id_for_launch_validates_and_trims() {
+        assert_eq!(
+            psmux_session_id_for_launch(Some("  cockpit001  ")).as_deref(),
+            Some("cockpit001")
+        );
+        assert_eq!(psmux_session_id_for_launch(None), None);
+        assert_eq!(psmux_session_id_for_launch(Some("   ")), None);
+        // tmux/psmux target delimiters are rejected, matching the SSH path.
+        assert_eq!(psmux_session_id_for_launch(Some("has:colon")), None);
     }
 
     #[test]

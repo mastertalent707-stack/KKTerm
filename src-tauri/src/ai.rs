@@ -2968,6 +2968,7 @@ fn connection_request_schema(include_id: bool) -> Value {
         ("url".to_string(), json!({"type":["string","null"]})),
         ("dataPartition".to_string(), json!({"type":["string","null"]})),
         ("useTmuxSessions".to_string(), json!({"type":["boolean","null"]})),
+        ("usePsmuxSessions".to_string(), json!({"type":["boolean","null"]})),
         ("serialLine".to_string(), json!({"type":["string","null"]})),
         ("serialSpeed".to_string(), json!({"type":["integer","null"],"minimum":1})),
     ]);

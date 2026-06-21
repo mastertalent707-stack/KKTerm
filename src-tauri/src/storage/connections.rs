@@ -64,6 +64,8 @@ impl Storage {
         let id = make_connection_id(&name);
         let use_tmux_sessions =
             normalize_use_tmux_sessions(request.use_tmux_sessions, &connection_type);
+        let use_psmux_sessions =
+            normalize_use_psmux_sessions(request.use_psmux_sessions, &connection_type);
         let tmux_connection_id = if use_tmux_sessions {
             Some(make_tmux_connection_id(&id))
         } else {
@@ -90,8 +92,8 @@ impl Storage {
         transaction
             .execute(
                 "INSERT INTO connections (
-                    id, folder_id, name, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, ssh_port_forwardings_json, file_view_open_external, connection_type, status, sort_order, workspace_id
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, 'idle', ?28, ?29)",
+                    id, folder_id, name, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, use_psmux_sessions, tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, ssh_port_forwardings_json, file_view_open_external, connection_type, status, sort_order, workspace_id
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, 'idle', ?29, ?30)",
                 params![
                     id,
                     folder_id,
@@ -111,6 +113,7 @@ impl Storage {
                     url,
                     data_partition,
                     use_tmux_sessions,
+                    use_psmux_sessions,
                     tmux_connection_id,
                     serial_line,
                     serial_speed,
@@ -157,6 +160,7 @@ impl Storage {
             url,
             data_partition,
             use_tmux_sessions,
+            use_psmux_sessions,
             tmux_connection_id,
             serial_line,
             serial_speed,
@@ -244,15 +248,16 @@ impl Storage {
         let transaction = connection.transaction().map_err(to_storage_error)?;
         let existing = transaction
             .query_row(
-                "SELECT folder_id, connection_type, use_tmux_sessions, tmux_connection_id, workspace_id FROM connections WHERE id = ?1",
+                "SELECT folder_id, connection_type, use_tmux_sessions, use_psmux_sessions, tmux_connection_id, workspace_id FROM connections WHERE id = ?1",
                 params![&id],
                 |row| {
                     Ok((
                         row.get::<_, Option<String>>(0)?,
                         row.get::<_, String>(1)?,
                         row.get::<_, bool>(2)?,
-                        row.get::<_, Option<String>>(3)?,
+                        row.get::<_, bool>(3)?,
                         row.get::<_, Option<String>>(4)?,
+                        row.get::<_, Option<String>>(5)?,
                     ))
                 },
             )
@@ -264,6 +269,7 @@ impl Storage {
             source_folder_id,
             existing_connection_type,
             existing_use_tmux_sessions,
+            existing_use_psmux_sessions,
             existing_tmux_connection_id,
             existing_workspace_id,
         ) = existing;
@@ -285,6 +291,13 @@ impl Storage {
             Some(existing_tmux_connection_id.unwrap_or_else(|| make_tmux_connection_id(&id)))
         } else {
             None
+        };
+        let use_psmux_sessions = if connection_type == "local" {
+            request
+                .use_psmux_sessions
+                .unwrap_or(existing_use_psmux_sessions)
+        } else {
+            false
         };
         let source_workspace_id = match source_folder_id.as_deref() {
             Some(folder_id) => folder_workspace_id(&transaction, folder_id)?,
@@ -332,17 +345,18 @@ impl Storage {
                      url = ?15,
                      data_partition = ?16,
                      use_tmux_sessions = ?17,
-                     tmux_connection_id = ?18,
-                     serial_line = ?19,
-                     serial_speed = ?20,
-                     rdp_options = ?21,
-                     vnc_options = ?22,
-                     ftp_options = ?23,
-                     ssh_port_forwardings_json = ?24,
-                     file_view_open_external = ?25,
-                     sort_order = ?26,
-                     workspace_id = ?27
-                 WHERE id = ?28",
+                     use_psmux_sessions = ?18,
+                     tmux_connection_id = ?19,
+                     serial_line = ?20,
+                     serial_speed = ?21,
+                     rdp_options = ?22,
+                     vnc_options = ?23,
+                     ftp_options = ?24,
+                     ssh_port_forwardings_json = ?25,
+                     file_view_open_external = ?26,
+                     sort_order = ?27,
+                     workspace_id = ?28
+                 WHERE id = ?29",
                 params![
                     target_folder_id,
                     name,
@@ -361,6 +375,7 @@ impl Storage {
                     url,
                     data_partition,
                     use_tmux_sessions,
+                    use_psmux_sessions,
                     tmux_connection_id,
                     serial_line,
                     serial_speed,
@@ -1228,7 +1243,7 @@ impl Storage {
 
         let source = transaction
             .query_row(
-                "SELECT folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, workspace_id, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json
+                "SELECT folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, use_psmux_sessions, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, workspace_id, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json
                  FROM connections
                  WHERE id = ?1",
                 params![source_id],
@@ -1252,17 +1267,18 @@ impl Storage {
                         row.get::<_, Option<String>>(15)?,
                         row.get::<_, Option<String>>(16)?,
                         row.get::<_, bool>(17)?,
-                        row.get::<_, Option<String>>(18)?,
-                        optional_serial_speed(row.get::<_, Option<i64>>(19)?)?,
-                        row.get::<_, String>(20)?,
-                        row.get::<_, Option<String>>(21)?,
+                        row.get::<_, bool>(18)?,
+                        row.get::<_, Option<String>>(19)?,
+                        optional_serial_speed(row.get::<_, Option<i64>>(20)?)?,
+                        row.get::<_, String>(21)?,
                         row.get::<_, Option<String>>(22)?,
-                        normalize_loaded_terminal_opacity(row.get::<_, Option<i64>>(23)?),
-                        terminal_background_from_json(row.get::<_, Option<String>>(24)?),
-                        row.get::<_, Option<String>>(25)?,
-                        file_browser_view_options_from_json(row.get::<_, Option<String>>(26)?),
-                        row.get::<_, bool>(27)?,
-                        ssh_port_forwardings_from_json(row.get::<_, Option<String>>(28)?),
+                        row.get::<_, Option<String>>(23)?,
+                        normalize_loaded_terminal_opacity(row.get::<_, Option<i64>>(24)?),
+                        terminal_background_from_json(row.get::<_, Option<String>>(25)?),
+                        row.get::<_, Option<String>>(26)?,
+                        file_browser_view_options_from_json(row.get::<_, Option<String>>(27)?),
+                        row.get::<_, bool>(28)?,
+                        ssh_port_forwardings_from_json(row.get::<_, Option<String>>(29)?),
                     ))
                 },
             )
@@ -1288,6 +1304,7 @@ impl Storage {
             url,
             data_partition,
             use_tmux_sessions,
+            use_psmux_sessions,
             serial_line,
             serial_speed,
             connection_type,
@@ -1320,8 +1337,8 @@ impl Storage {
         transaction
             .execute(
                 "INSERT INTO connections (
-                    id, folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, status, sort_order, workspace_id
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, 'idle', ?31, ?32)",
+                    id, folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, use_psmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, status, sort_order, workspace_id
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, 'idle', ?32, ?33)",
                 params![
                     duplicate_id,
                     folder_id,
@@ -1342,6 +1359,7 @@ impl Storage {
                     url,
                     data_partition,
                     use_tmux_sessions,
+                    use_psmux_sessions,
                     tmux_connection_id,
                     serial_line,
                     serial_speed,
@@ -1605,7 +1623,7 @@ impl Storage {
                             id, folder_id, workspace_id, name, tab_title, host, username, port,
                             key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults,
                             auth_method, local_shell, local_startup_directory,
-                            local_startup_script, url, data_partition, use_tmux_sessions,
+                            local_startup_script, url, data_partition, use_tmux_sessions, use_psmux_sessions,
                             tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
                             ftp_options, password_credential_id, icon_data_url, icon_background_color,
                             terminal_opacity, terminal_background_json, file_view_open_external,
@@ -1615,7 +1633,7 @@ impl Storage {
                             ?1, NULL, ?2, name, tab_title, host, username, port,
                             key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults,
                             auth_method, local_shell, local_startup_directory,
-                            local_startup_script, url, data_partition, use_tmux_sessions,
+                            local_startup_script, url, data_partition, use_tmux_sessions, use_psmux_sessions,
                             ?3, serial_line, serial_speed, rdp_options, vnc_options,
                             ftp_options, password_credential_id, icon_data_url, icon_background_color,
                             terminal_opacity, terminal_background_json, file_view_open_external,

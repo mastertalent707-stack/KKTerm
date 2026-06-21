@@ -337,12 +337,24 @@ function connectionUsesTmux(connection: Connection) {
   return connection.type === "ssh" && connection.useTmuxSessions !== false;
 }
 
+// psmux is the local-shell counterpart to SSH tmux: a native Windows multiplexer
+// opted into per local PowerShell Connection. Both reuse the same pane session-id
+// pool (ai.tmuxSessionLabels) and pane.tmuxSessionId slot, since a pane is either
+// SSH-tmux or local-psmux, never both.
+export function connectionUsesPsmux(connection: Connection) {
+  return connection.type === "local" && connection.usePsmuxSessions === true;
+}
+
+function connectionUsesMultiplexer(connection: Connection) {
+  return connectionUsesTmux(connection) || connectionUsesPsmux(connection);
+}
+
 function isRemoteDesktopConnection(connection: Connection) {
   return connection.type === "rdp" || connection.type === "vnc";
 }
 
 export function tmuxSessionIdsForConnection(connection: Connection, count: number) {
-  if (!connectionUsesTmux(connection)) {
+  if (!connectionUsesMultiplexer(connection)) {
     return [];
   }
   const sessionIds = loadStoredTmuxSessionIds(connection.id).slice(0, count);
@@ -354,7 +366,7 @@ export function tmuxSessionIdsForConnection(connection: Connection, count: numbe
 }
 
 export function appendTmuxSessionId(connection: Connection) {
-  if (!connectionUsesTmux(connection)) {
+  if (!connectionUsesMultiplexer(connection)) {
     return undefined;
   }
   const sessionIds = loadStoredTmuxSessionIds(connection.id);
@@ -920,7 +932,9 @@ function refreshTerminalPaneConnection(
   connection: Connection,
   toolbarTitle = toolbarTitleForConnection(connection),
 ): TerminalPane {
-  const tmuxDisabled = connection.type === "ssh" && connection.useTmuxSessions === false;
+  const tmuxDisabled =
+    (connection.type === "ssh" && connection.useTmuxSessions === false) ||
+    (connection.type === "local" && connection.usePsmuxSessions !== true);
   return {
     ...pane,
     connection,

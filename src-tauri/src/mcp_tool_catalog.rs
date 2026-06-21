@@ -697,6 +697,7 @@ fn connection_create_input_schema() -> Value {
             "url": {"type": ["string", "null"]},
             "dataPartition": {"type": ["string", "null"]},
             "useTmuxSessions": {"type": ["boolean", "null"]},
+            "usePsmuxSessions": {"type": ["boolean", "null"]},
             "serialLine": {"type": ["string", "null"]},
             "serialSpeed": {"type": ["integer", "null"], "minimum": 1},
         },
