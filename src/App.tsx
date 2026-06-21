@@ -175,7 +175,9 @@ function App() {
   const appShellRef = useRef<HTMLDivElement | null>(null);
   const {
     aiPanelLayout,
+    aiPanelAnimating,
     connectionPanelLayout,
+    connectionPanelAnimating,
     expandConnectionPanel,
     expandAiPanel,
     handleAiPanelResize,
@@ -197,10 +199,12 @@ function App() {
   useGlobalContextMenuSuppression();
   useAppShellAppearance({
     aiPanelLayout,
+    aiPanelAnimating,
     appliedColorScheme,
     appShellRef,
     appearanceSettings,
     connectionPanelLayout,
+    connectionPanelAnimating,
   });
 
   useEffect(() => {
@@ -336,10 +340,12 @@ function App() {
         onNavigate={navigateToPage}
       />
       <div key="workspace-page" className="workspace-page" {...ariaHidden(visibleBasePage !== "workspace")}>
-        <ConnectionSidebar
-          onExternalOpenConnection={() => navigateToPage("workspace")}
-          onTogglePanel={toggleConnectionPanel}
-        />
+        <div className="connection-panel-slot">
+          <ConnectionSidebar
+            onExternalOpenConnection={() => navigateToPage("workspace")}
+            onTogglePanel={toggleConnectionPanel}
+          />
+        </div>
         {connectionPanelLayout.collapsed ? (
           <div className="connection-collapsed-separator" aria-hidden="true" />
         ) : (
@@ -369,16 +375,18 @@ function App() {
         onClick={aiPanelLayout.collapsed ? expandAiPanel : undefined}
         onPointerDown={handleAiPanelResize}
       />
-      <AssistantPanel
-        key="assistant-panel"
-        collapsed={aiPanelLayout.collapsed}
-        onOpenDashboard={openDashboardPage}
-        onOpenSettings={() => navigateToPage("settings")}
-        onOpenWorkspace={() => navigateToPage("workspace")}
-        onTogglePanel={toggleAiPanel}
-        onTutorialRequest={handleTutorialRequest}
-        pageContext={assistantPageContext()}
-      />
+      <div className="assistant-panel-slot">
+        <AssistantPanel
+          key="assistant-panel"
+          collapsed={aiPanelLayout.collapsed}
+          onOpenDashboard={openDashboardPage}
+          onOpenSettings={() => navigateToPage("settings")}
+          onOpenWorkspace={() => navigateToPage("workspace")}
+          onTogglePanel={toggleAiPanel}
+          onTutorialRequest={handleTutorialRequest}
+          pageContext={assistantPageContext()}
+        />
+      </div>
       {activePage === "settings" ? (
         <SettingsPage
           key="settings-page"

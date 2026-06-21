@@ -18,6 +18,7 @@ const AI_PANEL_MAX_WIDTH = 1860;
 const CONNECTION_PANEL_LAYOUT_KEY = "kkterm.layout.connectionsPanel.v1";
 const AI_PANEL_LAYOUT_KEY = "kkterm.layout.aiAssistPanel.v2";
 const PANEL_ANIMATION_MS = 180;
+type AnimatingPanel = "connection" | "ai";
 
 const defaultConnectionPanelLayout: PanelLayoutState = {
   collapsed: false,
@@ -132,7 +133,7 @@ export function useWorkspaceChromeLayout(
       AI_PANEL_MAX_WIDTH,
     ),
   );
-  const [panelAnimating, setPanelAnimating] = useState(false);
+  const [animatingPanel, setAnimatingPanel] = useState<AnimatingPanel | null>(null);
   const prefersReducedMotion = useMemo(
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     [],
@@ -147,41 +148,41 @@ export function useWorkspaceChromeLayout(
   }, [aiPanelLayout]);
 
   useEffect(() => {
-    if (!panelAnimating) {
+    if (!animatingPanel) {
       return;
     }
-    const timer = setTimeout(() => setPanelAnimating(false), PANEL_ANIMATION_MS);
+    const timer = setTimeout(() => setAnimatingPanel(null), PANEL_ANIMATION_MS);
     return () => clearTimeout(timer);
-  }, [panelAnimating]);
+  }, [animatingPanel]);
 
-  function beginPanelAnimation() {
+  function beginPanelAnimation(panel: AnimatingPanel) {
     if (!prefersReducedMotion) {
-      setPanelAnimating(true);
+      setAnimatingPanel(panel);
     }
   }
 
   function toggleConnectionPanel() {
-    beginPanelAnimation();
+    beginPanelAnimation("connection");
     setConnectionPanelLayout((layout) => ({ ...layout, collapsed: !layout.collapsed }));
   }
 
   function expandConnectionPanel() {
-    beginPanelAnimation();
+    beginPanelAnimation("connection");
     setConnectionPanelLayout((layout) => ({ ...layout, collapsed: false }));
   }
 
   function toggleAiPanel() {
-    beginPanelAnimation();
+    beginPanelAnimation("ai");
     setAiPanelLayout((layout) => ({ ...layout, collapsed: !layout.collapsed }));
   }
 
   function expandAiPanel() {
-    beginPanelAnimation();
+    beginPanelAnimation("ai");
     setAiPanelLayout((layout) => ({ ...layout, collapsed: false }));
   }
 
   function handleConnectionPanelResize(event: ReactPointerEvent<HTMLButtonElement>) {
-    setPanelAnimating(false);
+    setAnimatingPanel(null);
     const startX = event.clientX;
     const startWidth = connectionPanelLayout.collapsed
       ? 0
@@ -201,7 +202,7 @@ export function useWorkspaceChromeLayout(
   }
 
   function handleAiPanelResize(event: ReactPointerEvent<HTMLButtonElement>) {
-    setPanelAnimating(false);
+    setAnimatingPanel(null);
     const startX = event.clientX;
     const startWidth = aiPanelLayout.collapsed ? 0 : aiPanelLayout.width;
 
@@ -227,12 +228,14 @@ export function useWorkspaceChromeLayout(
 
   return {
     aiPanelLayout,
+    aiPanelAnimating: animatingPanel === "ai",
     connectionPanelLayout,
+    connectionPanelAnimating: animatingPanel === "connection",
     expandConnectionPanel,
     expandAiPanel,
     handleAiPanelResize,
     handleConnectionPanelResize,
-    panelAnimating,
+    panelAnimating: animatingPanel !== null,
     resetWorkspaceChromeLayout,
     toggleAiPanel,
     toggleConnectionPanel,

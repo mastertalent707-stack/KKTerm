@@ -60,16 +60,28 @@ test("custom titlebar panel buttons match module scope", async () => {
 });
 
 test("collapsed AI Assistant strip is hidden when the titlebar toggle is available", async () => {
-  const [appSource, layoutSource, effectsSource] = await Promise.all([
+  const [appSource, layoutSource, effectsSource, appCssSource, assistantCssSource] = await Promise.all([
     readFile(new URL("../src/App.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/app/workspaceChromeLayout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/app/appShellEffects.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/app.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/ai/assistant.css", import.meta.url), "utf8"),
   ]);
 
   assert.match(
     appSource,
     /showCollapsedTab=\{false\}/,
     "App should hide the right collapsed strip because the custom titlebar can reopen the panel",
+  );
+  assert.match(
+    appSource,
+    /<div className="connection-panel-slot">[\s\S]*?<ConnectionSidebar/,
+    "the Connections panel should slide inside a clipping slot instead of translating the grid item itself",
+  );
+  assert.match(
+    appSource,
+    /<div className="assistant-panel-slot">[\s\S]*?<AssistantPanel/,
+    "the AI Assistant panel should slide inside a clipping slot instead of translating the grid item itself",
   );
   assert.match(
     layoutSource,
@@ -80,6 +92,61 @@ test("collapsed AI Assistant strip is hidden when the titlebar toggle is availab
     effectsSource,
     /--ai-resize-width", aiPanelLayout\.collapsed \? "0px" : "3px"/,
     "the AI resize grid column should collapse to zero width with the strip hidden",
+  );
+  assert.match(
+    layoutSource,
+    /aiPanelAnimating/,
+    "AI panel animation state should be tracked separately from the left Connections panel",
+  );
+  assert.match(
+    layoutSource,
+    /connectionPanelAnimating/,
+    "Connections panel animation state should be tracked separately so the tree can slide without animating the whole shell grid",
+  );
+  assert.match(
+    appSource,
+    /useAppShellAppearance\(\{[\s\S]*?aiPanelAnimating/,
+    "the app shell appearance hook should receive AI-only animation state",
+  );
+  assert.match(
+    appSource,
+    /useAppShellAppearance\(\{[\s\S]*?connectionPanelAnimating/,
+    "the app shell appearance hook should receive Connections-panel-only animation state",
+  );
+  assert.match(
+    effectsSource,
+    /aiPanelVisibleForLayout\s*=\s*!aiPanelLayout\.collapsed\s*\|\|\s*aiPanelAnimating/,
+    "the AI panel should keep its layout width only while its own slide-out animation is running",
+  );
+  assert.match(
+    effectsSource,
+    /connectionPanelVisibleForLayout\s*=\s*!connectionPanelLayout\.collapsed\s*\|\|\s*connectionPanelAnimating/,
+    "the Connections panel should keep its layout width only while its own slide-out animation is running",
+  );
+  assert.match(
+    assistantCssSource,
+    /\.assistant-panel\s*\{[^}]*transition:[^}]*transform 180ms cubic-bezier\(0\.2,\s*0,\s*0,\s*1\)/s,
+    "the AI panel surface should animate with transform instead of animating the whole shell grid",
+  );
+  assert.match(
+    appCssSource,
+    /\.ai-assist-collapsed\s+\.assistant-panel\s*\{[^}]*transform:\s*translateX\(100%\)/s,
+    "collapsed AI Assistant panel should slide out to the right",
+  );
+  assert.match(
+    appCssSource,
+    /\.connection-sidebar\s*\{[^}]*transition:[^}]*transform 180ms cubic-bezier\(0\.2,\s*0,\s*0,\s*1\)/s,
+    "the Connections panel surface should animate with transform instead of animating the whole shell grid",
+  );
+  assert.match(
+    appCssSource,
+    /\.app-shell\.panel-animating\s+\.connection-panel-slot,\s*\.app-shell\.panel-animating\s+\.assistant-panel-slot\s*\{[^}]*overflow:\s*clip;/s,
+    "panel slots should clip translated panel content while animating so the animation cannot create horizontal window overflow",
+  );
+  assert.match(
+    appCssSource,
+    /\.connections-collapsed\s+\.connection-sidebar\s*\{[^}]*transform:\s*translateX\(-100%\)/s,
+    "collapsed Connections panel should slide out to the left",
   );
 });
 

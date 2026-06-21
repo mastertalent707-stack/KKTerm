@@ -251,16 +251,20 @@ function isEditableContextMenuTarget(target: EventTarget | null) {
 
 export function useAppShellAppearance({
   aiPanelLayout,
+  aiPanelAnimating,
   appliedColorScheme,
   appShellRef,
   appearanceSettings,
   connectionPanelLayout,
+  connectionPanelAnimating,
 }: {
   aiPanelLayout: PanelLayoutState;
+  aiPanelAnimating: boolean;
   appliedColorScheme: AppliedColorScheme;
   appShellRef: RefObject<HTMLDivElement | null>;
   appearanceSettings: AppearanceSettings;
   connectionPanelLayout: PanelLayoutState;
+  connectionPanelAnimating: boolean;
 }) {
   useEffect(() => {
     const node = document.documentElement;
@@ -297,12 +301,15 @@ export function useAppShellAppearance({
       return;
     }
 
+    const aiPanelVisibleForLayout = !aiPanelLayout.collapsed || aiPanelAnimating;
+    const connectionPanelVisibleForLayout = !connectionPanelLayout.collapsed || connectionPanelAnimating;
+
     node.style.setProperty(
       "--connection-panel-width",
-      connectionPanelLayout.collapsed ? "0px" : `${connectionPanelLayout.width}px`,
+      connectionPanelVisibleForLayout ? `${connectionPanelLayout.width}px` : "0px",
     );
     node.style.setProperty("--connection-resize-width", "3px");
-    node.style.setProperty("--ai-panel-width", aiPanelLayout.collapsed ? "0px" : `${aiPanelLayout.width}px`);
+    node.style.setProperty("--ai-panel-width", aiPanelVisibleForLayout ? `${aiPanelLayout.width}px` : "0px");
     node.style.setProperty("--ai-resize-width", aiPanelLayout.collapsed ? "0px" : "3px");
     node.style.removeProperty("--app-ui-font-family");
     document.documentElement.style.setProperty("--app-ui-font-family", appearanceSettings.appFontFamily);
@@ -312,11 +319,13 @@ export function useAppShellAppearance({
   }, [
     aiPanelLayout.collapsed,
     aiPanelLayout.width,
+    aiPanelAnimating,
     appliedColorScheme,
     appShellRef,
     appearanceSettings.appFontFamily,
     appearanceSettings.colorScheme,
     connectionPanelLayout.collapsed,
     connectionPanelLayout.width,
+    connectionPanelAnimating,
   ]);
 }
