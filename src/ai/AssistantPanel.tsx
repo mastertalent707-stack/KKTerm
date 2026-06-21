@@ -162,6 +162,10 @@ function formatContextUsagePercent(value: number) {
   return `${Math.max(0, Math.min(100, Math.round(value)))}%`;
 }
 
+function focusWithoutScrolling(element: HTMLElement | null | undefined) {
+  element?.focus({ preventScroll: true });
+}
+
 
 export function AssistantPanel({
   collapsed,
@@ -432,7 +436,7 @@ export function AssistantPanel({
     }
 
     const frame = window.requestAnimationFrame(() => {
-      composerTextareaRef.current?.focus();
+      focusWithoutScrolling(composerTextareaRef.current);
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -665,7 +669,7 @@ export function AssistantPanel({
         void completeAssistantToolApproval(request.requestId, false);
       });
     window.requestAnimationFrame(() => {
-      composerTextareaRef.current?.focus();
+      focusWithoutScrolling(composerTextareaRef.current);
     });
   }
 
@@ -947,7 +951,7 @@ export function AssistantPanel({
     } catch (error) {
       setChatError(error instanceof Error ? error.message : String(error));
     } finally {
-      composerTextareaRef.current?.focus();
+      focusWithoutScrolling(composerTextareaRef.current);
     }
   }
 
@@ -971,7 +975,7 @@ export function AssistantPanel({
     const all = assistantIntentExamples(intent, t);
     setDisplayedIntentExamples(sampleRandom(all, 3));
     window.requestAnimationFrame(() => {
-      composerTextareaRef.current?.focus();
+      focusWithoutScrolling(composerTextareaRef.current);
     });
   }
 
@@ -979,14 +983,14 @@ export function AssistantPanel({
     setAssistantIntent("chat");
     setDisplayedIntentExamples([]);
     window.requestAnimationFrame(() => {
-      composerTextareaRef.current?.focus();
+      focusWithoutScrolling(composerTextareaRef.current);
     });
   }
 
   function handleUseIntentExample(example: string) {
     setPrompt(example);
     window.requestAnimationFrame(() => {
-      composerTextareaRef.current?.focus();
+      focusWithoutScrolling(composerTextareaRef.current);
     });
   }
 
@@ -1023,7 +1027,7 @@ export function AssistantPanel({
 
     const trimmed = text.trim();
     if (!trimmed) {
-      composerTextareaRef.current?.focus();
+      focusWithoutScrolling(composerTextareaRef.current);
       return;
     }
     const sourceLabel = pane.connection
@@ -1036,7 +1040,7 @@ export function AssistantPanel({
       text: trimmed,
       capturedAt: new Date().toISOString(),
     });
-    composerTextareaRef.current?.focus();
+    focusWithoutScrolling(composerTextareaRef.current);
   }
 
   async function generateThreadTitleFromProvider(
@@ -1088,7 +1092,7 @@ export function AssistantPanel({
     setDisplayedIntentExamples([]);
     setChatError("");
     window.requestAnimationFrame(() => {
-      composerTextareaRef.current?.focus();
+      focusWithoutScrolling(composerTextareaRef.current);
     });
   }
 
@@ -1581,7 +1585,7 @@ export function AssistantPanel({
     const nextCaret = selectionStart + text.length;
     setPrompt(nextPrompt);
     window.requestAnimationFrame(() => {
-      composerTextareaRef.current?.focus();
+      focusWithoutScrolling(composerTextareaRef.current);
       composerTextareaRef.current?.setSelectionRange(nextCaret, nextCaret);
     });
   }
@@ -1655,7 +1659,7 @@ export function AssistantPanel({
             if (selectedText) {
               void writeToClipboard(selectedText);
             }
-            textarea.focus();
+            focusWithoutScrolling(textarea);
           },
         },
         {
@@ -1679,7 +1683,7 @@ export function AssistantPanel({
               if (text) {
                 insertTextIntoComposer(textarea, text);
               } else {
-                textarea.focus();
+                focusWithoutScrolling(textarea);
               }
             });
           },
@@ -1689,7 +1693,7 @@ export function AssistantPanel({
     );
 
     if (!opened) {
-      textarea.focus();
+      focusWithoutScrolling(textarea);
     }
   }
 
@@ -1722,7 +1726,7 @@ export function AssistantPanel({
         { tone: "error" },
       );
     } finally {
-      composerTextareaRef.current?.focus();
+      focusWithoutScrolling(composerTextareaRef.current);
     }
   }
 
@@ -1788,7 +1792,7 @@ export function AssistantPanel({
     if (event.key === "Escape") {
       event.preventDefault();
       setScreenshotRegionState(null);
-      composerTextareaRef.current?.focus();
+      focusWithoutScrolling(composerTextareaRef.current);
     }
   }
 
@@ -1851,7 +1855,7 @@ export function AssistantPanel({
       return;
     }
     const frame = window.requestAnimationFrame(() => {
-      regionTargetRef.current?.parentElement?.focus();
+      focusWithoutScrolling(regionTargetRef.current?.parentElement);
     });
     return () => window.cancelAnimationFrame(frame);
   }, [screenshotRegionState]);

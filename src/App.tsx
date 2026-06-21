@@ -329,8 +329,6 @@ function App() {
         } ${
           connectionPanelLayout.collapsed ? "connections-collapsed" : ""
         } ${aiPanelLayout.collapsed ? "ai-assist-collapsed" : ""} ${
-          connectionPanelAnimating ? "connection-panel-animating" : ""
-        } ${aiPanelAnimating ? "ai-panel-animating" : ""} ${
           statusBarEnabled ? "" : "status-bar-hidden"
         }`}
       >
