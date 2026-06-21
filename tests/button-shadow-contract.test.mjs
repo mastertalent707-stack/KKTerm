@@ -29,6 +29,8 @@ test("raised form controls share the adaptive control shadow token", async () =>
 
   assert.match(css.tokens, /--button-shadow-color:\s*var\(--text\);/);
   assert.match(css.tokens, /--control-shadow:\s*[\s\S]*?var\(--control-shadow-color\)/);
+  assert.match(css.tokens, /var\(--control-shadow-color\) 18%, transparent/);
+  assert.match(css.tokens, /var\(--control-shadow-color\) 36%, transparent/);
   assert.match(css.tokens, /--button-shadow:\s*var\(--control-shadow\);/);
 
   for (const [name, selector] of [
