@@ -427,7 +427,8 @@ fn installer_handoff_command(installer_path: &Path, parent_pid: u32) -> String {
     );
     format!(
         "Wait-Process -Id {parent_pid} -Timeout 30 -ErrorAction SilentlyContinue; \
-         $installerProcess = Start-Process -FilePath {installer} -Wait -PassThru; \
+         $installerProcess = Start-Process -FilePath {installer} -PassThru; \
+         Wait-Process -Id $installerProcess.Id; \
          if ($installerProcess.ExitCode -eq 0) {{ \
              Remove-Item -LiteralPath {installer} -Force; \
              Remove-Item -LiteralPath {update_dir} -Force -ErrorAction SilentlyContinue \
@@ -493,7 +494,8 @@ mod tests {
         );
 
         assert!(command.contains("Wait-Process -Id 42"));
-        assert!(command.contains("Start-Process -FilePath 'C:\\Users\\Tester''s PC\\updates\\kkterm-0.1.96-windows-x64-setup.exe' -Wait -PassThru"));
+        assert!(command.contains("Start-Process -FilePath 'C:\\Users\\Tester''s PC\\updates\\kkterm-0.1.96-windows-x64-setup.exe' -PassThru"));
+        assert!(command.contains("Wait-Process -Id $installerProcess.Id"));
         assert!(command.contains("if ($installerProcess.ExitCode -eq 0)"));
         assert!(command.contains("Remove-Item -LiteralPath 'C:\\Users\\Tester''s PC\\updates\\kkterm-0.1.96-windows-x64-setup.exe' -Force"));
         assert!(command.contains("Remove-Item -LiteralPath 'C:\\Users\\Tester''s PC\\updates' -Force -ErrorAction SilentlyContinue"));
