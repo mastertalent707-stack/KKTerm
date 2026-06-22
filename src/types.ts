@@ -1073,6 +1073,8 @@ export interface KeychainStatus {
 
 export interface UrlCredentialSummary {
   connectionId: string;
+  pageKey: string;
+  secretOwnerId: string;
   connectionName: string;
   url?: string;
   pageUrl?: string;

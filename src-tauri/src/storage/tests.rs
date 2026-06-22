@@ -1370,6 +1370,107 @@ fn url_credentials_reject_non_url_connections() {
 }
 
 #[test]
+fn url_credentials_keep_multiple_page_steps_and_ignore_ephemeral_url_parts() {
+    let storage = Storage::open(temp_db_path("url-credential-pages")).expect("storage opens");
+    let created = storage
+        .create_connection(CreateConnectionRequest {
+            name: "Portal".to_string(),
+            host: String::new(),
+            user: String::new(),
+            connection_type: "url".to_string(),
+            folder_id: None,
+            port: None,
+            key_path: None,
+            proxy_jump: None,
+            ssh_socks_proxy: None,
+            ssh_socks_proxy_username: None,
+            ssh_socks_proxy_inherit_defaults: None,
+            ssh_compression: None,
+            auth_method: None,
+            local_shell: None,
+            local_startup_directory: None,
+            local_startup_script: None,
+            url: Some("https://portal.example".to_string()),
+            data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
+            use_tmux_sessions: None,
+            use_psmux_sessions: None,
+            serial_line: None,
+            serial_speed: None,
+            rdp_options: None,
+            vnc_options: None,
+            ftp_options: None,
+            file_view_open_external: false,
+            ssh_port_forwardings: None,
+            workspace_id: None,
+        })
+        .expect("URL connection is created");
+
+    storage
+        .upsert_url_credential(UpsertUrlCredentialRequest {
+            connection_id: created.id.clone(),
+            username: "alice".to_string(),
+            page_url: Some("https://portal.example/login?state=one#fragment".to_string()),
+            username_selector: Some("input[name=\"user\"]".to_string()),
+            password_selector: None,
+            field_values: Some("[{\"selector\":\"input[name=\\\"user\\\"]\",\"kind\":\"value\",\"value\":\"alice\"}]".to_string()),
+        })
+        .expect("username step is stored");
+    storage
+        .upsert_url_credential(UpsertUrlCredentialRequest {
+            connection_id: created.id.clone(),
+            username: "password-step".to_string(),
+            page_url: Some("https://portal.example/password?nonce=two".to_string()),
+            username_selector: None,
+            password_selector: Some("input[type=\"password\"]".to_string()),
+            field_values: None,
+        })
+        .expect("password step is stored");
+    storage
+        .upsert_url_credential(UpsertUrlCredentialRequest {
+            connection_id: created.id.clone(),
+            username: "alice-updated".to_string(),
+            page_url: Some("https://portal.example/login?state=three".to_string()),
+            username_selector: Some("input[name=\"username\"]".to_string()),
+            password_selector: None,
+            field_values: None,
+        })
+        .expect("same page key updates the username step");
+
+    let credentials = storage.list_url_credentials().expect("credentials list");
+    let portal_credentials: Vec<_> = credentials
+        .iter()
+        .filter(|credential| credential.connection_id == created.id)
+        .collect();
+    assert_eq!(portal_credentials.len(), 2);
+
+    let username_step = storage
+        .url_credential_fill(&created.id, Some("https://portal.example/login?state=four"))
+        .expect("username step lookup succeeds")
+        .expect("username step exists");
+    let password_step = storage
+        .url_credential_fill(&created.id, Some("https://portal.example/password?nonce=five#ignored"))
+        .expect("password step lookup succeeds")
+        .expect("password step exists");
+
+    assert_eq!(username_step.username, "alice-updated");
+    assert_eq!(
+        username_step.username_selector.as_deref(),
+        Some("input[name=\"username\"]")
+    );
+    assert_eq!(password_step.username, "password-step");
+    assert_ne!(username_step.secret_owner_id, password_step.secret_owner_id);
+    assert!(username_step.secret_owner_id.len() <= 128);
+    assert!(
+        storage
+            .url_credential_fill(&created.id, Some("https://portal.example/unknown"))
+            .expect("unknown lookup succeeds")
+            .is_none()
+    );
+}
+
+#[test]
 fn rename_connection_updates_durable_connection_name() {
     let storage = Storage::open(temp_db_path("rename")).expect("storage opens");
     let staging = storage

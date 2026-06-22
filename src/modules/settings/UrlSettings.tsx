@@ -89,7 +89,7 @@ export function UrlSettings() {
       ]);
       setCredentials(credentialRows);
       setPartitions(partitionRows);
-      if (editingCredentialId && !credentialRows.some((credential) => credential.connectionId === editingCredentialId)) {
+      if (editingCredentialId && !credentialRows.some((credential) => credential.secretOwnerId === editingCredentialId)) {
         setEditingCredentialId(null);
         setCredentialDraft(null);
       }
@@ -134,7 +134,7 @@ export function UrlSettings() {
   }
 
   function beginCredentialEdit(credential: UrlCredentialSummary) {
-    setEditingCredentialId(credential.connectionId);
+    setEditingCredentialId(credential.secretOwnerId);
     setCredentialDraft(draftFromCredential(credential));
   }
 
@@ -147,25 +147,26 @@ export function UrlSettings() {
     setCredentialDraft((currentDraft) => (currentDraft ? { ...currentDraft, [field]: value } : currentDraft));
   }
 
-  async function saveCredentialEdit(connectionId: string) {
+  async function saveCredentialEdit(secretOwnerId: string) {
     if (!credentialDraft) {
       return;
     }
+    const credential = credentials.find((candidate) => candidate.secretOwnerId === secretOwnerId);
     try {
       if (credentialDraft.password) {
         await invokeCommand("store_secret", {
           request: {
             kind: "urlPassword",
-            ownerId: connectionId,
+            ownerId: secretOwnerId,
             secret: credentialDraft.password,
           },
         });
       }
       await invokeCommand("upsert_url_credential", {
         request: {
-          connectionId,
+          connectionId: credential?.connectionId ?? secretOwnerId,
           username: credentialDraft.username,
-          pageUrl: credentials.find((credential) => credential.connectionId === connectionId)?.pageUrl,
+          pageUrl: credential?.pageUrl,
           usernameSelector: credentialDraft.usernameSelector || undefined,
           passwordSelector: credentialDraft.passwordSelector || undefined,
           fieldValues: credentialDraft.fieldValues || undefined,
@@ -280,13 +281,13 @@ export function UrlSettings() {
         ) : (
           <div className="settings-list" aria-label={t("settings.savedWebsitePasswords")}>
             {credentials.map((credential) => (
-              <div className="settings-list-row" key={credential.connectionId}>
-                {editingCredentialId === credential.connectionId && credentialDraft ? (
+              <div className="settings-list-row" key={credential.secretOwnerId}>
+                {editingCredentialId === credential.secretOwnerId && credentialDraft ? (
                   <>
                     <div className="settings-credential-edit">
                       <div className="settings-list-row-heading">
                         <strong>{credential.connectionName}</strong>
-                        <span>{credential.url ?? t("settings.notSet")}</span>
+                        <span>{credential.pageUrl ?? credential.url ?? t("settings.notSet")}</span>
                       </div>
                       <div className="form-grid two-columns">
                         <label>
@@ -332,7 +333,7 @@ export function UrlSettings() {
                         className="secondary-button"
                         disabled={credentialDraft.username.trim().length === 0}
                         type="button"
-                        onClick={() => void saveCredentialEdit(credential.connectionId)}
+                        onClick={() => void saveCredentialEdit(credential.secretOwnerId)}
                       >
                         <Save size={15} />
                         {t("common.save")}
@@ -347,7 +348,7 @@ export function UrlSettings() {
                   <>
                     <div className="settings-credential-summary">
                       <strong>{credential.connectionName}</strong>
-                      <span>{t("settings.credentialSavedPassword")}</span>
+                      <span>{credential.pageUrl ?? credential.url ?? t("settings.credentialSavedPassword")}</span>
                     </div>
                     <div className="settings-list-actions">
                       <button className="secondary-button" type="button" onClick={() => beginCredentialEdit(credential)}>
@@ -377,7 +378,7 @@ export function UrlSettings() {
           onConfirm={() => {
             const credential = deleteTarget;
             setDeleteTarget(null);
-            void deleteCredential(credential.connectionId);
+            void deleteCredential(credential.secretOwnerId);
           }}
         />
       ) : null}

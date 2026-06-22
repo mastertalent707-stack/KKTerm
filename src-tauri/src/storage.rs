@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 32;
+const SCHEMA_USER_VERSION: i32 = 33;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -92,13 +92,16 @@ CREATE TABLE IF NOT EXISTS connection_tags (
 );
 
 CREATE TABLE IF NOT EXISTS url_credentials (
-    connection_id TEXT PRIMARY KEY REFERENCES connections(id) ON DELETE CASCADE,
+    connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+    page_key TEXT NOT NULL DEFAULT '__legacy__',
+    secret_owner_id TEXT NOT NULL,
     username TEXT NOT NULL,
     page_url TEXT,
     username_selector TEXT,
     password_selector TEXT,
     field_values TEXT,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (connection_id, page_key)
 );
 
 CREATE INDEX IF NOT EXISTS idx_connections_folder_sort
@@ -1385,6 +1388,8 @@ pub struct UpsertUrlCredentialRequest {
 #[serde(rename_all = "camelCase")]
 pub struct UrlCredentialSummary {
     connection_id: String,
+    page_key: String,
+    secret_owner_id: String,
     connection_name: String,
     url: Option<String>,
     page_url: Option<String>,
@@ -1457,6 +1462,7 @@ pub(crate) fn ai_provider_secret_owner_id(provider_kind: &str) -> String {
 
 #[derive(Clone)]
 pub(crate) struct UrlCredentialFill {
+    pub(crate) secret_owner_id: String,
     pub(crate) username: String,
     pub(crate) username_selector: Option<String>,
     pub(crate) password_selector: Option<String>,
@@ -1860,6 +1866,7 @@ impl Storage {
         )?;
         ensure_column(&connection, "connections", "local_startup_script", "TEXT")?;
         ensure_column(&connection, "url_credentials", "field_values", "TEXT")?;
+        migrate_url_credentials_page_keys(&connection)?;
         ensure_column(
             &connection,
             "dashboard_custom_widgets",
@@ -2404,6 +2411,70 @@ fn ensure_column(
     Ok(())
 }
 
+fn migrate_url_credentials_page_keys(connection: &SqliteConnection) -> Result<(), String> {
+    let mut statement = connection
+        .prepare("PRAGMA table_info(url_credentials)")
+        .map_err(to_storage_error)?;
+    let columns = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(5)?,
+            ))
+        })
+        .map_err(to_storage_error)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(to_storage_error)?;
+    let has_page_key = columns.iter().any(|(name, _)| name == "page_key");
+    let has_secret_owner_id = columns.iter().any(|(name, _)| name == "secret_owner_id");
+    let connection_id_is_only_pk = columns
+        .iter()
+        .find(|(name, _)| name == "connection_id")
+        .is_some_and(|(_, pk)| *pk == 1)
+        && columns
+            .iter()
+            .find(|(name, _)| name == "page_key")
+            .is_none_or(|(_, pk)| *pk == 0);
+    if has_page_key && has_secret_owner_id && !connection_id_is_only_pk {
+        return Ok(());
+    }
+
+    connection
+        .execute_batch(
+            r#"
+            ALTER TABLE url_credentials RENAME TO url_credentials_pre_page_keys;
+            CREATE TABLE url_credentials (
+                connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+                page_key TEXT NOT NULL DEFAULT '__legacy__',
+                secret_owner_id TEXT NOT NULL,
+                username TEXT NOT NULL,
+                page_url TEXT,
+                username_selector TEXT,
+                password_selector TEXT,
+                field_values TEXT,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (connection_id, page_key)
+            );
+            INSERT INTO url_credentials (
+                connection_id, page_key, secret_owner_id, username, page_url,
+                username_selector, password_selector, field_values, updated_at
+            )
+            SELECT
+                connection_id, '__legacy__', connection_id, username, page_url,
+                username_selector, password_selector, field_values, updated_at
+            FROM url_credentials_pre_page_keys
+            WHERE EXISTS (
+                SELECT 1 FROM connections
+                WHERE connections.id = url_credentials_pre_page_keys.connection_id
+            );
+            DROP TABLE url_credentials_pre_page_keys;
+            CREATE INDEX IF NOT EXISTS idx_url_credentials_connection
+                ON url_credentials(connection_id);
+            "#,
+        )
+        .map_err(to_storage_error)
+}
+
 fn repair_connections_pre_v20_references(connection: &SqliteConnection) -> Result<(), String> {
     repair_connections_scratch_references(connection, "connections_pre_v20", "pre_v20")
 }
@@ -2459,21 +2530,24 @@ fn repair_connections_scratch_references(
 
         ALTER TABLE url_credentials RENAME TO url_credentials_{suffix}_fk_fix;
         CREATE TABLE url_credentials (
-            connection_id TEXT PRIMARY KEY REFERENCES connections(id) ON DELETE CASCADE,
+            connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+            page_key TEXT NOT NULL DEFAULT '__legacy__',
+            secret_owner_id TEXT NOT NULL,
             username TEXT NOT NULL,
             page_url TEXT,
             username_selector TEXT,
             password_selector TEXT,
             field_values TEXT,
-            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (connection_id, page_key)
         );
         INSERT INTO url_credentials (
-            connection_id, username, page_url, username_selector, password_selector,
-            field_values, updated_at
+            connection_id, page_key, secret_owner_id, username, page_url,
+            username_selector, password_selector, field_values, updated_at
         )
         SELECT
-            connection_id, username, page_url, username_selector, password_selector,
-            field_values, updated_at
+            connection_id, '__legacy__', connection_id, username, page_url,
+            username_selector, password_selector, field_values, updated_at
         FROM url_credentials_{suffix}_fk_fix
         WHERE EXISTS (
             SELECT 1 FROM connections WHERE connections.id = url_credentials_{suffix}_fk_fix.connection_id
@@ -2776,26 +2850,26 @@ fn list_url_credential_candidates(
 ) -> Result<Vec<StoredCredentialCandidate>, String> {
     let mut statement = connection
         .prepare(
-            "SELECT connections.id, connections.name, connections.url, url_credentials.page_url,
+            "SELECT url_credentials.secret_owner_id, connections.name, connections.url, url_credentials.page_url,
                     url_credentials.username, url_credentials.updated_at
              FROM url_credentials
              INNER JOIN connections ON connections.id = url_credentials.connection_id
-             ORDER BY lower(connections.name), lower(url_credentials.username)",
+             ORDER BY lower(connections.name), lower(url_credentials.page_key), lower(url_credentials.username)",
         )
         .map_err(to_storage_error)?;
     let rows = statement
         .query_map([], |row| {
-            let connection_id: String = row.get(0)?;
+            let secret_owner_id: String = row.get(0)?;
             let connection_name: String = row.get(1)?;
             let url: Option<String> = row.get(2)?;
             let page_url: Option<String> = row.get(3)?;
             let username: String = row.get(4)?;
             let updated_at: String = row.get(5)?;
             Ok(StoredCredentialCandidate {
-                id: format!("url-password:{connection_id}"),
+                id: format!("url-password:{secret_owner_id}"),
                 kind: "urlPassword".to_string(),
                 secret_kind: "urlPassword".to_string(),
-                owner_id: connection_id,
+                owner_id: secret_owner_id,
                 label: connection_name,
                 detail: page_url.or(url),
                 connection_type: None,
@@ -2967,9 +3041,8 @@ fn list_root_connections_for_workspace(
     let mut statement = connection
         .prepare(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
+                    (SELECT username FROM url_credentials WHERE url_credentials.connection_id = connections.id ORDER BY updated_at DESC LIMIT 1), file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
              FROM connections
-             LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE folder_id IS NULL AND workspace_id = ?1
              ORDER BY sort_order, name",
         )
@@ -3030,9 +3103,8 @@ fn list_connections_for_folder(
     let mut statement = connection
         .prepare(&format!(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
+                    (SELECT username FROM url_credentials WHERE url_credentials.connection_id = connections.id ORDER BY updated_at DESC LIMIT 1), file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
              FROM connections
-             LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE {where_clause}
              ORDER BY sort_order, name",
         ))
@@ -3406,9 +3478,8 @@ fn get_connection_by_id(
     let saved_connection = connection
         .query_row(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
+                    (SELECT username FROM url_credentials WHERE url_credentials.connection_id = connections.id ORDER BY updated_at DESC LIMIT 1), file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
              FROM connections
-             LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE connections.id = ?1",
             params![connection_id],
             |row| {
@@ -3691,6 +3762,55 @@ fn extract_url_host(value: &str) -> Option<String> {
     url::Url::parse(value)
         .ok()
         .and_then(|parsed| parsed.host_str().map(|host| host.to_string()))
+}
+
+const LEGACY_URL_CREDENTIAL_PAGE_KEY: &str = "__legacy__";
+const FNV_OFFSET: u64 = 0xcbf29ce484222325;
+const FNV_PRIME: u64 = 0x100000001b3;
+
+pub(crate) fn normalize_url_credential_page_key(page_url: Option<&str>) -> String {
+    let Some(trimmed) = page_url.map(str::trim).filter(|value| !value.is_empty()) else {
+        return LEGACY_URL_CREDENTIAL_PAGE_KEY.to_string();
+    };
+
+    if let Ok(mut parsed) = url::Url::parse(trimmed) {
+        if matches!(parsed.scheme(), "http" | "https") {
+            let _ = parsed.set_username("");
+            let _ = parsed.set_password(None);
+            parsed.set_query(None);
+            parsed.set_fragment(None);
+            return parsed.to_string();
+        }
+    }
+
+    let normalized = trimmed
+        .split('#')
+        .next()
+        .unwrap_or(trimmed)
+        .split('?')
+        .next()
+        .unwrap_or(trimmed)
+        .trim()
+        .to_string();
+    if normalized.is_empty() {
+        LEGACY_URL_CREDENTIAL_PAGE_KEY.to_string()
+    } else {
+        normalized
+    }
+}
+
+pub(crate) fn url_credential_secret_owner_id(connection_id: &str, page_key: &str) -> String {
+    let connection_id = connection_id.trim();
+    if page_key == LEGACY_URL_CREDENTIAL_PAGE_KEY {
+        return connection_id.to_string();
+    }
+    format!("url:{connection_id}:{:016x}", fnv1a64(page_key))
+}
+
+fn fnv1a64(value: &str) -> u64 {
+    value.as_bytes().iter().fold(FNV_OFFSET, |hash, byte| {
+        (hash ^ u64::from(*byte)).wrapping_mul(FNV_PRIME)
+    })
 }
 
 fn normalize_connection_user(value: String, connection_type: &str) -> Result<String, String> {

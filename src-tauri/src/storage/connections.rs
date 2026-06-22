@@ -669,6 +669,8 @@ impl Storage {
         let connection_id = required_field("connection id", request.connection_id)?;
         let username = required_field("URL credential username", request.username)?;
         let page_url = normalize_optional_text(request.page_url);
+        let page_key = normalize_url_credential_page_key(page_url.as_deref());
+        let secret_owner_id = url_credential_secret_owner_id(&connection_id, &page_key);
         let username_selector = normalize_optional_text(request.username_selector);
         let password_selector = normalize_optional_text(request.password_selector);
         let field_values = normalize_optional_text(request.field_values);
@@ -688,16 +690,17 @@ impl Storage {
 
         connection
             .execute(
-                "INSERT INTO url_credentials (connection_id, username, page_url, username_selector, password_selector, field_values, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, CURRENT_TIMESTAMP)
-                 ON CONFLICT(connection_id) DO UPDATE SET
+                "INSERT INTO url_credentials (connection_id, page_key, secret_owner_id, username, page_url, username_selector, password_selector, field_values, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, CURRENT_TIMESTAMP)
+                 ON CONFLICT(connection_id, page_key) DO UPDATE SET
+                    secret_owner_id = excluded.secret_owner_id,
                     username = excluded.username,
                     page_url = excluded.page_url,
                     username_selector = excluded.username_selector,
                     password_selector = excluded.password_selector,
                     field_values = excluded.field_values,
                     updated_at = CURRENT_TIMESTAMP",
-                params![&connection_id, &username, page_url, username_selector, password_selector, field_values],
+                params![&connection_id, &page_key, &secret_owner_id, &username, page_url, username_selector, password_selector, field_values],
             )
             .map_err(to_storage_error)?;
 
@@ -707,18 +710,25 @@ impl Storage {
     pub(crate) fn url_credential_fill(
         &self,
         connection_id: &str,
+        page_url: Option<&str>,
     ) -> Result<Option<UrlCredentialFill>, String> {
+        let page_key = normalize_url_credential_page_key(page_url);
         let connection = self.lock()?;
         connection
             .query_row(
-                "SELECT username, username_selector, password_selector, field_values FROM url_credentials WHERE connection_id = ?1",
-                params![connection_id],
+                "SELECT secret_owner_id, username, username_selector, password_selector, field_values
+                 FROM url_credentials
+                 WHERE connection_id = ?1 AND page_key IN (?2, ?3)
+                 ORDER BY CASE WHEN page_key = ?2 THEN 0 ELSE 1 END
+                 LIMIT 1",
+                params![connection_id, page_key, LEGACY_URL_CREDENTIAL_PAGE_KEY],
                 |row| {
                     Ok(UrlCredentialFill {
-                        username: row.get(0)?,
-                        username_selector: row.get(1)?,
-                        password_selector: row.get(2)?,
-                        field_values: row.get(3)?,
+                        secret_owner_id: row.get(0)?,
+                        username: row.get(1)?,
+                        username_selector: row.get(2)?,
+                        password_selector: row.get(3)?,
+                        field_values: row.get(4)?,
                     })
                 },
             )
@@ -730,25 +740,28 @@ impl Storage {
         let connection = self.lock()?;
         let mut statement = connection
             .prepare(
-                "SELECT connections.id, connections.name, connections.url, url_credentials.page_url, url_credentials.username,
+                "SELECT connections.id, url_credentials.page_key, url_credentials.secret_owner_id,
+                        connections.name, connections.url, url_credentials.page_url, url_credentials.username,
                         url_credentials.username_selector, url_credentials.password_selector, url_credentials.field_values, url_credentials.updated_at
                  FROM url_credentials
                  INNER JOIN connections ON connections.id = url_credentials.connection_id
-                 ORDER BY lower(connections.name), lower(url_credentials.username)",
+                 ORDER BY lower(connections.name), lower(url_credentials.page_key), lower(url_credentials.username)",
             )
             .map_err(to_storage_error)?;
         let rows = statement
             .query_map([], |row| {
                 Ok(UrlCredentialSummary {
                     connection_id: row.get(0)?,
-                    connection_name: row.get(1)?,
-                    url: row.get(2)?,
-                    page_url: row.get(3)?,
-                    username: row.get(4)?,
-                    username_selector: row.get(5)?,
-                    password_selector: row.get(6)?,
-                    field_values: row.get(7)?,
-                    updated_at: row.get(8)?,
+                    page_key: row.get(1)?,
+                    secret_owner_id: row.get(2)?,
+                    connection_name: row.get(3)?,
+                    url: row.get(4)?,
+                    page_url: row.get(5)?,
+                    username: row.get(6)?,
+                    username_selector: row.get(7)?,
+                    password_selector: row.get(8)?,
+                    field_values: row.get(9)?,
+                    updated_at: row.get(10)?,
                 })
             })
             .map_err(to_storage_error)?;
@@ -756,13 +769,15 @@ impl Storage {
             .map_err(to_storage_error)
     }
 
-    pub fn delete_url_credential(&self, connection_id: String) -> Result<(), String> {
-        let connection_id = required_field("connection id", connection_id)?;
+    pub fn delete_url_credential(&self, owner_id: String) -> Result<(), String> {
+        let owner_id = required_field("URL credential owner id", owner_id)?;
         let connection = self.lock()?;
         connection
             .execute(
-                "DELETE FROM url_credentials WHERE connection_id = ?1",
-                params![connection_id],
+                "DELETE FROM url_credentials
+                 WHERE secret_owner_id = ?1
+                    OR (connection_id = ?1 AND page_key = ?2)",
+                params![owner_id, LEGACY_URL_CREDENTIAL_PAGE_KEY],
             )
             .map_err(to_storage_error)?;
         Ok(())
