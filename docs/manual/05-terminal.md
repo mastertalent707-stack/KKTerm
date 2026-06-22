@@ -26,6 +26,12 @@ Failure shows `terminal.failedToStart` / `terminal.failedToStartDetail`. Outside
 
 When adding or editing a Local Terminal Connection, choosing WSL from `connections.shell` makes KKTerm query the installed WSL distributions with the same `installer_wsl_list_distros` backend used by the Install Helper manager. If distributions are available, the form shows `connections.wslDistribution`; choosing one stores the shell as `wsl.exe --distribution <name>` so the Connection opens that distro directly. Leaving the field at `connections.default` keeps plain `wsl.exe` and follows the Windows default distribution. The terminal toolbar still shows the saved Connection name, such as `WSL - Ubuntu`, rather than the stored launch command. During new Connection creation, an explicit distro choice also seeds the Connection icon from the bundled OS icon set when a matching distro logo exists, unless the user picks an icon manually.
 
+## Telnet compatibility
+
+Telnet Sessions negotiate binary transfer, remote echo, suppress-go-ahead character mode, terminal type, and character-cell window size. KKTerm identifies its xterm.js surface as `XTERM`; when a server repeats the terminal-type request to ask for an alternative, KKTerm answers `VT100`, repeats that final fallback once to mark the end of the list, then cycles back to `XTERM` if the server asks again. LINEMODE and unsupported options are refused so legacy hosts can fall back to interactive character mode. Input escapes Telnet command bytes and follows NVT newline rules until binary mode is enabled. Pane resizes are sent after the server enables NAWS.
+
+For troubleshooting, enable `settings.advancedDebugging` and inspect `telnet.debug.log` from `settings.openLogFolder`. The log records option names/codes, negotiation decisions, selected terminal type, window sizes, lifecycle errors, and byte counts. It deliberately omits terminal contents, typed input, and credential values.
+
 ## Copy and paste
 
 Ctrl-click an `http` or `https` link rendered in any terminal Pane to open it in the OS default browser through KKTerm's external opener. This applies to local, SSH, Telnet, and Serial terminal Sessions because they share the same xterm.js renderer.

@@ -772,6 +772,8 @@ impl SessionManager {
                     user: request.user.clone(),
                     port: request.port.unwrap_or(23),
                     password,
+                    cols: request.cols.unwrap_or(80),
+                    rows: request.rows.unwrap_or(24),
                 },
             )?;
             self.sessions
@@ -1431,14 +1433,14 @@ impl SessionManager {
     }
 
     pub fn resize_terminal(&self, request: ResizeTerminalRequest) -> Result<(), String> {
-        let sessions = self
+        let mut sessions = self
             .sessions
             .lock()
             .map_err(|_| "terminal session lock is poisoned".to_string())?;
         let session = sessions
-            .get(&request.session_id)
+            .get_mut(&request.session_id)
             .ok_or_else(|| "terminal session was not found".to_string())?;
-        match &session.transport {
+        match &mut session.transport {
             TerminalTransport::Pty { master, .. } => master
                 .resize(resize_pty_size(&request))
                 .map_err(|error| format!("failed to resize terminal: {error}")),
@@ -1448,7 +1450,8 @@ impl SessionManager {
                 request.pixel_width.unwrap_or(0),
                 request.pixel_height.unwrap_or(0),
             ),
-            TerminalTransport::NativeTelnet(_) | TerminalTransport::NativeSerial(_) => Ok(()),
+            TerminalTransport::NativeTelnet(session) => session.resize(request.cols, request.rows),
+            TerminalTransport::NativeSerial(_) => Ok(()),
         }
     }
 
