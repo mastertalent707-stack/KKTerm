@@ -49,15 +49,21 @@ Tutorial targets: `webview.toolbar`, `webview.address`, `webview.openExternally`
 
 ## Save & restore form data
 
-KKTerm can remember everything typed into the embedded page and write it back on a
-later visit — not just a login. Pressing **Save form data** captures every visible,
-restorable field (text inputs, textareas, `select` dropdowns, and checkbox/radio
-state) plus the primary password field, without submitting the form. There is no
-need for the page to have a password field at all, so search forms, filters, and
-configuration screens can be saved too.
+KKTerm can remember everything typed into the current embedded page and write it
+back on a later visit — not just a login. Pressing **Save form data** captures
+every visible, restorable field (text inputs, textareas, `select` dropdowns, and
+checkbox/radio state) plus the primary password field, without submitting the
+form. There is no need for the page to have a password field at all, so search
+forms, filters, and configuration screens can be saved too.
 
 Each saved field is identified by a stable selector and its position among matching
 elements, so the values land back in the right inputs when the page is reopened.
+Saved form data is scoped by URL Connection plus a normalized page key. The key
+uses the page origin and path while ignoring query strings and fragments, so
+temporary authentication parameters such as `state`, `nonce`, or callback
+fragments do not create a new saved entry. Multi-page authentication can be saved
+one step at a time: save on the username page, continue, then save on the password
+page.
 
 Saving (toolbar **Save form data** button):
 
@@ -65,7 +71,8 @@ Saving (toolbar **Save form data** button):
 - Nothing to save: `webview.savePasswordNoPasswordField` (no fillable fields with values were found). Malformed capture: `webview.savePasswordInvalidCapture`. Generic failure: `webview.savePasswordFailed`.
 
 Restoring (toolbar **Restore saved form data** button, or automatically after a page
-finishes loading):
+finishes loading) uses the saved entry for the current normalized page key, with
+older single-entry credentials used as a fallback:
 
 - `webview.fillingCredential` (in flight)
 - `webview.credentialFilled` (success)
@@ -76,8 +83,10 @@ The automatic post-load restore is conservative: it only fills fields that are s
 empty and leaves checkbox/radio/`select` state untouched so it never clobbers what a
 page (or the user) has already set.
 
-The primary password is the only saved value kept in the OS keychain; all other
-field values are stored alongside the URL Connection in SQLite and are never secrets.
+The primary password is the only saved value kept in the OS keychain; each saved
+page step uses its own secret owner so password pages do not overwrite username
+pages. All other field values are stored alongside the URL Connection in SQLite
+and are never secrets.
 Manage saved entries from Settings → Credentials ([15-settings.md](15-settings.md)).
 
 ## Downloads

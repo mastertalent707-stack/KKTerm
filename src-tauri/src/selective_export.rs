@@ -44,9 +44,6 @@ enum Pk {
     /// A standalone text `id` column, regenerated to a fresh id on "add" so a
     /// shared file never collides with the importer's existing rows.
     Generated(&'static str),
-    /// The primary key is itself a foreign key to another table (e.g.
-    /// `url_credentials.connection_id`); it is rewritten from that table's remap.
-    FkPrimary,
     /// A composite/leaf table with no remappable standalone key
     /// (e.g. `connection_tags`); only its foreign keys are rewritten.
     Composite,
@@ -100,7 +97,7 @@ fn segment_tables(segment: &str) -> Option<&'static [TableSpec]> {
             },
             TableSpec {
                 name: "url_credentials",
-                pk: Pk::FkPrimary,
+                pk: Pk::Composite,
                 fks: &[("connection_id", "connections")],
             },
         ]),
@@ -310,6 +307,24 @@ fn collect_connection_secrets(
         }
     }
 
+    if let Some(rows) = connections.get("url_credentials").and_then(Value::as_array) {
+        for row in rows {
+            let Some(owner_id) = row
+                .get("secret_owner_id")
+                .or_else(|| row.get("connection_id"))
+                .and_then(Value::as_str) else {
+                continue;
+            };
+            if let Some(secret) = secrets.read_url_password(owner_id.to_string())? {
+                entries.push(SecretEntry {
+                    kind: "urlPassword".to_string(),
+                    owner_id: owner_id.to_string(),
+                    secret,
+                });
+            }
+        }
+    }
+
     if let Some(rows) = connections.get("connections").and_then(Value::as_array) {
         for row in rows {
             let Some(id) = row.get("id").and_then(Value::as_str) else {
@@ -319,15 +334,6 @@ fn collect_connection_secrets(
                 .get("connection_type")
                 .and_then(Value::as_str)
                 .unwrap_or("");
-            if connection_type == "url" {
-                if let Some(secret) = secrets.read_url_password(id.to_string())? {
-                    entries.push(SecretEntry {
-                        kind: "urlPassword".to_string(),
-                        owner_id: id.to_string(),
-                        secret,
-                    });
-                }
-            }
             if connection_type == "ssh" {
                 if let Some(secret) = secrets.read_connection_passphrase(id.to_string())? {
                     entries.push(SecretEntry {
@@ -563,7 +569,7 @@ fn rewrite_row(
                 }
             }
         }
-        Pk::FkPrimary | Pk::Composite | Pk::Natural => {}
+        Pk::Composite | Pk::Natural => {}
     }
 
     // Workspaces gain a default flag conflict if two rows claim default; on add
@@ -571,6 +577,14 @@ fn rewrite_row(
     if table.name == "workspaces" && row.contains_key("is_default") {
         row.insert("is_default".to_string(), Value::from(0));
     }
+
+    let old_url_secret_owner = if table.name == "url_credentials" {
+        row.get("secret_owner_id")
+            .and_then(Value::as_str)
+            .map(str::to_string)
+    } else {
+        None
+    };
 
     // Foreign keys.
     for (column, referenced) in table.fks {
@@ -582,6 +596,19 @@ fn rewrite_row(
             resolved = Some(DEFAULT_WORKSPACE_ID.to_string());
         }
         row.insert((*column).to_string(), value_or_null(resolved));
+    }
+
+    if table.name == "url_credentials" {
+        if let Some(old_owner) = old_url_secret_owner {
+            if let Some(new_owner) = remap_url_password_owner(&old_owner, remap) {
+                row.insert("secret_owner_id".to_string(), Value::String(new_owner));
+            }
+        } else if let Some(connection_id) = row.get("connection_id").and_then(Value::as_str) {
+            row.insert(
+                "secret_owner_id".to_string(),
+                Value::String(connection_id.to_string()),
+            );
+        }
     }
 
     // dashboard_widget_instances.source_id references a custom widget only for
@@ -675,9 +702,13 @@ fn write_secrets(
         };
         // Map the owner id to the merged row; if the owning Connection was not
         // imported, drop the secret rather than orphan it.
-        let owner = remap
-            .get(&(table.to_string(), entry.owner_id.clone()))
-            .cloned();
+        let owner = if kind == "urlPassword" {
+            remap_url_password_owner(&entry.owner_id, remap)
+        } else {
+            remap
+                .get(&(table.to_string(), entry.owner_id.clone()))
+                .cloned()
+        };
         let Some(owner) = owner else {
             continue;
         };
@@ -694,6 +725,20 @@ fn write_secrets(
         secrets.store_secret(request)?;
     }
     Ok(())
+}
+
+fn remap_url_password_owner(
+    owner_id: &str,
+    remap: &HashMap<(String, String), String>,
+) -> Option<String> {
+    if let Some(mapped) = remap.get(&("connections".to_string(), owner_id.to_string())) {
+        return Some(mapped.clone());
+    }
+    let rest = owner_id.strip_prefix("url:")?;
+    let (connection_id, page_hash) = rest.rsplit_once(':')?;
+    remap
+        .get(&("connections".to_string(), connection_id.to_string()))
+        .map(|mapped| format!("url:{mapped}:{page_hash}"))
 }
 
 // ── Generic row IO ──────────────────────────────────────────────────────────
@@ -973,8 +1018,13 @@ mod tests {
                  sort_order INTEGER NOT NULL);
              CREATE TABLE connection_tags (connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
                  tag TEXT NOT NULL, sort_order INTEGER NOT NULL, PRIMARY KEY (connection_id, tag));
-             CREATE TABLE url_credentials (connection_id TEXT PRIMARY KEY REFERENCES connections(id) ON DELETE CASCADE,
-                 username TEXT NOT NULL);",
+             CREATE TABLE url_credentials (
+                 connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+                 page_key TEXT NOT NULL DEFAULT '__legacy__',
+                 secret_owner_id TEXT NOT NULL,
+                 username TEXT NOT NULL,
+                 PRIMARY KEY (connection_id, page_key)
+             );",
         )
         .expect("schema");
     }

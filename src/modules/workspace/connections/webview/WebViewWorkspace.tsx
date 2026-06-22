@@ -11,6 +11,7 @@ import { technicalInputProps } from "../../../../lib/inputBehavior";
 import { invokeCommand, isTauriRuntime, logUrlConnectionDebug, openExternalUrl } from "../../../../lib/tauri";
 import type { AssistantScreenshot, WebviewSessionStarted } from "../../../../lib/tauri";
 import { useWorkspaceStore } from "../../../../store";
+import { urlCredentialSecretOwnerId } from "./urlCredentialKeys";
 import { resolveUrlDataPartition, resolveUrlProxy } from "./urlProxy";
 import type { WorkspaceTab } from "../../../../types";
 
@@ -913,13 +914,14 @@ export function WebViewWorkspace({
     }
     setNavError("");
     setFillStatus(t("webview.savingPassword"));
+    const secretOwnerId = urlCredentialSecretOwnerId(tab.connection.id, payload.url);
     // The primary password (if any) is the only value kept in the OS keychain;
     // every other field is durable form data persisted alongside the credential.
     const storePassword = payload.password
       ? invokeCommand("store_secret", {
           request: {
             kind: "urlPassword",
-            ownerId: tab.connection.id,
+            ownerId: secretOwnerId,
             secret: payload.password,
           },
         })
@@ -975,7 +977,8 @@ export function WebViewWorkspace({
     return invokeCommand("fill_webview_credential", {
       request: {
         sessionId: sessionIdRef.current,
-        secretOwnerId: tab.connection.id,
+        connectionId: tab.connection.id,
+        pageUrl: addressInput || initialUrl,
         automatic,
       },
     })

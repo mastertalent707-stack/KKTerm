@@ -158,7 +158,8 @@ struct AssignConnectionPasswordCredentialRequest {
 #[serde(rename_all = "camelCase")]
 struct FillWebviewCredentialRequest {
     session_id: String,
-    secret_owner_id: String,
+    connection_id: String,
+    page_url: Option<String>,
     automatic: Option<bool>,
 }
 
@@ -2744,7 +2745,7 @@ fn fill_webview_credential(
     request: FillWebviewCredentialRequest,
 ) -> Result<(), String> {
     let credential = storage
-        .url_credential_fill(&request.secret_owner_id)?
+        .url_credential_fill(&request.connection_id, request.page_url.as_deref())?
         .ok_or_else(|| "stored URL credential was not found".to_string())?;
     let username = credential.username.trim().to_string();
     if username.is_empty() {
@@ -2753,7 +2754,7 @@ fn fill_webview_credential(
     // Form-data credentials may carry no password (e.g. a search or config form),
     // so a missing keychain secret is normal: restore the saved fields without one.
     let password = secrets
-        .read_url_password(request.secret_owner_id)
+        .read_url_password(credential.secret_owner_id)
         .map_err(|error| format!("failed to read URL password: {error}"))?
         .unwrap_or_default();
     webviews.fill_credential(webview::WebviewFillCredentialRequest {
