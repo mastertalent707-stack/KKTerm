@@ -189,7 +189,7 @@ Section header `settings.sectionTerminal`. Font family + size, line height, curs
 
 ## URL
 
-`settings.sectionUrl` — defaults for URL Connections (e.g. default auto-refresh). URL Connections embed WebView2 through stable owned overlay windows, not Tauri's `unstable` child-webview API. The `unstable` child-webview path was removed because it changed the main app WebView2 host shape and could break terminal keyboard input after Alt+Tab/app switch or minimize/restore until the user clicked the terminal Pane again.
+`settings.sectionUrl` — defaults for URL Connections. `settings.urlProxy` selects direct access, HTTP CONNECT (`settings.urlProxyHttp`), or SOCKS5 (`settings.urlProxySocks5`) for newly opened URL Tabs. A URL Connection may inherit this default, force direct access, or store its own endpoint. HTTP mode carries both HTTP and HTTPS destinations; authenticated proxies, PAC files, and bypass lists are outside Tauri's per-WebView proxy API. macOS requires version 14 or later. URL Connections use stable owned overlay windows, not Tauri's `unstable` child-webview API. The `unstable` child-webview path was removed because it changed the main app WebView2 host shape and could break terminal keyboard input after Alt+Tab/app switch or minimize/restore until the user clicked the terminal Pane again.
 
 ## About
 

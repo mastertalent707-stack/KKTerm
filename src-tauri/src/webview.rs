@@ -18,6 +18,7 @@ use crate::logging;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sha2::{Digest, Sha256};
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, Position, Size, WebviewUrl,
     WebviewWindow, WebviewWindowBuilder,
@@ -319,6 +320,7 @@ pub struct StartWebviewSessionRequest {
     session_id: String,
     url: String,
     data_partition: Option<String>,
+    proxy_url: Option<String>,
     #[serde(default)]
     ignore_certificate_errors: bool,
     x: f64,
@@ -474,6 +476,7 @@ impl WebviewSessionManager {
             session_id,
             url,
             data_partition,
+            proxy_url,
             ignore_certificate_errors,
             x: initial_x,
             y: initial_y,
@@ -483,6 +486,10 @@ impl WebviewSessionManager {
 
         let session_id = required_id(session_id)?;
         let parsed_url = parse_external_url(&url)?;
+        let proxy_url = proxy_url
+            .as_deref()
+            .map(parse_proxy_url)
+            .transpose()?;
         let partition = resolve_partition(data_partition);
         logging::url_connection_debug(
             "backend.session.start.request",
@@ -494,6 +501,11 @@ impl WebviewSessionManager {
                 },
                 "partition": partition,
                 "ignoreCertificateErrors": ignore_certificate_errors,
+                "proxy": proxy_url.as_ref().map(|proxy| json!({
+                    "scheme": proxy.scheme(),
+                    "host": proxy.host_str(),
+                    "port": proxy.port(),
+                })),
                 "initialBounds": {
                     "x": initial_x,
                     "y": initial_y,
@@ -649,8 +661,41 @@ impl WebviewSessionManager {
                 .parent(&host_window)
                 .map_err(|error| format!("failed to assign URL webview parent: {error}"))?;
         }
+        #[cfg(windows)]
+        if let Some(proxy_url) = proxy_url.as_ref() {
+            // WebView2 browser arguments belong to an Environment, and
+            // Environments sharing one user-data folder must use compatible
+            // options. Isolate each effective proxy so direct, HTTP, and SOCKS5
+            // URL Sessions can coexist without an argument mismatch.
+            let data_directory = app
+                .path()
+                .app_data_dir()
+                .map_err(|error| format!("failed to resolve URL proxy data directory: {error}"))?
+                .join("url-webview-profiles")
+                .join(proxy_data_directory_key(proxy_url.as_str()));
+            builder = builder.data_directory(data_directory);
+        }
+        if let Some(proxy_url) = proxy_url.as_ref() {
+            builder = builder.proxy_url(proxy_url.clone());
+        }
         if let Some(additional_browser_args) = self.additional_browser_args {
-            builder = builder.additional_browser_args(additional_browser_args);
+            #[cfg(windows)]
+            {
+                // Wry uses explicit additional browser arguments instead of its
+                // generated WebView2 arguments. Preserve the proxy flag when
+                // remote-session stability arguments are also enabled.
+                let browser_args = match proxy_url.as_ref() {
+                    Some(proxy_url) => {
+                        format!("{additional_browser_args} --proxy-server={proxy_url}")
+                    }
+                    None => additional_browser_args.to_string(),
+                };
+                builder = builder.additional_browser_args(&browser_args);
+            }
+            #[cfg(not(windows))]
+            {
+                builder = builder.additional_browser_args(additional_browser_args);
+            }
         }
 
         let window = builder
@@ -1524,6 +1569,20 @@ fn parse_external_url(value: &str) -> Result<url::Url, String> {
     }
 }
 
+fn parse_proxy_url(value: &str) -> Result<url::Url, String> {
+    let normalized = crate::storage::normalize_url_proxy(Some(value.to_string()))?
+        .ok_or_else(|| "URL proxy is required".to_string())?;
+    url::Url::parse(&normalized).map_err(|error| format!("URL proxy is invalid: {error}"))
+}
+
+fn proxy_data_directory_key(proxy_url: &str) -> String {
+    let digest = Sha256::digest(proxy_url.as_bytes());
+    digest[..12]
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
 fn resolve_partition(data_partition: Option<String>) -> String {
     data_partition
         .map(|value| value.trim().to_string())
@@ -1544,4 +1603,39 @@ fn external_link_shortcut_agent(token: &str) -> Result<String, String> {
     let token = serde_json::to_string(token)
         .map_err(|error| format!("failed to prepare URL external-link token: {error}"))?;
     Ok(EXTERNAL_LINK_SHORTCUT_AGENT.replace("__KKTERM_EXTERNAL_LINK_BRIDGE_TOKEN__", &token))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn proxy_urls_accept_http_and_socks5_endpoints_only() {
+        assert_eq!(
+            parse_proxy_url("http://proxy.example:3128")
+                .expect("HTTP proxy parses")
+                .as_str(),
+            "http://proxy.example:3128/"
+        );
+        assert_eq!(
+            parse_proxy_url("socks5://127.0.0.1:1080")
+                .expect("SOCKS5 proxy parses")
+                .scheme(),
+            "socks5"
+        );
+        assert!(parse_proxy_url("https://proxy.example:443").is_err());
+        assert!(parse_proxy_url("http://proxy.example").is_err());
+    }
+
+    #[test]
+    fn proxy_data_directory_keys_are_stable_and_do_not_expose_endpoints() {
+        let first = proxy_data_directory_key("http://proxy.example:3128");
+        let repeated = proxy_data_directory_key("http://proxy.example:3128");
+        let other = proxy_data_directory_key("socks5://127.0.0.1:1080");
+
+        assert_eq!(first, repeated);
+        assert_ne!(first, other);
+        assert_eq!(first.len(), 24);
+        assert!(!first.contains("proxy.example"));
+    }
 }

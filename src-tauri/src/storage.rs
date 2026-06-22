@@ -61,6 +61,8 @@ CREATE TABLE IF NOT EXISTS connections (
     local_startup_script TEXT,
     url TEXT,
     data_partition TEXT,
+    url_proxy TEXT,
+    url_proxy_inherit_defaults INTEGER NOT NULL DEFAULT 1,
     use_tmux_sessions INTEGER NOT NULL DEFAULT 1,
     use_psmux_sessions INTEGER NOT NULL DEFAULT 0,
     tmux_connection_id TEXT,
@@ -649,6 +651,8 @@ pub struct SftpSettings {
 pub struct UrlSettings {
     #[serde(default)]
     ignore_certificate_errors: bool,
+    #[serde(default)]
+    default_proxy_url: Option<String>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -1100,6 +1104,8 @@ pub struct SavedConnection {
     local_startup_script: Option<String>,
     url: Option<String>,
     data_partition: Option<String>,
+    url_proxy: Option<String>,
+    url_proxy_inherit_defaults: bool,
     use_tmux_sessions: bool,
     use_psmux_sessions: bool,
     tmux_connection_id: Option<String>,
@@ -1203,6 +1209,10 @@ pub struct CreateConnectionRequest {
     local_startup_script: Option<String>,
     url: Option<String>,
     data_partition: Option<String>,
+    #[serde(default)]
+    url_proxy: Option<String>,
+    #[serde(default)]
+    url_proxy_inherit_defaults: Option<bool>,
     use_tmux_sessions: Option<bool>,
     #[serde(default)]
     use_psmux_sessions: Option<bool>,
@@ -1247,6 +1257,10 @@ pub struct UpdateConnectionRequest {
     local_startup_script: Option<String>,
     url: Option<String>,
     data_partition: Option<String>,
+    #[serde(default)]
+    url_proxy: Option<String>,
+    #[serde(default)]
+    url_proxy_inherit_defaults: Option<bool>,
     use_tmux_sessions: Option<bool>,
     #[serde(default)]
     use_psmux_sessions: Option<bool>,
@@ -2099,6 +2113,13 @@ impl Storage {
         // fresh install (still at user_version 0 when v25 runs) loses it. NULL
         // inherits the global SSH default; 'off'/'fast' force a choice.
         ensure_column(&connection, "connections", "ssh_compression", "TEXT")?;
+        ensure_column(&connection, "connections", "url_proxy", "TEXT")?;
+        ensure_column(
+            &connection,
+            "connections",
+            "url_proxy_inherit_defaults",
+            "INTEGER NOT NULL DEFAULT 1",
+        )?;
         // v26: imported Dashboard script widgets get a durable origin marker
         // so the catalog can badge them after restart. SQLite cannot alter a
         // CHECK constraint in place, so rebuild just this table to admit the
@@ -2944,7 +2965,7 @@ fn list_root_connections_for_workspace(
     let mut statement = connection
         .prepare(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression
+                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE folder_id IS NULL AND workspace_id = ?1
@@ -3007,7 +3028,7 @@ fn list_connections_for_folder(
     let mut statement = connection
         .prepare(&format!(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression
+                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE {where_clause}
@@ -3383,7 +3404,7 @@ fn get_connection_by_id(
     let saved_connection = connection
         .query_row(
             "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
-                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression
+                    url_credentials.username, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
              FROM connections
              LEFT JOIN url_credentials ON url_credentials.connection_id = connections.id
              WHERE connections.id = ?1",
@@ -3410,6 +3431,8 @@ fn get_connection_by_id(
                     local_startup_script: row.get(14)?,
                     url: row.get(15)?,
                     data_partition: row.get(16)?,
+                    url_proxy: row.get(36)?,
+                    url_proxy_inherit_defaults: row.get(37)?,
                     use_tmux_sessions: row.get(17)?,
                     use_psmux_sessions: row.get(34)?,
                     tmux_connection_id: row.get(18)?,
@@ -3466,6 +3489,8 @@ fn saved_connection_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SavedC
         local_startup_script: row.get(14)?,
         url: row.get(15)?,
         data_partition: row.get(16)?,
+        url_proxy: row.get(36)?,
+        url_proxy_inherit_defaults: row.get(37)?,
         use_tmux_sessions: row.get(17)?,
         use_psmux_sessions: row.get(34)?,
         tmux_connection_id: row.get(18)?,
@@ -4481,6 +4506,7 @@ fn default_file_explorer_terminal_shell() -> String {
 fn default_url_settings() -> UrlSettings {
     UrlSettings {
         ignore_certificate_errors: false,
+        default_proxy_url: None,
     }
 }
 
@@ -5041,8 +5067,38 @@ fn validate_sftp_settings(mut settings: SftpSettings) -> Result<SftpSettings, St
     Ok(settings)
 }
 
-fn validate_url_settings(settings: UrlSettings) -> Result<UrlSettings, String> {
+fn validate_url_settings(mut settings: UrlSettings) -> Result<UrlSettings, String> {
+    settings.default_proxy_url = normalize_url_proxy(settings.default_proxy_url)?;
     Ok(settings)
+}
+
+pub(crate) fn normalize_url_proxy(value: Option<String>) -> Result<Option<String>, String> {
+    let Some(value) = value.map(|value| value.trim().to_string()) else {
+        return Ok(None);
+    };
+    if value.is_empty() {
+        return Ok(None);
+    }
+
+    let parsed = url::Url::parse(&value).map_err(|error| format!("URL proxy is invalid: {error}"))?;
+    if !matches!(parsed.scheme(), "http" | "socks5") {
+        return Err("URL proxy scheme must be http or socks5".to_string());
+    }
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err("URL proxy credentials are not supported".to_string());
+    }
+    if !matches!(parsed.path(), "" | "/") || parsed.query().is_some() || parsed.fragment().is_some() {
+        return Err("URL proxy must not include a path, query, or fragment".to_string());
+    }
+    let host = parsed
+        .host()
+        .ok_or_else(|| "URL proxy host is required".to_string())?;
+    let port = parsed
+        .port()
+        .filter(|port| *port > 0)
+        .ok_or_else(|| "URL proxy requires a port between 1 and 65535".to_string())?;
+
+    Ok(Some(format!("{}://{}:{port}", parsed.scheme(), host)))
 }
 
 fn validate_rdp_settings(mut settings: RdpSettings) -> Result<RdpSettings, String> {

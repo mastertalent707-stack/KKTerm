@@ -13,6 +13,7 @@ import { SerialConnectionFields } from "./connection-dialog/SerialConnectionFiel
 import { SshConnectionFields, SshConnectionOptions } from "./connection-dialog/SshConnectionFields";
 import { TelnetConnectionFields } from "./connection-dialog/TelnetConnectionFields";
 import { UrlConnectionFields } from "./connection-dialog/UrlConnectionFields";
+import { parseUrlProxyDraft, type UrlProxyMode } from "./webview/urlProxy";
 import { VncConnectionFields, VncConnectionOptions } from "./connection-dialog/VncConnectionFields";
 import { ImportDialog } from "./ImportDialog";
 import {
@@ -495,6 +496,10 @@ export function ConnectionSidebar({
       localShell: connection.localShell,
       localStartupDirectory: connection.localStartupDirectory,
       localStartupScript: connection.localStartupScript,
+      url: connection.url,
+      dataPartition: connection.dataPartition,
+      urlProxy: connection.urlProxy,
+      urlProxyInheritDefaults: connection.urlProxyInheritDefaults,
       useTmuxSessions: connection.useTmuxSessions,
     };
   }
@@ -1279,6 +1284,8 @@ export function ConnectionSidebar({
       serialSpeed: connectionRequest.serialSpeed,
       url: connectionRequest.url,
       dataPartition: connectionRequest.dataPartition,
+      urlProxy: connectionRequest.urlProxy,
+      urlProxyInheritDefaults: connectionRequest.urlProxyInheritDefaults,
       useTmuxSessions: connectionRequest.useTmuxSessions,
       terminalOpacity: appearance?.terminalOpacity,
       terminalBackground: appearance?.terminalBackground,
@@ -4183,6 +4190,15 @@ function ConnectionDialog({
     const usePsmuxSessions = connectionType === "local" && form.get("usePsmuxSessions") === "on";
     const inheritRdpDefaults = form.get("rdpInheritDefaults") === "on";
     const inheritVncDefaults = form.get("vncInheritDefaults") === "on";
+    const urlProxyInheritDefaults = form.get("urlProxyInheritDefaults") === "on";
+    const urlProxyMode = String(form.get("urlProxyMode") ?? "direct") as UrlProxyMode;
+    const urlProxy = connectionType === "url" && !urlProxyInheritDefaults
+      ? parseUrlProxyDraft(
+          urlProxyMode,
+          String(form.get("urlProxyHost") ?? ""),
+          String(form.get("urlProxyPort") ?? ""),
+        )
+      : undefined;
 
     void onSubmit({
       name,
@@ -4234,6 +4250,8 @@ function ConnectionDialog({
         connectionType === "url"
           ? String(form.get("dataPartition") ?? "").trim() || undefined
           : undefined,
+      urlProxy: connectionType === "url" ? urlProxy : undefined,
+      urlProxyInheritDefaults: connectionType === "url" ? urlProxyInheritDefaults : undefined,
       rdpOptions:
         connectionType === "rdp"
           ? {

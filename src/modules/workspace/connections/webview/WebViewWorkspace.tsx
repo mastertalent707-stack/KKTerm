@@ -11,6 +11,7 @@ import { technicalInputProps } from "../../../../lib/inputBehavior";
 import { invokeCommand, isTauriRuntime, logUrlConnectionDebug, openExternalUrl } from "../../../../lib/tauri";
 import type { AssistantScreenshot, WebviewSessionStarted } from "../../../../lib/tauri";
 import { useWorkspaceStore } from "../../../../store";
+import { resolveUrlProxy } from "./urlProxy";
 import type { WorkspaceTab } from "../../../../types";
 
 type WebviewNavigationEvent = {
@@ -275,7 +276,8 @@ export function WebViewWorkspace({
   const refreshOpenConnectionMetadata = useWorkspaceStore((state) => state.refreshOpenConnectionMetadata);
   const markConnectionSessionStarted = useWorkspaceStore((state) => state.markConnectionSessionStarted);
   const markConnectionSessionEnded = useWorkspaceStore((state) => state.markConnectionSessionEnded);
-  const ignoreCertificateErrors = useWorkspaceStore((state) => state.urlSettings.ignoreCertificateErrors);
+  const urlSettings = useWorkspaceStore((state) => state.urlSettings);
+  const ignoreCertificateErrors = urlSettings.ignoreCertificateErrors;
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const setAssistantContextSnippet = useWorkspaceStore((state) => state.setAssistantContextSnippet);
   const submitAssistantContextSnippet = useWorkspaceStore((state) => state.submitAssistantContextSnippet);
@@ -549,6 +551,7 @@ export function WebViewWorkspace({
     }
     let disposed = false;
     const sessionId = sessionIdRef.current;
+    const proxyUrl = resolveUrlProxy(tab.connection ?? {}, urlSettings);
     sessionStartingRef.current = true;
     lastBoundsRef.current = bounds;
     markWebviewConnectionStarted();
@@ -556,6 +559,7 @@ export function WebViewWorkspace({
       requestBounds: bounds,
       dataPartition: tab.dataPartition,
       ignoreCertificateErrors,
+      proxyUrl,
     });
     const lease = acquireWebviewSession(sessionId, () =>
       invokeCommand("start_webview_session", {
@@ -563,6 +567,7 @@ export function WebViewWorkspace({
           sessionId,
           url: initialUrl,
           dataPartition: tab.dataPartition,
+          proxyUrl,
           ignoreCertificateErrors,
           ...bounds,
         },

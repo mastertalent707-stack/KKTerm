@@ -3,10 +3,16 @@
 ## AI grep hints
 
 - Keys: `webview.*` (full namespace), `connections.embeddedWebApp`
-- Topics: URL Connection, embedded WebView2, address bar, back/forward/reload, auto-refresh, save form data, restore form data, credential fill, password capture, external open, saved Pane layout, Shift-click link, downloads, URL Connection debug log, tutorial targets `webview.toolbar`, `webview.address`, `webview.openExternally`, `webview.autoRefresh`, `webview.savePassword`, `webview.fillCredential`, `webview.sendToAi`, `webview.surface`
+- Topics: URL Connection, embedded WebView2, HTTP proxy, HTTPS proxy, SOCKS5 proxy, direct connection, proxy override, address bar, back/forward/reload, auto-refresh, save form data, restore form data, credential fill, password capture, external open, saved Pane layout, Shift-click link, downloads, URL Connection debug log, tutorial targets `webview.toolbar`, `webview.address`, `webview.openExternally`, `webview.autoRefresh`, `webview.savePassword`, `webview.fillCredential`, `webview.sendToAi`, `webview.surface`
 - Synonyms: "open a webpage", "embed a site", "browser tab", "internal web tool", "fill in saved password", "save form data", "restore form fields", "remember what I typed", "open link in browser", "external browser", "url.connection.debug.log", "URL debug log"
 
-> **Term:** a **URL Connection** is a Connection of kind `url` storing one http(s) URL plus an optional `dataPartition` label. The `dataPartition` field is persisted but currently a no-op; embedded URL Sessions share the WebView2 process data store.
+> **Term:** a **URL Connection** is a Connection of kind `url` storing one http(s) URL, an optional `dataPartition` label, and a proxy routing choice. The `dataPartition` field is persisted but currently a no-op. On Windows, proxied Sessions use an internal data directory per effective proxy so WebView2 Environments with different proxy arguments can coexist; this isolation is an implementation requirement, not the user-facing `dataPartition` feature.
+
+## Proxy routing
+
+Settings → URL uses `settings.urlProxy` to choose the default route for new URL Tabs: `settings.urlProxyDirect`, `settings.urlProxyHttp`, or `settings.urlProxySocks5`. HTTP mode uses an HTTP CONNECT proxy and therefore carries both HTTP and HTTPS destination traffic; the proxy endpoint itself is stored with an `http://` scheme. Proxy authentication and bypass/PAC rules are not supported by Tauri's per-WebView proxy API.
+
+Each URL Connection can use `connections.inheritSettingsDefaults`, force `settings.urlProxyDirect`, or persist its own HTTP/SOCKS5 endpoint. The effective proxy is fixed when the URL Session opens; close and reopen an existing Tab after changing proxy settings. Windows applies the endpoint to WebView2 and isolates WebView2 user data by effective proxy, Linux applies it to WebKitGTK, and macOS applies it to WKWebView through Network.framework. macOS requires version 14 or later for per-WebView proxy support.
 
 ## Surface
 

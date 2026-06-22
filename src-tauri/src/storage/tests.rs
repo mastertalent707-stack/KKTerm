@@ -57,6 +57,8 @@ fn create_test_ssh_connection(
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -97,6 +99,8 @@ fn create_test_ssh_connection_in_workspace(
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -151,6 +155,8 @@ fn create_test_local_connection(storage: &Storage, name: &str, shell: &str) -> S
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -240,6 +246,8 @@ fn create_connection_can_persist_root_ssh_connection() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -300,6 +308,8 @@ fn ssh_compression_override_round_trips_and_validates() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -343,8 +353,10 @@ fn ssh_compression_override_round_trips_and_validates() {
         local_startup_directory: None,
         local_startup_script: None,
         url: None,
-        data_partition: None,
-        use_tmux_sessions: None,
+            data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
+            use_tmux_sessions: None,
         use_psmux_sessions: None,
         serial_line: None,
         serial_speed: None,
@@ -383,6 +395,8 @@ fn ssh_socks_proxy_username_round_trips_without_storing_passwords_in_sqlite() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -468,6 +482,8 @@ fn local_connection_persists_startup_directory_and_script() {
             local_startup_script: Some("  npm run check  ".to_string()),
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -532,6 +548,8 @@ fn local_connection_persists_psmux_preference() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: Some(true),
             serial_line: None,
@@ -576,6 +594,8 @@ fn local_connection_persists_psmux_preference() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: Some(true),
             serial_line: None,
@@ -615,6 +635,8 @@ fn local_files_connection_can_be_created_with_starting_directory() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -663,6 +685,8 @@ fn file_view_connection_persists_file_path_and_no_host() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -725,6 +749,8 @@ fn create_connection_can_persist_remote_desktop_connections() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: Some(true),
             use_psmux_sessions: None,
             serial_line: None,
@@ -766,6 +792,8 @@ fn create_connection_can_persist_remote_desktop_connections() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -808,6 +836,8 @@ fn create_connection_can_persist_telnet_and_serial_connections() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: Some(true),
             use_psmux_sessions: None,
             serial_line: None,
@@ -847,6 +877,8 @@ fn create_connection_can_persist_telnet_and_serial_connections() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: Some("COM7".to_string()),
@@ -891,6 +923,8 @@ fn url_credentials_round_trip_without_storing_passwords_in_sqlite() {
             local_startup_script: None,
             url: Some("router.internal".to_string()),
             data_partition: Some("ops".to_string()),
+            url_proxy: Some(" socks5://127.0.0.1:1080 ".to_string()),
+            url_proxy_inherit_defaults: Some(false),
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -905,6 +939,8 @@ fn url_credentials_round_trip_without_storing_passwords_in_sqlite() {
         .expect("URL connection is created");
 
     assert_eq!(created.url.as_deref(), Some("https://router.internal/"));
+    assert_eq!(created.url_proxy.as_deref(), Some("socks5://127.0.0.1:1080"));
+    assert!(!created.url_proxy_inherit_defaults);
     assert!(!created.has_url_credential);
 
     let updated = storage
@@ -930,6 +966,20 @@ fn url_credentials_round_trip_without_storing_passwords_in_sqlite() {
         .expect("URL connection exists");
     assert!(reloaded.has_url_credential);
     assert_eq!(reloaded.url_credential_username.as_deref(), Some("admin"));
+    assert_eq!(reloaded.url_proxy.as_deref(), Some("socks5://127.0.0.1:1080"));
+    assert!(!reloaded.url_proxy_inherit_defaults);
+
+    let duplicated = storage
+        .duplicate_connection(DuplicateConnectionRequest {
+            id: created.id,
+            name: Some("Router UI copy".to_string()),
+        })
+        .expect("URL connection is duplicated");
+    assert_eq!(
+        duplicated.url_proxy.as_deref(),
+        Some("socks5://127.0.0.1:1080")
+    );
+    assert!(!duplicated.url_proxy_inherit_defaults);
 }
 
 #[test]
@@ -1107,6 +1157,8 @@ fn stored_credential_candidates_include_connection_url_and_widget_metadata() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -1139,6 +1191,8 @@ fn stored_credential_candidates_include_connection_url_and_widget_metadata() {
             local_startup_script: None,
             url: Some("https://portal.example".to_string()),
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -1257,6 +1311,8 @@ fn assigning_connection_password_credential_requires_matching_type() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -1396,6 +1452,8 @@ fn update_connection_edits_fields_and_moves_folder() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: Some(false),
             use_psmux_sessions: None,
             serial_line: None,
@@ -1458,6 +1516,8 @@ fn update_connection_preserves_existing_tmux_preference_when_omitted() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: Some(false),
             use_psmux_sessions: None,
             serial_line: None,
@@ -1491,6 +1551,8 @@ fn update_connection_preserves_existing_tmux_preference_when_omitted() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -1748,6 +1810,8 @@ fn deleting_folder_removes_connections_in_that_folder() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -2772,6 +2836,8 @@ fn remote_desktop_connection_options_are_optional_protocol_overrides() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
@@ -2825,6 +2891,8 @@ fn remote_desktop_connection_options_are_optional_protocol_overrides() {
             local_startup_script: None,
             url: None,
             data_partition: None,
+            url_proxy: None,
+            url_proxy_inherit_defaults: None,
             use_tmux_sessions: None,
             use_psmux_sessions: None,
             serial_line: None,
