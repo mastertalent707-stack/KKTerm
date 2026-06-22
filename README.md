@@ -70,6 +70,7 @@ You're a sysadmin / DevOps / homelab tinkerer / vibe-coder. Right now you've got
 - Remote Desktop in a window you keep losing on the wrong monitor
 - A VNC viewer for that one Linux box
 - A browser tab for the router's admin page
+- A file manager for poking around the local disk, and a text editor for the one log you keep tailing
 - A `claude` / `codex` session on a remote box that dies every time your Wi-Fi sneezes
 - A sticky note with passwords *(don't worry, we won't tell)*
 
@@ -79,6 +80,7 @@ Plus a few things you didn't know you wanted:
 
 - A **Dashboard** where you tell an AI *"build me a widget that pings my router every 30 seconds"* and it appears, in its own sandbox, on your grid.
 - **SSH panes that reattach to your remote `claude` / `codex` session** after every Wi-Fi tantrum, so a six-hour job survives a dropped connection.
+- **Workspaces** that keep your home lab, the day job, and that one client's servers in separate, switchable containers.
 - An **AI usage meter** so you stop hitting the rate-limit wall at 3 AM by surprise.
 - An **Install Helper** that finds, installs, updates, and launches the Windows dev tools you usually chase through ten browser tabs.
 - **Twenty-six animated backgrounds** for the dashboard (yes, including `matrix`), because we are not above it.
@@ -123,7 +125,13 @@ We have not yet been able to ship an actual bag of Kuai Kuai with the installer.
   </a>
 </p>
 
-<p align="center"><sub><em>(Demo GIF goes here. A picture is worth a thousand bullet points, and we ran out of bullet points.)</em></sub></p>
+<p align="center"><sub><em>(Demo GIF. A picture is worth a thousand bullet points, and we ran out of bullet points.)</em></sub></p>
+
+<p align="center">
+  <img src="docs/assets/screenshots/hero.png" alt="The full KKTerm window: connection tree, a grid of live panes, and the AI assistant" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the whole workspace at a glance: Connection Tree on the left, a grid of live Panes in the middle, AI Assistant on the right.</em></sub></p>
 
 ---
 
@@ -140,9 +148,17 @@ We have not yet been able to ship an actual bag of Kuai Kuai with the installer.
 | Remote into a Windows box | The real Microsoft Remote Desktop, built right in |
 | VNC into a Pi | VNC, rendered straight into the workspace |
 | Open the router's web UI | An embedded browser tab with saved logins |
+| Browse your own disk | A local File Explorer pane, same dual-pane shell as SFTP |
+| Open a log, CSV, image, or PDF | A built-in Document viewer with a real tail-follow log mode |
 | Watch CPU on the host | A live status bar and a dashboard you can build on |
 
 Same app. Same window. Same hotkeys. Same hopefully-not-eye-bleeding theme.
+
+<p align="center">
+  <img src="docs/assets/screenshots/connections-grid.png" alt="A single Tab holding SSH, SFTP, and an embedded web UI side by side" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — one Tab, several Connection types living together: SSH next to SFTP next to an embedded web UI.</em></sub></p>
 
 ---
 
@@ -160,6 +176,12 @@ A Tab can hold a grid of Panes, and those Panes do not have to be the same kind.
 
 It is one workspace for the messy real shape of admin work: mix Connection types, resize the grid, keep the live Sessions alive, and stop alt-tabbing through a pile of windows.
 
+<p align="center">
+  <img src="docs/assets/screenshots/multi-pane.png" alt="A Tab split into four panes of different connection kinds" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — a four-way grid: PowerShell, an SSH session, an SFTP browser, and a VNC surface, all in one Tab.</em></sub></p>
+
 ### An AI assistant that builds your tools
 
 Most "AI in your terminal" demos stop at chat. KKTerm's assistant can also build small, durable dashboard widgets for the way you actually work — and it keeps the dangerous stuff behind a switch:
@@ -170,6 +192,14 @@ Most "AI in your terminal" demos stop at chat. KKTerm's assistant can also build
 Anything that looks like `rm -rf` gets flagged as dangerous and waits for an explicit human yes. The AI can't quietly run a destructive command because somebody got clever with a prompt injection in a man page.
 
 It talks to OpenAI, OpenRouter, DeepSeek, Gemini, Grok, Azure OpenAI, LiteLLM, GitHub Copilot, Ollama, NVIDIA, OpenCode, or anything OpenAI-compatible — and reaches Anthropic's Claude through the local Claude CLI. Your API keys go to the OS keychain.
+
+It can also see what you see: grab a region or a whole Pane with the **screenshot menu** and send it straight into the conversation, so "why does this dialog look wrong?" becomes a question the assistant can actually answer.
+
+<p align="center">
+  <img src="docs/assets/screenshots/ai-assistant.png" alt="The AI Assistant panel with the tool-access and approval-mode toggles" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the AI Assistant panel: tool-family toggles, the Prompt / Allow All switch, and a dangerous command waiting for a human yes.</em></sub></p>
 
 ### A Dashboard that doesn't pretend to be Grafana
 
@@ -186,6 +216,12 @@ This is the part we're genuinely excited about. You don't pick from a marketplac
 
 Some are simple display panels (markdown, checklists, a single big stat); others run live code in an isolated sandbox you approve. Every widget you keep is yours — it persists with its own color, icon, and title, and you can have several copies at different sizes. Delete one with a right-click when the magic wears off.
 
+<p align="center">
+  <img src="docs/assets/screenshots/ai-widgets.png" alt="A dashboard grid of AI-created widgets" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — a Dashboard View full of AI-built widgets: a ping monitor, a sticky note, a live stat, and a little toy that has no business being this fun.</em></sub></p>
+
 #### Animated dashboard backgrounds (because we wanted to)
 
 Pick a mood per dashboard view from **twenty-six** canvas-animated backgrounds:
@@ -200,6 +236,12 @@ Pick a mood per dashboard view from **twenty-six** canvas-animated backgrounds:
 
 They pause when you're elsewhere, so they cost roughly nothing. Pair `matrix` with your AI assistant for a vibe that says "I am extremely productive and also possibly in a Wachowski film." Or pick `ocean` and look like a serious person. We do not judge either choice.
 
+<p align="center">
+  <img src="docs/assets/screenshots/backgrounds.png" alt="A few of the animated dashboard backgrounds side by side" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — a contact sheet of moods: `matrix`, `aurora`, `synthwave`, and `taipei101`.</em></sub></p>
+
 ### Keep your remote AI agents alive
 
 This is the second feature people fall in love with. KKTerm's SSH terminals can drop you straight into a **named tmux session** on the remote host that survives reconnect:
@@ -211,6 +253,14 @@ This is the second feature people fall in love with. KKTerm's SSH terminals can 
 
 If you've ever lost a six-hour `claude` or `codex` session to flaky hotel Wi-Fi, this one feature pays for the app. (The app is free. The feature is still worth it.)
 
+Local shells get the same trick on Windows: PowerShell panes can run inside **psmux**, the native tmux clone, so your local long-runners survive a closed Pane the same way the remote ones do.
+
+<p align="center">
+  <img src="docs/assets/screenshots/tmux-reattach.png" alt="An SSH pane re-attaching to a named tmux session after a reconnect" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the tmux/psmux session list in the Pane toolbar, with a remote `claude` agent still running after a reconnect.</em></sub></p>
+
 ### Know how much AI you have left
 
 Coding agents charge by plan window, not by month, and they'll happily eat your quota while you're in a meeting. The **AI usage meter** keeps it visible:
@@ -219,11 +269,43 @@ Coding agents charge by plan window, not by month, and they'll happily eat your 
 - A compact **status-bar indicator** mirroring the same numbers, so even with the Dashboard closed you can tell at a glance whether you've got headroom before the next big refactor.
 - It tells you up front if you need to re-login — *before* a long task, not in the middle of one.
 
+<p align="center">
+  <img src="docs/assets/screenshots/usage-meter.png" alt="The AI usage meter widget and status-bar indicator" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the usage widget showing Claude Code and Codex side by side, plus the compact status-bar mirror.</em></sub></p>
+
+### Keep your worlds apart with Workspaces
+
+The home lab, the day job, and that one client's servers do not belong in the same list. **Workspaces** are named, isolated containers of Connections you switch between from the Activity Rail. Switching re-scopes the Connection Tree only — your open Sessions, Dashboard, and Settings stay put — so changing context costs one click, not a relaunch.
+
+<p align="center">
+  <img src="docs/assets/screenshots/workspaces.png" alt="The workspace switcher in the activity rail" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the Workspace switcher at the top of the Activity Rail, mid-switch between "Home Lab" and "Day Job."</em></sub></p>
+
+### Files and logs, in the same window
+
+Not everything is a remote host. KKTerm browses your **local disk** in a File Explorer Pane (the same dual-pane shell SFTP uses), and opens a single file in a **Document viewer** that picks the right mode for the job: text/code with a light editor and safe save, Markdown, CSV/TSV tables, JSON, images, PDF, and a dedicated **Log mode** with level coloring, filtering, ANSI, and tail-follow. No more reaching for a separate editor just to read the log you're already standing next to.
+
+<p align="center">
+  <img src="docs/assets/screenshots/file-viewer.png" alt="The document viewer in log-tail mode next to a file explorer pane" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the Document viewer following a live log (level colors + filter) next to a local File Explorer Pane.</em></sub></p>
+
 ### Let other AIs drive KKTerm
 
 KKTerm ships its own built-in MCP server, so external coding agents (Claude Code, Codex, Copilot, Antigravity, OpenCode) can use your workspace the way you do — list connections, open one, read a terminal buffer, place widgets on the dashboard. AI-to-AI, on your machine, no cloud relay. The mutating, riskier actions stay behind a single safety toggle that's **off** by default.
 
 Settings → AI Assistant → **Built-in MCP Server** has a one-click "Show config" dialog with everything pre-filled, plus copyable `claude mcp add` / `codex mcp add` commands.
+
+<p align="center">
+  <img src="docs/assets/screenshots/mcp-server.png" alt="The built-in MCP server settings with the show-config dialog" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the Built-in MCP Server panel with the "Show config" dialog and the safety toggle (off by default).</em></sub></p>
 
 ---
 
@@ -278,8 +360,10 @@ Full setup, project layout, and the PR checklist live in [`CONTRIBUTING.md`](CON
 
 - [Product context](CONTEXT.md) — the domain language you should match
 - [Architecture](docs/ARCHITECTURE.md) — module map, where to put new code
+- [User manual](docs/manual/INDEX.md) — feature-by-feature walkthrough
 - [Roadmap](docs/ROADMAP.md)
 - [Dashboard architecture](docs/DASHBOARD.md)
+- [Built-in MCP server](docs/MCP.md)
 - [AI provider guide](docs/AI_PROVIDERS.md)
 
 ---
