@@ -11,7 +11,7 @@ import { technicalInputProps } from "../../../../lib/inputBehavior";
 import { invokeCommand, isTauriRuntime, logUrlConnectionDebug, openExternalUrl } from "../../../../lib/tauri";
 import type { AssistantScreenshot, WebviewSessionStarted } from "../../../../lib/tauri";
 import { useWorkspaceStore } from "../../../../store";
-import { resolveUrlProxy } from "./urlProxy";
+import { resolveUrlDataPartition, resolveUrlProxy } from "./urlProxy";
 import type { WorkspaceTab } from "../../../../types";
 
 type WebviewNavigationEvent = {
@@ -551,13 +551,23 @@ export function WebViewWorkspace({
     }
     let disposed = false;
     const sessionId = sessionIdRef.current;
-    const proxyUrl = resolveUrlProxy(tab.connection ?? {}, urlSettings);
+    const urlConnectionOptions = {
+      ...tab.connection,
+      dataPartition: tab.dataPartition ?? tab.connection?.dataPartition,
+      urlProxyInheritDefaults: tab.connection
+        ? tab.connection.urlProxyInheritDefaults
+        : tab.dataPartition
+          ? false
+          : undefined,
+    };
+    const proxyUrl = resolveUrlProxy(urlConnectionOptions, urlSettings);
+    const dataPartition = resolveUrlDataPartition(urlConnectionOptions, urlSettings);
     sessionStartingRef.current = true;
     lastBoundsRef.current = bounds;
     markWebviewConnectionStarted();
     logWebviewBoundsDebug("frontend.start.request", {
       requestBounds: bounds,
-      dataPartition: tab.dataPartition,
+      dataPartition,
       ignoreCertificateErrors,
       proxyUrl,
     });
@@ -566,7 +576,7 @@ export function WebViewWorkspace({
         request: {
           sessionId,
           url: initialUrl,
-          dataPartition: tab.dataPartition,
+          dataPartition,
           proxyUrl,
           ignoreCertificateErrors,
           ...bounds,

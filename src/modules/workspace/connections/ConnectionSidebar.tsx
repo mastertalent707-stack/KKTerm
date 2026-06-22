@@ -3922,6 +3922,7 @@ function ConnectionDialog({
 }) {
   const { i18n, t } = useTranslation();
   const terminalSettings = useWorkspaceStore((state) => state.terminalSettings);
+  const urlSettings = useWorkspaceStore((state) => state.urlSettings);
   const connectionType = initialConnection?.type ?? initialConnectionType ?? "";
   const [authMethod, setAuthMethod] = useState<"keyFile" | "password" | "agent">(
     initialConnection?.authMethod ?? "keyFile",
@@ -4204,6 +4205,13 @@ function ConnectionDialog({
           String(form.get("urlProxyPort") ?? ""),
         )
       : undefined;
+    const dataPartition =
+      connectionType === "url"
+        ? (urlProxyInheritDefaults
+            ? urlSettings.defaultDataPartition
+            : String(form.get("dataPartition") ?? "")
+          )?.trim() || undefined
+        : undefined;
 
     void onSubmit({
       name,
@@ -4252,9 +4260,7 @@ function ConnectionDialog({
           : undefined,
       url: connectionType === "url" ? rawUrl : undefined,
       dataPartition:
-        connectionType === "url"
-          ? String(form.get("dataPartition") ?? "").trim() || undefined
-          : undefined,
+        connectionType === "url" ? dataPartition : undefined,
       urlProxy: connectionType === "url" ? urlProxy : undefined,
       urlProxyInheritDefaults: connectionType === "url" ? urlProxyInheritDefaults : undefined,
       rdpOptions:

@@ -53,18 +53,6 @@ export function UrlConnectionFields({
           placeholder={isEditMode ? t("connections.leaveBlankPassword") : t("connections.storedInKeychain")}
         />
       </div>
-      <div className="connection-option-fields">
-        <label>
-          <Database className="option-glyph" size={17} aria-hidden />
-          <span>{t("connections.dataPartition")}</span>
-          <input
-            name="dataPartition"
-            {...technicalInputProps}
-            defaultValue={initialConnection?.dataPartition ?? ""}
-            placeholder={t("connections.default")}
-          />
-        </label>
-      </div>
     </>
   );
 }
@@ -78,7 +66,9 @@ export function UrlConnectionOptions({ initialConnection }: { initialConnection?
   const [proxyMode, setProxyMode] = useState<UrlProxyMode>(initialProxy.mode);
   const [proxyHost, setProxyHost] = useState(initialProxy.host);
   const [proxyPort, setProxyPort] = useState(initialProxy.port);
+  const [dataPartitionDraft, setDataPartitionDraft] = useState(initialConnection?.dataPartition ?? "");
   const displayedProxy = inheritsDefaults ? inheritedProxy : { mode: proxyMode, host: proxyHost, port: proxyPort };
+  const displayedDataPartition = inheritsDefaults ? (urlSettings.defaultDataPartition ?? "") : dataPartitionDraft;
 
   return (
     <fieldset className="connection-session-fields connection-specific-options">
@@ -95,6 +85,18 @@ export function UrlConnectionOptions({ initialConnection }: { initialConnection?
           />
         </label>
         <div className="connection-option-fields">
+          <label className="connection-proxy-row">
+            <Database className="option-glyph" size={17} aria-hidden />
+            <span>{t("connections.dataPartition")}</span>
+            <input
+              {...technicalInputProps}
+              disabled={inheritsDefaults}
+              name="dataPartition"
+              onChange={(event) => setDataPartitionDraft(event.currentTarget.value)}
+              placeholder={t("connections.default")}
+              value={displayedDataPartition}
+            />
+          </label>
           <label className="connection-proxy-row">
             <span>{t("settings.urlProxyMode")}</span>
             <select

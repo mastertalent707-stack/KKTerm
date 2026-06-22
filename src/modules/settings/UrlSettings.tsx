@@ -59,8 +59,16 @@ export function UrlSettings() {
     proxyDraftUrl = `${proxyMode}://${proxyHost.trim()}:${proxyPort.trim()}`;
   }
   const hasChanges =
-    JSON.stringify({ ...draft, defaultProxyUrl: proxyDraftUrl || undefined }) !==
-    JSON.stringify({ ...urlSettings, defaultProxyUrl: urlSettings.defaultProxyUrl || undefined });
+    JSON.stringify({
+      ...draft,
+      defaultProxyUrl: proxyDraftUrl || undefined,
+      defaultDataPartition: draft.defaultDataPartition?.trim() || undefined,
+    }) !==
+    JSON.stringify({
+      ...urlSettings,
+      defaultProxyUrl: urlSettings.defaultProxyUrl || undefined,
+      defaultDataPartition: urlSettings.defaultDataPartition?.trim() || undefined,
+    });
 
   useEffect(() => {
     setDraft(urlSettings);
@@ -99,6 +107,7 @@ export function UrlSettings() {
       const request = {
         ...draft,
         defaultProxyUrl: parseUrlProxyDraft(proxyMode, proxyHost, proxyPort),
+        defaultDataPartition: draft.defaultDataPartition?.trim() || undefined,
       };
       const saved = isTauriRuntime() ? await invokeCommand("update_url_settings", { request }) : request;
       setUrlSettings(saved);
@@ -377,6 +386,19 @@ export function UrlSettings() {
         <legend data-tutorial-id="settings.urlDataShards">{t("settings.urlDataShards")}</legend>
         <div>
           <p className="field-hint">{t("settings.urlDataShardsHint")}</p>
+        </div>
+        <div className="form-grid two-columns">
+          <label>
+            <span>{t("connections.dataPartition")}</span>
+            <input
+              {...technicalInputProps}
+              onChange={(event) =>
+                setDraft((settings) => ({ ...settings, defaultDataPartition: event.currentTarget.value }))
+              }
+              placeholder={t("connections.default")}
+              value={draft.defaultDataPartition ?? ""}
+            />
+          </label>
         </div>
         {partitions.length === 0 ? (
           <p className="settings-empty-state">{t("settings.noUrlDataShards")}</p>

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseUrlProxyDraft, resolveUrlProxy } from "../src/modules/workspace/connections/webview/urlProxy";
+import { parseUrlProxyDraft, resolveUrlDataPartition, resolveUrlProxy } from "../src/modules/workspace/connections/webview/urlProxy";
 
 test("URL proxy inheritance resolves global, direct, and custom modes", () => {
   const settings = { ignoreCertificateErrors: false, defaultProxyUrl: "http://proxy.example:3128" };
@@ -13,6 +13,21 @@ test("URL proxy inheritance resolves global, direct, and custom modes", () => {
       settings,
     ),
     "socks5://127.0.0.1:1080",
+  );
+});
+
+test("URL data partition inheritance resolves global and custom values", () => {
+  const settings = {
+    ignoreCertificateErrors: false,
+    defaultProxyUrl: undefined,
+    defaultDataPartition: "ops",
+  };
+
+  assert.equal(resolveUrlDataPartition({ urlProxyInheritDefaults: true }, settings), "ops");
+  assert.equal(resolveUrlDataPartition({ urlProxyInheritDefaults: false }, settings), undefined);
+  assert.equal(
+    resolveUrlDataPartition({ urlProxyInheritDefaults: false, dataPartition: "lab" }, settings),
+    "lab",
   );
 });
 

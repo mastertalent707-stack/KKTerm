@@ -653,6 +653,8 @@ pub struct UrlSettings {
     ignore_certificate_errors: bool,
     #[serde(default)]
     default_proxy_url: Option<String>,
+    #[serde(default)]
+    default_data_partition: Option<String>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -4507,6 +4509,7 @@ fn default_url_settings() -> UrlSettings {
     UrlSettings {
         ignore_certificate_errors: false,
         default_proxy_url: None,
+        default_data_partition: None,
     }
 }
 
@@ -5069,6 +5072,10 @@ fn validate_sftp_settings(mut settings: SftpSettings) -> Result<SftpSettings, St
 
 fn validate_url_settings(mut settings: UrlSettings) -> Result<UrlSettings, String> {
     settings.default_proxy_url = normalize_url_proxy(settings.default_proxy_url)?;
+    settings.default_data_partition = settings
+        .default_data_partition
+        .map(|partition| partition.trim().to_string())
+        .filter(|partition| !partition.is_empty());
     Ok(settings)
 }
 

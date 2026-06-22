@@ -2721,11 +2721,13 @@ fn url_settings_round_trip_through_settings_table() {
     let defaults = storage.url_settings().expect("default URL settings load");
     assert!(!defaults.ignore_certificate_errors);
     assert_eq!(defaults.default_proxy_url, None);
+    assert_eq!(defaults.default_data_partition, None);
 
     let updated = storage
         .update_url_settings(UrlSettings {
             ignore_certificate_errors: true,
             default_proxy_url: Some(" socks5://127.0.0.1:1080 ".to_string()),
+            default_data_partition: Some(" ops ".to_string()),
         })
         .expect("URL settings update");
 
@@ -2734,6 +2736,7 @@ fn url_settings_round_trip_through_settings_table() {
         updated.default_proxy_url.as_deref(),
         Some("socks5://127.0.0.1:1080")
     );
+    assert_eq!(updated.default_data_partition.as_deref(), Some("ops"));
 
     let reloaded = storage.url_settings().expect("URL settings reload");
     assert!(reloaded.ignore_certificate_errors);
@@ -2741,6 +2744,7 @@ fn url_settings_round_trip_through_settings_table() {
         reloaded.default_proxy_url.as_deref(),
         Some("socks5://127.0.0.1:1080")
     );
+    assert_eq!(reloaded.default_data_partition.as_deref(), Some("ops"));
 
     for invalid in [
         "https://proxy.example:443",
@@ -2754,6 +2758,7 @@ fn url_settings_round_trip_through_settings_table() {
                 .update_url_settings(UrlSettings {
                     ignore_certificate_errors: false,
                     default_proxy_url: Some(invalid.to_string()),
+                    default_data_partition: None,
                 })
                 .is_err(),
             "{invalid} must be rejected"

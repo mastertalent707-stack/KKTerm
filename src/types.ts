@@ -735,6 +735,7 @@ export interface SftpSettings {
 export interface UrlSettings {
   ignoreCertificateErrors: boolean;
   defaultProxyUrl?: string;
+  defaultDataPartition?: string;
 }
 
 export type RdpPerformanceProfile = "balanced" | "quality" | "speed";

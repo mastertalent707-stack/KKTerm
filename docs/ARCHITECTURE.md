@@ -57,7 +57,7 @@ AI Assistant context is also a command-boundary concern. Any frontend page conte
 - `src/modules/settings/SshSettings.tsx` — SSH defaults, SSH terminal buffer behavior, SSH OSC 52 clipboard policy, managed VcXsrv launcher defaults for local X11 windows, and SFTP transfer defaults summary.
 - `src/modules/settings/TerminalSettings.tsx` — Local terminal font, size, line height, scrollback, cursor, default shell, reusable custom shell profiles, and local terminal toggles. Do not put SSH-only terminal behavior here; SSH terminal behavior belongs in `SshSettings.tsx`.
 - `src/lib/fontCatalog.ts` — Shared platform-aware App UI/terminal font recommendations plus subscribed custom/system font state. Both font pickers consume this catalog so one explicit refresh rescans the app fonts folder and installed OS fonts, then updates both without scanning during initial render.
-- `src/modules/settings/UrlSettings.tsx` — URL Connection security and proxy defaults, saved website password metadata, and URL data shard management.
+- `src/modules/settings/UrlSettings.tsx` — URL Connection security, proxy defaults, global data shard default, saved website password metadata, and URL data shard management.
 - `src/modules/settings/RdpSettings.tsx` — Planned RDP quality defaults summary.
 - `src/modules/settings/VncSettings.tsx` — Planned VNC quality defaults summary.
 - `src/modules/settings/AboutSettings.tsx` — Product info, version, open-source component tables.
@@ -507,7 +507,7 @@ Workspace chrome layout is global state. Connection-specific live context may ch
 - `src/modules/settings/SettingsPage.tsx` — Settings shell with sidebar nav and section routing.
 - `src/modules/settings/settingsAssistantContext.ts` — Settings-to-AI context projection: active section, visible i18n control keys, and allowed tutorial targets.
 - `src/modules/settings/WorkspaceSettings.tsx` — Workspace display preferences, including the top Tab Strip / Child Connection Tab presentation toggle.
-- `src/modules/settings/UrlSettings.tsx` — URL Connection security and proxy defaults, saved website password metadata, and URL data shard management.
+- `src/modules/settings/UrlSettings.tsx` — URL Connection security, proxy defaults, global data shard default, saved website password metadata, and URL data shard management.
 - `src/modules/settings/shared.tsx` — Shared `SettingsSummary` and `PlannedSettingsGrid` for settings pages.
 - `src/modules/settings/aboutData.ts` — Product metadata and open-source component groups.
 - `src/modules/settings/settings.css` — Settings shell, section fieldsets, form grids, Settings dialogs, MCP server management, assistant-skill settings, and Settings-owned import/export surfaces.

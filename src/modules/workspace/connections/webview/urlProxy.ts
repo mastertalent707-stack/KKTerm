@@ -3,9 +3,19 @@ import type { Connection, UrlSettings } from "../../../../types";
 export type UrlProxyMode = "direct" | "http" | "socks5";
 
 type UrlProxyConnection = Pick<Connection, "urlProxy" | "urlProxyInheritDefaults">;
+type UrlDataPartitionConnection = Pick<Connection, "dataPartition" | "urlProxyInheritDefaults">;
 
 export function resolveUrlProxy(connection: UrlProxyConnection, settings: UrlSettings): string | undefined {
   const value = connection.urlProxyInheritDefaults !== false ? settings.defaultProxyUrl : connection.urlProxy;
+  return value?.trim() || undefined;
+}
+
+export function resolveUrlDataPartition(
+  connection: UrlDataPartitionConnection,
+  settings: UrlSettings,
+): string | undefined {
+  const value =
+    connection.urlProxyInheritDefaults !== false ? settings.defaultDataPartition : connection.dataPartition;
   return value?.trim() || undefined;
 }
 
