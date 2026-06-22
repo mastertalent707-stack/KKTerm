@@ -70,6 +70,7 @@ Eres administrador de sistemas / DevOps / aficionado al homelab / vibe-coder. Ah
 - El Escritorio remoto en una ventana que siempre pierdes en el monitor equivocado
 - Un visor VNC para esa única máquina Linux
 - Una pestaña del navegador para la interfaz de administración del router
+- Un gestor de archivos para curiosear el disco local, y un editor de texto para ese único log que siempre tienes en `tail`
 - Una sesión `claude` / `codex` en una máquina remota que se cae cada vez que el wifi estornuda
 - Un pósit con contraseñas *(tranqui, no diremos nada)*
 
@@ -79,6 +80,7 @@ Y unas cuantas cosas que no sabías que querías:
 
 - Un **Dashboard** donde le dices a una IA *«créame un widget que haga ping a mi router cada 30 segundos»* y aparece, en su propio espacio aislado, sobre tu cuadrícula.
 - **Paneles SSH que se vuelven a enganchar a tu sesión remota `claude` / `codex`** tras cada rabieta del wifi, para que un trabajo de seis horas sobreviva a una caída.
+- **Espacios de trabajo (Workspaces)** que mantienen tu homelab, el trabajo y los servidores de ese cliente en contenedores separados e intercambiables.
 - Un **medidor de uso de IA** para que dejes de chocar por sorpresa contra el muro del límite de uso a las 3 de la mañana.
 - Un **Install Helper** que encuentra, instala, actualiza y lanza las herramientas para devs de Windows que normalmente persigues por diez pestañas del navegador.
 - **Veinticinco fondos animados** para el panel (sí, incluido `matrix`), porque no estamos por encima de eso.
@@ -123,7 +125,13 @@ Aún no hemos podido incluir una bolsa real de Kuai Kuai con el instalador. Eso 
   </a>
 </p>
 
-<p align="center"><sub><em>(Aquí va el GIF de demostración. Una imagen vale más que mil viñetas, y se nos han acabado las viñetas.)</em></sub></p>
+<p align="center"><sub><em>(El GIF de demostración. Una imagen vale más que mil viñetas, y se nos han acabado las viñetas.)</em></sub></p>
+
+<p align="center">
+  <img src="docs/assets/screenshots/hero.png" alt="La ventana completa de KKTerm: árbol de conexiones, una cuadrícula de Panes en vivo y el asistente de IA" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — todo el espacio de trabajo de un vistazo: árbol de conexiones a la izquierda, una cuadrícula de Panes en vivo en el centro, asistente de IA a la derecha.</em></sub></p>
 
 ---
 
@@ -140,9 +148,17 @@ Aún no hemos podido incluir una bolsa real de Kuai Kuai con el instalador. Eso 
 | Entrar por remoto a una máquina Windows | El auténtico Escritorio remoto de Microsoft, integrado |
 | VNC a una Pi | VNC, renderizado directamente en el espacio de trabajo |
 | Abrir la interfaz web del router | Una pestaña de navegador integrada con inicios de sesión guardados |
+| Explorar tu propio disco | Un panel de File Explorer local, el mismo doble panel que SFTP |
+| Abrir un log, CSV, imagen o PDF | Un visor Document integrado con un verdadero modo de log en seguimiento (tail) |
 | Vigilar la CPU del host | Una barra de estado en vivo y un panel que montas tú mismo |
 
 La misma app. La misma ventana. Los mismos atajos. El mismo tema, que ojalá no te sangren los ojos.
+
+<p align="center">
+  <img src="docs/assets/screenshots/connections-grid.png" alt="Una sola Tab con SSH, SFTP y una interfaz web integrada lado a lado" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — una sola Tab, varios tipos de Connection conviviendo: SSH junto a SFTP junto a una interfaz web integrada.</em></sub></p>
 
 ---
 
@@ -160,6 +176,12 @@ Una Tab puede contener una cuadrícula de Panes, y esos Panes no tienen que ser 
 
 Es un solo espacio de trabajo para la forma real y desordenada del trabajo de administración: mezcla tipos de Connection, redimensiona la cuadrícula, mantén vivas las live Sessions y deja de hacer Alt-Tab entre un montón de ventanas.
 
+<p align="center">
+  <img src="docs/assets/screenshots/multi-pane.png" alt="Una Tab dividida en cuatro paneles de distintos tipos de conexión" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — una cuadrícula de cuatro: PowerShell, una sesión SSH, un explorador SFTP y una superficie VNC, todo en una sola Tab.</em></sub></p>
+
 ### Un asistente de IA que construye tus herramientas
 
 La mayoría de las demos de «IA en tu terminal» se quedan en el chat. El asistente de KKTerm también puede construir pequeños widgets de panel duraderos, a la medida de cómo trabajas de verdad — y mantiene lo peligroso detrás de un interruptor:
@@ -170,6 +192,14 @@ La mayoría de las demos de «IA en tu terminal» se quedan en el chat. El asist
 Cualquier cosa que parezca un `rm -rf` se marca como peligrosa y espera un sí humano explícito. La IA no puede ejecutar a escondidas un comando destructivo porque alguien se haya pasado de listo con una inyección de prompt en una página de man.
 
 Habla con OpenAI, Anthropic, OpenRouter, DeepSeek, Grok, Azure OpenAI, LiteLLM, GitHub Copilot, Ollama, NVIDIA o cualquier endpoint compatible con OpenAI. Tus claves de API van al llavero del SO.
+
+También puede ver lo que tú ves: captura una región o un Pane entero con el **menú de captura** y envíalo directamente a la conversación, para que «¿por qué se ve mal este diálogo?» se convierta en una pregunta que el asistente sí puede responder.
+
+<p align="center">
+  <img src="docs/assets/screenshots/ai-assistant.png" alt="El panel del asistente de IA con los interruptores de acceso a herramientas y modo de aprobación" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — el panel del asistente de IA: interruptores por familia de herramientas, el conmutador Prompt / Allow All, y un comando peligroso esperando un sí humano.</em></sub></p>
 
 ### Un panel que no finge ser Grafana
 
@@ -186,6 +216,12 @@ Esta es la parte que de verdad nos emociona. No eliges de un marketplace ni escr
 
 Algunos son simples paneles de visualización (markdown, listas de tareas, una cifra grande); otros ejecutan código en vivo en un espacio aislado que tú apruebas. Cada widget que conservas es tuyo — persiste con su propio color, icono y título, y puedes tener varias copias de distintos tamaños. Borra uno con clic derecho cuando se pase la magia.
 
+<p align="center">
+  <img src="docs/assets/screenshots/ai-widgets.png" alt="Una cuadrícula de panel llena de widgets creados por la IA" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — una vista de panel llena de widgets hechos por la IA: un monitor de ping, una nota adhesiva, una estadística en vivo y un jueguecito que no tiene por qué ser tan divertido.</em></sub></p>
+
 #### Fondos animados del panel (porque nos apetecía)
 
 Elige un ambiente por vista del panel entre **veinticinco** fondos animados sobre canvas:
@@ -200,6 +236,12 @@ Elige un ambiente por vista del panel entre **veinticinco** fondos animados sobr
 
 Se pausan cuando estás en otra parte, así que casi no cuestan nada. Combina `matrix` con tu asistente de IA para un ambiente que dice «soy extremadamente productivo y posiblemente estoy en una película de las Wachowski». O elige `ocean` y aparenta ser una persona seria. No juzgamos ninguna de las dos opciones.
 
+<p align="center">
+  <img src="docs/assets/screenshots/backgrounds.png" alt="Algunos de los fondos animados lado a lado" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — una hoja de ambientes: `matrix`, `aurora`, `synthwave` y `taipei101`.</em></sub></p>
+
 ### Mantén vivos a tus agentes de IA remotos
 
 Esta es la segunda función de la que la gente se enamora. Los terminales SSH de KKTerm pueden dejarte directamente en una **sesión tmux con nombre** en el host remoto que sobrevive a la reconexión:
@@ -211,6 +253,14 @@ Esta es la segunda función de la que la gente se enamora. Los terminales SSH de
 
 Si alguna vez perdiste una sesión `claude` o `codex` de seis horas por el inestable wifi de un hotel, esta sola función amortiza la app. (La app es gratis. La función vale la pena igualmente.)
 
+Las shells locales tienen el mismo truco en Windows: los paneles de PowerShell pueden correr dentro de **psmux**, el clon nativo de tmux, para que tus tareas locales de larga duración sobrevivan a un Pane cerrado igual que las remotas.
+
+<p align="center">
+  <img src="docs/assets/screenshots/tmux-reattach.png" alt="Un panel SSH reenganchándose a una sesión tmux con nombre tras una reconexión" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — la lista de sesiones tmux/psmux en la barra de herramientas del Pane, con un agente `claude` remoto que sigue corriendo tras una reconexión.</em></sub></p>
+
 ### Saber cuánta IA te queda
 
 Los agentes de programación cobran por ventana de plan, no por mes, y se comen encantados tu cuota mientras estás en una reunión. El **medidor de uso de IA** lo mantiene a la vista:
@@ -219,11 +269,43 @@ Los agentes de programación cobran por ventana de plan, no por mes, y se comen 
 - Un **indicador compacto en la barra de estado** que refleja las mismas cifras, para que incluso con el panel cerrado veas de un vistazo si te queda margen antes del próximo gran refactor.
 - Te avisa por adelantado si necesitas volver a iniciar sesión — *antes* de una tarea larga, no a mitad de ella.
 
+<p align="center">
+  <img src="docs/assets/screenshots/usage-meter.png" alt="El widget del medidor de uso de IA y el indicador de la barra de estado" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — el widget de uso mostrando Claude Code y Codex lado a lado, además del reflejo compacto en la barra de estado.</em></sub></p>
+
+### Separa tus mundos con los espacios de trabajo
+
+El homelab, el trabajo y los servidores de ese cliente no pertenecen a la misma lista. Los **espacios de trabajo (Workspaces)** son contenedores de Connections con nombre y aislados entre los que cambias desde el Activity Rail. Cambiar solo reajusta el árbol de conexiones — tus Sessions abiertas, el Dashboard y los ajustes se quedan donde están — así que cambiar de contexto cuesta un clic, no un reinicio.
+
+<p align="center">
+  <img src="docs/assets/screenshots/workspaces.png" alt="El selector de espacio de trabajo en el activity rail" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — el selector de espacio de trabajo en la parte superior del Activity Rail, a medio cambio entre «Home Lab» y «Day Job».</em></sub></p>
+
+### Archivos y logs, en la misma ventana
+
+No todo es un host remoto. KKTerm explora tu **disco local** en un Pane de File Explorer (el mismo doble panel que SFTP), y abre un único archivo en un **visor Document** que elige el modo adecuado para cada caso: texto/código con un editor ligero y guardado seguro, Markdown, tablas CSV/TSV, JSON, imágenes, PDF, y un **modo Log** dedicado con coloreado por nivel, filtro, ANSI y seguimiento (tail). Ya no hace falta echar mano de un editor aparte solo para leer el log junto al que ya estás.
+
+<p align="center">
+  <img src="docs/assets/screenshots/file-viewer.png" alt="El visor Document en modo log-tail junto a un panel de file explorer" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — el visor Document siguiendo un log en vivo (colores por nivel + filtro) junto a un Pane local de File Explorer.</em></sub></p>
+
 ### Deja que otras IA pilotee KKTerm
 
 KKTerm trae su propio servidor MCP, para que agentes de programación externos (Claude Code, Codex, Copilot, Antigravity, OpenCode) usen tu espacio de trabajo como lo haces tú — listar conexiones, abrir una, leer un búfer de terminal, colocar widgets en el panel. De IA a IA, en tu máquina, sin relé en la nube. Las acciones que modifican, las más arriesgadas, se quedan detrás de un único interruptor de seguridad que está **apagado** por defecto.
 
 Ajustes → AI Assistant → **Built-in MCP Server** tiene un diálogo «Mostrar configuración» de un clic, ya rellenado, además de comandos `claude mcp add` / `codex mcp add` para copiar.
+
+<p align="center">
+  <img src="docs/assets/screenshots/mcp-server.png" alt="Los ajustes del servidor MCP integrado con el diálogo de mostrar configuración" width="720" />
+</p>
+
+<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — el panel Built-in MCP Server con el diálogo «Mostrar configuración» y el interruptor de seguridad (apagado por defecto).</em></sub></p>
 
 ---
 
@@ -278,8 +360,10 @@ La configuración completa, la estructura del proyecto y la lista de comprobaci�
 
 - [Contexto de producto](CONTEXT.md) — el lenguaje de dominio que debes respetar
 - [Arquitectura](docs/ARCHITECTURE.md) — mapa de módulos, dónde poner el código nuevo
+- [Manual de usuario](docs/manual/INDEX.md) — un recorrido función por función
 - [Hoja de ruta](docs/ROADMAP.md)
 - [Arquitectura del Dashboard](docs/DASHBOARD.md)
+- [Servidor MCP integrado](docs/MCP.md)
 - [Guía de proveedores de IA](docs/AI_PROVIDERS.md)
 
 ---
