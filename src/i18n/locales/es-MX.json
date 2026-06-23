@@ -95,7 +95,6 @@
     "backgroundLivePreviewTitle": "Dynamic background preview",
     "backgroundDefaultHint": "Usa el fondo del esquema de color activo.",
     "backgroundDynamicHint": "Advertencia: algunos fondos pueden afectar el rendimiento.",
-    "backgroundLivePreviewHint": "Only the selected background animates in this dialog.",
     "backgroundChooseImage": "Elegir imagen…",
     "backgroundChooseMedia": "Elegir archivo…",
     "backgroundRemoveImage": "Eliminar",

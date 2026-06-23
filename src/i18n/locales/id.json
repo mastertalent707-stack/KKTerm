@@ -95,7 +95,6 @@
     "backgroundLivePreviewTitle": "Dynamic background preview",
     "backgroundDefaultHint": "Menggunakan latar skema warna aktif.",
     "backgroundDynamicHint": "Peringatan: beberapa latar belakang dapat memengaruhi performa.",
-    "backgroundLivePreviewHint": "Only the selected background animates in this dialog.",
     "backgroundChooseImage": "Pilih Gambar…",
     "backgroundChooseMedia": "Pilih File…",
     "backgroundRemoveImage": "Hapus",

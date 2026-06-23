@@ -7,6 +7,7 @@ import { BACKGROUND_PRESETS } from "../registry/backgroundPresets";
 import {
   DashboardDynamicBackground,
   DYNAMIC_BACKGROUNDS,
+  dynamicBackgroundStaticPreviewStyle,
   type DynamicBackgroundId,
 } from "../registry/dynamicBackgrounds";
 import { importBackgroundImage } from "../state/persistence";
@@ -316,7 +317,11 @@ function DynamicBackgroundPreviewDialog({
                   {selectedTile ? (
                     <DashboardDynamicBackground id={backgroundOption.id} active />
                   ) : (
-                    <span className="dw-bg-preview-paused" aria-hidden="true" />
+                    <span
+                      className="dw-bg-preview-paused"
+                      style={dynamicBackgroundStaticPreviewStyle(backgroundOption.id, backgroundOption.mood)}
+                      aria-hidden="true"
+                    />
                   )}
                   <span className="dw-bg-preview-check">
                     <DIcon name="check" size={12} />
@@ -327,7 +332,6 @@ function DynamicBackgroundPreviewDialog({
             );
           })}
         </div>
-        <p className="dw-warning-text">{t("dashboard.backgroundLivePreviewHint")}</p>
       </Sheet>
     </DialogShell>
   );

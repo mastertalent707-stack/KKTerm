@@ -18,6 +18,10 @@ const sharedBackgroundPopover = await readFile(
   new URL("../src/modules/dashboard/edit/SharedBackgroundPopover.tsx", import.meta.url),
   "utf8",
 );
+const dynamicBackgroundRegistry = await readFile(
+  new URL("../src/modules/dashboard/registry/dynamicBackgrounds.tsx", import.meta.url),
+  "utf8",
+);
 const workspaceSettings = await readFile(
   new URL("../src/modules/settings/WorkspaceSettings.tsx", import.meta.url),
   "utf8",
@@ -102,6 +106,10 @@ test("dynamic background live preview stages selection and animates only one til
   assert.match(sharedBackgroundPopover, /backgroundLivePreview/);
   assert.match(sharedBackgroundPopover, /DynamicBackgroundPreviewDialog/);
   assert.match(sharedBackgroundPopover, /DYNAMIC_BACKGROUNDS\.map/);
+  assert.match(sharedBackgroundPopover, /dynamicBackgroundStaticPreviewStyle\(backgroundOption\.id, backgroundOption\.mood\)/);
+  assert.match(dynamicBackgroundRegistry, /STATIC_PREVIEW_STYLES/);
+  assert.match(dynamicBackgroundRegistry, /MOOD_PREVIEW_STYLES/);
+  assert.match(dynamicBackgroundRegistry, /export function dynamicBackgroundStaticPreviewStyle/);
   assert.match(previewDialog, /setDraft\(backgroundOption\.id\)/);
   assert.match(previewDialog, /onApply\(draft\)/);
   assert.match(
@@ -114,6 +122,7 @@ test("dynamic background live preview stages selection and animates only one til
     /applyDynamic\(backgroundOption\.id\)/,
     "preview tiles should stage selection until OK applies it",
   );
+  assert.doesNotMatch(sharedBackgroundPopover, /backgroundLivePreviewHint/);
 });
 
 test("docs make shared terminal background scope and datasource explicit", () => {

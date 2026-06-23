@@ -95,7 +95,6 @@
     "backgroundLivePreviewTitle": "Dynamic background preview",
     "backgroundDefaultHint": "Sử dụng nền của bảng màu đang hoạt động.",
     "backgroundDynamicHint": "Cảnh báo: một số nền có thể ảnh hưởng đến hiệu năng.",
-    "backgroundLivePreviewHint": "Only the selected background animates in this dialog.",
     "backgroundChooseImage": "Chọn hình ảnh…",
     "backgroundChooseMedia": "Chọn tệp…",
     "backgroundRemoveImage": "Xóa",

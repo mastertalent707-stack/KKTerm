@@ -3610,10 +3610,6 @@ button.dashboard-pill-dot:focus-visible {
   inset: 3px;
   overflow: hidden;
   border-radius: 9px;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--accent-soft) 58%, transparent), transparent 56%),
-    radial-gradient(circle at 22% 24%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 28%),
-    linear-gradient(160deg, var(--surface-muted), var(--chrome));
 }
 
 .dw-bg-preview-card:hover .dw-bg-preview-frame {

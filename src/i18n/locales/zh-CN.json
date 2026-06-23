@@ -95,7 +95,6 @@
     "backgroundLivePreviewTitle": "Dynamic background preview",
     "backgroundDefaultHint": "使用当前色彩方案的背景。",
     "backgroundDynamicHint": "警告：部分背景可能会影响性能。",
-    "backgroundLivePreviewHint": "Only the selected background animates in this dialog.",
     "backgroundChooseImage": "选择图片…",
     "backgroundChooseMedia": "选择文件…",
     "backgroundRemoveImage": "移除",
