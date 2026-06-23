@@ -372,14 +372,14 @@ impl Secrets {
         } else {
             storage::default_secret_store()
         };
-        let already_selected_unavailable = {
+        let already_selected = {
             let state = self
                 .state
                 .lock()
                 .map_err(|_| "secret store state lock is poisoned".to_string())?;
-            state.selected_store == selected_store && state.store.is_none()
+            state.selected_store == selected_store
         };
-        if already_selected_unavailable {
+        if already_selected {
             return Ok(self.status());
         }
         let configured = configure_secret_store(&selected_store, &self.db_path)?;
@@ -1025,6 +1025,37 @@ mod tests {
                 .expect("presence check succeeds")
                 .exists()
         );
+    }
+
+    #[test]
+    fn setting_selected_encrypted_sqlite_store_again_keeps_dialog_unlock() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let path = temp_dir.path().join("kkterm.sqlite3");
+        crate::storage::Storage::open(path.clone()).expect("storage opens");
+        let secrets = Secrets::new("os", path);
+
+        secrets
+            .configure_encrypted_file_store(ConfigureEncryptedFileSecretStoreRequest {
+                password: "dialog-password".to_string(),
+                create_if_missing: true,
+                reset_existing: false,
+            })
+            .expect("encrypted sqlite store is unlocked from dialog password");
+
+        let previous_env = std::env::var("KKTERM_SECRET_STORE_PASSWORD").ok();
+        unsafe {
+            std::env::remove_var("KKTERM_SECRET_STORE_PASSWORD");
+        }
+
+        let result = secrets.set_secret_store("file");
+
+        if let Some(value) = previous_env {
+            unsafe {
+                std::env::set_var("KKTERM_SECRET_STORE_PASSWORD", value);
+            }
+        }
+        result.expect("selecting the already active encrypted store should not require env password");
+        assert!(secrets.credential_secret_store_status().unlocked);
     }
 
     #[test]
