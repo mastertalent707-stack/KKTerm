@@ -162,6 +162,7 @@ export const AI_PROVIDER_MODEL_CATALOG: AiProviderModelCatalog = {
       { id: "kimi-k2.6", label: "Kimi K2.6", recommended: true, supportsImageInput: false },
       { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash", recommended: true, supportsImageInput: false },
       { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro", recommended: true, supportsImageInput: false },
+      { id: "glm-5.2", label: "GLM-5.2", recommended: true, supportsImageInput: false },
       { id: "glm-5.1", label: "GLM-5.1", supportsImageInput: false },
       { id: "qwen3.6-plus", label: "Qwen3.6 Plus", supportsImageInput: false },
       { id: "mimo-v2.5", label: "MiMo-V2.5", supportsImageInput: false },
