@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/ryantsai/KKTerm/releases/latest">Neuesten Windows-Installer (.exe) herunterladen</a></strong>
+  <strong><a href="https://github.com/ryantsai/KKTerm/releases/latest">Neueste KKTerm-Version herunterladen</a></strong>
 </p>
 
 <p align="center">
@@ -323,7 +323,7 @@ Falls einer dieser Punkte *früher* ein K.-o.-Kriterium war — fair genug, dann
 
 ## KKTerm holen
 
-**[Lad den neuesten Windows-Installer (.exe) herunter](https://github.com/ryantsai/KKTerm/releases/latest)** und führ ihn aus. Der Installer ist derzeit **unsigniert** — Release-Signierung steht auf der Roadmap, also kann dich dein Virenscanner bis dahin streng anschauen. Das ist normal.
+**[Lad die neueste KKTerm-Version herunter](https://github.com/ryantsai/KKTerm/releases/latest)**, wähl das Paket für deine Plattform aus und starte es. Windows-Installer sind derzeit **unsigniert** — Release-Signierung steht auf der Roadmap, also kann dich dein Virenscanner bis dahin streng anschauen. Das ist normal.
 
 Aus dem Quellcode bauen oder mitmachen? Alles, was du brauchst, steht in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

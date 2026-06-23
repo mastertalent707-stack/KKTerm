@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/ryantsai/KKTerm/releases/latest">Unduh installer Windows terbaru (.exe)</a></strong>
+  <strong><a href="https://github.com/ryantsai/KKTerm/releases/latest">Unduh rilis KKTerm terbaru</a></strong>
 </p>
 
 <p align="center">
@@ -323,7 +323,7 @@ Kalau salah satu poin itu *dulunya* jadi penentu — wajar saja, sampai jumpa di
 
 ## Dapatkan KKTerm
 
-**[Unduh installer Windows terbaru (.exe)](https://github.com/ryantsai/KKTerm/releases/latest)** lalu jalankan. Installer-nya saat ini **belum ditandatangani** — penandatanganan rilis ada di roadmap, jadi sampai saat itu antivirus-mu mungkin menatapmu tajam. Itu normal.
+**[Unduh rilis KKTerm terbaru](https://github.com/ryantsai/KKTerm/releases/latest)**, pilih paket untuk platformmu, lalu buka. Installer Windows saat ini **belum ditandatangani** — penandatanganan rilis ada di roadmap, jadi sampai saat itu antivirus-mu mungkin menatapmu tajam. Itu normal.
 
 Mau build dari sumber atau berkontribusi? Semua yang kamu butuhkan ada di [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

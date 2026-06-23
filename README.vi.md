@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/ryantsai/KKTerm/releases/latest">Tải bộ cài Windows mới nhất (.exe)</a></strong>
+  <strong><a href="https://github.com/ryantsai/KKTerm/releases/latest">Tải bản phát hành KKTerm mới nhất</a></strong>
 </p>
 
 <p align="center">
@@ -323,7 +323,7 @@ Nếu một trong số đó *từng* là yếu tố quyết định — cũng ph
 
 ## Tải KKTerm
 
-**[Tải bộ cài Windows mới nhất (.exe)](https://github.com/ryantsai/KKTerm/releases/latest)** rồi chạy nó. Bộ cài hiện **chưa được ký** — việc ký bản phát hành nằm trong roadmap, nên đến lúc đó phần mềm diệt virus của bạn có thể nhìn bạn nghiêm khắc. Đó là chuyện bình thường.
+**[Tải bản phát hành KKTerm mới nhất](https://github.com/ryantsai/KKTerm/releases/latest)**, chọn gói dành cho nền tảng của bạn rồi mở nó. Bộ cài Windows hiện **chưa được ký** — việc ký bản phát hành nằm trong roadmap, nên đến lúc đó phần mềm diệt virus của bạn có thể nhìn bạn nghiêm khắc. Đó là chuyện bình thường.
 
 Muốn build từ mã nguồn hay đóng góp? Mọi thứ bạn cần đều nằm trong [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

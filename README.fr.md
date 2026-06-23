@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/ryantsai/KKTerm/releases/latest">Télécharger le dernier installateur Windows (.exe)</a></strong>
+  <strong><a href="https://github.com/ryantsai/KKTerm/releases/latest">Télécharger la dernière version de KKTerm</a></strong>
 </p>
 
 <p align="center">
@@ -323,7 +323,7 @@ Si l'un de ces points *était* rédhibitoire — très bien, on se voit en v2.
 
 ## Obtenir KKTerm
 
-**[Téléchargez le dernier installateur Windows (.exe)](https://github.com/ryantsai/KKTerm/releases/latest)** et lancez-le. L'installateur est pour l'instant **non signé** — la signature de version est sur la feuille de route, donc d'ici là votre antivirus pourrait vous jeter un regard sévère. C'est normal.
+**[Téléchargez la dernière version de KKTerm](https://github.com/ryantsai/KKTerm/releases/latest)**, choisissez le paquet correspondant à votre plateforme et ouvrez-le. Les installateurs Windows sont pour l'instant **non signés** — la signature de version est sur la feuille de route, donc d'ici là votre antivirus pourrait vous jeter un regard sévère. C'est normal.
 
 Envie de compiler depuis les sources ou de contribuer ? Tout ce qu'il vous faut est dans [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
