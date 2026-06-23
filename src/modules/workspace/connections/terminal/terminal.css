@@ -174,10 +174,6 @@
   width: 100%;
 }
 
-.embedded-workspace-pane:has(> .embedded-pane-close) > .webview-workspace .webview-pane > header {
-  padding-right: 40px;
-}
-
 .embedded-workspace-pane:has(> .embedded-pane-close) > .remote-desktop-shell .remote-desktop-pane > header {
   padding-right: 40px;
 }
@@ -208,20 +204,6 @@
 }
 
 .embedded-workspace-pane:has(> .remote-desktop-shell) .embedded-pane-close:hover {
-  color: #ff7070;
-  background: rgba(255, 100, 100, 0.12);
-  border-color: rgba(255, 112, 112, 0.28);
-}
-
-.embedded-workspace-pane:has(> .webview-workspace) .embedded-pane-close {
-  top: 5px;
-  color: #95a7bb;
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(128, 153, 184, 0.18);
-  border-radius: 5px;
-}
-
-.embedded-workspace-pane:has(> .webview-workspace) .embedded-pane-close:hover {
   color: #ff7070;
   background: rgba(255, 100, 100, 0.12);
   border-color: rgba(255, 112, 112, 0.28);
