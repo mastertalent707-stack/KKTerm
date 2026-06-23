@@ -2046,6 +2046,8 @@
     "line": "Line",
     "speed": "Speed",
     "serialLinePlaceholder": "e.g. COM3 or /dev/cu.usbserial-1410",
+    "serialLineDetect": "Show detected serial ports",
+    "serialLineNoneDetected": "No serial ports detected",
     "url": "URL",
     "urlPlaceholder": "https://example.com",
     "dataPartition": "Data partition",

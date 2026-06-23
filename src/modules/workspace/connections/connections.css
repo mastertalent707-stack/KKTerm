@@ -1728,6 +1728,95 @@ fieldset.connection-specific-options > legend {
   opacity: 0.55;
 }
 
+/* Serial "Line" combobox: an editable input plus a blue chevron button that
+   opens a popover of OS-detected ports. A native <datalist> is used elsewhere,
+   but it renders no dropdown affordance in WKWebView (macOS), so the serial
+   field — which targets macOS /dev/cu.* devices — needs an explicit control. */
+.serial-line-combobox {
+  position: relative;
+  min-width: 0;
+}
+
+.serial-line-combobox > input {
+  padding-right: 38px;
+}
+
+.serial-line-combobox-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: #ffffff;
+  background: var(--accent);
+  border-radius: 6px;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.serial-line-combobox-toggle svg {
+  transition: transform 120ms ease;
+}
+
+.serial-line-combobox.open .serial-line-combobox-toggle svg {
+  transform: rotate(180deg);
+}
+
+.serial-line-combobox-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  width: 100%;
+  max-height: 196px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--surface);
+  border: 0.5px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.18);
+}
+
+.serial-line-combobox-list > li {
+  min-width: 0;
+}
+
+.serial-line-combobox-list > li > button {
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.serial-line-combobox-list > li > button:hover,
+.serial-line-combobox-list > li > button.selected {
+  background: var(--surface-muted);
+}
+
+.serial-line-combobox-list > li > button.selected {
+  font-weight: 700;
+}
+
+.serial-line-combobox-empty {
+  padding: 6px 8px;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
 .local-startup-script-field {
   display: grid;
   gap: 6px;
