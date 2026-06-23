@@ -19,7 +19,7 @@
   margin-bottom: 0;
 }
 
-/* Single-row titlebar: left = kind glyph + label + status; center = user@host;
+/* Single-row titlebar: left = kind glyph + label/protocol picker; center = user@host;
    right = actions (terminal / close). A 3-column grid keeps the host centered
    regardless of the left/right group widths. */
 .sftp-toolbar.workspace-toolbar {
@@ -60,6 +60,61 @@
 .sftp-bar-kind img {
   flex: 0 0 auto;
 }
+.sftp-protocol-menu-host {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.sftp-protocol-change {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.sftp-protocol-change:hover,
+.sftp-protocol-change[aria-expanded="true"] {
+  background: var(--hover);
+  color: var(--text-muted);
+}
+.sftp-protocol-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: -6px;
+  z-index: 20;
+  display: grid;
+  min-width: 132px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.sftp-protocol-menu button {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 0 9px;
+  text-align: left;
+  cursor: pointer;
+}
+.sftp-protocol-menu button:hover,
+.sftp-protocol-menu button.active {
+  background: var(--hover);
+  color: var(--text);
+}
 .sftp-bar-center {
   justify-self: center;
   min-width: 0;
@@ -75,6 +130,25 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+.sftp-title-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 118px;
+  min-height: 22px;
+  border: 1px solid color-mix(in srgb, var(--notice-warning) 38%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--notice-warning) 10%, transparent);
+  color: var(--notice-warning);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  padding: 0 7px;
+  white-space: nowrap;
+}
+.sftp-title-warning svg {
+  flex: 0 0 auto;
 }
 .sftp-bar-close,
 .sftp-bar-git {
@@ -121,6 +195,19 @@
 .sftp-conn-pill[data-state="error"] .dot {
   background: var(--red);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 22%, transparent);
+}
+
+.sftp-password-dialog {
+  display: grid;
+  gap: 12px;
+}
+.sftp-password-dialog p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.sftp-password-dialog-error {
+  color: var(--red) !important;
 }
 
 /* ============================== panes row ============================== */

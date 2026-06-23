@@ -1,13 +1,13 @@
 import { confirmTrustedSshHostKey, connectionToolbarTitle, resolveSshSocksProxyRequest, uniqueRuntimeId, usesNativeSshHostKeyVerification } from "../utils";
 
-import { X } from "lucide-react";
-import { DIcon } from "../../../../app/ui/dialog";
+import { AlertTriangle, ChevronsUpDown, X } from "lucide-react";
+import { Actions, Btn, DIcon, DialogShell, Field, Sheet, TextInput } from "../../../../app/ui/dialog";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { FormEvent, MouseEvent as ReactMouseEvent } from "react";
 import { resolveAppliedColorScheme } from "../../../../app/appShellEffects";
-import { invokeCommand, isTauriRuntime, openFilesystemPath, type LocalDirectoryEntry, type LocalFileClipboardOperation, type LocalPlacesListing, type SftpDirectoryEntry, type SftpPathProperties, type SftpTransferProgress } from "../../../../lib/tauri";
+import { invokeCommand, isTauriRuntime, openFilesystemPath, type LocalDirectoryEntry, type LocalFileClipboardOperation, type LocalPlacesListing, type SftpDirectoryEntry, type SftpPathProperties, type SftpSessionStarted, type SftpTransferProgress } from "../../../../lib/tauri";
 import {
   fileBrowserCommandsFor,
   type FileBrowserCommands,
@@ -20,7 +20,7 @@ import {
 import { useWorkspaceStore } from "../../../../store";
 import { GitIcon } from "../../../git/GitIcon";
 import { useGitRepoDetection } from "../../../git/useGitRepoDetection";
-import type { FileBrowserViewOptions, FileEntry, SftpSettings, WorkspaceTab } from "../../../../types";
+import type { Connection, FileBrowserViewOptions, FileEntry, FtpConnectionOptions, SftpSettings, WorkspaceTab } from "../../../../types";
 import type { DashboardBackground } from "../../../dashboard/types";
 import { FILE_PANE_ZOOM_DEFAULT, FilePane } from "./SftpFilePane";
 import { fileBrowserConnectionIconSrc } from "../fileBrowserConnectionIcons";
@@ -53,7 +53,16 @@ const WINDOWS_DRIVES_PATH = "__KKTERM_WINDOWS_DRIVES__";
 const FILE_BROWSER_RECENT_PATHS_STORAGE_KEY = "kkterm.fileBrowserRecentPaths.v1";
 const FILE_BROWSER_FAVORITES_STORAGE_KEY = "kkterm.fileBrowserFavorites.v1";
 const FILE_BROWSER_SIDEBAR_STORAGE_KEY = "kkterm.fileBrowserSidebarCollapsed.v1";
+const SSH_FILE_BROWSER_PROTOCOL_STORAGE_KEY = "kkterm.sshFileBrowserProtocol.v1";
 const RECENT_PATH_LIMIT = 5;
+
+type SshFileBrowserProtocol = "sftp" | "ftpsExplicit" | "ftpsImplicit" | "ftp";
+
+type StoredSshFileBrowserProtocol = {
+  protocol: SshFileBrowserProtocol;
+};
+
+const DEFAULT_SSH_FILE_BROWSER_PROTOCOL: SshFileBrowserProtocol = "sftp";
 
 // Per-pane zoom + content-view background. Persisted durably on the Connection
 // (DB) so the look survives restarts and follows the Connection, except for the
@@ -114,6 +123,7 @@ export function SftpWorkspace({
   commands: commandsProp,
   inline = false,
   onClose,
+  protocolSourceConnection,
 }: {
   isActive: boolean;
   tab: WorkspaceTab;
@@ -122,6 +132,7 @@ export function SftpWorkspace({
   // browser as ephemeral so per-pane view options are not persisted.
   inline?: boolean;
   onClose?: () => void;
+  protocolSourceConnection?: Connection;
 }) {
   const { t } = useTranslation();
   const appearanceSettings = useWorkspaceStore((state) => state.appearanceSettings);
@@ -133,12 +144,32 @@ export function SftpWorkspace({
   const openElevatedLocalTerminal = useWorkspaceStore((state) => state.openElevatedLocalTerminal);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const openGitBrowser = useWorkspaceStore((state) => state.openGitBrowser);
-  const connection = tab.connection;
-  const isLocalFilesBrowser = tab.kind === "localFiles";
+  const sourceConnection = protocolSourceConnection;
+  const [sshFileBrowserProtocol, setSshFileBrowserProtocol] = useState<SshFileBrowserProtocol>(() =>
+    sourceConnection ? readStoredSshFileBrowserProtocol(sourceConnection.id) : protocolFromTab(tab),
+  );
+  const [protocolMenuOpen, setProtocolMenuOpen] = useState(false);
+  const [plainFtpFallbackActive, setPlainFtpFallbackActive] = useState(false);
+  const connection = useMemo(
+    () =>
+      sourceConnection
+        ? connectionForSshFileBrowserProtocol(sourceConnection, sshFileBrowserProtocol)
+        : tab.connection,
+    [sourceConnection, sshFileBrowserProtocol, tab.connection],
+  );
+  const effectiveBrowserKind = sourceConnection
+    ? sshFileBrowserProtocol === "sftp"
+      ? "sftp"
+      : "ftp"
+    : tab.kind;
+  const isLocalFilesBrowser = effectiveBrowserKind === "localFiles";
   const commands = useMemo<FileBrowserCommands | null>(
     () => (commandsProp ?? (connection ? fileBrowserCommandsFor(connection) : null)),
     [commandsProp, connection],
   );
+  const activeProtocolLabel = connection
+    ? fileBrowserProtocolLabel(connection, sourceConnection ? sshFileBrowserProtocol : undefined, t)
+    : t("sftp.protocolSftp");
   const workspaceRef = useRef<HTMLElement | null>(null);
   const [localPath, setLocalPath] = useState("");
   // Show the Git icon when the File Explorer's current directory is in a repo.
@@ -173,6 +204,7 @@ export function SftpWorkspace({
   const [propertiesState, setPropertiesState] = useState<FilePropertiesState | null>(null);
   const [transferConflict, setTransferConflict] = useState<TransferConflictState | null>(null);
   const [newRemoteFolderOpen, setNewRemoteFolderOpen] = useState(false);
+  const [passwordPrompt, setPasswordPrompt] = useState<{ message?: string } | null>(null);
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null);
   const [renameRequest, setRenameRequest] = useState<{
     side: FilePaneSide;
@@ -180,6 +212,9 @@ export function SftpWorkspace({
     requestId: number;
   } | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const transientPasswordRef = useRef<string | null>(null);
+  const passwordPromptResolverRef = useRef<((password: string | null) => void) | null>(null);
+  const protocolMenuRef = useRef<HTMLSpanElement | null>(null);
   const activeTransferIdRef = useRef<string | null>(null);
   const transferConflictResolverRef = useRef<
     ((decision: TransferConflictDecision) => void) | null
@@ -197,6 +232,61 @@ export function SftpWorkspace({
   const updateOpenConnectionFileBrowserViewOptions = useWorkspaceStore(
     (state) => state.updateOpenConnectionFileBrowserViewOptions,
   );
+
+  useEffect(() => {
+    if (!sourceConnection) {
+      return;
+    }
+    setSshFileBrowserProtocol(readStoredSshFileBrowserProtocol(sourceConnection.id));
+    setPlainFtpFallbackActive(false);
+    transientPasswordRef.current = null;
+  }, [sourceConnection?.id]);
+
+  function handleProtocolChange(protocol: SshFileBrowserProtocol) {
+    setSshFileBrowserProtocol(protocol);
+    setProtocolMenuOpen(false);
+    setPlainFtpFallbackActive(false);
+    transientPasswordRef.current = null;
+  }
+
+  function completePasswordPrompt(password: string | null) {
+    const resolve = passwordPromptResolverRef.current;
+    passwordPromptResolverRef.current = null;
+    setPasswordPrompt(null);
+    resolve?.(password);
+  }
+
+  async function requestTransientPassword(message?: string) {
+    if (passwordPromptResolverRef.current) {
+      return null;
+    }
+    setPasswordPrompt({ message });
+    return new Promise<string | null>((resolve) => {
+      passwordPromptResolverRef.current = resolve;
+    });
+  }
+
+  useEffect(() => {
+    if (!protocolMenuOpen) {
+      return;
+    }
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!protocolMenuRef.current?.contains(event.target as Node)) {
+        setProtocolMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setProtocolMenuOpen(false);
+      }
+    };
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [protocolMenuOpen]);
 
   useEffect(() => {
     void loadLocalDirectory(isLocalFilesBrowser ? connection?.localStartupDirectory : undefined);
@@ -420,7 +510,8 @@ export function SftpWorkspace({
 
     let disposed = false;
     let sessionStarted = false;
-    const requestedSessionId = uniqueRuntimeId(`${connection.id}-sftp`);
+    const requestedSessionId = uniqueRuntimeId(`${connection.id}-${effectiveBrowserKind}`);
+    const sessionTrackingConnectionId = sourceConnection?.id ?? connection.id;
     sessionIdRef.current = requestedSessionId;
     setIsRemoteLoading(true);
     setRemoteError("");
@@ -442,11 +533,51 @@ export function SftpWorkspace({
           await confirmTrustedSshHostKey(preview);
         }
 
-        setStatus(t("sftp.openingSftp"));
-        const result = await commands.startSession({
-          sessionId: requestedSessionId,
-          path: ".",
-        });
+        setStatus(t("sftp.openingProtocol", { protocol: activeProtocolLabel }));
+        let password = transientPasswordRef.current ?? undefined;
+        if (!password && shouldPromptBeforeFileBrowserConnect(connection, sourceConnection)) {
+          const enteredPassword = await requestTransientPassword();
+          if (disposed) {
+            return;
+          }
+          if (!enteredPassword) {
+            throw new Error(t("sftp.passwordPromptCanceled"));
+          }
+          password = enteredPassword;
+          transientPasswordRef.current = password;
+        }
+        let result: SftpSessionStarted;
+        try {
+          result = await commands.startSession({
+            sessionId: requestedSessionId,
+            path: ".",
+            password,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (!password && isMissingFileBrowserPasswordError(message)) {
+            const enteredPassword = await requestTransientPassword(message);
+            if (disposed) {
+              return;
+            }
+            if (!enteredPassword) {
+              throw new Error(t("sftp.passwordPromptCanceled"));
+            }
+            transientPasswordRef.current = enteredPassword;
+            result = await commands.startSession({
+              sessionId: requestedSessionId,
+              path: ".",
+              password: enteredPassword,
+            });
+          } else if (sourceConnection && isFtpsProtocol(sshFileBrowserProtocol)) {
+            setPlainFtpFallbackActive(true);
+            setStatus(t("sftp.ftpsFallbackStatus"));
+            setSshFileBrowserProtocol("ftp");
+            return;
+          } else {
+            throw error;
+          }
+        }
 
         if (disposed) {
           void commands.closeSession(result.sessionId);
@@ -455,12 +586,15 @@ export function SftpWorkspace({
 
         sessionIdRef.current = result.sessionId;
         sessionStarted = true;
-        markConnectionSessionStarted(connection.id);
+        markConnectionSessionStarted(sessionTrackingConnectionId);
         setRemotePath(result.path);
         setRemoteFiles(result.entries.map(remoteEntryToFileEntry));
         rememberRemotePath(result.path);
         setSelectedRemoteNames([]);
         setStatus(t("sftp.connected"));
+        if (sourceConnection) {
+          writeStoredSshFileBrowserProtocol(sourceConnection.id, sshFileBrowserProtocol);
+        }
       } catch (error) {
         if (!disposed) {
           const message = error instanceof Error ? error.message : String(error);
@@ -483,13 +617,13 @@ export function SftpWorkspace({
         void commands.closeSession(sessionId);
       }
       if (sessionStarted) {
-        markConnectionSessionEnded(connection.id);
+        markConnectionSessionEnded(sessionTrackingConnectionId);
       }
       if (sessionIdRef.current === requestedSessionId) {
         sessionIdRef.current = null;
       }
     };
-  }, [commands, connection, isLocalFilesBrowser, markConnectionSessionEnded, markConnectionSessionStarted, t]);
+  }, [activeProtocolLabel, commands, connection, effectiveBrowserKind, isLocalFilesBrowser, markConnectionSessionEnded, markConnectionSessionStarted, sourceConnection, sshFileBrowserProtocol, t]);
 
   const refreshRemoteDirectory = async () => {
     await loadRemoteDirectory(remotePath, t("sftp.refreshing"));
@@ -1498,16 +1632,15 @@ export function SftpWorkspace({
     isLocalFilesBrowser && connection
       ? localFilesToolbarTitle(connection, rawToolbarTitle, localPlaces?.home?.path ?? "", t)
       : rawToolbarTitle;
-  const kindLabel = isLocalFilesBrowser
-    ? toolbarTitle
-    : tab.kind === "ftp"
-      ? t("sftp.protocolFtp")
-      : t("sftp.protocolSftp");
+  const kindLabel = isLocalFilesBrowser ? toolbarTitle : activeProtocolLabel;
   const kindIconSrc = fileBrowserConnectionIconSrc(
-    tab.kind === "localFiles" ? "localFiles" : tab.kind === "ftp" ? "ftp" : "sftp",
+    effectiveBrowserKind === "localFiles" ? "localFiles" : effectiveBrowserKind === "ftp" ? "ftp" : "sftp",
   );
   const hasRemoteHost = !isLocalFilesBrowser && Boolean(connection);
   const hostLabel = tab.subtitle || toolbarTitle;
+  const showPlainFtpWarning = !isLocalFilesBrowser && connection
+    ? isPlainFtpFileBrowser(connection, sourceConnection ? sshFileBrowserProtocol : undefined)
+    : false;
   const connectionStatusLabel = isConnected
     ? t("sftp.connected")
     : remoteError
@@ -1521,7 +1654,7 @@ export function SftpWorkspace({
       return;
     }
     const controller: FileBrowserController = {
-      kind: tab.kind === "ftp" ? "ftp" : "sftp",
+      kind: effectiveBrowserKind === "ftp" ? "ftp" : "sftp",
       list: async (path) => {
         const sessionId = sessionIdRef.current;
         if (!sessionId) {
@@ -1557,7 +1690,7 @@ export function SftpWorkspace({
         return result ?? { ok: true };
       },
       snapshot: () => ({
-        kind: tab.kind === "ftp" ? "ftp" : "sftp",
+        kind: effectiveBrowserKind === "ftp" ? "ftp" : "sftp",
         tabId: tab.id,
         connectionId: connection?.id,
         connectionName: connection?.name,
@@ -1569,7 +1702,7 @@ export function SftpWorkspace({
     };
     registerFileBrowserController(tab.id, controller);
     return () => unregisterFileBrowserController(tab.id, controller);
-  }, [commands, connection?.id, connection?.name, isLocalFilesBrowser, remoteFiles, remotePath, selectedRemoteNames, status, t, tab.id, tab.kind]);
+  }, [commands, connection?.id, connection?.name, effectiveBrowserKind, isLocalFilesBrowser, remoteFiles, remotePath, selectedRemoteNames, status, t, tab.id]);
 
   return (
     <section
@@ -1582,14 +1715,38 @@ export function SftpWorkspace({
         <span className="sftp-bar-left">
           <span className="sftp-bar-kind">
             <img alt="" aria-hidden="true" draggable={false} height={18} src={kindIconSrc} width={18} />
-            {kindLabel}
+            <span>{kindLabel}</span>
+            {sourceConnection ? (
+              <span className="sftp-protocol-menu-host" ref={protocolMenuRef}>
+                <button
+                  className="sftp-protocol-change"
+                  aria-expanded={protocolMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label={t("sftp.protocolSelectorAria")}
+                  onClick={() => setProtocolMenuOpen((open) => !open)}
+                  type="button"
+                >
+                  <ChevronsUpDown size={12} />
+                </button>
+                {protocolMenuOpen ? (
+                  <div className="sftp-protocol-menu" role="menu">
+                    {sshFileBrowserProtocolOptions(t).map((option) => (
+                      <button
+                        className={option.value === sshFileBrowserProtocol ? "active" : ""}
+                        key={option.value}
+                        onClick={() => handleProtocolChange(option.value)}
+                        role="menuitemradio"
+                        aria-checked={option.value === sshFileBrowserProtocol}
+                        type="button"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </span>
+            ) : null}
           </span>
-          {hasRemoteHost ? (
-            <span className="sftp-conn-pill" data-state={connectionStatusState}>
-              <span className="dot" />
-              {connectionStatusLabel}
-            </span>
-          ) : null}
         </span>
         <span className="sftp-bar-center" title={hasRemoteHost ? hostLabel : undefined}>
           {hasRemoteHost ? hostLabel : null}
@@ -1605,6 +1762,21 @@ export function SftpWorkspace({
             >
               <GitIcon name="branch" size={15} />
             </button>
+          ) : null}
+          {showPlainFtpWarning ? (
+            <span
+              className="sftp-title-warning"
+              title={plainFtpFallbackActive ? t("sftp.plainFtpFallbackWarningTitle") : t("sftp.plainFtpWarningTitle")}
+            >
+              <AlertTriangle size={13} />
+              {t("sftp.plainFtpWarning")}
+            </span>
+          ) : null}
+          {hasRemoteHost ? (
+            <span className="sftp-conn-pill" data-state={connectionStatusState}>
+              <span className="dot" />
+              {connectionStatusLabel}
+            </span>
           ) : null}
           {onClose ? (
             <button
@@ -1775,6 +1947,14 @@ export function SftpWorkspace({
           onConfirm={() => void handleConfirmDeletePath()}
         />
       ) : null}
+      {passwordPrompt && connection ? (
+        <PasswordPromptDialog
+          connection={connection}
+          message={passwordPrompt.message}
+          onCancel={() => completePasswordPrompt(null)}
+          onSubmit={(password) => completePasswordPrompt(password)}
+        />
+      ) : null}
       {transferConflict ? (
         <TransferConflictDialog
           conflict={transferConflict}
@@ -1783,6 +1963,230 @@ export function SftpWorkspace({
       ) : null}
     </section>
   );
+}
+
+function PasswordPromptDialog({
+  connection,
+  message,
+  onCancel,
+  onSubmit,
+}: {
+  connection: Connection;
+  message?: string;
+  onCancel: () => void;
+  onSubmit: (password: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const trimmedPassword = password.trim();
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!trimmedPassword) {
+      setError(t("sftp.passwordRequired"));
+      return;
+    }
+    onSubmit(password);
+  }
+
+  return (
+    <DialogShell onBackdrop={onCancel}>
+      <Sheet
+        width={420}
+        title={t("sftp.passwordDialogTitle")}
+        ariaLabel={t("sftp.passwordDialogTitle")}
+        footer={
+          <Actions
+            cancel={<Btn onClick={onCancel}>{t("common.cancel")}</Btn>}
+            primary={
+              <Btn kind="primary" onClick={() => onSubmit(password)} disabled={!trimmedPassword}>
+                {t("sftp.passwordDialogSubmit")}
+              </Btn>
+            }
+          />
+        }
+      >
+        <form className="sftp-password-dialog" onSubmit={handleSubmit}>
+          <p>
+            {t("sftp.passwordDialogBody", {
+              user: connection.user || "anonymous",
+              host: connection.host,
+            })}
+          </p>
+          {message ? <p className="sftp-password-dialog-error">{message}</p> : null}
+          {error ? <p className="sftp-password-dialog-error">{error}</p> : null}
+          <Field label={t("connections.password")}>
+            <TextInput
+              autoFocus
+              autoComplete="current-password"
+              type="password"
+              value={password}
+              placeholder={t("sftp.passwordDialogPlaceholder")}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setError("");
+              }}
+            />
+          </Field>
+          <button className="sr-only" type="submit">
+            {t("sftp.passwordDialogSubmit")}
+          </button>
+        </form>
+      </Sheet>
+    </DialogShell>
+  );
+}
+
+function protocolFromTab(tab: WorkspaceTab): SshFileBrowserProtocol {
+  return tab.kind === "ftp" ? "ftp" : "sftp";
+}
+
+function isFtpsProtocol(protocol: SshFileBrowserProtocol) {
+  return protocol === "ftpsExplicit" || protocol === "ftpsImplicit";
+}
+
+function sshFileBrowserProtocolOptions(t: (key: string) => string) {
+  return [
+    { value: "sftp" as const, label: t("sftp.protocolSftp") },
+    { value: "ftpsExplicit" as const, label: t("sftp.protocolFtpsExplicit") },
+    { value: "ftpsImplicit" as const, label: t("sftp.protocolFtpsImplicit") },
+    { value: "ftp" as const, label: t("sftp.protocolFtp") },
+  ];
+}
+
+function shouldPromptBeforeFileBrowserConnect(
+  connection: Connection,
+  sourceConnection?: Connection,
+) {
+  const credentialSource = sourceConnection ?? connection;
+  return (
+    credentialSource.authMethod === "password" &&
+    !credentialSource.hasPassword &&
+    !credentialSource.passwordCredentialId
+  );
+}
+
+function fileBrowserProtocolLabel(
+  connection: Connection,
+  protocol: SshFileBrowserProtocol | undefined,
+  t: (key: string) => string,
+) {
+  if (protocol === "ftpsExplicit") {
+    return t("sftp.protocolFtpsExplicit");
+  }
+  if (protocol === "ftpsImplicit") {
+    return t("sftp.protocolFtpsImplicit");
+  }
+  if (protocol === "ftp") {
+    return t("sftp.protocolFtp");
+  }
+  if (connection.type === "ftp" && connection.ftpOptions?.protocol === "ftps") {
+    return connection.ftpOptions.tlsMode === "implicit"
+      ? t("sftp.protocolFtpsImplicit")
+      : t("sftp.protocolFtpsExplicit");
+  }
+  if (connection.type === "ftp") {
+    return t("sftp.protocolFtp");
+  }
+  return t("sftp.protocolSftp");
+}
+
+function isPlainFtpFileBrowser(
+  connection: Connection,
+  protocol?: SshFileBrowserProtocol,
+) {
+  if (protocol) {
+    return protocol === "ftp";
+  }
+  return connection.type === "ftp" && connection.ftpOptions?.protocol !== "ftps";
+}
+
+function isMissingFileBrowserPasswordError(message: string) {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("password auth requires a stored connection password") ||
+    normalized.includes("password auth requires a connection secret owner") ||
+    normalized.includes("password is required for native ssh sessions")
+  );
+}
+
+function connectionForSshFileBrowserProtocol(
+  sourceConnection: Connection,
+  protocol: SshFileBrowserProtocol,
+): Connection {
+  if (protocol === "sftp") {
+    return sourceConnection;
+  }
+  const ftpOptions = ftpOptionsForSshFileBrowserProtocol(protocol);
+  return {
+    ...sourceConnection,
+    type: "ftp",
+    port: protocol === "ftpsImplicit" ? 990 : 21,
+    keyPath: undefined,
+    proxyJump: undefined,
+    sshSocksProxy: undefined,
+    sshSocksProxyUsername: undefined,
+    sshSocksProxyInheritDefaults: undefined,
+    authMethod: "password",
+    ftpOptions,
+    iconDataUrl: sourceConnection.iconDataUrl ?? "material:folder-server",
+  };
+}
+
+function ftpOptionsForSshFileBrowserProtocol(
+  protocol: SshFileBrowserProtocol,
+): FtpConnectionOptions {
+  return {
+    protocol: protocol === "ftp" ? "ftp" : "ftps",
+    mode: "passive",
+    tlsMode: protocol === "ftpsImplicit" ? "implicit" : "explicit",
+    transferType: "binary",
+    utf8: true,
+    showHidden: false,
+    connectTimeoutSecs: 30,
+    ignoreCertErrors: false,
+    keepaliveSecs: 0,
+  };
+}
+
+function readStoredSshFileBrowserProtocol(connectionId: string): SshFileBrowserProtocol {
+  if (typeof window === "undefined") {
+    return DEFAULT_SSH_FILE_BROWSER_PROTOCOL;
+  }
+  try {
+    const raw = window.localStorage.getItem(SSH_FILE_BROWSER_PROTOCOL_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) as Record<string, StoredSshFileBrowserProtocol> : {};
+    return normalizeSshFileBrowserProtocol(parsed[connectionId]?.protocol);
+  } catch {
+    return DEFAULT_SSH_FILE_BROWSER_PROTOCOL;
+  }
+}
+
+function writeStoredSshFileBrowserProtocol(
+  connectionId: string,
+  protocol: SshFileBrowserProtocol,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    const raw = window.localStorage.getItem(SSH_FILE_BROWSER_PROTOCOL_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) as Record<string, StoredSshFileBrowserProtocol> : {};
+    parsed[connectionId] = { protocol };
+    window.localStorage.setItem(SSH_FILE_BROWSER_PROTOCOL_STORAGE_KEY, JSON.stringify(parsed));
+  } catch {
+    // Best-effort preference only; connection startup must not depend on storage.
+  }
+}
+
+function normalizeSshFileBrowserProtocol(value: unknown): SshFileBrowserProtocol {
+  return value === "ftp" ||
+    value === "ftpsExplicit" ||
+    value === "ftpsImplicit" ||
+    value === "sftp"
+    ? value
+    : DEFAULT_SSH_FILE_BROWSER_PROTOCOL;
 }
 
 function TransferArea({

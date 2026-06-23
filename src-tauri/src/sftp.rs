@@ -52,6 +52,7 @@ pub struct StartSftpSessionRequest {
     pub ssh_socks_proxy_secret_owner_id: Option<String>,
     pub auth_method: Option<String>,
     pub secret_owner_id: Option<String>,
+    pub password: Option<String>,
     pub passphrase_owner_id: Option<String>,
     pub path: Option<String>,
 }
@@ -1776,6 +1777,16 @@ fn auth_for(
             }),
         }),
         SftpAuthMethod::Password => {
+            if let Some(password) = request
+                .password
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+            {
+                return Ok(ssh::NativeSshAuth::Password {
+                    password: Some(password.to_string()),
+                });
+            }
             let owner_id = request
                 .secret_owner_id
                 .clone()

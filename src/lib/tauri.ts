@@ -243,6 +243,7 @@ export interface StartSftpSessionRequest {
   sshSocksProxyInheritDefaults?: boolean;
   authMethod?: "keyFile" | "password" | "agent";
   secretOwnerId?: string;
+  password?: string;
   passphraseOwnerId?: string;
   path?: string;
 }
@@ -384,6 +385,7 @@ export interface StartFtpSessionRequest {
   user: string;
   port?: number;
   secretOwnerId?: string;
+  password?: string;
   path?: string;
   options: FtpConnectionOptions;
 }

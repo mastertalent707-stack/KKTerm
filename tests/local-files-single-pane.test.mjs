@@ -17,8 +17,8 @@ test("File Explorer renders the shared file browser as a single local pane", asy
 
   assert.match(
     workspaceSource,
-    /const isLocalFilesBrowser = tab\.kind === "localFiles";/,
-    "the SFTP workspace should name the local File Explorer render mode",
+    /const effectiveBrowserKind = sourceConnection[\s\S]*?: tab\.kind;[\s\S]*const isLocalFilesBrowser = effectiveBrowserKind === "localFiles";/,
+    "the SFTP workspace should name the local File Explorer render mode from the effective browser kind",
   );
   assert.match(
     workspaceSource,

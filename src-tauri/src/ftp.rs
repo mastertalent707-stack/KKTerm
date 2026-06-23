@@ -134,6 +134,7 @@ pub struct StartFtpSessionRequest {
     pub user: String,
     pub port: Option<u16>,
     pub secret_owner_id: Option<String>,
+    pub password: Option<String>,
     pub path: Option<String>,
     pub options: FtpOptions,
 }
@@ -327,12 +328,20 @@ impl FtpSessionManager {
             .unwrap_or("/")
             .to_string();
 
-        let password = match request.secret_owner_id.clone() {
-            Some(owner_id) if !owner_id.trim().is_empty() => secrets
-                .read_connection_password(owner_id)
-                .map_err(|e| format!("failed to read FTP password: {e}"))?
-                .unwrap_or_default(),
-            _ => String::new(),
+        let password = match request
+            .password
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            Some(password) => password.to_string(),
+            None => match request.secret_owner_id.clone() {
+                Some(owner_id) if !owner_id.trim().is_empty() => secrets
+                    .read_connection_password(owner_id)
+                    .map_err(|e| format!("failed to read FTP password: {e}"))?
+                    .unwrap_or_default(),
+                _ => String::new(),
+            },
         };
 
         let options = request.options.clone();

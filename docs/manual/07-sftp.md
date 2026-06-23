@@ -8,7 +8,7 @@
 
 ## Opening an SFTP browser
 
-SFTP is not a standalone Connection kind. Open an SFTP browser popup from an SSH Pane's toolbar (`terminal.openSftp` / `terminal.sftp`) or open an SFTP Pane from the SSH Connection's right-click menu in the Connection Tree.
+SFTP is not a standalone Connection kind. Open an SFTP browser popup from an SSH Pane's toolbar (`terminal.openSftp` / `terminal.sftp`) or open an SFTP Pane from the SSH Connection's right-click menu in the Connection Tree. The SSH-toolbar popup can switch its file-transfer protocol from the titlebar change button (`sftp.protocolSelectorAria`) next to the protocol title between SFTP, explicit FTPS (`sftp.protocolFtpsExplicit`), implicit FTPS (`sftp.protocolFtpsImplicit`), and plain FTP (`sftp.protocolFtp`). KKTerm remembers the last successfully connected protocol for that SSH Connection in localStorage and uses it the next time the popup opens. If FTPS fails, the popup retries plain FTP and shows the titlebar warning (`sftp.plainFtpWarning`) because plain FTP is not encrypted.
 
 The SSH Pane toolbar popup behaves the same whether the top Tab Strip is visible or hidden.
 
@@ -16,17 +16,18 @@ Startup states:
 
 - `sftp.connecting`
 - `sftp.verifyingHost` (SSH host key verification — see [06-ssh-and-tmux.md](06-ssh-and-tmux.md))
-- `sftp.openingSftp`
+- `sftp.openingProtocol`
 - `sftp.connected`
 - `sftp.refreshing`
 - `sftp.openingFolder`
 - `sftp.noSshConnection` (cannot resolve the parent SSH Connection)
 - `sftp.tauriUnavailable` (runtime check)
 - `sftp.sessionUnavailable`
+- `sftp.passwordDialogTitle` / `sftp.passwordDialogBody` (the SSH/FTP password is not saved and must be entered transiently before the browser can connect)
 
 ## Layout
 
-The browser follows the KKTerm design language (see [DESIGN_LANGUAGE.md](../DESIGN_LANGUAGE.md)): a symmetric dual-pane file manager with a center transfer-arrow gutter and a collapsible transfer-activity bar at the bottom. A single-row titlebar shows, left to right: a transfer glyph + the protocol kind (`sftp.protocolSftp` / `sftp.protocolFtp` / `sftp.protocolFiles`) followed by the connection status (`sftp.connected` / `sftp.connecting` / `sftp.notConnected`); the `user@host` centered; and the right-side actions (the `sftp.terminal` action for standalone panes, and a `common.close` button shown for the SFTP popup and for standalone SFTP / File Explorer Tabs whenever `settings.hideTopTabButtons` hides the top Tab Strip's per-Tab close). When a connection fails, the titlebar status shows `sftp.notConnected` (red) and the detailed error is surfaced in the bottom transfer-activity bar in red rather than in the titlebar.
+The browser follows the KKTerm design language (see [DESIGN_LANGUAGE.md](../DESIGN_LANGUAGE.md)): a symmetric dual-pane file manager with a center transfer-arrow gutter and a collapsible transfer-activity bar at the bottom. A single-row titlebar shows, left to right: a transfer glyph + the protocol kind (`sftp.protocolSftp` / `sftp.protocolFtp` / `sftp.protocolFiles`) and, for SSH-toolbar popups, a subtle protocol change button (`sftp.protocolSelectorAria`); the `user@host` centered; and the right-side actions (the `sftp.terminal` action for standalone panes, a compact connection status `sftp.connected` / `sftp.connecting` / `sftp.notConnected`, and a `common.close` button shown for the SFTP popup and for standalone SFTP / File Explorer Tabs whenever `settings.hideTopTabButtons` hides the top Tab Strip's per-Tab close). When a connection fails, the titlebar status shows `sftp.notConnected` (red) and the detailed error is surfaced in the bottom transfer-activity bar in red rather than in the titlebar. Plain FTP adds a compact `sftp.plainFtpWarning` titlebar chip.
 
 File Explorer Connections (`localFiles`) reuse this browser shell as a single-pane local browser: the titlebar shows the saved Connection name, and only the local file pane is shown, with no remote pane, center transfer gutter, connection-status pill, or bottom Transfer Activity bar.
 

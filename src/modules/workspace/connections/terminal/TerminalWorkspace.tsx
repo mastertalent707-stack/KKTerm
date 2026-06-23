@@ -511,7 +511,13 @@ export function TerminalWorkspace({
             role="dialog"
           >
             <div className="sftp-popup-dialog-body">
-              <SftpWorkspace isActive={true} tab={sftpDialogTab} inline onClose={closeSftpDialog} />
+              <SftpWorkspace
+                isActive={true}
+                tab={sftpDialogTab}
+                inline
+                onClose={closeSftpDialog}
+                protocolSourceConnection={sftpDialogConnection ?? undefined}
+              />
             </div>
           </section>
         </div>,

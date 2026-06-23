@@ -256,6 +256,7 @@ export function SharedBackgroundPopover({
           onApply={(dynamicId) => {
             applyDynamic(dynamicId);
             setLivePreviewOpen(false);
+            onClose();
           }}
           onClose={() => setLivePreviewOpen(false)}
         />

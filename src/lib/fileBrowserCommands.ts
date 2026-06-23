@@ -36,6 +36,7 @@ export interface FileBrowserCommands {
   startSession: (args: {
     sessionId: string;
     path: string;
+    password?: string;
   }) => Promise<SftpSessionStarted>;
   listDirectory: (args: {
     sessionId: string;
@@ -91,7 +92,7 @@ export function sftpBrowserCommands(connection: Connection): FileBrowserCommands
       verifySshHostKey: true,
       openTerminalHere: true,
     },
-    startSession: ({ sessionId, path }) =>
+    startSession: ({ sessionId, path, password }) =>
       invokeCommand("start_sftp_session", {
         request: {
           sessionId,
@@ -104,6 +105,7 @@ export function sftpBrowserCommands(connection: Connection): FileBrowserCommands
           ...resolveSshSocksProxyRequest(connection, useWorkspaceStore.getState().sshSettings),
           authMethod: connection.authMethod,
           secretOwnerId: connectionPasswordOwnerId(connection),
+          password,
           passphraseOwnerId: connection.id,
           path,
         },
@@ -153,7 +155,7 @@ export function ftpBrowserCommands(
       verifySshHostKey: false,
       openTerminalHere: false,
     },
-    startSession: ({ sessionId, path }) =>
+    startSession: ({ sessionId, path, password }) =>
       invokeCommand("start_ftp_session", {
         request: {
           sessionId,
@@ -162,6 +164,7 @@ export function ftpBrowserCommands(
           user: connection.user,
           port: connection.port,
           secretOwnerId: connectionPasswordOwnerId(connection),
+          password,
           path,
           options,
         },

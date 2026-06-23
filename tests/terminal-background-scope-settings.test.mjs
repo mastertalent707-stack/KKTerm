@@ -123,6 +123,11 @@ test("dynamic background live preview stages selection and animates only one til
   assert.match(previewDialog, /setDraft\(backgroundOption\.id\)/);
   assert.match(previewDialog, /onApply\(draft\)/);
   assert.match(
+    sharedBackgroundPopover,
+    /onApply=\{\(dynamicId\) => \{\s*applyDynamic\(dynamicId\);\s*setLivePreviewOpen\(false\);\s*onClose\(\);/s,
+    "applying from the live preview should close the parent background picker",
+  );
+  assert.match(
     previewDialog,
     /selectedTile \? \(\s*<DashboardDynamicBackground id=\{backgroundOption\.id\} active \/>/s,
     "only the selected preview tile should mount an animated background",
