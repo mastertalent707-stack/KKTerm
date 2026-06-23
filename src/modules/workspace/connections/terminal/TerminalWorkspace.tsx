@@ -747,7 +747,12 @@ function EmbeddedConnectionPane({
   switch (pane.kind) {
     case "webview":
       body = (
-        <WebViewWorkspace isActive={isActive} onOpenAssistant={onOpenAssistant} tab={embeddedTab} />
+        <WebViewWorkspace
+          isActive={isActive}
+          onClose={canClosePane ? () => closePane(tabId, pane.id) : undefined}
+          onOpenAssistant={onOpenAssistant}
+          tab={embeddedTab}
+        />
       );
       break;
     case "remoteDesktop":
@@ -777,12 +782,17 @@ function EmbeddedConnectionPane({
       body = assertNeverPane(pane);
   }
 
+  // The URL surface closes from its own toolbar (matching the singleton tab
+  // layout), so the floating overlay close button is suppressed for webview
+  // panes to avoid a second, misaligned X.
+  const showOverlayClose = canClosePane && pane.kind !== "webview";
+
   return (
     <article
       className="embedded-workspace-pane"
       onMouseDown={onFocus}
     >
-      {canClosePane ? (
+      {showOverlayClose ? (
         <button
           aria-label={t("workspace.closeTab", { title: pane.title })}
           className="embedded-pane-close"

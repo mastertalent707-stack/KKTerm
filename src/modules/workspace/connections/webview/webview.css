@@ -239,16 +239,3 @@
   -webkit-user-select: none;
   user-select: none;
 }
-
-/* Embedded close affordance (terminal-split embeds) on the light chrome. */
-.embedded-workspace-pane:has(> .webview-workspace) .embedded-pane-close {
-  color: var(--text-muted);
-  background: var(--surface-muted);
-  border-color: var(--border);
-}
-
-.embedded-workspace-pane:has(> .webview-workspace) .embedded-pane-close:hover {
-  color: var(--red);
-  background: color-mix(in srgb, var(--red) 14%, transparent);
-  border-color: color-mix(in srgb, var(--red) 30%, transparent);
-}

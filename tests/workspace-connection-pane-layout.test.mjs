@@ -8,11 +8,14 @@ test("workspace pane close buttons render for split panes and hidden Tab Strip s
     "utf8",
   );
 
-  assert.match(source, /const canCloseSinglePane = tab\.kind === "terminal" && generalSettings\.hideTopTabButtons;/);
+  assert.match(source, /const canCloseSinglePane =\s*Boolean\(onClose\) \|\|\s*\(allowPaneLayoutControls && tab\.kind === "terminal" && generalSettings\.hideTopTabButtons\);/);
   assert.match(source, /canClosePane=\{panes\.length > 1 \|\| canCloseSinglePane\}/);
   assert.match(source, /canClosePane \? \(\s*<button[\s\S]*?terminal-pane-close[\s\S]*?\)\s*: null/);
-  assert.match(source, /canClosePane \? \(\s*<button[\s\S]*?embedded-pane-close[\s\S]*?\)\s*: null/);
-  assert.match(source, /<WebViewWorkspace[\s\S]*?isActive=\{isActive\}[\s\S]*?tab=\{embeddedTab\}[\s\S]*?\/>/);
+  // URL panes close from their own toolbar button, so the floating overlay close
+  // is suppressed for webview panes and the toolbar receives an onClose handler.
+  assert.match(source, /const showOverlayClose = canClosePane && pane\.kind !== "webview";/);
+  assert.match(source, /showOverlayClose \? \(\s*<button[\s\S]*?embedded-pane-close[\s\S]*?\)\s*: null/);
+  assert.match(source, /<WebViewWorkspace[\s\S]*?isActive=\{isActive\}[\s\S]*?onClose=\{canClosePane \? \(\) => closePane\(tabId, pane\.id\) : undefined\}[\s\S]*?tab=\{embeddedTab\}[\s\S]*?\/>/);
 });
 
 test("embedded URL and remote desktop headers reserve close-button space only when close is visible", async () => {
@@ -21,9 +24,10 @@ test("embedded URL and remote desktop headers reserve close-button space only wh
     "utf8",
   );
 
-  assert.doesNotMatch(css, /\.embedded-workspace-pane\s*>\s*\.webview-workspace\s+\.webview-pane\s*>\s*header\s*\{\s*padding-right:\s*40px;/);
   assert.doesNotMatch(css, /\.embedded-workspace-pane\s*>\s*\.remote-desktop-shell\s+\.remote-desktop-pane\s*>\s*header\s*\{\s*padding-right:\s*40px;/);
-  assert.match(css, /\.embedded-workspace-pane:has\(\s*>\s*\.embedded-pane-close\s*\)\s*>\s*\.webview-workspace\s+\.webview-pane\s*>\s*header\s*\{\s*padding-right:\s*40px;/);
+  // URL panes close from their own toolbar button, so no floating overlay close
+  // exists for webview panes and no header padding reservation is needed.
+  assert.doesNotMatch(css, /\.embedded-workspace-pane:has\([^)]*\)\s*>\s*\.webview-workspace\s+\.webview-pane\s*>\s*header\s*\{\s*padding-right:\s*40px;/);
   assert.match(css, /\.embedded-workspace-pane:has\(\s*>\s*\.embedded-pane-close\s*\)\s*>\s*\.remote-desktop-shell\s+\.remote-desktop-pane\s*>\s*header\s*\{\s*padding-right:\s*40px;/);
 });
 
@@ -53,7 +57,7 @@ test("Add To pane routes file-browser Connections to embedded browser panes", as
   );
 
   assert.match(typesSource, /export interface FileBrowserPane[\s\S]*kind: "sftp" \| "ftp" \| "localFiles"/);
-  assert.match(typesSource, /WorkspacePane = TerminalPane \| UrlPane \| RemoteDesktopPane \| FileBrowserPane/);
+  assert.match(typesSource, /WorkspacePane =\s*\| TerminalPane\s*\| UrlPane\s*\| RemoteDesktopPane\s*\| FileBrowserPane\s*\| FileViewerPane;/);
   assert.match(
     storeSource,
     /if \(connection\.type === "ftp"\) \{[\s\S]*?kind: isSftpProtocol \? "sftp" : "ftp"[\s\S]*?connection: fileConnection/,
@@ -75,7 +79,7 @@ test("Add To pane routes file-browser Connections to embedded browser panes", as
   );
   assert.match(
     terminalWorkspaceSource,
-    /pane\.kind === "remoteDesktop" \? \([\s\S]*?<RemoteDesktopWorkspace[\s\S]*?\) : \([\s\S]*?<SftpWorkspace[\s\S]*?commands=\{fileBrowserCommands \?\? undefined\}/,
+    /case "sftp":\s*case "ftp":\s*case "localFiles":[\s\S]*?<SftpWorkspace[\s\S]*?commands=\{fileBrowserCommands \?\? undefined\}/,
     "embedded file-browser panes should render through SftpWorkspace with the transport adapter",
   );
 });
