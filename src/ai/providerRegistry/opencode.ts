@@ -19,6 +19,7 @@ export const opencodeProvider: AiProviderDefinition = {
     { id: "kimi-k2.5", label: "Kimi K2.5", supportsImageInput: false },
     { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro", supportsImageInput: false },
     { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash", supportsImageInput: false },
+    { id: "glm-5.2", label: "GLM-5.2", supportsImageInput: false },
     { id: "glm-5.1", label: "GLM-5.1", supportsImageInput: false },
     { id: "glm-5", label: "GLM-5", supportsImageInput: false },
     { id: "qwen3.6-plus", label: "Qwen3.6 Plus", supportsImageInput: false },
