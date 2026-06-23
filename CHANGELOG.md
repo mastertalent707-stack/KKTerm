@@ -3,6 +3,40 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.101/kkterm-0.1.101-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.101/kkterm-0.1.101-windows-arm64-setup.exe)
+
+## Highlights
+- **Git Browser overlay**: A full in-app Git Browser (commit graph + full git client) is now available from terminal pane toolbars and the File Explorer toolbar when you’re in a git repo.  
+- **Serial connections (macOS + cross-platform)**: Detect serial ports and make the **Line** field an editable dropdown.
+
+## New
+- **Git Browser overlay** (commit graph + full git client) — opened from a **Terminal** pane toolbar or **File Explorer** toolbar when inside a git work tree. ([#428](https://github.com/ryantsai/KKTerm/pull/428), [#427](https://github.com/ryantsai/KKTerm/pull/427) for psmux refresh context: local terminals)
+- **GLM-5.2** added as a curated **OpenCode** model. ([#443](https://github.com/ryantsai/KKTerm/pull/443))
+
+## Improved
+- **Serial connection “Line” field** is now an editable dropdown populated from detected serial ports (instead of a Windows-only default). ([#432](https://github.com/ryantsai/KKTerm/pull/432), reported by @tzchang in #429)
+- **macOS serial Line dropdown arrow** is shown properly in WKWebView. ([#434](https://github.com/ryantsai/KKTerm/pull/434), reporter credit: @tzchang)
+
+## Fixed
+- **Activity rail opening now switches to the correct Connection parent workspace**, so your **Session** doesn’t get “lost” in the wrong workspace. ([#440](https://github.com/ryantsai/KKTerm/pull/440), [#441](https://github.com/ryantsai/KKTerm/pull/441), PRs by @ryantsai)
+- **Connection tree follows the active workspace** when opening/activating from the rail. ([#441](https://github.com/ryantsai/KKTerm/pull/441))
+- **CLI auth terminal** now uses a verbatim `cmd.exe` command line (avoids nvm `.cmd` shimming issues). ([#442](https://github.com/ryantsai/KKTerm/pull/442), [#442](https://github.com/ryantsai/KKTerm/pull/442) by @ryantsai)
+- **Copilot CLI integration**: resolve Copilot CLI externally instead of bundling it. (Prevents “could not find copilot” in distributed builds.) ([#435](https://github.com/ryantsai/KKTerm/pull/435))
+- **SSH**: prevent app crash from port-forward teardown (scrcpy). (Terminal networks shouldn’t faceplant on exit.) ([#439](https://github.com/ryantsai/KKTerm/pull/439))
+- **Child connection docking + row highlight** fixes for the Connection tree/canvas docking behavior. ([#447](https://github.com/ryantsai/KKTerm/pull/447))
+- **Preserve original Session + split panes** in child-connection panorama mode (#430). ([#446](https://github.com/ryantsai/KKTerm/pull/446))  
+  - Reported by @JosephCLJ in #430; fixed via [#446](https://github.com/ryantsai/KKTerm/pull/446).
+- **Docked URL Pane close button**: use the toolbar close button for docked URL **Panes** (avoid the misaligned second “X”). ([#448](https://github.com/ryantsai/KKTerm/pull/448), reporter credit: @JosephCLJ via #430)
+- **File Explorer**: move Git icon into the **Pane toolbar**. ([#444](https://github.com/ryantsai/KKTerm/pull/444))
+- **Git Browser**: drop phantom `"origin"` branch from remotes list. ([#445](https://github.com/ryantsai/KKTerm/pull/445))
+- **Git Browser**: fix psmux environment refresh for local terminals. ([#427](https://github.com/ryantsai/KKTerm/pull/427))
+
+## Internal
+- Re-align quarantined test guards and update related assertions after refactors. (Commit: `8f2ab21`)
+- Miscellaneous doc/localization cleanup and styling tweaks (no user-facing claims).
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.100/kkterm-0.1.100-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.100/kkterm-0.1.100-windows-arm64-setup.exe)
 
