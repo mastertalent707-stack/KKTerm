@@ -3489,6 +3489,26 @@ button.dashboard-pill-dot:focus-visible {
   gap: 10px;
 }
 
+.dw-bg-live-preview-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 6px 10px;
+  color: var(--text);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.dw-bg-live-preview-button:hover {
+  border-color: var(--border-strong);
+}
+
 .dw-bg-dynamic-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3537,6 +3557,115 @@ button.dashboard-pill-dot:focus-visible {
   width: 100%;
   margin: 0;
   accent-color: var(--accent);
+}
+
+.dw-bg-preview-dialog .kk-dlg-body {
+  overflow: auto;
+}
+
+.dw-bg-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 4px;
+}
+
+.dw-bg-preview-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.dw-bg-preview-frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  overflow: visible;
+  padding: 3px;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 4px 12px -6px var(--shadow);
+}
+
+.dw-bg-preview-frame .dw-canvas-bg {
+  position: absolute;
+  inset: 3px;
+  overflow: hidden;
+  border-radius: 9px;
+}
+
+.dw-bg-preview-paused {
+  position: absolute;
+  inset: 3px;
+  overflow: hidden;
+  border-radius: 9px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-soft) 58%, transparent), transparent 56%),
+    radial-gradient(circle at 22% 24%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 28%),
+    linear-gradient(160deg, var(--surface-muted), var(--chrome));
+}
+
+.dw-bg-preview-card:hover .dw-bg-preview-frame {
+  box-shadow:
+    0 0 0 1px var(--border-strong),
+    0 10px 22px -8px var(--shadow);
+}
+
+.dw-bg-preview-card.selected .dw-bg-preview-frame {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 8px 20px -8px var(--accent);
+}
+
+.dw-bg-preview-check {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: var(--surface);
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 0 2px var(--surface);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.15s ease, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dw-bg-preview-card.selected .dw-bg-preview-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.dw-bg-preview-name {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 2px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .dw-bg-preview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Notes widget: post-it style paper note. The Ambient preset hosts this with a

@@ -14,6 +14,10 @@ const dashboardBackgroundPopover = await readFile(
   new URL("../src/modules/dashboard/edit/BackgroundPopover.tsx", import.meta.url),
   "utf8",
 );
+const sharedBackgroundPopover = await readFile(
+  new URL("../src/modules/dashboard/edit/SharedBackgroundPopover.tsx", import.meta.url),
+  "utf8",
+);
 const workspaceSettings = await readFile(
   new URL("../src/modules/settings/WorkspaceSettings.tsx", import.meta.url),
   "utf8",
@@ -91,6 +95,25 @@ test("terminal and Dashboard background pickers share the same component and dat
   assert.match(dashboardBackgroundPopover, /SharedBackgroundPopover/);
   assert.doesNotMatch(terminalBackgroundPopover, /BACKGROUND_PRESETS\.map/);
   assert.doesNotMatch(terminalBackgroundPopover, /DYNAMIC_BACKGROUNDS\.map/);
+});
+
+test("dynamic background live preview stages selection and animates only one tile", () => {
+  const previewDialog = sharedBackgroundPopover.slice(sharedBackgroundPopover.indexOf("function DynamicBackgroundPreviewDialog"));
+  assert.match(sharedBackgroundPopover, /backgroundLivePreview/);
+  assert.match(sharedBackgroundPopover, /DynamicBackgroundPreviewDialog/);
+  assert.match(sharedBackgroundPopover, /DYNAMIC_BACKGROUNDS\.map/);
+  assert.match(previewDialog, /setDraft\(backgroundOption\.id\)/);
+  assert.match(previewDialog, /onApply\(draft\)/);
+  assert.match(
+    previewDialog,
+    /selectedTile \? \(\s*<DashboardDynamicBackground id=\{backgroundOption\.id\} active \/>/s,
+    "only the selected preview tile should mount an animated background",
+  );
+  assert.doesNotMatch(
+    previewDialog,
+    /applyDynamic\(backgroundOption\.id\)/,
+    "preview tiles should stage selection until OK applies it",
+  );
 });
 
 test("docs make shared terminal background scope and datasource explicit", () => {

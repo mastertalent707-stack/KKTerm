@@ -1,9 +1,14 @@
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Actions, Btn, DIcon, DialogShell, Sheet } from "../../../app/ui/dialog";
 import { isTauriRuntime, openExternalUrl } from "../../../lib/tauri";
 import { BACKGROUND_PRESETS } from "../registry/backgroundPresets";
-import { DYNAMIC_BACKGROUNDS } from "../registry/dynamicBackgrounds";
+import {
+  DashboardDynamicBackground,
+  DYNAMIC_BACKGROUNDS,
+  type DynamicBackgroundId,
+} from "../registry/dynamicBackgrounds";
 import { importBackgroundImage } from "../state/persistence";
 import { BACKGROUND_FITS, type BackgroundFit, type DashboardBackground } from "../types";
 
@@ -19,6 +24,14 @@ function modeOf(background: DashboardBackground | null): Mode {
 
 function isMediaBackground(background: DashboardBackground | null): background is MediaBackground {
   return background?.kind === "image" || background?.kind === "video";
+}
+
+function selectedDynamicId(background: DashboardBackground | null): DynamicBackgroundId {
+  if (background?.kind === "dynamic") {
+    const selected = DYNAMIC_BACKGROUNDS.find((option) => option.id === background.dynamic);
+    if (selected) return selected.id;
+  }
+  return DYNAMIC_BACKGROUNDS[0]?.id ?? "fuji";
 }
 
 function mediaKindForFile(file: string): "image" | "video" {
@@ -48,13 +61,16 @@ export function SharedBackgroundPopover({
   const ref = useRef<HTMLDivElement | null>(null);
   const [mode, setMode] = useState<Mode>(modeOf(background));
   const [importError, setImportError] = useState("");
+  const [livePreviewOpen, setLivePreviewOpen] = useState(false);
   const mediaBackground = isMediaBackground(background) ? background : null;
 
   useEffect(() => {
     function onDoc(event: MouseEvent) {
+      if (livePreviewOpen) return;
       if (ref.current && !ref.current.contains(event.target as Node)) onClose();
     }
     function onKey(event: KeyboardEvent) {
+      if (livePreviewOpen) return;
       if (event.key === "Escape") onClose();
     }
     document.addEventListener("mousedown", onDoc);
@@ -63,7 +79,7 @@ export function SharedBackgroundPopover({
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  }, [livePreviewOpen, onClose]);
 
   function applyDefault() {
     setMode("default");
@@ -154,6 +170,14 @@ export function SharedBackgroundPopover({
 
       {mode === "dynamic" && (
         <div className="dw-bg-dynamic">
+          <button
+            className="dw-bg-live-preview-button"
+            onClick={() => setLivePreviewOpen(true)}
+            type="button"
+          >
+            <DIcon name="eye" size={14} />
+            <span>{t("dashboard.backgroundLivePreview")}</span>
+          </button>
           <div className="dw-bg-dynamic-grid">
             {DYNAMIC_BACKGROUNDS.map((backgroundOption) => (
               <button
@@ -225,6 +249,86 @@ export function SharedBackgroundPopover({
           {!mediaBackground && <p className="dw-muted">{t("dashboard.backgroundMediaHint")}</p>}
         </div>
       )}
+      {livePreviewOpen ? (
+        <DynamicBackgroundPreviewDialog
+          selected={selectedDynamicId(background)}
+          onApply={(dynamicId) => {
+            applyDynamic(dynamicId);
+            setLivePreviewOpen(false);
+          }}
+          onClose={() => setLivePreviewOpen(false)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function DynamicBackgroundPreviewDialog({
+  selected,
+  onApply,
+  onClose,
+}: {
+  selected: DynamicBackgroundId;
+  onApply: (dynamicId: DynamicBackgroundId) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState<DynamicBackgroundId>(selected);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <DialogShell onBackdrop={onClose}>
+      <Sheet
+        width={780}
+        title={t("dashboard.backgroundLivePreviewTitle")}
+        className="dw-bg-preview-dialog"
+        footer={
+          <Actions
+            cancel={<Btn onClick={onClose}>{t("common.cancel")}</Btn>}
+            primary={
+              <Btn kind="primary" icon="check" onClick={() => onApply(draft)}>
+                {t("common.ok")}
+              </Btn>
+            }
+          />
+        }
+      >
+        <div className="dw-bg-preview-grid" role="radiogroup" aria-label={t("dashboard.backgroundLivePreviewTitle")}>
+          {DYNAMIC_BACKGROUNDS.map((backgroundOption) => {
+            const selectedTile = draft === backgroundOption.id;
+            return (
+              <button
+                key={backgroundOption.id}
+                className={"dw-bg-preview-card" + (selectedTile ? " selected" : "")}
+                onClick={() => setDraft(backgroundOption.id)}
+                type="button"
+                role="radio"
+                aria-checked={selectedTile}
+              >
+                <span className="dw-bg-preview-frame">
+                  {selectedTile ? (
+                    <DashboardDynamicBackground id={backgroundOption.id} active />
+                  ) : (
+                    <span className="dw-bg-preview-paused" aria-hidden="true" />
+                  )}
+                  <span className="dw-bg-preview-check">
+                    <DIcon name="check" size={12} />
+                  </span>
+                </span>
+                <span className="dw-bg-preview-name">{t(backgroundOption.labelKey)}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="dw-warning-text">{t("dashboard.backgroundLivePreviewHint")}</p>
+      </Sheet>
+    </DialogShell>
   );
 }
