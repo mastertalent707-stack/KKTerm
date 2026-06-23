@@ -130,7 +130,6 @@ Todavía no hemos podido incluir una bolsa de verdad de Kuai Kuai con el instala
   <img src="docs/assets/screenshots/hero.png" alt="La ventana completa de KKTerm: árbol de conexiones, una cuadrícula de Panes en vivo y el asistente de IA" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — todo el espacio de trabajo de un vistazo: árbol de conexiones a la izquierda, una cuadrícula de Panes en vivo en el centro, asistente de IA a la derecha.</em></sub></p>
 
 ---
 
@@ -157,7 +156,6 @@ La misma app. La misma ventana. Los mismos atajos. El mismo tema, que ojalá no 
   <img src="docs/assets/screenshots/connections-grid.png" alt="Una sola Tab con SSH, SFTP y una interfaz web integrada lado a lado" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — una sola Tab, varios tipos de Connection conviviendo: SSH junto a SFTP junto a una interfaz web integrada.</em></sub></p>
 
 ---
 
@@ -179,7 +177,6 @@ Es un solo espacio de trabajo para la forma real y desordenada del trabajo de ad
   <img src="docs/assets/screenshots/multi-pane.png" alt="Una Tab dividida en cuatro paneles de distintos tipos de conexión" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — una cuadrícula de cuatro: PowerShell, una sesión SSH, un explorador SFTP y una superficie VNC, todo en una sola Tab.</em></sub></p>
 
 ### Un asistente de IA que comanda tus terminales por ti
 
@@ -203,7 +200,6 @@ La mayoría de los demos de «IA en tu terminal» se quedan en el chat. El asist
   <img src="docs/assets/screenshots/ai-assistant.png" alt="El panel del asistente de IA con los interruptores de acceso a herramientas y modo de aprobación" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — el panel del asistente de IA: interruptores por familia de herramientas, el conmutador Prompt / Allow All, y un comando peligroso esperando un sí humano.</em></sub></p>
 
 ### Un panel que no finge ser Grafana
 
@@ -224,7 +220,6 @@ Algunos son simples paneles de visualización (markdown, listas de pendientes, u
   <img src="docs/assets/screenshots/ai-widgets.png" alt="Una cuadrícula de panel llena de widgets creados por la IA" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — una vista de panel llena de widgets hechos por la IA: un monitor de ping, una nota adhesiva, una estadística en vivo y un jueguito que no tiene por qué ser tan divertido.</em></sub></p>
 
 #### Fondos animados del panel/terminal (porque se nos antojó)
 
@@ -244,7 +239,6 @@ El mismo selector también respalda tus paneles de terminal, así que puedes pon
   <img src="docs/assets/screenshots/backgrounds.png" alt="Algunos de los fondos animados lado a lado" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — una hoja de ambientes: `matrix`, `aurora`, `synthwave` y `taipei101`.</em></sub></p>
 
 ### Mantén vivos a tus agentes de IA
 
@@ -263,7 +257,6 @@ Las shells locales tienen el mismo truco en Windows: los paneles de PowerShell p
   <img src="docs/assets/screenshots/tmux-reattach.png" alt="Un panel SSH reconectándose a una sesión tmux con nombre tras una reconexión" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — la lista de sesiones tmux/psmux en la barra de herramientas del Pane, con un agente `claude` remoto que sigue corriendo tras una reconexión.</em></sub></p>
 
 ### Separa tus mundos con los espacios de trabajo
 
@@ -273,7 +266,6 @@ El homelab, la chamba y los servidores de ese cliente no pertenecen a la misma l
   <img src="docs/assets/screenshots/workspaces.png" alt="El selector de espacio de trabajo en el activity rail" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — el selector de espacio de trabajo en la parte superior del Activity Rail, a medio cambio entre «Home Lab» y «Day Job».</em></sub></p>
 
 ### Vístelo a tu gusto: temas de color
 
@@ -291,7 +283,6 @@ El terminal conserva su propia paleta oscura sin importar el esquema que elijas,
   <img src="docs/assets/screenshots/color-themes.png" alt="La cuadrícula de esquemas de color en Configuración con vistas previas en vivo" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — la cuadrícula de esquemas de color de Configuración ▸ Apariencia, cada tarjeta una minivista previa en vivo de la app.</em></sub></p>
 
 ### Install Helper (solo Windows)
 
@@ -313,7 +304,6 @@ Detecta lo que ya está instalado, marca lo que tiene actualización, y **Actual
   <img src="docs/assets/screenshots/install-helper.png" alt="El catálogo Install Helper con herramientas instaladas y disponibles" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Marcador de captura</strong> — el módulo Install Helper: tarjetas de herramientas categorizadas, botones de instalar/actualizar, y la acción «Actualizar todo» de la cabecera.</em></sub></p>
 
 ---
 

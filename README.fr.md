@@ -130,7 +130,6 @@ On n'a pas encore réussi à livrer un vrai sachet de Kuai Kuai avec l'installat
   <img src="docs/assets/screenshots/hero.png" alt="La fenêtre complète de KKTerm : arbre des connexions, grille de Panes en direct et assistant IA" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Capture d'écran à venir</strong> — tout l'espace de travail d'un coup d'œil : arbre des connexions à gauche, grille de Panes en direct au centre, assistant IA à droite.</em></sub></p>
 
 ---
 
@@ -157,7 +156,6 @@ La même appli. La même fenêtre. Les mêmes raccourcis. Le même thème, qu'on
   <img src="docs/assets/screenshots/connections-grid.png" alt="Un seul Tab contenant SSH, SFTP et une interface web intégrée côte à côte" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Capture d'écran à venir</strong> — un seul Tab, plusieurs types de Connection cohabitant : SSH à côté de SFTP à côté d'une interface web intégrée.</em></sub></p>
 
 ---
 
@@ -179,7 +177,6 @@ C'est un seul espace de travail pour la forme réelle et désordonnée de l'admi
   <img src="docs/assets/screenshots/multi-pane.png" alt="Un Tab divisé en quatre volets de types de connexion différents" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Capture d'écran à venir</strong> — une grille à quatre volets : PowerShell, une session SSH, un navigateur SFTP et une surface VNC, tout dans un seul Tab.</em></sub></p>
 
 ### Un assistant IA qui pilote vos terminaux pour vous
 
@@ -203,7 +200,6 @@ La plupart des démos d'« IA dans le terminal » s'arrêtent au chat. L'assista
   <img src="docs/assets/screenshots/ai-assistant.png" alt="Le panneau de l'assistant IA avec les bascules d'accès aux outils et de mode d'approbation" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Capture d'écran à venir</strong> — le panneau de l'assistant IA : bascules par famille d'outils, l'interrupteur Prompt / Allow All, et une commande dangereuse en attente d'un oui humain.</em></sub></p>
 
 ### Un tableau de bord qui ne se prend pas pour Grafana
 
@@ -224,7 +220,6 @@ Certains sont de simples panneaux d'affichage (markdown, listes à cocher, un gr
   <img src="docs/assets/screenshots/ai-widgets.png" alt="Une grille de tableau de bord remplie de widgets créés par l'IA" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Capture d'écran à venir</strong> — une vue de tableau de bord pleine de widgets bâtis par l'IA : un moniteur de ping, un pense-bête, une stat en direct, et un petit jouet qui n'a aucune raison d'être aussi amusant.</em></sub></p>
 
 #### Fonds animés du tableau de bord/terminal (parce qu'on en avait envie)
 
@@ -244,7 +239,6 @@ Le même sélecteur alimente aussi vos panneaux de terminal, vous pouvez donc po
   <img src="docs/assets/screenshots/backgrounds.png" alt="Quelques-uns des fonds animés côte à côte" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Capture d'écran à venir</strong> — une planche d'ambiances : `matrix`, `aurora`, `synthwave` et `taipei101`.</em></sub></p>
 
 ### Garder vos agents IA en vie
 
@@ -263,7 +257,6 @@ Les shells locaux ont droit au même tour sous Windows : les panneaux PowerShell
   <img src="docs/assets/screenshots/tmux-reattach.png" alt="Un panneau SSH se rattachant à une session tmux nommée après une reconnexion" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Capture d'écran à venir</strong> — la liste des sessions tmux/psmux dans la barre d'outils du Pane, avec un agent `claude` distant qui tourne toujours après une reconnexion.</em></sub></p>
 
 ### Séparer vos mondes avec les espaces de travail
 
@@ -273,7 +266,6 @@ Le homelab, le boulot et les serveurs de ce client-là n'ont pas leur place dans
   <img src="docs/assets/screenshots/workspaces.png" alt="Le sélecteur d'espace de travail dans l'activity rail" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Capture d'écran à venir</strong> — le sélecteur d'espace de travail en haut de l'Activity Rail, en plein basculement entre « Home Lab » et « Day Job ».</em></sub></p>
 
 ### Habillez-le : thèmes de couleurs
 
@@ -291,7 +283,6 @@ Le terminal garde sa propre palette sombre quel que soit le schéma choisi, pour
   <img src="docs/assets/screenshots/color-themes.png" alt="La grille des schémas de couleurs dans les Réglages avec aperçus en direct" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Capture d'écran à venir</strong> — la grille des schémas de couleurs de Réglages ▸ Apparence, chaque tuile étant un mini-aperçu en direct de l'appli.</em></sub></p>
 
 ### Install Helper (Windows uniquement)
 
@@ -313,7 +304,6 @@ Il détecte ce qui est déjà installé, signale ce qui a une mise à jour, et *
   <img src="docs/assets/screenshots/install-helper.png" alt="Le catalogue Install Helper avec les outils installés et disponibles" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Capture d'écran à venir</strong> — le module Install Helper : tuiles d'outils catégorisées, boutons installer/mettre à jour, et l'action « Tout mettre à jour » de l'en-tête.</em></sub></p>
 
 ---
 

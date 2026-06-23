@@ -130,7 +130,6 @@ Non siamo ancora riusciti a spedire un vero sacchetto di Kuai Kuai con l'install
   <img src="docs/assets/screenshots/hero.png" alt="L'intera finestra di KKTerm: albero delle connessioni, una griglia di Panes dal vivo e l'assistente IA" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Segnaposto screenshot</strong> — tutto il workspace a colpo d'occhio: albero delle connessioni a sinistra, una griglia di Panes dal vivo al centro, assistente IA a destra.</em></sub></p>
 
 ---
 
@@ -157,7 +156,6 @@ La stessa app. La stessa finestra. Le stesse scorciatoie. Lo stesso tema, si spe
   <img src="docs/assets/screenshots/connections-grid.png" alt="Un singolo Tab con SSH, SFTP e una UI web integrata affiancati" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Segnaposto screenshot</strong> — un solo Tab, più tipi di Connection che convivono: SSH accanto a SFTP accanto a una UI web integrata.</em></sub></p>
 
 ---
 
@@ -179,7 +177,6 @@ Un Tab può contenere una griglia di Panes, e quei Panes non devono essere dello
   <img src="docs/assets/screenshots/multi-pane.png" alt="Un Tab diviso in quattro pannelli di tipi di connessione diversi" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Segnaposto screenshot</strong> — una griglia a quattro: PowerShell, una sessione SSH, un browser SFTP e una superficie VNC, tutto in un solo Tab.</em></sub></p>
 
 ### Un assistente IA che comanda i tuoi terminali per te
 
@@ -203,7 +200,6 @@ Gran parte delle demo «IA nel terminale» si ferma alla chat. L'assistente di K
   <img src="docs/assets/screenshots/ai-assistant.png" alt="Il pannello dell'assistente IA con gli interruttori di accesso ai tool e di modalità di approvazione" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Segnaposto screenshot</strong> — il pannello dell'assistente IA: interruttori per famiglia di tool, lo switch Prompt / Allow All, e un comando pericoloso in attesa di un sì umano.</em></sub></p>
 
 ### Una dashboard che non finge di essere Grafana
 
@@ -224,7 +220,6 @@ Alcuni sono semplici pannelli di visualizzazione (markdown, checklist, un numero
   <img src="docs/assets/screenshots/ai-widgets.png" alt="Una griglia di dashboard piena di widget creati dall'IA" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Segnaposto screenshot</strong> — una vista di dashboard piena di widget costruiti dall'IA: un monitor di ping, un post-it, una statistica dal vivo e un giocattolino che non ha alcun diritto di essere così divertente.</em></sub></p>
 
 #### Sfondi animati di dashboard/terminale (perché ne avevamo voglia)
 
@@ -244,7 +239,6 @@ Lo stesso selettore alimenta anche i tuoi pannelli di terminale, così puoi mett
   <img src="docs/assets/screenshots/backgrounds.png" alt="Alcuni degli sfondi animati affiancati" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Segnaposto screenshot</strong> — un campionario di atmosfere: `matrix`, `aurora`, `synthwave` e `taipei101`.</em></sub></p>
 
 ### Tieni vivi i tuoi agenti IA
 
@@ -263,7 +257,6 @@ Le shell locali hanno lo stesso trucco su Windows: i pannelli PowerShell possono
   <img src="docs/assets/screenshots/tmux-reattach.png" alt="Un pannello SSH che si riaggancia a una sessione tmux con nome dopo una riconnessione" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Segnaposto screenshot</strong> — la lista delle sessioni tmux/psmux nella barra degli strumenti del Pane, con un agente `claude` remoto ancora in esecuzione dopo una riconnessione.</em></sub></p>
 
 ### Tieni separati i tuoi mondi con i Workspace
 
@@ -273,7 +266,6 @@ L'homelab, il lavoro e i server di quel cliente non appartengono alla stessa lis
   <img src="docs/assets/screenshots/workspaces.png" alt="Il selettore di workspace nell'activity rail" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Segnaposto screenshot</strong> — il selettore di workspace in cima all'Activity Rail, a metà del passaggio tra «Home Lab» e «Day Job».</em></sub></p>
 
 ### Vestilo come vuoi: temi di colore
 
@@ -291,7 +283,6 @@ Il terminale mantiene la propria palette scura qualunque schema tu scelga, così
   <img src="docs/assets/screenshots/color-themes.png" alt="La griglia degli schemi di colore in Impostazioni con anteprime dal vivo" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Segnaposto screenshot</strong> — la griglia degli schemi di colore di Impostazioni ▸ Aspetto, ogni riquadro una mini-anteprima dal vivo dell'app.</em></sub></p>
 
 ### Install Helper (solo Windows)
 
@@ -313,7 +304,6 @@ Rileva cosa è già installato, segnala cosa ha un aggiornamento, e **Aggiorna t
   <img src="docs/assets/screenshots/install-helper.png" alt="Il catalogo Install Helper con i tool installati e disponibili" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Segnaposto screenshot</strong> — il modulo Install Helper: riquadri dei tool per categoria, pulsanti installa/aggiorna, e l'azione «Aggiorna tutto» nell'intestazione.</em></sub></p>
 
 ---
 

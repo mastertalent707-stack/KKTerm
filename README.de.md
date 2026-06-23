@@ -130,7 +130,6 @@ Ein echtes Tütchen Kuai Kuai mit dem Installer auszuliefern, haben wir noch nic
   <img src="docs/assets/screenshots/hero.png" alt="Das gesamte KKTerm-Fenster: Verbindungsbaum, ein Raster aus Live-Panes und der KI-Assistent" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot-Platzhalter</strong> — der ganze Workspace auf einen Blick: Verbindungsbaum links, ein Raster aus Live-Panes in der Mitte, KI-Assistent rechts.</em></sub></p>
 
 ---
 
@@ -157,7 +156,6 @@ Dieselbe App. Dasselbe Fenster. Dieselben Hotkeys. Dasselbe, hoffentlich nicht a
   <img src="docs/assets/screenshots/connections-grid.png" alt="Ein einzelner Tab mit SSH, SFTP und einer eingebetteten Web-UI nebeneinander" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot-Platzhalter</strong> — ein Tab, mehrere Connection-Typen beieinander: SSH neben SFTP neben einer eingebetteten Web-UI.</em></sub></p>
 
 ---
 
@@ -179,7 +177,6 @@ Es ist ein Workspace für die unordentliche echte Form von Admin-Arbeit: Connect
   <img src="docs/assets/screenshots/multi-pane.png" alt="Ein Tab, geteilt in vier Panes verschiedener Verbindungsarten" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot-Platzhalter</strong> — ein Vierer-Raster: PowerShell, eine SSH-Session, ein SFTP-Browser und eine VNC-Oberfläche, alle in einem Tab.</em></sub></p>
 
 ### Ein KI-Assistent, der deine Terminals für dich steuert
 
@@ -203,7 +200,6 @@ Die meisten „KI im Terminal"-Demos hören beim Chat auf. Der Assistent von KKT
   <img src="docs/assets/screenshots/ai-assistant.png" alt="Das Panel des KI-Assistenten mit den Schaltern für Tool-Zugriff und Freigabemodus" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot-Platzhalter</strong> — das Panel des KI-Assistenten: Schalter pro Tool-Familie, der Prompt-/Allow-All-Umschalter und ein gefährlicher Befehl, der auf ein menschliches Ja wartet.</em></sub></p>
 
 ### Ein Dashboard, das nicht so tut, als wäre es Grafana
 
@@ -224,7 +220,6 @@ Manche sind schlichte Anzeige-Panels (Markdown, Checklisten, eine große Zahl); 
   <img src="docs/assets/screenshots/ai-widgets.png" alt="Ein Dashboard-Raster voller KI-erstellter Widgets" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot-Platzhalter</strong> — eine Dashboard-Ansicht voller KI-gebauter Widgets: ein Ping-Monitor, ein Notizzettel, eine Live-Statistik und ein kleines Spielzeug, das gar kein Recht hat, so viel Spaß zu machen.</em></sub></p>
 
 #### Animierte Dashboard-/Terminal-Hintergründe (weil wir wollten)
 
@@ -244,7 +239,6 @@ Derselbe Picker steht auch hinter deinen Terminal-Panes, du kannst also `matrix`
   <img src="docs/assets/screenshots/backgrounds.png" alt="Einige der animierten Hintergründe nebeneinander" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot-Platzhalter</strong> — eine Stimmungs-Übersicht: `matrix`, `aurora`, `synthwave` und `taipei101`.</em></sub></p>
 
 ### Deine KI-Agenten am Leben halten
 
@@ -263,7 +257,6 @@ Lokale Shells bekommen unter Windows denselben Trick: PowerShell-Panes können i
   <img src="docs/assets/screenshots/tmux-reattach.png" alt="Ein SSH-Pane, das sich nach einer Wiederverbindung erneut an eine benannte tmux-Session anhängt" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot-Platzhalter</strong> — die tmux/psmux-Sessionliste in der Pane-Toolbar, mit einem entfernten `claude`-Agenten, der nach einer Wiederverbindung weiterläuft.</em></sub></p>
 
 ### Mit Workspaces deine Welten trennen
 
@@ -273,7 +266,6 @@ Das Homelab, der Hauptjob und die Server dieses einen Kunden gehören nicht in d
   <img src="docs/assets/screenshots/workspaces.png" alt="Der Workspace-Umschalter im Activity Rail" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot-Platzhalter</strong> — der Workspace-Umschalter oben im Activity Rail, mitten im Wechsel zwischen „Home Lab" und „Day Job".</em></sub></p>
 
 ### Mach's dir schön: Farbthemen
 
@@ -291,7 +283,6 @@ Das Terminal behält seine eigene dunkle Palette, egal welches Schema du wählst
   <img src="docs/assets/screenshots/color-themes.png" alt="Das Raster der Farbschemata in den Einstellungen mit Live-Vorschauen" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot-Platzhalter</strong> — das Farbschema-Raster unter Einstellungen ▸ Darstellung, jede Kachel eine Live-Mini-Vorschau der App.</em></sub></p>
 
 ### Install Helper (nur Windows)
 
@@ -313,7 +304,6 @@ Er erkennt, was schon installiert ist, markiert, was ein Update hat, und **Alle 
   <img src="docs/assets/screenshots/install-helper.png" alt="Der Install-Helper-Katalog mit installierten und verfügbaren Tools" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot-Platzhalter</strong> — das Install-Helper-Modul: kategorisierte Tool-Kacheln, Installieren-/Aktualisieren-Buttons und die „Alle aktualisieren"-Aktion in der Kopfzeile.</em></sub></p>
 
 ---
 

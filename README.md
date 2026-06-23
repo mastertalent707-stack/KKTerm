@@ -130,7 +130,6 @@ We have not yet been able to ship an actual bag of Kuai Kuai with the installer.
   <img src="docs/assets/screenshots/hero.png" alt="The full KKTerm window: connection tree, a grid of live panes, and the AI assistant" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the whole workspace at a glance: Connection Tree on the left, a grid of live Panes in the middle, AI Assistant on the right.</em></sub></p>
 
 ---
 
@@ -157,7 +156,6 @@ Same app. Same window. Same hotkeys. Same hopefully-not-eye-bleeding theme.
   <img src="docs/assets/screenshots/connections-grid.png" alt="A single Tab holding SSH, SFTP, and an embedded web UI side by side" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — one Tab, several Connection types living together: SSH next to SFTP next to an embedded web UI.</em></sub></p>
 
 ---
 
@@ -179,7 +177,6 @@ It is one workspace for the messy real shape of admin work: mix Connection types
   <img src="docs/assets/screenshots/multi-pane.png" alt="A Tab split into four panes of different connection kinds" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — a four-way grid: PowerShell, an SSH session, an SFTP browser, and a VNC surface, all in one Tab.</em></sub></p>
 
 ### An AI assistant that commands your terminals for you
 
@@ -203,7 +200,6 @@ Most "AI in your terminal" demos stop at chat. KKTerm's assistant works *inside*
   <img src="docs/assets/screenshots/ai-assistant.png" alt="The AI Assistant panel with the tool-access and approval-mode toggles" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the AI Assistant panel: tool-family toggles, the Prompt / Allow All switch, and a dangerous command waiting for a human yes.</em></sub></p>
 
 ### A Dashboard that doesn't pretend to be Grafana
 
@@ -224,7 +220,6 @@ Some are simple display panels (markdown, checklists, a single big stat); others
   <img src="docs/assets/screenshots/ai-widgets.png" alt="A dashboard grid of AI-created widgets" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — a Dashboard View full of AI-built widgets: a ping monitor, a sticky note, a live stat, and a little toy that has no business being this fun.</em></sub></p>
 
 #### Animated dashboard/terminal backgrounds (because we wanted to)
 
@@ -244,7 +239,6 @@ The same picker backs your terminal panes too, so you can drop `matrix` behind a
   <img src="docs/assets/screenshots/backgrounds.png" alt="A few of the animated dashboard backgrounds side by side" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — a contact sheet of moods: `matrix`, `aurora`, `synthwave`, and `taipei101`.</em></sub></p>
 
 ### Keep your AI agents alive
 
@@ -263,7 +257,6 @@ Local shells get the same trick on Windows: PowerShell panes can run inside **ps
   <img src="docs/assets/screenshots/tmux-reattach.png" alt="An SSH pane re-attaching to a named tmux session after a reconnect" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the tmux/psmux session list in the Pane toolbar, with a remote `claude` agent still running after a reconnect.</em></sub></p>
 
 ### Keep your worlds apart with Workspaces
 
@@ -273,7 +266,6 @@ The home lab, the day job, and that one client's servers do not belong in the sa
   <img src="docs/assets/screenshots/workspaces.png" alt="The workspace switcher in the activity rail" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the Workspace switcher at the top of the Activity Rail, mid-switch between "Home Lab" and "Day Job."</em></sub></p>
 
 ### Dress it up: color themes
 
@@ -291,7 +283,6 @@ The terminal keeps its own dark palette no matter which scheme you pick, so your
   <img src="docs/assets/screenshots/color-themes.png" alt="The color-scheme grid in Settings with live previews" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the Settings ▸ Appearance color-scheme grid, each tile a live mini-preview of the app.</em></sub></p>
 
 ### Install Helper (Windows only)
 
@@ -313,7 +304,6 @@ It detects what's already installed, flags what has an update, and **Update all*
   <img src="docs/assets/screenshots/install-helper.png" alt="The Install Helper catalog with installed and available tools" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Screenshot placeholder</strong> — the Install Helper Module: categorized tool tiles, install/update buttons, and the "Update all" header action.</em></sub></p>
 
 ---
 

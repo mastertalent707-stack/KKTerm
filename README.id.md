@@ -130,7 +130,6 @@ Kami belum berhasil menyertakan sekantong Kuai Kuai sungguhan bersama installer-
   <img src="docs/assets/screenshots/hero.png" alt="Jendela KKTerm utuh: pohon koneksi, grid Panes langsung, dan asisten AI" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Placeholder tangkapan layar</strong> — seluruh workspace sekilas: pohon koneksi di kiri, grid Panes langsung di tengah, asisten AI di kanan.</em></sub></p>
 
 ---
 
@@ -157,7 +156,6 @@ Aplikasi yang sama. Jendela yang sama. Pintasan yang sama. Tema yang sama, yang 
   <img src="docs/assets/screenshots/connections-grid.png" alt="Satu Tab berisi SSH, SFTP, dan UI web tertanam berdampingan" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Placeholder tangkapan layar</strong> — satu Tab, beberapa jenis Connection hidup berdampingan: SSH di sebelah SFTP di sebelah UI web tertanam.</em></sub></p>
 
 ---
 
@@ -179,7 +177,6 @@ Ini satu workspace untuk bentuk nyata pekerjaan admin yang berantakan: campur je
   <img src="docs/assets/screenshots/multi-pane.png" alt="Sebuah Tab terbagi menjadi empat panel dengan jenis koneksi berbeda" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Placeholder tangkapan layar</strong> — grid empat: PowerShell, sesi SSH, browser SFTP, dan permukaan VNC, semuanya dalam satu Tab.</em></sub></p>
 
 ### Asisten AI yang mengomandoi terminalmu untukmu
 
@@ -203,7 +200,6 @@ Kebanyakan demo "AI di terminalmu" berhenti di obrolan. Asisten KKTerm bekerja *
   <img src="docs/assets/screenshots/ai-assistant.png" alt="Panel asisten AI dengan sakelar akses alat dan mode persetujuan" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Placeholder tangkapan layar</strong> — panel asisten AI: sakelar per keluarga alat, peralih Prompt / Allow All, dan sebuah perintah berbahaya yang menunggu "ya" dari manusia.</em></sub></p>
 
 ### Dashboard yang tidak berpura-pura jadi Grafana
 
@@ -224,7 +220,6 @@ Sebagian adalah panel tampilan sederhana (markdown, checklist, satu angka besar)
   <img src="docs/assets/screenshots/ai-widgets.png" alt="Grid dashboard penuh widget buatan AI" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Placeholder tangkapan layar</strong> — sebuah tampilan Dashboard penuh widget buatan AI: monitor ping, sticky note, statistik langsung, dan mainan kecil yang sama sekali tak pantas jadi semenyenangkan itu.</em></sub></p>
 
 #### Latar animasi dashboard/terminal (karena kami mau saja)
 
@@ -244,7 +239,6 @@ Pemilih yang sama juga menopang panel terminalmu, jadi kamu bisa menaruh `matrix
   <img src="docs/assets/screenshots/backgrounds.png" alt="Beberapa latar animasi berdampingan" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Placeholder tangkapan layar</strong> — lembar contoh suasana: `matrix`, `aurora`, `synthwave`, dan `taipei101`.</em></sub></p>
 
 ### Jaga agar agen AI-mu tetap hidup
 
@@ -263,7 +257,6 @@ Shell lokal mendapat trik yang sama di Windows: panel PowerShell bisa berjalan d
   <img src="docs/assets/screenshots/tmux-reattach.png" alt="Sebuah panel SSH menyambung kembali ke sesi tmux bernama setelah reconnect" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Placeholder tangkapan layar</strong> — daftar sesi tmux/psmux di toolbar Pane, dengan agen `claude` remote yang masih berjalan setelah reconnect.</em></sub></p>
 
 ### Pisahkan dunia-duniamu dengan Workspaces
 
@@ -273,7 +266,6 @@ Homelab, pekerjaan kantor, dan server klien itu tidak pantas berada di daftar ya
   <img src="docs/assets/screenshots/workspaces.png" alt="Pengalih workspace di activity rail" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Placeholder tangkapan layar</strong> — pengalih workspace di puncak Activity Rail, di tengah pergantian antara "Home Lab" dan "Day Job".</em></sub></p>
 
 ### Dandani sesukamu: tema warna
 
@@ -291,7 +283,6 @@ Terminal mempertahankan palet gelapnya sendiri apa pun skema yang kamu pilih, ag
   <img src="docs/assets/screenshots/color-themes.png" alt="Grid skema warna di Pengaturan dengan pratinjau langsung" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Placeholder tangkapan layar</strong> — grid skema warna Pengaturan ▸ Tampilan, tiap ubin sebuah pratinjau mini langsung dari aplikasi.</em></sub></p>
 
 ### Install Helper (khusus Windows)
 
@@ -313,7 +304,6 @@ Ia mendeteksi apa yang sudah terpasang, menandai mana yang punya pembaruan, dan 
   <img src="docs/assets/screenshots/install-helper.png" alt="Katalog Install Helper dengan alat yang terpasang dan tersedia" width="720" />
 </p>
 
-<p align="center"><sub><em>📸 <strong>Placeholder tangkapan layar</strong> — modul Install Helper: ubin alat berkategori, tombol pasang/perbarui, dan aksi "Perbarui semua" di header.</em></sub></p>
 
 ---
 
