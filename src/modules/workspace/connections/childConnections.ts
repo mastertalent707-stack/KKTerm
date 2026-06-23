@@ -148,7 +148,11 @@ export function collectPreservedParentPanes(params: {
       continue;
     }
     for (const pane of sourceTab.panes) {
-      if (pane.childConnectionId || claimed.has(pane.id)) {
+      if (
+        pane.childConnectionId ||
+        claimed.has(pane.id) ||
+        pane.connection?.id !== parentConnectionId
+      ) {
         continue;
       }
       claimed.add(pane.id);

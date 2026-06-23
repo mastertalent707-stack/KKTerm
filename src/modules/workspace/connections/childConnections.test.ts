@@ -184,3 +184,22 @@ const scoped = collectPreservedParentPanes({
 if (scoped.adoptedOrphanPanes.length !== 0) {
   throw new Error("Adoption must stay scoped to the active Workspace and the target Connection.");
 }
+
+// A plain parent Tab can temporarily contain Panes for other Connections after
+// drag-to-dock or split workflows. Only the parent's own childless Panes should
+// move into the child panorama.
+const otherConnection = { ...parentConnection, id: "other-connection" };
+const mixedParentTab = terminalTab("tab-mixed-parent", [
+  terminalPane("pane-parent"),
+  terminalPane("pane-other", { connection: otherConnection }),
+]);
+const mixed = collectPreservedParentPanes({
+  parentConnectionId: parentConnection.id,
+  activeWorkspaceId: "default",
+  defaultWorkspaceId: "default",
+  existingGroupTab: undefined,
+  tabs: [mixedParentTab],
+});
+if (mixed.adoptedOrphanPanes.map((pane) => pane.id).join(",") !== "pane-parent") {
+  throw new Error("Adoption must not pull unrelated split Panes into a parent's child panorama.");
+}
