@@ -43,8 +43,18 @@ test("SSH toolbar SFTP popup exposes a runtime protocol selector", async () => {
   );
   assert.match(
     workspaceSource,
-    /writeStoredSshFileBrowserProtocol\(sourceConnection\.id, sshFileBrowserProtocol\)/,
-    "the selected protocol should only be saved after a successful browser session starts",
+    /function defaultPortForSshFileBrowserProtocol[\s\S]*protocol === "sftp"[\s\S]*\?\? 22[\s\S]*protocol === "ftpsExplicit"[\s\S]*return 21[\s\S]*protocol === "ftpsImplicit"[\s\S]*return 990[\s\S]*return 21/,
+    "the protocol menu should use standard SFTP/FTPS/FTP default ports",
+  );
+  assert.match(
+    workspaceSource,
+    /className="sftp-protocol-port-input"[\s\S]*value=\{sshFileBrowserPortDraft\}[\s\S]*onBlur=\{commitProtocolPortDraft\}/,
+    "the protocol menu should include an editable port field that commits on blur",
+  );
+  assert.match(
+    workspaceSource,
+    /writeStoredSshFileBrowserProtocol\(sourceConnection\.id, \{\s*protocol: sshFileBrowserProtocol,\s*port: sshFileBrowserPort,\s*\}\)/,
+    "the selected protocol and port should only be saved after a successful browser session starts",
   );
   assert.match(
     workspaceSource,
@@ -76,6 +86,11 @@ test("SSH toolbar SFTP popup exposes a runtime protocol selector", async () => {
     /protocol kind[\s\S]*subtle protocol change button \(`sftp\.protocolSelectorAria`\)[\s\S]*compact connection status/,
     "the shipped manual should document the titlebar control and status placement",
   );
+  assert.match(
+    manualSource,
+    /default ports are SFTP 22, explicit FTPS 21, implicit FTPS 990, and plain FTP 21/,
+    "the shipped manual should document the protocol menu's default ports",
+  );
 });
 
 test("file browser password prompts pass transient passwords without saving them", async () => {
@@ -89,6 +104,16 @@ test("file browser password prompts pass transient passwords without saving them
     readFile(new URL("../src-tauri/src/ftp.rs", import.meta.url), "utf8"),
   ]);
 
+  assert.match(
+    workspaceSource,
+    /shouldPromptBeforeFileBrowserConnect\(connection, sourceConnection, sshFileBrowserProtocol\)/,
+    "the password preflight should receive the active protocol so FTP can prompt even when the parent SSH Connection uses key auth",
+  );
+  assert.match(
+    workspaceSource,
+    /protocol !== "sftp"[\s\S]*credentialSource = connection/,
+    "FTP and FTPS popup sessions should check their synthetic password credentials instead of the parent SSH auth method",
+  );
   assert.match(
     workspaceSource,
     /<PasswordPromptDialog[\s\S]*onSubmit=\{\(password\) => completePasswordPrompt\(password\)\}/,
@@ -118,5 +143,53 @@ test("file browser password prompts pass transient passwords without saving them
     ftpBackend,
     /pub password: Option<String>,[\s\S]*Some\(password\) => password\.to_string\(\)/,
     "the FTP backend should accept a one-shot password before reading saved secrets",
+  );
+});
+
+test("FTP startup warnings and errors use app dialogs instead of the transfer queue", async () => {
+  const [workspaceSource, stylesSource, manualSource, enSource] = await Promise.all([
+    readFile(
+      new URL("../src/modules/workspace/connections/sftp/SftpWorkspace.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(new URL("../src/modules/workspace/connections/sftp/sftp.css", import.meta.url), "utf8"),
+    readFile(new URL("../docs/manual/07-sftp.md", import.meta.url), "utf8"),
+    readFile(new URL("../src/i18n/locales/en.json", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(
+    workspaceSource,
+    /setFtpNoticeDialog\(\{\s*title: t\("sftp\.ftpConnectionErrorTitle"[\s\S]*message,\s*\}\)/,
+    "FTP startup failures should open an app-owned dialog with the backend error",
+  );
+  assert.match(
+    workspaceSource,
+    /setFtpNoticeDialog\(\{\s*title: t\("sftp\.plainFtpWarningTitle"\)[\s\S]*message: t\("sftp\.plainFtpWarningBody"\)/,
+    "plain FTP warnings should use an app-owned dialog body",
+  );
+  assert.match(
+    workspaceSource,
+    /<TransferArea[\s\S]*error=\{effectiveBrowserKind === "ftp" \? undefined : remoteError\}/,
+    "FTP startup errors should no longer be rendered as transfer-queue errors",
+  );
+  assert.match(
+    workspaceSource,
+    /<FtpNoticeDialog[\s\S]*notice=\{ftpNoticeDialog\}[\s\S]*onClose=\{\(\) => setFtpNoticeDialog\(null\)\}/,
+    "FTP notices should render through a shared app dialog",
+  );
+  assert.match(
+    stylesSource,
+    /\.sftp-ftp-notice-dialog\s*\{[\s\S]*gap:\s*12px;/,
+    "the FTP notice dialog should use local SFTP dialog body styling",
+  );
+  assert.match(
+    manualSource,
+    /FTP startup warnings and connection errors open an app-owned dialog/,
+    "the manual should document FTP warnings and startup errors as dialogs",
+  );
+  assert.match(
+    enSource,
+    /"ftpConnectionErrorTitle": "FTP connection failed"[\s\S]*"plainFtpWarningBody": "Plain FTP sends credentials and file contents without encryption\."/,
+    "new FTP dialog strings should exist in English",
   );
 });

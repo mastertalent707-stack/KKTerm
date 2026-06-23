@@ -2792,6 +2792,8 @@
     "protocolSelectorAria": "Protocole de transfert de fichiers",
     "plainFtpWarning": "FTP en clair",
     "plainFtpWarningTitle": "Le FTP en clair n’est pas chiffré.",
+    "ftpConnectionErrorTitle": "Échec de la connexion FTP",
+    "plainFtpWarningBody": "Le FTP non chiffré envoie les identifiants et le contenu des fichiers sans chiffrement.",
     "plainFtpFallbackWarningTitle": "FTPS a échoué, ce navigateur de fichiers utilise donc du FTP non chiffré.",
     "openingProtocol": "Ouverture de {{protocol}}",
     "ftpsFallbackStatus": "FTPS a échoué. Essai de FTP en clair.",

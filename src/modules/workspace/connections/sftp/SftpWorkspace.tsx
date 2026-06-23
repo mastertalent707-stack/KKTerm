@@ -60,9 +60,20 @@ type SshFileBrowserProtocol = "sftp" | "ftpsExplicit" | "ftpsImplicit" | "ftp";
 
 type StoredSshFileBrowserProtocol = {
   protocol: SshFileBrowserProtocol;
+  port?: number;
 };
 
 const DEFAULT_SSH_FILE_BROWSER_PROTOCOL: SshFileBrowserProtocol = "sftp";
+
+type SshFileBrowserSelection = {
+  protocol: SshFileBrowserProtocol;
+  port: number;
+};
+
+type FtpNoticeDialogState = {
+  title: string;
+  message: string;
+};
 
 // Per-pane zoom + content-view background. Persisted durably on the Connection
 // (DB) so the look survives restarts and follows the Connection, except for the
@@ -145,17 +156,27 @@ export function SftpWorkspace({
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const openGitBrowser = useWorkspaceStore((state) => state.openGitBrowser);
   const sourceConnection = protocolSourceConnection;
+  const initialSshFileBrowserSelection = sourceConnection
+    ? readStoredSshFileBrowserProtocol(sourceConnection.id, sourceConnection)
+    : {
+        protocol: protocolFromTab(tab),
+        port: defaultPortForSshFileBrowserProtocol(protocolFromTab(tab), tab.connection),
+      };
   const [sshFileBrowserProtocol, setSshFileBrowserProtocol] = useState<SshFileBrowserProtocol>(() =>
-    sourceConnection ? readStoredSshFileBrowserProtocol(sourceConnection.id) : protocolFromTab(tab),
+    initialSshFileBrowserSelection.protocol,
+  );
+  const [sshFileBrowserPort, setSshFileBrowserPort] = useState(() => initialSshFileBrowserSelection.port);
+  const [sshFileBrowserPortDraft, setSshFileBrowserPortDraft] = useState(() =>
+    String(initialSshFileBrowserSelection.port),
   );
   const [protocolMenuOpen, setProtocolMenuOpen] = useState(false);
   const [plainFtpFallbackActive, setPlainFtpFallbackActive] = useState(false);
   const connection = useMemo(
     () =>
       sourceConnection
-        ? connectionForSshFileBrowserProtocol(sourceConnection, sshFileBrowserProtocol)
+        ? connectionForSshFileBrowserProtocol(sourceConnection, sshFileBrowserProtocol, sshFileBrowserPort)
         : tab.connection,
-    [sourceConnection, sshFileBrowserProtocol, tab.connection],
+    [sourceConnection, sshFileBrowserPort, sshFileBrowserProtocol, tab.connection],
   );
   const effectiveBrowserKind = sourceConnection
     ? sshFileBrowserProtocol === "sftp"
@@ -205,6 +226,7 @@ export function SftpWorkspace({
   const [transferConflict, setTransferConflict] = useState<TransferConflictState | null>(null);
   const [newRemoteFolderOpen, setNewRemoteFolderOpen] = useState(false);
   const [passwordPrompt, setPasswordPrompt] = useState<{ message?: string } | null>(null);
+  const [ftpNoticeDialog, setFtpNoticeDialog] = useState<FtpNoticeDialogState | null>(null);
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null);
   const [renameRequest, setRenameRequest] = useState<{
     side: FilePaneSide;
@@ -237,16 +259,44 @@ export function SftpWorkspace({
     if (!sourceConnection) {
       return;
     }
-    setSshFileBrowserProtocol(readStoredSshFileBrowserProtocol(sourceConnection.id));
+    const selection = readStoredSshFileBrowserProtocol(sourceConnection.id, sourceConnection);
+    setSshFileBrowserProtocol(selection.protocol);
+    setSshFileBrowserPort(selection.port);
+    setSshFileBrowserPortDraft(String(selection.port));
     setPlainFtpFallbackActive(false);
+    setFtpNoticeDialog(null);
     transientPasswordRef.current = null;
   }, [sourceConnection?.id]);
 
   function handleProtocolChange(protocol: SshFileBrowserProtocol) {
+    const nextPort = protocol === sshFileBrowserProtocol
+      ? sshFileBrowserPort
+      : defaultPortForSshFileBrowserProtocol(protocol, sourceConnection ?? connection);
     setSshFileBrowserProtocol(protocol);
+    setSshFileBrowserPort(nextPort);
+    setSshFileBrowserPortDraft(String(nextPort));
     setProtocolMenuOpen(false);
     setPlainFtpFallbackActive(false);
+    if (protocol === "ftp") {
+      setFtpNoticeDialog({
+        title: t("sftp.plainFtpWarningTitle"),
+        message: t("sftp.plainFtpWarningBody"),
+      });
+    }
     transientPasswordRef.current = null;
+  }
+
+  function commitProtocolPortDraft() {
+    const nextPort = normalizeSshFileBrowserPort(sshFileBrowserPortDraft);
+    if (!nextPort) {
+      setSshFileBrowserPortDraft(String(sshFileBrowserPort));
+      return;
+    }
+    setSshFileBrowserPortDraft(String(nextPort));
+    if (nextPort !== sshFileBrowserPort) {
+      setSshFileBrowserPort(nextPort);
+      transientPasswordRef.current = null;
+    }
   }
 
   function completePasswordPrompt(password: string | null) {
@@ -535,7 +585,7 @@ export function SftpWorkspace({
 
         setStatus(t("sftp.openingProtocol", { protocol: activeProtocolLabel }));
         let password = transientPasswordRef.current ?? undefined;
-        if (!password && shouldPromptBeforeFileBrowserConnect(connection, sourceConnection)) {
+        if (!password && shouldPromptBeforeFileBrowserConnect(connection, sourceConnection, sshFileBrowserProtocol)) {
           const enteredPassword = await requestTransientPassword();
           if (disposed) {
             return;
@@ -572,7 +622,13 @@ export function SftpWorkspace({
           } else if (sourceConnection && isFtpsProtocol(sshFileBrowserProtocol)) {
             setPlainFtpFallbackActive(true);
             setStatus(t("sftp.ftpsFallbackStatus"));
+            setFtpNoticeDialog({
+              title: t("sftp.plainFtpFallbackWarningTitle"),
+              message: t("sftp.plainFtpWarningBody"),
+            });
             setSshFileBrowserProtocol("ftp");
+            setSshFileBrowserPort(defaultPortForSshFileBrowserProtocol("ftp", sourceConnection));
+            setSshFileBrowserPortDraft(String(defaultPortForSshFileBrowserProtocol("ftp", sourceConnection)));
             return;
           } else {
             throw error;
@@ -593,7 +649,10 @@ export function SftpWorkspace({
         setSelectedRemoteNames([]);
         setStatus(t("sftp.connected"));
         if (sourceConnection) {
-          writeStoredSshFileBrowserProtocol(sourceConnection.id, sshFileBrowserProtocol);
+          writeStoredSshFileBrowserProtocol(sourceConnection.id, {
+            protocol: sshFileBrowserProtocol,
+            port: sshFileBrowserPort,
+          });
         }
       } catch (error) {
         if (!disposed) {
@@ -601,6 +660,12 @@ export function SftpWorkspace({
           setStatus(message);
           setRemoteError(message);
           setRemoteFiles([]);
+          if (effectiveBrowserKind === "ftp") {
+            setFtpNoticeDialog({
+              title: t("sftp.ftpConnectionErrorTitle"),
+              message,
+            });
+          }
         }
       } finally {
         if (!disposed) {
@@ -623,7 +688,7 @@ export function SftpWorkspace({
         sessionIdRef.current = null;
       }
     };
-  }, [activeProtocolLabel, commands, connection, effectiveBrowserKind, isLocalFilesBrowser, markConnectionSessionEnded, markConnectionSessionStarted, sourceConnection, sshFileBrowserProtocol, t]);
+  }, [activeProtocolLabel, commands, connection, effectiveBrowserKind, isLocalFilesBrowser, markConnectionSessionEnded, markConnectionSessionStarted, sourceConnection, sshFileBrowserPort, sshFileBrowserProtocol, t]);
 
   const refreshRemoteDirectory = async () => {
     await loadRemoteDirectory(remotePath, t("sftp.refreshing"));
@@ -1742,6 +1807,27 @@ export function SftpWorkspace({
                         {option.label}
                       </button>
                     ))}
+                    <label className="sftp-protocol-port-row">
+                      <span>{t("connections.port")}</span>
+                      <input
+                        className="sftp-protocol-port-input"
+                        inputMode="numeric"
+                        min={1}
+                        max={65535}
+                        type="number"
+                        value={sshFileBrowserPortDraft}
+                        onBlur={commitProtocolPortDraft}
+                        onChange={(event) => setSshFileBrowserPortDraft(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            commitProtocolPortDraft();
+                            event.currentTarget.blur();
+                          }
+                          event.stopPropagation();
+                        }}
+                      />
+                    </label>
                   </div>
                 ) : null}
               </span>
@@ -1902,7 +1988,7 @@ export function SftpWorkspace({
         <TransferArea
           transfers={transfers}
           clearableCount={clearableTransferCount}
-          error={remoteError}
+          error={effectiveBrowserKind === "ftp" ? undefined : remoteError}
           onClear={() =>
             setTransfers((current) =>
               current.filter((transfer) => !TRANSFER_HISTORY_STATES.includes(transfer.state)),
@@ -1953,6 +2039,12 @@ export function SftpWorkspace({
           message={passwordPrompt.message}
           onCancel={() => completePasswordPrompt(null)}
           onSubmit={(password) => completePasswordPrompt(password)}
+        />
+      ) : null}
+      {ftpNoticeDialog ? (
+        <FtpNoticeDialog
+          notice={ftpNoticeDialog}
+          onClose={() => setFtpNoticeDialog(null)}
         />
       ) : null}
       {transferConflict ? (
@@ -2038,6 +2130,34 @@ function PasswordPromptDialog({
   );
 }
 
+function FtpNoticeDialog({
+  notice,
+  onClose,
+}: {
+  notice: FtpNoticeDialogState;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <DialogShell onBackdrop={onClose}>
+      <Sheet
+        width={420}
+        title={notice.title}
+        ariaLabel={notice.title}
+        footer={
+          <Actions
+            primary={<Btn kind="primary" onClick={onClose}>{t("common.close")}</Btn>}
+          />
+        }
+      >
+        <div className="sftp-ftp-notice-dialog">
+          <p>{notice.message}</p>
+        </div>
+      </Sheet>
+    </DialogShell>
+  );
+}
+
 function protocolFromTab(tab: WorkspaceTab): SshFileBrowserProtocol {
   return tab.kind === "ftp" ? "ftp" : "sftp";
 }
@@ -2058,8 +2178,12 @@ function sshFileBrowserProtocolOptions(t: (key: string) => string) {
 function shouldPromptBeforeFileBrowserConnect(
   connection: Connection,
   sourceConnection?: Connection,
+  protocol: SshFileBrowserProtocol = "sftp",
 ) {
-  const credentialSource = sourceConnection ?? connection;
+  let credentialSource = sourceConnection ?? connection;
+  if (protocol !== "sftp" && sourceConnection) {
+    credentialSource = connection;
+  }
   return (
     credentialSource.authMethod === "password" &&
     !credentialSource.hasPassword &&
@@ -2114,15 +2238,19 @@ function isMissingFileBrowserPasswordError(message: string) {
 function connectionForSshFileBrowserProtocol(
   sourceConnection: Connection,
   protocol: SshFileBrowserProtocol,
+  port: number,
 ): Connection {
   if (protocol === "sftp") {
-    return sourceConnection;
+    return {
+      ...sourceConnection,
+      port,
+    };
   }
   const ftpOptions = ftpOptionsForSshFileBrowserProtocol(protocol);
   return {
     ...sourceConnection,
     type: "ftp",
-    port: protocol === "ftpsImplicit" ? 990 : 21,
+    port,
     keyPath: undefined,
     proxyJump: undefined,
     sshSocksProxy: undefined,
@@ -2132,6 +2260,22 @@ function connectionForSshFileBrowserProtocol(
     ftpOptions,
     iconDataUrl: sourceConnection.iconDataUrl ?? "material:folder-server",
   };
+}
+
+function defaultPortForSshFileBrowserProtocol(
+  protocol: SshFileBrowserProtocol,
+  sourceConnection?: Pick<Connection, "port"> | null,
+) {
+  if (protocol === "sftp") {
+    return sourceConnection?.port ?? 22;
+  }
+  if (protocol === "ftpsExplicit") {
+    return 21;
+  }
+  if (protocol === "ftpsImplicit") {
+    return 990;
+  }
+  return 21;
 }
 
 function ftpOptionsForSshFileBrowserProtocol(
@@ -2150,22 +2294,36 @@ function ftpOptionsForSshFileBrowserProtocol(
   };
 }
 
-function readStoredSshFileBrowserProtocol(connectionId: string): SshFileBrowserProtocol {
+function readStoredSshFileBrowserProtocol(
+  connectionId: string,
+  sourceConnection?: Pick<Connection, "port"> | null,
+): SshFileBrowserSelection {
   if (typeof window === "undefined") {
-    return DEFAULT_SSH_FILE_BROWSER_PROTOCOL;
+    return {
+      protocol: DEFAULT_SSH_FILE_BROWSER_PROTOCOL,
+      port: defaultPortForSshFileBrowserProtocol(DEFAULT_SSH_FILE_BROWSER_PROTOCOL, sourceConnection),
+    };
   }
   try {
     const raw = window.localStorage.getItem(SSH_FILE_BROWSER_PROTOCOL_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) as Record<string, StoredSshFileBrowserProtocol> : {};
-    return normalizeSshFileBrowserProtocol(parsed[connectionId]?.protocol);
+    const protocol = normalizeSshFileBrowserProtocol(parsed[connectionId]?.protocol);
+    return {
+      protocol,
+      port: normalizeSshFileBrowserPort(parsed[connectionId]?.port) ??
+        defaultPortForSshFileBrowserProtocol(protocol, sourceConnection),
+    };
   } catch {
-    return DEFAULT_SSH_FILE_BROWSER_PROTOCOL;
+    return {
+      protocol: DEFAULT_SSH_FILE_BROWSER_PROTOCOL,
+      port: defaultPortForSshFileBrowserProtocol(DEFAULT_SSH_FILE_BROWSER_PROTOCOL, sourceConnection),
+    };
   }
 }
 
 function writeStoredSshFileBrowserProtocol(
   connectionId: string,
-  protocol: SshFileBrowserProtocol,
+  selection: SshFileBrowserSelection,
 ) {
   if (typeof window === "undefined") {
     return;
@@ -2173,7 +2331,7 @@ function writeStoredSshFileBrowserProtocol(
   try {
     const raw = window.localStorage.getItem(SSH_FILE_BROWSER_PROTOCOL_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) as Record<string, StoredSshFileBrowserProtocol> : {};
-    parsed[connectionId] = { protocol };
+    parsed[connectionId] = selection;
     window.localStorage.setItem(SSH_FILE_BROWSER_PROTOCOL_STORAGE_KEY, JSON.stringify(parsed));
   } catch {
     // Best-effort preference only; connection startup must not depend on storage.
@@ -2187,6 +2345,11 @@ function normalizeSshFileBrowserProtocol(value: unknown): SshFileBrowserProtocol
     value === "sftp"
     ? value
     : DEFAULT_SSH_FILE_BROWSER_PROTOCOL;
+}
+
+function normalizeSshFileBrowserPort(value: unknown) {
+  const port = typeof value === "number" ? value : Number.parseInt(String(value), 10);
+  return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : null;
 }
 
 function TransferArea({
