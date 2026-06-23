@@ -689,6 +689,11 @@ fn delete_url_credential(
 }
 
 #[tauri::command]
+fn list_serial_ports() -> Vec<String> {
+    serial::available_serial_ports()
+}
+
+#[tauri::command]
 fn list_url_data_partitions(
     storage: tauri::State<'_, storage::Storage>,
 ) -> Result<Vec<storage::UrlDataPartitionSummary>, String> {
@@ -3396,6 +3401,7 @@ pub fn run() {
             duplicate_connection,
             move_connection_folder,
             move_connection,
+            list_serial_ports,
             // ── URL connections & credentials
             update_url_connection_icon_from_page,
             upsert_url_credential,

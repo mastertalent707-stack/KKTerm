@@ -1243,6 +1243,10 @@ type CommandMap = {
     args: undefined;
     result: UrlDataPartitionSummary[];
   };
+  list_serial_ports: {
+    args: undefined;
+    result: string[];
+  };
   clear_url_data_partition: {
     args: { name: string };
     result: null;
