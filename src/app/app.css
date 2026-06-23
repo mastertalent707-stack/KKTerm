@@ -24,9 +24,9 @@
   justify-content: space-between;
   height: var(--app-titlebar-height);
   padding-right: 202px;
-  background: var(--nav-toolbar-bg);
-  color: var(--nav-toolbar-text);
-  border-bottom: 1px solid var(--nav-toolbar-tooltip-border);
+  background: var(--titlebar-bg);
+  color: var(--titlebar-text);
+  border-bottom: 1px solid var(--titlebar-border);
   user-select: none;
   -webkit-user-select: none;
   app-region: drag;
@@ -69,7 +69,7 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.2px;
-  color: var(--nav-toolbar-text);
+  color: var(--titlebar-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -95,7 +95,7 @@
   justify-content: center;
   background: transparent;
   border: 0;
-  color: var(--nav-toolbar-text);
+  color: var(--titlebar-text);
   cursor: pointer;
   padding: 0;
   border-radius: 0;
@@ -105,7 +105,7 @@
 }
 
 .app-titlebar-button:hover {
-  background: var(--nav-toolbar-hover-bg);
+  background: var(--titlebar-hover-bg);
 }
 
 .app-titlebar-panel-button {

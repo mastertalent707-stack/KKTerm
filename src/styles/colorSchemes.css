@@ -92,6 +92,10 @@
   --nav-toolbar-tooltip-bg: #111827;
   --nav-toolbar-tooltip-text: #f8fafc;
   --nav-toolbar-tooltip-border: rgba(255, 255, 255, 0.14);
+  --titlebar-bg: var(--nav-toolbar-bg);
+  --titlebar-text: var(--nav-toolbar-text);
+  --titlebar-hover-bg: var(--nav-toolbar-hover-bg);
+  --titlebar-border: var(--nav-toolbar-tooltip-border);
   --shadow: 0 8px 28px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
   /* Platform-aware default: SF Pro on macOS, bundled Inter on Windows. */
   --app-ui-font-family:
@@ -568,6 +572,10 @@
   --nav-toolbar-tooltip-bg: #193375;
   --nav-toolbar-tooltip-text: #ffffff;
   --nav-toolbar-tooltip-border: rgba(255, 255, 255, 0.24);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #193375;
+  --titlebar-hover-bg: rgba(25, 51, 117, 0.12);
+  --titlebar-border: rgba(25, 51, 117, 0.2);
   --shadow: 0 16px 44px rgba(25, 174, 71, 0.16);
 }
 
@@ -601,6 +609,10 @@
   --nav-toolbar-tooltip-bg: #0c2847;
   --nav-toolbar-tooltip-text: #ffffff;
   --nav-toolbar-tooltip-border: rgba(255, 255, 255, 0.22);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #173e69;
+  --titlebar-hover-bg: rgba(23, 62, 105, 0.14);
+  --titlebar-border: rgba(23, 62, 105, 0.2);
   --shadow: 0 16px 44px rgba(67, 161, 213, 0.16);
 }
 
@@ -634,6 +646,10 @@
   --nav-toolbar-tooltip-bg: #081244;
   --nav-toolbar-tooltip-text: #ffffff;
   --nav-toolbar-tooltip-border: rgba(255, 255, 255, 0.22);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #eaeefc;
+  --titlebar-hover-bg: rgba(255, 255, 255, 0.12);
+  --titlebar-border: rgba(255, 255, 255, 0.16);
   --shadow: 0 18px 50px rgba(4, 12, 50, 0.48);
 }
 
@@ -667,6 +683,10 @@
   --nav-toolbar-tooltip-bg: #1a1a1a;
   --nav-toolbar-tooltip-text: #fff4eb;
   --nav-toolbar-tooltip-border: rgba(255, 217, 191, 0.25);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #2a1a10;
+  --titlebar-hover-bg: rgba(42, 26, 16, 0.12);
+  --titlebar-border: rgba(42, 26, 16, 0.16);
   --shadow: 0 16px 44px rgba(243, 108, 33, 0.18);
 }
 
@@ -700,6 +720,10 @@
   --nav-toolbar-tooltip-bg: #050505;
   --nav-toolbar-tooltip-text: #ffffff;
   --nav-toolbar-tooltip-border: rgba(255, 255, 255, 0.18);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #161413;
+  --titlebar-hover-bg: rgba(22, 20, 19, 0.08);
+  --titlebar-border: rgba(22, 20, 19, 0.12);
   --shadow: 0 16px 44px rgba(0, 0, 0, 0.14);
 }
 
@@ -733,6 +757,10 @@
   --nav-toolbar-tooltip-bg: #101a48;
   --nav-toolbar-tooltip-text: #ffffff;
   --nav-toolbar-tooltip-border: rgba(255, 255, 255, 0.22);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #ffffff;
+  --titlebar-hover-bg: rgba(255, 255, 255, 0.16);
+  --titlebar-border: rgba(255, 255, 255, 0.2);
   --shadow: 0 16px 44px rgba(227, 6, 19, 0.16);
 }
 
@@ -766,6 +794,10 @@
   --nav-toolbar-tooltip-bg: #082d19;
   --nav-toolbar-tooltip-text: #ffffff;
   --nav-toolbar-tooltip-border: rgba(240, 212, 136, 0.25);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #f8e7e4;
+  --titlebar-hover-bg: rgba(255, 255, 255, 0.12);
+  --titlebar-border: rgba(255, 255, 255, 0.14);
   --shadow: 0 18px 50px rgba(36, 4, 6, 0.5);
 }
 
@@ -799,6 +831,10 @@
   --nav-toolbar-tooltip-bg: #033765;
   --nav-toolbar-tooltip-text: #ffffff;
   --nav-toolbar-tooltip-border: rgba(255, 255, 255, 0.22);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #ffffff;
+  --titlebar-hover-bg: rgba(255, 255, 255, 0.16);
+  --titlebar-border: rgba(255, 255, 255, 0.2);
   --shadow: 0 16px 44px rgba(237, 28, 36, 0.16);
 }
 
@@ -832,6 +868,10 @@
   --nav-toolbar-tooltip-bg: #0a2417;
   --nav-toolbar-tooltip-text: #ffffff;
   --nav-toolbar-tooltip-border: rgba(255, 255, 255, 0.22);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #ffffff;
+  --titlebar-hover-bg: rgba(255, 255, 255, 0.14);
+  --titlebar-border: rgba(255, 255, 255, 0.18);
   --shadow: 0 16px 44px rgba(0, 104, 71, 0.16);
 }
 
@@ -865,6 +905,10 @@
   --nav-toolbar-tooltip-bg: #00133d;
   --nav-toolbar-tooltip-text: #ffffff;
   --nav-toolbar-tooltip-border: rgba(255, 255, 255, 0.22);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #00216a;
+  --titlebar-hover-bg: rgba(0, 33, 106, 0.08);
+  --titlebar-border: rgba(0, 33, 106, 0.12);
   --shadow: 0 16px 44px rgba(0, 33, 106, 0.14);
 }
 
@@ -898,6 +942,10 @@
   --nav-toolbar-tooltip-bg: #07113a;
   --nav-toolbar-tooltip-text: #ffffff;
   --nav-toolbar-tooltip-border: rgba(255, 255, 255, 0.22);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #e6ebfa;
+  --titlebar-hover-bg: rgba(255, 255, 255, 0.12);
+  --titlebar-border: rgba(255, 255, 255, 0.16);
   --shadow: 0 18px 50px rgba(3, 8, 34, 0.5);
 }
 
@@ -931,5 +979,9 @@
   --nav-toolbar-tooltip-bg: #06133a;
   --nav-toolbar-tooltip-text: #ffffff;
   --nav-toolbar-tooltip-border: rgba(255, 255, 255, 0.22);
+  --titlebar-bg: var(--chrome);
+  --titlebar-text: #ffffff;
+  --titlebar-hover-bg: rgba(255, 255, 255, 0.14);
+  --titlebar-border: rgba(255, 255, 255, 0.18);
   --shadow: 0 16px 44px rgba(191, 10, 48, 0.16);
 }

@@ -15,13 +15,41 @@ test("custom titlebar inherits the same color scheme as the activity rail", asyn
   );
   assert.match(
     appCssSource,
-    /\.app-titlebar\s*\{[^}]*background:\s*var\(--nav-toolbar-bg\)/s,
-    "custom titlebar should use the navigation toolbar background token",
+    /\.app-titlebar\s*\{[^}]*background:\s*var\(--titlebar-bg\)/s,
+    "custom titlebar should use the titlebar background token",
+  );
+  assert.match(
+    appCssSource,
+    /\.app-titlebar\s*\{[^}]*color:\s*var\(--titlebar-text\)/s,
+    "custom titlebar should use the titlebar text token",
   );
   assert.match(
     appCssSource,
     /\.activity-rail\s*\{[^}]*background:\s*var\(--nav-toolbar-bg\)/s,
-    "activity rail should use the same navigation toolbar background token",
+    "activity rail should keep using the navigation toolbar background token",
+  );
+});
+
+test("World Cup schemes can separate titlebar and Activity Rail colors", async () => {
+  const [colorSchemesSource, appCssSource] = await Promise.all([
+    readFile(new URL("../src/styles/colorSchemes.css", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/app.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(
+    colorSchemesSource,
+    /:root\s*\{[\s\S]*--titlebar-bg:\s*var\(--nav-toolbar-bg\);[\s\S]*--titlebar-text:\s*var\(--nav-toolbar-text\);/,
+    "existing schemes should inherit titlebar colors from the established navigation toolbar tokens",
+  );
+  assert.match(
+    colorSchemesSource,
+    /\[data-color-scheme="canarinho"\]\s*\{[\s\S]*--chrome:\s*#ffdc02;[\s\S]*--nav-toolbar-bg:\s*#19ae47;[\s\S]*--titlebar-bg:\s*var\(--chrome\);/,
+    "World Cup schemes should be able to use the picker titlebar color separately from the rail color",
+  );
+  assert.match(
+    appCssSource,
+    /\.app-titlebar-button:hover\s*\{[^}]*background:\s*var\(--titlebar-hover-bg\);/s,
+    "titlebar controls should hover with titlebar-specific colors",
   );
 });
 
