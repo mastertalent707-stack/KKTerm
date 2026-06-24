@@ -127,6 +127,18 @@ assert.match(
 );
 
 assert.match(
+  optionsSection,
+  /<Switch[\s\S]*on=\{sshInheritsSettingsDefaults\}[\s\S]*onChange=\{onInheritsSettingsDefaultsChange\}[\s\S]*<input[\s\S]*name="sshSocksProxyInheritDefaults"[\s\S]*value=\{sshInheritsSettingsDefaults \? "on" : "off"\}/,
+  "Default Options should use the shared dialog Switch while preserving its submitted form value.",
+);
+
+assert.match(
+  optionsSection,
+  /<Switch[\s\S]*on=\{displayedUseTmuxSessions\}[\s\S]*disabled=\{sshInheritsSettingsDefaults\}[\s\S]*onChange=\{setUseTmuxSessionsDraft\}[\s\S]*<input[\s\S]*name="useTmuxSessions"[\s\S]*value=\{displayedUseTmuxSessions \? "on" : "off"\}/,
+  "tmux management should use the shared dialog Switch while preserving its submitted form value.",
+);
+
+assert.match(
   sidebarSource,
   /const sshUsesDefaultOptions = form\.get\("sshSocksProxyInheritDefaults"\) === "on";/,
   "SSH submit handling should treat the legacy inherit field as Default Options mode.",
@@ -160,4 +172,12 @@ assert.match(
   css,
   /\.connection-option-fields\s*>\s*label\.connection-proxy-row\s*\{/,
   "proxy option rows should have a dedicated compact label/input layout.",
+);
+
+const startupScriptSectionRule = css.match(/\.ssh-startup-script-section\s*\{(?<body>[^}]*)\}/s);
+assert.ok(startupScriptSectionRule, "startup script section should have a dedicated layout rule.");
+assert.match(
+  startupScriptSectionRule.groups.body,
+  /border-top:\s*1px solid var\(--hairline\);/,
+  "startup script section should have a subtle divider above it.",
 );

@@ -27,7 +27,7 @@ assert.match(
 );
 
 const optionToggleSwitchRule = connectionStyles.match(
-  /\.connection-option-fields\s*>\s*\.connection-session-toggle:has\(\.option-glyph\)\s*>\s*input\[type="checkbox"\]\s*\{(?<body>[^}]*)\}/s,
+  /\.connection-option-fields\s*>\s*\.connection-session-toggle:has\(\.option-glyph\)\s*>\s*\.kk-switch\s*\{(?<body>[^}]*)\}/s,
 );
 assert.ok(optionToggleSwitchRule, "option-field toggle switches should have a right-alignment rule");
 assert.match(

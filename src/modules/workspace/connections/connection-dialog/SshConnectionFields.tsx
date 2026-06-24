@@ -300,16 +300,16 @@ export function SshConnectionOptions({
     <fieldset className="connection-session-fields connection-specific-options">
       <legend>{t("connections.sshOptions")}</legend>
       <div className="connection-specific-options-panel">
-        <label className="connection-session-toggle">
+        <div className="connection-session-toggle">
           <Settings2 className="option-glyph" size={17} aria-hidden />
           <span>{t("connections.inheritSettingsDefaults")}</span>
-          <input
-            name="sshSocksProxyInheritDefaults"
-            type="checkbox"
-            checked={sshInheritsSettingsDefaults}
-            onChange={(event) => onInheritsSettingsDefaultsChange(event.currentTarget.checked)}
+          <Switch
+            on={sshInheritsSettingsDefaults}
+            ariaLabel={t("connections.inheritSettingsDefaults")}
+            onChange={onInheritsSettingsDefaultsChange}
           />
-        </label>
+          <input name="sshSocksProxyInheritDefaults" type="hidden" value={sshInheritsSettingsDefaults ? "on" : "off"} />
+        </div>
         <div className="connection-option-fields">
           <label className="connection-proxy-row">
             <span>{t("connections.sshSocksProxyOptional")}</span>
@@ -364,17 +364,17 @@ export function SshConnectionOptions({
             <option value="off">{t("settings.sshCompressionOff")}</option>
           </select>
         </label>
-        <label className="connection-session-toggle">
+        <div className="connection-session-toggle">
           <Layers className="option-glyph" size={17} aria-hidden />
           <span>{t("connections.useTmux")}</span>
-          <input
-            checked={displayedUseTmuxSessions}
+          <Switch
+            on={displayedUseTmuxSessions}
+            ariaLabel={t("connections.useTmux")}
             disabled={sshInheritsSettingsDefaults}
-            name="useTmuxSessions"
-            onChange={(event) => setUseTmuxSessionsDraft(event.currentTarget.checked)}
-            type="checkbox"
+            onChange={setUseTmuxSessionsDraft}
           />
-        </label>
+          <input name="useTmuxSessions" type="hidden" value={displayedUseTmuxSessions ? "on" : "off"} />
+        </div>
       </div>
     </fieldset>
   );
