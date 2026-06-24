@@ -3,6 +3,46 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.102/kkterm-0.1.102-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.102/kkterm-0.1.102-windows-arm64-setup.exe)
+
+## Highlights
+- Improved SSH startup script behavior for Connections, including editor support, per-connection option, and more robust tmux handling (PR #451, PR #449; commits include `bc40ace`, `163927d`, `200db90`, `60a69d3`, `3eee2ae`, `3e63a63`).
+- Updated russh with vendored IronRDP crypto patches (PR #452; commit `d4502c9`).
+
+## Improved
+- SSH startup script UI/UX: updated editor and SSH connection options layout and translations across multiple languages (PR #451; commits `60a69d3`, `3eee2ae`, `3e63a63`).
+- SSH startup script fallback without tmux so Connections can still start in environments without tmux (PR #451; commit `bc40ace`).
+
+## Fixed
+- Resolved all ESLint warnings so the lint gate only flags new problems (PR #449; commit `ecbd0f5`).
+  - Thanks to Claude Opus 4.8 (Co-Authored-By in commit `ecbd0f5`)!
+
+## Internal
+- Upgrade russh with vendored IronRDP crypto patches (PR #452; commit `d4502c9`, SHA `200db90`).
+- Type/compatibility and UI layout updates related to the SSH startup script editor and options (PR #451; `60a69d3`, `3eee2ae`, `3e63a63`, `bc40ace`).
+- Lint-only cleanup (PR #449; `ecbd0f5`).  
+
+---
+
+## Highlights（重點）
+- 改善 SSH 啟動腳本在「Connection」層級的行為：支援編輯器（editor）、每個連線（per-connection）選項，以及更穩健的 tmux 處理（PR #451、PR #449；相關提交包含 `bc40ace`、`163927d`、`200db90`、`60a69d3`、`3eee2ae`、`3e63a63`）。
+- 更新 russh，套用附帶 IronRDP 的加密修補程式（PR #452；提交 `d4502c9`）。
+
+## Improved（改進）
+- SSH 啟動腳本使用者體驗：更新編輯器與 SSH 連線選項的版面，並擴充多語系翻譯（PR #451；提交 `60a69d3`、`3eee2ae`、`3e63a63`）。
+- SSH 啟動腳本在「沒有 tmux」的環境下也能正常回退啟動，避免只在有 tmux 才工作（PR #451；提交 `bc40ace`）。
+
+## Fixed（修正）
+- 修正所有 ESLint 警告，讓 lint gate 只會標記新的問題（PR #449；提交 `ecbd0f5`）。
+  - 特別感謝 Claude Opus 4.8（在提交 `ecbd0f5` 的 Co-Authored-By 註記中）！
+
+## Internal（內部）
+- 升級 russh 並套用附帶 IronRDP 加密修補程式（PR #452；`d4502c9`、`200db90`）。
+- 與 SSH 啟動腳本編輯器/選項相關的 UI 版面調整（PR #451；`60a69d3`、`3eee2ae`、`3e63a63`、`bc40ace`）。
+- 只屬於 lint 清理的變更（PR #449；`ecbd0f5`）。
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.101/kkterm-0.1.101-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.101/kkterm-0.1.101-windows-arm64-setup.exe)
 
