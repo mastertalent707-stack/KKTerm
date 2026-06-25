@@ -45,6 +45,15 @@ export function getPaneRenderer(paneId: string): TerminalRenderer | undefined {
   return renderers.get(paneId);
 }
 
+export function focusPaneRenderer(paneId: string) {
+  const renderer = renderers.get(paneId);
+  if (!renderer) {
+    return false;
+  }
+  renderer.focus();
+  return true;
+}
+
 export function markPanesForRuntimeMove(paneIds: string[]) {
   for (const paneId of paneIds) {
     movingTerminalPaneIds.add(paneId);
