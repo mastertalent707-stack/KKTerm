@@ -16,13 +16,19 @@ const portalBackdrops = [
   {
     name: "Connection import dialog",
     path: "../src/modules/workspace/connections/ImportDialog.tsx",
-    backdrops: ["connection-dialog import-dialog"],
+    kitDialog: "import-dialog-redesign",
   },
 ];
 
 test("blocking dialogs mounted from contained panes use the app-window DialogPortal", async () => {
   for (const entry of portalBackdrops) {
     const source = await readFile(new URL(entry.path, import.meta.url), "utf8");
+    if (entry.kitDialog) {
+      assert.match(source, /DialogShell/, `${entry.name} should mount through the dialog-kit DialogShell`);
+      assert.match(source, new RegExp(entry.kitDialog), `${entry.name} should still render ${entry.kitDialog}`);
+      continue;
+    }
+
     assert.match(source, /DialogPortal/, `${entry.name} should import/use DialogPortal`);
 
     for (const backdropMarker of entry.backdrops) {

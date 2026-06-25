@@ -1,11 +1,5 @@
-import {
-  BookMarked,
-  ChevronLeft,
-  FileUp,
-  Loader2,
-  Network,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import i18next from "../../../i18n/config";
 import { listen } from "@tauri-apps/api/event";
@@ -18,8 +12,18 @@ import {
   type ScanProgressEvent,
   type ScanResultEntry,
 } from "../../../lib/tauri";
-import { DialogPortal } from "../../../app/DialogPortal";
-import { LegacyDialogActions } from "../../../app/ui/dialog";
+import {
+  Actions,
+  Btn,
+  DIcon,
+  DialogShell,
+  Field,
+  Segmented,
+  Select,
+  Sheet,
+  TextInput,
+  type DialogIconName,
+} from "../../../app/ui/dialog";
 import { useWorkspaceStore } from "../../../store";
 import { defaultPortForConnectionType, uniqueRuntimeId } from "./utils";
 import { flattenFolders } from "./treeUtils";
@@ -36,11 +40,13 @@ type ImportDialogProps = {
   onClose: () => void;
   onImported: (result: {
     count: number;
-    source: "file" | "scan" | "bookmarks";
+    source: ImportSource;
   }) => void;
 };
 
-type Stage = "menu" | "file" | "scan" | "bookmarks";
+type ImportSource = "file" | "scan" | "bookmarks";
+type StatusFilter = "all" | "selected" | "missingUser";
+type BulkField = "user" | "password" | null;
 
 type Candidate = {
   id: string;
@@ -61,279 +67,95 @@ const DEFAULT_PORTS: Array<{ port: number; labelKey: string }> = [
   { port: 3389, labelKey: "connections.import.portRdp" },
 ];
 
+const IMPORTABLE_TYPES: ConnectionType[] = [
+  "ssh",
+  "telnet",
+  "rdp",
+  "vnc",
+  "serial",
+  "url",
+  "local",
+];
+
+const SOURCE_ICONS: Record<ImportSource, DialogIconName> = {
+  file: "package",
+  scan: "network",
+  bookmarks: "star",
+};
+
+const TYPE_ICONS: Partial<Record<ConnectionType, DialogIconName>> = {
+  ssh: "server",
+  telnet: "terminal",
+  rdp: "monitor",
+  vnc: "network",
+  serial: "bolt",
+  url: "globe",
+  local: "terminal",
+};
+
 export function ImportDialog({ tree, sshSettings, onClose, onImported }: ImportDialogProps) {
   const { t } = useTranslation();
-  const [stage, setStage] = useState<Stage>("menu");
+  const [source, setSource] = useState<ImportSource>("file");
   const [error, setError] = useState("");
-
-  return (
-    <DialogPortal>
-    <div className="dialog-backdrop connection-dialog-backdrop" role="presentation">
-      <div className="connection-dialog import-dialog">
-        <header className="connection-dialog-header compact">
-          <div className="import-dialog-header-text">
-            {stage !== "menu" ? (
-              <button
-                className="import-dialog-back"
-                onClick={() => {
-                  setStage("menu");
-                  setError("");
-                }}
-                type="button"
-                aria-label={t("connections.import.back")}
-              >
-                <ChevronLeft size={16} />
-              </button>
-            ) : null}
-            <div>
-              <p className="panel-label">
-                {stage === "menu"
-                  ? t("connections.import.title")
-                  : stage === "file"
-                    ? t("connections.import.fromFileTitle")
-                    : stage === "scan"
-                      ? t("connections.import.scanTitle")
-                      : t("connections.import.bookmarksTitle")}
-              </p>
-            </div>
-          </div>
-        </header>
-
-        {error ? <p className="form-error">{error}</p> : null}
-
-        {stage === "menu" ? (
-          <>
-            <ImportMenu onPick={(next) => setStage(next)} />
-            <div className="dialog-actions import-menu-actions">
-              <button className="toolbar-button" onClick={onClose} type="button">
-                {t("connections.cancel")}
-              </button>
-            </div>
-          </>
-        ) : null}
-        {stage === "file" ? (
-          <FileImportPanel
-            tree={tree}
-            sshSettings={sshSettings}
-            onError={setError}
-            onClearError={() => setError("")}
-            onClose={onClose}
-            onImported={onImported}
-          />
-        ) : null}
-        {stage === "scan" ? (
-          <ScanPanel
-            tree={tree}
-            sshSettings={sshSettings}
-            onError={setError}
-            onClearError={() => setError("")}
-            onClose={onClose}
-            onImported={onImported}
-          />
-        ) : null}
-        {stage === "bookmarks" ? (
-          <BookmarksPanel
-            tree={tree}
-            sshSettings={sshSettings}
-            onError={setError}
-            onClearError={() => setError("")}
-            onClose={onClose}
-            onImported={onImported}
-          />
-        ) : null}
-      </div>
-    </div>
-    </DialogPortal>
-  );
-}
-
-function ImportMenu({
-  onPick,
-}: {
-  onPick: (stage: "file" | "scan" | "bookmarks") => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="import-menu">
-      <button
-        className="import-menu-tile"
-        onClick={() => onPick("file")}
-        type="button"
-      >
-        <span className="import-menu-icon">
-          <FileUp size={20} />
-        </span>
-        <span className="import-menu-copy">
-          <strong>{t("connections.import.fromFileTitle")}</strong>
-          <small>{t("connections.import.fromFileSubtitle")}</small>
-        </span>
-      </button>
-      <button
-        className="import-menu-tile"
-        onClick={() => onPick("scan")}
-        type="button"
-      >
-        <span className="import-menu-icon">
-          <Network size={20} />
-        </span>
-        <span className="import-menu-copy">
-          <strong>{t("connections.import.scanTitle")}</strong>
-          <small>{t("connections.import.scanSubtitle")}</small>
-        </span>
-      </button>
-      <button
-        className="import-menu-tile"
-        onClick={() => onPick("bookmarks")}
-        type="button"
-      >
-        <span className="import-menu-icon">
-          <BookMarked size={20} />
-        </span>
-        <span className="import-menu-copy">
-          <strong>{t("connections.import.bookmarksTitle")}</strong>
-          <small>{t("connections.import.bookmarksSubtitle")}</small>
-        </span>
-      </button>
-    </div>
-  );
-}
-
-function FileImportPanel({
-  tree,
-  sshSettings,
-  onError,
-  onClearError,
-  onClose,
-  onImported,
-}: {
-  tree: ConnectionTree;
-  sshSettings: SshSettings;
-  onError: (message: string) => void;
-  onClearError: () => void;
-  onClose: () => void;
-  onImported: (result: {
-    count: number;
-    source: "file" | "scan" | "bookmarks";
-  }) => void;
-}) {
-  const { t } = useTranslation();
   const [filePath, setFilePath] = useState("");
-  const [preview, setPreview] = useState<ImportFilePreview | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  async function handleBrowse() {
-    onClearError();
-    try {
-      const path = await selectConnectionImportFile();
-      if (!path) {
-        return;
-      }
-      setFilePath(path);
-      setLoading(true);
-      const result = await invokeCommand("parse_import_file", { request: { path } });
-      setPreview(result);
-      setCandidates(
-        result.drafts.map((draft, index) => ({
-          id: `${index}`,
-          selected: true,
-          name: draft.name,
-          host: draft.host,
-          user: draft.user,
-          password: "",
-          url: draft.url,
-          port: draft.port,
-          type: draft.type,
-          folderPath: draft.folderPath,
-        })),
-      );
-    } catch (failure) {
-      onError(failure instanceof Error ? failure.message : String(failure));
-      setPreview(null);
-      setCandidates([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="import-panel">
-      <div className="import-file-row">
-        <button
-          className="approve-button"
-          disabled={loading}
-          onClick={() => void handleBrowse()}
-          type="button"
-        >
-          {loading ? (
-            <Loader2 className="spin" size={14} />
-          ) : (
-            <FileUp size={14} />
-          )}
-          <span>{t("connections.import.chooseFile")}</span>
-        </button>
-        <input
-          className="import-file-path"
-          placeholder={t("connections.import.noFileChosen")}
-          readOnly
-          type="text"
-          value={filePath}
-        />
-      </div>
-
-      <p className="import-hint">{t("connections.import.fileFormatsHint")}</p>
-
-      {preview ? (
-        <ImportPreviewSection
-          candidates={candidates}
-          format={preview.format}
-          onCancel={onClose}
-          onCandidatesChange={setCandidates}
-          onError={onError}
-          onImported={onImported}
-          sshSettings={sshSettings}
-          tree={tree}
-          warnings={preview.warnings}
-        />
-      ) : (
-        <div className="dialog-actions">
-          <button className="toolbar-button" onClick={onClose} type="button">
-            {t("connections.cancel")}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ScanPanel({
-  tree,
-  sshSettings,
-  onError,
-  onClearError,
-  onClose,
-  onImported,
-}: {
-  tree: ConnectionTree;
-  sshSettings: SshSettings;
-  onError: (message: string) => void;
-  onClearError: () => void;
-  onClose: () => void;
-  onImported: (result: {
-    count: number;
-    source: "file" | "scan" | "bookmarks";
-  }) => void;
-}) {
-  const { t } = useTranslation();
+  const [fileLoading, setFileLoading] = useState(false);
   const [target, setTarget] = useState("");
   const [enabledPorts, setEnabledPorts] = useState<Set<number>>(
     () => new Set(DEFAULT_PORTS.map((entry) => entry.port)),
   );
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState<ScanProgressEvent | null>(null);
-  const [results, setResults] = useState<ScanResultEntry[] | null>(null);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const scanIdRef = useRef("");
+  const [bookmarkSources, setBookmarkSources] = useState<BookmarkImportSource[]>([]);
+  const [bookmarkSourceId, setBookmarkSourceId] = useState("");
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(() => new Set());
+  const [bookmarksLoading, setBookmarksLoading] = useState(false);
+  const [bookmarksPreviewing, setBookmarksPreviewing] = useState(false);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<ConnectionType | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [bulkField, setBulkField] = useState<BulkField>(null);
+  const [bulkValue, setBulkValue] = useState("");
+  const [bulkScope, setBulkScope] = useState<"all" | "empty">("empty");
+  const [folderTarget, setFolderTarget] = useState<string>("__new__");
+  const [newFolderName, setNewFolderName] = useState(suggestFolderName("file"));
+  const [destinationOpen, setDestinationOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  const folderOptions = useMemo(() => flattenFolders(tree.folders), [tree]);
+  const selectedSource = bookmarkSources.find((entry) => entry.id === bookmarkSourceId) ?? null;
+  const selectedCount = candidates.filter((row) => row.selected).length;
+  const allVisibleTypes = useMemo(() => {
+    const types = new Set(candidates.map((row) => row.type));
+    return IMPORTABLE_TYPES.filter((type) => types.has(type));
+  }, [candidates]);
+  const filteredCandidates = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return candidates.filter((row) => {
+      if (typeFilter !== "all" && row.type !== typeFilter) {
+        return false;
+      }
+      if (statusFilter === "selected" && !row.selected) {
+        return false;
+      }
+      if (statusFilter === "missingUser" && row.user.trim()) {
+        return false;
+      }
+      if (q && !`${row.name} ${row.host} ${row.user} ${row.url ?? ""}`.toLowerCase().includes(q)) {
+        return false;
+      }
+      return true;
+    });
+  }, [candidates, search, statusFilter, typeFilter]);
+  const allFilteredSelected =
+    filteredCandidates.length > 0 && filteredCandidates.every((row) => row.selected);
+  const someFilteredSelected = filteredCandidates.some((row) => row.selected);
+  const progressPercent =
+    progress && progress.total > 0
+      ? Math.round((progress.completed / progress.total) * 100)
+      : 0;
 
   useEffect(() => {
     let dispose: (() => void) | null = null;
@@ -358,6 +180,105 @@ function ScanPanel({
     };
   }, []);
 
+  useEffect(() => {
+    setError("");
+    setSearch("");
+    setTypeFilter("all");
+    setStatusFilter("all");
+    setBulkField(null);
+    setNewFolderName(suggestFolderName(source));
+    clearPreview();
+  }, [source]);
+
+  useEffect(() => {
+    if (source !== "bookmarks" || bookmarkSources.length > 0 || bookmarksLoading) {
+      return;
+    }
+    let cancelled = false;
+    setBookmarksLoading(true);
+    invokeCommand("list_browser_bookmark_sources", undefined)
+      .then((response) => {
+        if (cancelled) {
+          return;
+        }
+        setBookmarkSources(response.sources);
+        const first =
+          response.sources.find((entry) => entry.root.children.length > 0) ??
+          response.sources[0];
+        if (first) {
+          setBookmarkSourceId(first.id);
+        }
+      })
+      .catch((failure) => {
+        if (!cancelled) {
+          setError(failure instanceof Error ? failure.message : String(failure));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setBookmarksLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookmarkSources.length, bookmarksLoading, source]);
+
+  async function handleBrowse() {
+    setError("");
+    try {
+      const path = await selectConnectionImportFile();
+      if (!path) {
+        return;
+      }
+      setFilePath(path);
+      setFileLoading(true);
+      const result = await invokeCommand("parse_import_file", { request: { path } });
+      setPreview(result);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : String(failure));
+      clearPreview();
+    } finally {
+      setFileLoading(false);
+    }
+  }
+
+  async function handleStartScan() {
+    setError("");
+    if (!target.trim()) {
+      setError(t("connections.import.scanTargetRequired"));
+      return;
+    }
+    if (enabledPorts.size === 0) {
+      setError(t("connections.import.scanPortRequired"));
+      return;
+    }
+    const scanId = uniqueRuntimeId("scan");
+    scanIdRef.current = scanId;
+    setScanning(true);
+    setProgress({ scanId, completed: 0, total: 0 });
+    setCandidates([]);
+    setWarnings([]);
+    try {
+      const response = await invokeCommand("scan_network_for_connections", {
+        request: {
+          scanId,
+          target: target.trim(),
+          ports: Array.from(enabledPorts).sort((left, right) => left - right),
+        },
+      });
+      setWarnings([]);
+      setCandidates(response.results.map(scanResultToCandidate));
+      if (response.results.length === 0) {
+        setError(t("connections.import.scanNoResults"));
+      }
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : String(failure));
+    } finally {
+      setScanning(false);
+    }
+  }
+
   function togglePort(port: number) {
     setEnabledPorts((current) => {
       const next = new Set(current);
@@ -370,212 +291,14 @@ function ScanPanel({
     });
   }
 
-  async function handleStartScan() {
-    onClearError();
-    if (!target.trim()) {
-      onError(t("connections.import.scanTargetRequired"));
-      return;
-    }
-    if (enabledPorts.size === 0) {
-      onError(t("connections.import.scanPortRequired"));
-      return;
-    }
-    const scanId = uniqueRuntimeId("scan");
-    scanIdRef.current = scanId;
-    setScanning(true);
-    setProgress({ scanId, completed: 0, total: 0 });
-    setResults(null);
-    setCandidates([]);
-    try {
-      const response = await invokeCommand("scan_network_for_connections", {
-        request: {
-          scanId,
-          target: target.trim(),
-          ports: Array.from(enabledPorts).sort((left, right) => left - right),
-        },
-      });
-      setResults(response.results);
-      setCandidates(
-        response.results.map((entry, index) => ({
-          id: `${index}`,
-          selected: true,
-          name: entry.host,
-          host: entry.host,
-          user: "",
-          password: "",
-          port: entry.port,
-          type: entry.type,
-          folderPath: [],
-        })),
-      );
-    } catch (failure) {
-      onError(failure instanceof Error ? failure.message : String(failure));
-    } finally {
-      setScanning(false);
-    }
-  }
-
-  const progressPercent =
-    progress && progress.total > 0
-      ? Math.round((progress.completed / progress.total) * 100)
-      : 0;
-
-  return (
-    <div className="import-panel">
-      <label className="import-field">
-        <span>{t("connections.import.scanTargetLabel")}</span>
-        <input
-          autoFocus
-          onChange={(event) => setTarget(event.currentTarget.value)}
-          placeholder={t("connections.import.scanTargetPlaceholder")}
-          type="text"
-          value={target}
-        />
-      </label>
-      <p className="import-hint">{t("connections.import.scanTargetHint")}</p>
-
-      <fieldset className="import-port-list">
-        <legend>{t("connections.import.scanPortsLabel")}</legend>
-        {DEFAULT_PORTS.map((entry) => (
-          <label className="import-port-toggle" key={entry.port}>
-            <input
-              checked={enabledPorts.has(entry.port)}
-              onChange={() => togglePort(entry.port)}
-              type="checkbox"
-            />
-            <span>{`${t(entry.labelKey)} (${entry.port})`}</span>
-          </label>
-        ))}
-      </fieldset>
-
-      <div className="import-scan-actions">
-        <button
-          className="approve-button"
-          disabled={scanning}
-          onClick={() => void handleStartScan()}
-          type="button"
-        >
-          {scanning ? (
-            <Loader2 className="spin" size={14} />
-          ) : (
-            <Network size={14} />
-          )}
-          <span>
-            {scanning
-              ? t("connections.import.scanRunning")
-              : t("connections.import.scanStart")}
-          </span>
-        </button>
-        {scanning || (progress && progress.total > 0) ? (
-          <div className="import-progress" aria-live="polite">
-            <div
-              className="import-progress-fill"
-              style={{ width: `${progressPercent}%` }}
-            />
-            <span className="import-progress-text">
-              {progress
-                ? `${progress.completed}/${progress.total} (${progressPercent}%)`
-                : ""}
-            </span>
-          </div>
-        ) : null}
-      </div>
-
-      {results && results.length === 0 ? (
-        <p className="import-empty">{t("connections.import.scanNoResults")}</p>
-      ) : null}
-
-      {results && results.length > 0 ? (
-        <ImportPreviewSection
-          candidates={candidates}
-          format="scan"
-          onCancel={onClose}
-          onCandidatesChange={setCandidates}
-          onError={onError}
-          onImported={onImported}
-          sshSettings={sshSettings}
-          tree={tree}
-          warnings={[]}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-
-function BookmarksPanel({
-  tree,
-  sshSettings,
-  onError,
-  onClearError,
-  onClose,
-  onImported,
-}: {
-  tree: ConnectionTree;
-  sshSettings: SshSettings;
-  onError: (message: string) => void;
-  onClearError: () => void;
-  onClose: () => void;
-  onImported: (result: {
-    count: number;
-    source: "file" | "scan" | "bookmarks";
-  }) => void;
-}) {
-  const { t } = useTranslation();
-  const [sources, setSources] = useState<BookmarkImportSource[]>([]);
-  const [selectedSourceId, setSelectedSourceId] = useState("");
-  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(() => new Set());
-  const [preview, setPreview] = useState<ImportFilePreview | null>(null);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [previewing, setPreviewing] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    onClearError();
-    setLoading(true);
-    invokeCommand("list_browser_bookmark_sources", undefined)
-      .then((response) => {
-        if (cancelled) {
-          return;
-        }
-        setSources(response.sources);
-        const first =
-          response.sources.find((source) => source.root.children.length > 0) ??
-          response.sources[0];
-        if (first) {
-          setSelectedSourceId(first.id);
-        }
-      })
-      .catch((failure) => {
-        if (!cancelled) {
-          onError(failure instanceof Error ? failure.message : String(failure));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-    // Load bookmark sources once on mount; error callbacks are invoked at run time only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const selectedSource = sources.find((source) => source.id === selectedSourceId) ?? null;
-  const selectedCount = selectedNodeIds.size;
-
-  function handleSourceChange(sourceId: string) {
-    setSelectedSourceId(sourceId);
+  function handleBookmarkSourceChange(sourceId: string) {
+    setBookmarkSourceId(sourceId);
     setSelectedNodeIds(new Set());
-    setPreview(null);
-    setCandidates([]);
-    onClearError();
+    clearPreview();
+    setError("");
   }
 
-  function toggleNode(node: BookmarkTreeNode, checked: boolean) {
+  function toggleBookmarkNode(node: BookmarkTreeNode, checked: boolean) {
     setSelectedNodeIds((current) => {
       const next = new Set(current);
       collectBookmarkNodeIds(node).forEach((id) => {
@@ -587,21 +310,20 @@ function BookmarksPanel({
       });
       return next;
     });
-    setPreview(null);
-    setCandidates([]);
+    clearPreview();
   }
 
-  async function handlePreview() {
+  async function handleBookmarkPreview() {
     if (!selectedSource) {
-      onError(t("connections.import.bookmarksSourceRequired"));
+      setError(t("connections.import.bookmarksSourceRequired"));
       return;
     }
     if (selectedNodeIds.size === 0) {
-      onError(t("connections.import.bookmarksSelectionRequired"));
+      setError(t("connections.import.bookmarksSelectionRequired"));
       return;
     }
-    onClearError();
-    setPreviewing(true);
+    setError("");
+    setBookmarksPreviewing(true);
     try {
       const result = await invokeCommand("preview_browser_bookmark_import", {
         request: {
@@ -610,244 +332,42 @@ function BookmarksPanel({
         },
       });
       setPreview(result);
-      setCandidates(
-        result.drafts.map((draft, index) => ({
-          id: `${index}`,
-          selected: true,
-          name: draft.name,
-          host: draft.host,
-          user: draft.user,
-          password: "",
-          url: draft.url,
-          port: draft.port,
-          type: draft.type,
-          folderPath: draft.folderPath,
-        })),
-      );
       if (result.drafts.length === 0) {
-        onError(t("connections.import.bookmarksNoImportable"));
+        setError(t("connections.import.bookmarksNoImportable"));
       }
     } catch (failure) {
-      onError(failure instanceof Error ? failure.message : String(failure));
-      setPreview(null);
-      setCandidates([]);
+      setError(failure instanceof Error ? failure.message : String(failure));
+      clearPreview();
     } finally {
-      setPreviewing(false);
+      setBookmarksPreviewing(false);
     }
   }
 
-  return (
-    <div className="import-panel">
-      {loading ? (
-        <p className="import-empty">
-          <Loader2 className="spin" size={14} />
-          <span>{t("connections.import.bookmarksLoading")}</span>
-        </p>
-      ) : null}
-
-      {!loading && sources.length === 0 ? (
-        <p className="import-empty">{t("connections.import.bookmarksNoSources")}</p>
-      ) : null}
-
-      {!loading && sources.length > 0 ? (
-        <>
-          <label className="import-field">
-            <span>{t("connections.import.bookmarksSourceLabel")}</span>
-            <select
-              onChange={(event) => handleSourceChange(event.currentTarget.value)}
-              value={selectedSourceId}
-            >
-              {sources.map((source) => (
-                <option key={source.id} value={source.id}>
-                  {source.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {selectedSource ? (
-            <p className="import-hint">
-              {t("connections.import.bookmarksSourcePath", {
-                path: selectedSource.path,
-              })}
-            </p>
-          ) : null}
-
-          {selectedSource && selectedSource.warnings.length > 0 ? (
-            <div className="import-warnings" role="status">
-              <strong>{t("connections.import.warningsHeading")}</strong>
-              <ul>
-                {selectedSource.warnings.map((message, index) => (
-                  <li key={index}>{message}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {selectedSource ? (
-            <div
-              className="import-bookmark-tree"
-              role="tree"
-              aria-label={t("connections.import.bookmarksTreeLabel")}
-            >
-              {selectedSource.root.children.map((node) => (
-                <BookmarkTreeRow
-                  key={node.id}
-                  node={node}
-                  selectedNodeIds={selectedNodeIds}
-                  onToggle={toggleNode}
-                />
-              ))}
-            </div>
-          ) : null}
-
-          <div className="import-scan-actions">
-            <button
-              className="approve-button"
-              disabled={previewing || !selectedSource || selectedCount === 0}
-              onClick={() => void handlePreview()}
-              type="button"
-            >
-              {previewing ? (
-                <Loader2 className="spin" size={14} />
-              ) : (
-                <BookMarked size={14} />
-              )}
-              <span>
-                {t("connections.import.bookmarksPreview", {
-                  count: selectedCount,
-                })}
-              </span>
-            </button>
-          </div>
-        </>
-      ) : null}
-
-      {preview && candidates.length > 0 ? (
-        <ImportPreviewSection
-          candidates={candidates}
-          format="bookmarks"
-          onCancel={onClose}
-          onCandidatesChange={setCandidates}
-          onError={onError}
-          onImported={onImported}
-          sshSettings={sshSettings}
-          tree={tree}
-          warnings={preview.warnings}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function BookmarkTreeRow({
-  node,
-  selectedNodeIds,
-  onToggle,
-}: {
-  node: BookmarkTreeNode;
-  selectedNodeIds: Set<string>;
-  onToggle: (node: BookmarkTreeNode, checked: boolean) => void;
-}) {
-  const descendantIds = useMemo(() => collectBookmarkNodeIds(node), [node]);
-  const checked = descendantIds.every((id) => selectedNodeIds.has(id));
-  const partiallyChecked =
-    !checked && descendantIds.some((id) => selectedNodeIds.has(id));
-  const checkboxRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (checkboxRef.current) {
-      checkboxRef.current.indeterminate = partiallyChecked;
-    }
-  }, [partiallyChecked]);
-
-  return (
-    <div className="import-bookmark-node" role="treeitem">
-      <label className="import-bookmark-label">
-        <input
-          ref={checkboxRef}
-          checked={checked}
-          onChange={(event) => onToggle(node, event.currentTarget.checked)}
-          type="checkbox"
-        />
-        <span>{node.name}</span>
-        {node.type === "bookmark" && node.url ? (
-          <small>{node.url}</small>
-        ) : null}
-      </label>
-      {node.children.length > 0 ? (
-        <div className="import-bookmark-children" role="group">
-          {node.children.map((child) => (
-            <BookmarkTreeRow
-              key={child.id}
-              node={child}
-              selectedNodeIds={selectedNodeIds}
-              onToggle={onToggle}
-            />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function collectBookmarkNodeIds(node: BookmarkTreeNode): string[] {
-  return [
-    node.id,
-    ...node.children.flatMap((child) => collectBookmarkNodeIds(child)),
-  ];
-}
-
-function ImportPreviewSection({
-  candidates,
-  format,
-  onCancel,
-  onCandidatesChange,
-  onError,
-  onImported,
-  sshSettings,
-  tree,
-  warnings,
-}: {
-  candidates: Candidate[];
-  format: string;
-  onCancel: () => void;
-  onCandidatesChange: (next: Candidate[]) => void;
-  onError: (message: string) => void;
-  onImported: (result: {
-    count: number;
-    source: "file" | "scan" | "bookmarks";
-  }) => void;
-  sshSettings: SshSettings;
-  tree: ConnectionTree;
-  warnings: string[];
-}) {
-  const { t } = useTranslation();
-  const [folderTarget, setFolderTarget] = useState<string>("__new__");
-  const [newFolderName, setNewFolderName] = useState(
-    suggestFolderName(format),
-  );
-  const [bulkField, setBulkField] = useState<"user" | "password" | null>(null);
-  const [bulkValue, setBulkValue] = useState("");
-  const [bulkScope, setBulkScope] = useState<"all" | "empty">("empty");
-  const [importing, setImporting] = useState(false);
-
-  const folderOptions = useMemo(() => flattenFolders(tree.folders), [tree]);
-  const selectedCount = candidates.filter((row) => row.selected).length;
-
-  function toggleAll(value: boolean) {
-    onCandidatesChange(candidates.map((row) => ({ ...row, selected: value })));
+  function setPreview(result: ImportFilePreview) {
+    setWarnings(result.warnings);
+    setCandidates(result.drafts.map(draftToCandidate));
   }
 
-  function updateRow(index: number, patch: Partial<Candidate>) {
-    onCandidatesChange(
-      candidates.map((row, rowIndex) =>
-        rowIndex === index ? { ...row, ...patch } : row,
-      ),
+  function clearPreview() {
+    setWarnings([]);
+    setCandidates([]);
+  }
+
+  function updateRow(id: string, patch: Partial<Candidate>) {
+    setCandidates((current) =>
+      current.map((row) => (row.id === id ? { ...row, ...patch } : row)),
     );
   }
 
-  function openBulkField(field: "user" | "password") {
-    onError("");
+  function setAllFiltered(value: boolean) {
+    const ids = new Set(filteredCandidates.map((row) => row.id));
+    setCandidates((current) =>
+      current.map((row) => (ids.has(row.id) ? { ...row, selected: value } : row)),
+    );
+  }
+
+  function openBulkField(field: Exclude<BulkField, null>) {
+    setError("");
     setBulkField(field);
     setBulkValue("");
     setBulkScope("empty");
@@ -865,15 +385,12 @@ function ImportPreviewSection({
     if (bulkField === "user") {
       const user = bulkValue.trim();
       if (!user) {
-        onError(t("connections.import.bulkUserRequired"));
+        setError(t("connections.import.bulkUserRequired"));
         return;
       }
-      onCandidatesChange(
-        candidates.map((row) => {
-          if (!row.selected) {
-            return row;
-          }
-          if (bulkScope === "empty" && row.user.trim()) {
+      setCandidates((current) =>
+        current.map((row) => {
+          if (!row.selected || (bulkScope === "empty" && row.user.trim())) {
             return row;
           }
           return { ...row, user };
@@ -881,15 +398,12 @@ function ImportPreviewSection({
       );
     } else {
       if (!bulkValue) {
-        onError(t("connections.import.bulkPasswordRequired"));
+        setError(t("connections.import.bulkPasswordRequired"));
         return;
       }
-      onCandidatesChange(
-        candidates.map((row) => {
-          if (!row.selected) {
-            return row;
-          }
-          if (bulkScope === "empty" && row.password) {
+      setCandidates((current) =>
+        current.map((row) => {
+          if (!row.selected || (bulkScope === "empty" && row.password)) {
             return row;
           }
           return { ...row, password: bulkValue };
@@ -946,7 +460,7 @@ function ImportPreviewSection({
 
   async function handleImport() {
     if (selectedCount === 0) {
-      onError(t("connections.import.noneSelected"));
+      setError(t("connections.import.noneSelected"));
       return;
     }
 
@@ -956,7 +470,7 @@ function ImportPreviewSection({
       if (folderTarget === "__new__") {
         const trimmed = newFolderName.trim();
         if (!trimmed) {
-          onError(t("connections.import.folderNameRequired"));
+          setError(t("connections.import.folderNameRequired"));
           setImporting(false);
           return;
         }
@@ -1007,311 +521,833 @@ function ImportPreviewSection({
         await storeImportedPassword(connection.id, password);
       }
 
-      onImported({
-        count: selectedCount,
-        source:
-          format === "scan"
-            ? "scan"
-            : format === "bookmarks"
-              ? "bookmarks"
-              : "file",
-      });
+      onImported({ count: selectedCount, source });
     } catch (failure) {
-      onError(failure instanceof Error ? failure.message : String(failure));
+      setError(failure instanceof Error ? failure.message : String(failure));
     } finally {
       setImporting(false);
     }
   }
 
-  const allSelected = selectedCount === candidates.length && candidates.length > 0;
+  const footer = (
+    <Actions
+      extraLeft={
+        <DestinationPicker
+          folderOptions={folderOptions}
+          folderTarget={folderTarget}
+          newFolderName={newFolderName}
+          onFolderTarget={setFolderTarget}
+          onNewFolderName={setNewFolderName}
+          open={destinationOpen}
+          setOpen={setDestinationOpen}
+        />
+      }
+      primary={
+        <Btn
+          disabled={importing || selectedCount === 0}
+          icon={importing ? undefined : "download"}
+          kind="primary"
+          onClick={() => void handleImport()}
+        >
+          {importing ? <Loader2 className="spin" size={14} /> : null}
+          {t("connections.import.importCount", { count: selectedCount })}
+        </Btn>
+      }
+      cancel={<Btn onClick={onClose}>{t("connections.cancel")}</Btn>}
+    />
+  );
 
   return (
-    <div className="import-preview">
-      <div className="import-preview-toolbar">
-        <strong>
-          {t("connections.import.previewHeading", {
-            count: candidates.length,
-            selected: selectedCount,
-          })}
-        </strong>
-        <div className="import-preview-toolbar-actions">
-          <button
-            className="toolbar-button"
-            onClick={() => toggleAll(true)}
-            type="button"
-            disabled={allSelected}
-          >
-            {t("connections.import.selectAll")}
-          </button>
-          <button
-            className="toolbar-button"
-            onClick={() => toggleAll(false)}
-            type="button"
-            disabled={selectedCount === 0}
-          >
-            {t("connections.import.selectNone")}
-          </button>
-        </div>
-      </div>
-
-      <div className="import-bulk-actions">
-        <button
-          aria-expanded={bulkField === "user"}
-          className="toolbar-button"
-          disabled={selectedCount === 0}
-          onClick={() =>
-            bulkField === "user" ? closeBulkField() : openBulkField("user")
-          }
-          type="button"
-        >
-          {t("connections.import.setUsernameButton")}
-        </button>
-        <button
-          aria-expanded={bulkField === "password"}
-          className="toolbar-button"
-          disabled={selectedCount === 0}
-          onClick={() =>
-            bulkField === "password"
-              ? closeBulkField()
-              : openBulkField("password")
-          }
-          type="button"
-        >
-          {t("connections.import.setPasswordButton")}
-        </button>
-      </div>
-
-      {bulkField ? (
-        <div
-          className="import-bulk-popover"
-          role="group"
-          aria-label={
-            bulkField === "user"
-              ? t("connections.import.setUsernameButton")
-              : t("connections.import.setPasswordButton")
-          }
-        >
-          <label className="import-field import-bulk-field">
-            <span>
-              {bulkField === "user"
-                ? t("connections.import.bulkUserLabel")
-                : t("connections.import.bulkPasswordLabel")}
-            </span>
-            <input
-              autoFocus
-              onChange={(event) => setBulkValue(event.currentTarget.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  applyBulkField();
-                } else if (event.key === "Escape") {
-                  event.preventDefault();
-                  closeBulkField();
-                }
-              }}
-              placeholder={
-                bulkField === "user"
-                  ? t("connections.import.bulkUserPlaceholder")
-                  : t("connections.import.bulkPasswordPlaceholder")
-              }
-              type={bulkField === "user" ? "text" : "password"}
-              value={bulkValue}
+    <DialogShell>
+      <Sheet
+        ariaLabel={t("connections.import.title")}
+        className="import-dialog import-dialog-redesign"
+        eyebrow={t("connections.import.title")}
+        footer={footer}
+        height={720}
+        width={920}
+      >
+        <div className="import-unified">
+          <Segmented
+            value={source}
+            onChange={(value) => setSource(value as ImportSource)}
+            options={[
+              { value: "file", label: t("connections.import.fromFileTitle"), icon: "package" },
+              { value: "bookmarks", label: t("connections.import.bookmarksTitle"), icon: "star" },
+              { value: "scan", label: t("connections.import.scanTitle"), icon: "network" },
+            ]}
+          />
+          <SourceContext
+            bookmarkSources={bookmarkSources}
+            bookmarksLoading={bookmarksLoading}
+            bookmarksPreviewing={bookmarksPreviewing}
+            enabledPorts={enabledPorts}
+            fileLoading={fileLoading}
+            filePath={filePath}
+            onBookmarkPreview={() => void handleBookmarkPreview()}
+            onBookmarkSourceChange={handleBookmarkSourceChange}
+            onChooseFile={() => void handleBrowse()}
+            onPortToggle={togglePort}
+            onScan={() => void handleStartScan()}
+            progress={progress}
+            progressPercent={progressPercent}
+            scanning={scanning}
+            selectedNodeCount={selectedNodeIds.size}
+            selectedSource={selectedSource}
+            source={source}
+            target={target}
+            setTarget={setTarget}
+            t={t}
+          />
+          {source === "bookmarks" && selectedSource ? (
+            <BookmarkSourceStrip
+              selectedNodeIds={selectedNodeIds}
+              source={selectedSource}
+              onToggle={toggleBookmarkNode}
+              t={t}
             />
-          </label>
-          <div className="import-bulk-scope" role="radiogroup">
-            <label className="import-bulk-scope-option">
-              <input
-                checked={bulkScope === "empty"}
-                name="import-bulk-scope"
-                onChange={() => setBulkScope("empty")}
-                type="radio"
-              />
-              <span>{t("connections.import.bulkScopeUnfilled")}</span>
-            </label>
-            <label className="import-bulk-scope-option">
-              <input
-                checked={bulkScope === "all"}
-                name="import-bulk-scope"
-                onChange={() => setBulkScope("all")}
-                type="radio"
-              />
-              <span>{t("connections.import.bulkScopeAll")}</span>
-            </label>
-          </div>
-          <div className="import-bulk-popover-actions">
-            <button
-              className="approve-button"
-              onClick={applyBulkField}
-              type="button"
+          ) : null}
+          {error ? <p className="form-error import-inline-error">{error}</p> : null}
+          <FilterBar
+            allVisibleTypes={allVisibleTypes}
+            search={search}
+            setSearch={setSearch}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            t={t}
+            typeFilter={typeFilter}
+            setTypeFilter={setTypeFilter}
+          />
+          <CandidateList
+            allFilteredSelected={allFilteredSelected}
+            candidates={filteredCandidates}
+            onSetAllFiltered={setAllFiltered}
+            onUpdateRow={updateRow}
+            someFilteredSelected={someFilteredSelected}
+            t={t}
+          />
+          {warnings.length > 0 ? (
+            <div className="import-warnings" role="status">
+              <strong>{t("connections.import.warningsHeading")}</strong>
+              <ul>
+                {warnings.map((message, index) => (
+                  <li key={index}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <div className="import-toolbar-redesign">
+            <span className="import-toolbar-lead">{t("connections.import.previewHeading", {
+              count: candidates.length,
+              selected: selectedCount,
+            })}</span>
+            <ToolMenu
+              disabled={selectedCount === 0}
+              icon="key"
+              label={t("connections.import.setUsernameButton")}
+              open={bulkField === "user"}
+              onOpen={() => (bulkField === "user" ? closeBulkField() : openBulkField("user"))}
             >
-              {t("connections.import.bulkApply")}
-            </button>
-            <button
-              className="toolbar-button"
-              onClick={closeBulkField}
-              type="button"
+              <BulkFieldEditor
+                field="user"
+                value={bulkValue}
+                scope={bulkScope}
+                onValue={setBulkValue}
+                onScope={setBulkScope}
+                onApply={applyBulkField}
+                onCancel={closeBulkField}
+                t={t}
+              />
+            </ToolMenu>
+            <ToolMenu
+              disabled={selectedCount === 0}
+              icon="keyround"
+              label={t("connections.import.setPasswordButton")}
+              open={bulkField === "password"}
+              onOpen={() => (bulkField === "password" ? closeBulkField() : openBulkField("password"))}
             >
-              {t("connections.import.bulkCancel")}
-            </button>
+              <BulkFieldEditor
+                field="password"
+                value={bulkValue}
+                scope={bulkScope}
+                onValue={setBulkValue}
+                onScope={setBulkScope}
+                onApply={applyBulkField}
+                onCancel={closeBulkField}
+                t={t}
+              />
+            </ToolMenu>
           </div>
         </div>
-      ) : null}
+      </Sheet>
+    </DialogShell>
+  );
+}
 
-      <div className="import-preview-table-wrapper">
-        <table className="import-preview-table">
-          <thead>
-            <tr>
-              <th aria-label={t("connections.import.selectColumn")} />
-              <th>{t("connections.import.colName")}</th>
-              <th>{t("connections.import.colType")}</th>
-              <th>{t("connections.import.colHost")}</th>
-              <th>{t("connections.import.colPort")}</th>
-              <th>{t("connections.import.colUser")}</th>
-              <th>{t("connections.import.colPassword")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {candidates.map((row, index) => (
-              <tr key={row.id}>
-                <td>
-                  <input
-                    aria-label={t("connections.import.selectRow")}
-                    checked={row.selected}
-                    onChange={(event) =>
-                      updateRow(index, { selected: event.currentTarget.checked })
-                    }
-                    type="checkbox"
-                  />
-                </td>
-                <td>
-                  <input
-                    onChange={(event) =>
-                      updateRow(index, { name: event.currentTarget.value })
-                    }
-                    type="text"
-                    value={row.name}
-                  />
-                </td>
-                <td>
-                  <select
-                    onChange={(event) =>
-                      updateRow(index, {
-                        type: event.currentTarget.value as ConnectionType,
-                      })
-                    }
-                    value={row.type}
-                  >
-                    <option value="ssh">{t("connections.ssh")}</option>
-                    <option value="telnet">{t("connections.telnet")}</option>
-                    <option value="rdp">{t("connections.rdp")}</option>
-                    <option value="vnc">{t("connections.vnc")}</option>
-                    <option value="serial">{t("connections.serial")}</option>
-                    <option value="url">{t("connections.url")}</option>
-                    <option value="local">{t("connections.localTerminal")}</option>
-                  </select>
-                </td>
-                <td>
-                  <input
-                    onChange={(event) =>
-                      updateRow(index, { host: event.currentTarget.value })
-                    }
-                    type="text"
-                    value={row.host}
-                  />
-                </td>
-                <td>
-                  <input
-                    className="import-port-input"
-                    onChange={(event) => {
-                      const text = event.currentTarget.value.trim();
-                      const parsed = text ? Number.parseInt(text, 10) : NaN;
-                      updateRow(index, {
-                        port: Number.isFinite(parsed) ? parsed : undefined,
-                      });
-                    }}
-                    type="number"
-                    value={row.port ?? ""}
-                  />
-                </td>
-                <td>
-                  <input
-                    onChange={(event) =>
-                      updateRow(index, { user: event.currentTarget.value })
-                    }
-                    type="text"
-                    value={row.user}
-                  />
-                </td>
-                <td>
-                  <input
-                    onChange={(event) =>
-                      updateRow(index, { password: event.currentTarget.value })
-                    }
-                    type="password"
-                    value={row.password}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+function SourceContext({
+  bookmarkSources,
+  bookmarksLoading,
+  bookmarksPreviewing,
+  enabledPorts,
+  fileLoading,
+  filePath,
+  onBookmarkPreview,
+  onBookmarkSourceChange,
+  onChooseFile,
+  onPortToggle,
+  onScan,
+  progress,
+  progressPercent,
+  scanning,
+  selectedNodeCount,
+  selectedSource,
+  source,
+  target,
+  setTarget,
+  t,
+}: {
+  bookmarkSources: BookmarkImportSource[];
+  bookmarksLoading: boolean;
+  bookmarksPreviewing: boolean;
+  enabledPorts: Set<number>;
+  fileLoading: boolean;
+  filePath: string;
+  onBookmarkPreview: () => void;
+  onBookmarkSourceChange: (sourceId: string) => void;
+  onChooseFile: () => void;
+  onPortToggle: (port: number) => void;
+  onScan: () => void;
+  progress: ScanProgressEvent | null;
+  progressPercent: number;
+  scanning: boolean;
+  selectedNodeCount: number;
+  selectedSource: BookmarkImportSource | null;
+  source: ImportSource;
+  target: string;
+  setTarget: (value: string) => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  if (source === "file") {
+    return (
+      <div className="import-source-card">
+        <SourceIcon source="file" />
+        <div className="import-source-copy">
+          <strong>{filePath || t("connections.import.noFileChosen")}</strong>
+          <span>{t("connections.import.fileFormatsHint")}</span>
+        </div>
+        <Btn disabled={fileLoading} icon="folder" onClick={onChooseFile} sm>
+          {fileLoading ? <Loader2 className="spin" size={13} /> : null}
+          {t("connections.import.chooseFile")}
+        </Btn>
       </div>
+    );
+  }
 
-      {warnings.length > 0 ? (
+  if (source === "bookmarks") {
+    return (
+      <div className="import-source-card">
+        <SourceIcon source="bookmarks" />
+        <div className="import-source-copy">
+          {bookmarksLoading ? (
+            <strong>{t("connections.import.bookmarksLoading")}</strong>
+          ) : bookmarkSources.length === 0 ? (
+            <strong>{t("connections.import.bookmarksNoSources")}</strong>
+          ) : (
+            <>
+              <Select
+                value={selectedSource?.id ?? ""}
+                onChange={(event) => onBookmarkSourceChange(event.currentTarget.value)}
+                options={bookmarkSources.map((entry) => ({
+                  value: entry.id,
+                  label: entry.label,
+                }))}
+              />
+              {selectedSource ? (
+                <span>{t("connections.import.bookmarksSourcePath", { path: selectedSource.path })}</span>
+              ) : null}
+            </>
+          )}
+        </div>
+        <Btn
+          disabled={bookmarksPreviewing || !selectedSource || selectedNodeCount === 0}
+          icon="star"
+          onClick={onBookmarkPreview}
+          sm
+        >
+          {bookmarksPreviewing ? <Loader2 className="spin" size={13} /> : null}
+          {t("connections.import.bookmarksPreview", { count: selectedNodeCount })}
+        </Btn>
+      </div>
+    );
+  }
+
+  return (
+    <div className="import-source-card import-source-card-scan">
+      <SourceIcon source="scan" />
+      <div className="import-source-copy">
+        <div className="import-scan-row-redesign">
+          <TextInput
+            mono
+            onChange={(event) => setTarget(event.currentTarget.value)}
+            placeholder={t("connections.import.scanTargetPlaceholder")}
+            value={target}
+          />
+          <div className="import-portchips-redesign">
+            {DEFAULT_PORTS.map((entry) => (
+              <button
+                className={enabledPorts.has(entry.port) ? "on" : ""}
+                key={entry.port}
+                onClick={() => onPortToggle(entry.port)}
+                type="button"
+              >
+                {entry.port}
+              </button>
+            ))}
+          </div>
+        </div>
+        {scanning || (progress && progress.total > 0) ? (
+          <div className="import-progress" aria-live="polite">
+            <div
+              className="import-progress-fill"
+              style={{ width: `${progressPercent}%` }}
+            />
+            <span className="import-progress-text">
+              {progress ? `${progress.completed}/${progress.total} (${progressPercent}%)` : ""}
+            </span>
+          </div>
+        ) : (
+          <span>{t("connections.import.scanTargetHint")}</span>
+        )}
+      </div>
+      <Btn disabled={scanning} icon="network" onClick={onScan} sm>
+        {scanning ? <Loader2 className="spin" size={13} /> : null}
+        {scanning ? t("connections.import.scanRunning") : t("connections.import.scanStart")}
+      </Btn>
+    </div>
+  );
+}
+
+function SourceIcon({ source }: { source: ImportSource }) {
+  return (
+    <span className={`import-source-icon ${source}`}>
+      <DIcon name={SOURCE_ICONS[source]} size={17} />
+    </span>
+  );
+}
+
+function BookmarkSourceStrip({
+  selectedNodeIds,
+  source,
+  onToggle,
+  t,
+}: {
+  selectedNodeIds: Set<string>;
+  source: BookmarkImportSource;
+  onToggle: (node: BookmarkTreeNode, checked: boolean) => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  return (
+    <div className="import-bookmark-strip">
+      {source.warnings.length > 0 ? (
         <div className="import-warnings" role="status">
           <strong>{t("connections.import.warningsHeading")}</strong>
           <ul>
-            {warnings.map((message, index) => (
+            {source.warnings.map((message, index) => (
               <li key={index}>{message}</li>
             ))}
           </ul>
         </div>
       ) : null}
-
-      <fieldset className="import-destination">
-        <legend>{t("connections.import.destinationLabel")}</legend>
-        <select
-          onChange={(event) => setFolderTarget(event.currentTarget.value)}
-          value={folderTarget}
-        >
-          <option value="__new__">{t("connections.import.destinationNewFolder")}</option>
-          <option value="__root__">{t("connections.import.destinationRoot")}</option>
-          {folderOptions.map((option) => (
-            <option key={option.folder.id} value={option.folder.id}>
-              {"  ".repeat(option.level)}
-              {option.folder.name}
-            </option>
-          ))}
-        </select>
-        {folderTarget === "__new__" ? (
-          <input
-            aria-label={t("connections.import.newFolderNameLabel")}
-            onChange={(event) => setNewFolderName(event.currentTarget.value)}
-            placeholder={t("connections.import.newFolderNameLabel")}
-            type="text"
-            value={newFolderName}
+      <div
+        className="import-bookmark-tree import-bookmark-tree-redesign"
+        role="tree"
+        aria-label={t("connections.import.bookmarksTreeLabel")}
+      >
+        {source.root.children.map((node) => (
+          <BookmarkTreeRow
+            key={node.id}
+            node={node}
+            selectedNodeIds={selectedNodeIds}
+            onToggle={onToggle}
           />
-        ) : null}
-      </fieldset>
-
-      <LegacyDialogActions
-        primary={<button
-          className="approve-button"
-          disabled={importing || selectedCount === 0}
-          onClick={() => void handleImport()}
-          type="button"
-        >
-          {importing ? <Loader2 className="spin" size={14} /> : null}
-          <span>
-            {t("connections.import.importCount", { count: selectedCount })}
-          </span>
-        </button>}
-        cancel={<button className="toolbar-button" onClick={onCancel} type="button">
-          {t("connections.cancel")}
-        </button>}
-      />
+        ))}
+      </div>
     </div>
   );
+}
+
+function BookmarkTreeRow({
+  node,
+  selectedNodeIds,
+  onToggle,
+}: {
+  node: BookmarkTreeNode;
+  selectedNodeIds: Set<string>;
+  onToggle: (node: BookmarkTreeNode, checked: boolean) => void;
+}) {
+  const descendantIds = useMemo(() => collectBookmarkNodeIds(node), [node]);
+  const checked = descendantIds.every((id) => selectedNodeIds.has(id));
+  const partiallyChecked =
+    !checked && descendantIds.some((id) => selectedNodeIds.has(id));
+  const checkboxRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = partiallyChecked;
+    }
+  }, [partiallyChecked]);
+
+  return (
+    <div className="import-bookmark-node" role="treeitem">
+      <label className="import-bookmark-label">
+        <input
+          ref={checkboxRef}
+          checked={checked}
+          onChange={(event) => onToggle(node, event.currentTarget.checked)}
+          type="checkbox"
+        />
+        <span>{node.name}</span>
+        {node.type === "bookmark" && node.url ? (
+          <small>{node.url}</small>
+        ) : null}
+      </label>
+      {node.children.length > 0 ? (
+        <div className="import-bookmark-children" role="group">
+          {node.children.map((child) => (
+            <BookmarkTreeRow
+              key={child.id}
+              node={child}
+              selectedNodeIds={selectedNodeIds}
+              onToggle={onToggle}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FilterBar({
+  allVisibleTypes,
+  search,
+  setSearch,
+  statusFilter,
+  setStatusFilter,
+  t,
+  typeFilter,
+  setTypeFilter,
+}: {
+  allVisibleTypes: ConnectionType[];
+  search: string;
+  setSearch: (value: string) => void;
+  statusFilter: StatusFilter;
+  setStatusFilter: (value: StatusFilter) => void;
+  t: ReturnType<typeof useTranslation>["t"];
+  typeFilter: ConnectionType | "all";
+  setTypeFilter: (value: ConnectionType | "all") => void;
+}) {
+  return (
+    <div className="import-filter-redesign">
+      <div className="import-search-redesign">
+        <DIcon name="search" size={14} />
+        <input
+          aria-label={t("common.search")}
+          onChange={(event) => setSearch(event.currentTarget.value)}
+          placeholder={t("common.search")}
+          type="text"
+          value={search}
+        />
+        {search ? (
+          <button aria-label={t("common.clear")} onClick={() => setSearch("")} type="button">
+            <DIcon name="close" size={12} />
+          </button>
+        ) : null}
+      </div>
+      <div className="import-typechips-redesign">
+        <button
+          className={typeFilter === "all" ? "on" : ""}
+          onClick={() => setTypeFilter("all")}
+          type="button"
+        >
+          {t("connections.import.previewAll")}
+        </button>
+        {allVisibleTypes.map((type) => (
+          <button
+            className={typeFilter === type ? "on" : ""}
+            key={type}
+            onClick={() => setTypeFilter(type)}
+            type="button"
+          >
+            <TypeGlyph type={type} />
+            {connectionTypeText(type, t)}
+          </button>
+        ))}
+      </div>
+      <div className="import-statusseg-redesign kk-seg" role="tablist">
+        {([
+          ["all", t("connections.import.previewAll")],
+          ["selected", t("connections.import.previewSelected")],
+          ["missingUser", t("connections.import.previewMissingUser")],
+        ] as Array<[StatusFilter, string]>).map(([value, label]) => (
+          <button
+            className={statusFilter === value ? "active" : ""}
+            key={value}
+            onClick={() => setStatusFilter(value)}
+            role="tab"
+            type="button"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CandidateList({
+  allFilteredSelected,
+  candidates,
+  onSetAllFiltered,
+  onUpdateRow,
+  someFilteredSelected,
+  t,
+}: {
+  allFilteredSelected: boolean;
+  candidates: Candidate[];
+  onSetAllFiltered: (value: boolean) => void;
+  onUpdateRow: (id: string, patch: Partial<Candidate>) => void;
+  someFilteredSelected: boolean;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  return (
+    <div className="import-listwrap-redesign">
+      <div className="import-row-redesign import-head-redesign">
+        <MiniCheck
+          indeterminate={!allFilteredSelected && someFilteredSelected}
+          label={t("connections.import.selectAll")}
+          on={allFilteredSelected}
+          onChange={onSetAllFiltered}
+        />
+        <span>{t("connections.import.colName")}</span>
+        <span>{t("connections.import.colHost")}</span>
+        <span>{t("connections.import.colType")}</span>
+        <span>{t("connections.import.destinationLabel")}</span>
+        <span>{t("connections.import.colUser")}</span>
+      </div>
+      <div className="import-list-redesign">
+        {candidates.length === 0 ? (
+          <p className="import-empty">{t("connections.import.previewEmpty")}</p>
+        ) : null}
+        {candidates.map((row) => (
+          <CandidateRow key={row.id} row={row} onUpdate={onUpdateRow} t={t} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CandidateRow({
+  row,
+  onUpdate,
+  t,
+}: {
+  row: Candidate;
+  onUpdate: (id: string, patch: Partial<Candidate>) => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  const folder = row.folderPath.join(" / ") || t("connections.import.destinationRoot");
+  return (
+    <div className={`import-row-redesign import-candidate-redesign${row.selected ? " selected" : ""}`}>
+      <MiniCheck
+        label={t("connections.import.selectRow")}
+        on={row.selected}
+        onChange={(selected) => onUpdate(row.id, { selected })}
+      />
+      <TextInput
+        onChange={(event) => onUpdate(row.id, { name: event.currentTarget.value })}
+        value={row.name}
+      />
+      <TextInput
+        mono
+        onChange={(event) => onUpdate(row.id, { host: event.currentTarget.value })}
+        value={row.host}
+      />
+      <Select
+        onChange={(event) =>
+          onUpdate(row.id, { type: event.currentTarget.value as ConnectionType })
+        }
+        options={IMPORTABLE_TYPES.map((type) => ({
+          value: type,
+          label: connectionTypeText(type, t),
+        }))}
+        value={row.type}
+      />
+      <span className="import-folder-cell" title={folder}>
+        <DIcon name="folder" size={12} />
+        {folder}
+      </span>
+      <div className="import-user-cell">
+        <TextInput
+          mono
+          onChange={(event) => onUpdate(row.id, { user: event.currentTarget.value })}
+          value={row.user}
+        />
+        {["ssh", "telnet", "rdp", "vnc"].includes(row.type) ? (
+          <TextInput
+            onChange={(event) => onUpdate(row.id, { password: event.currentTarget.value })}
+            placeholder={t("connections.import.bulkPasswordLabel")}
+            type="password"
+            value={row.password}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ToolMenu({
+  children,
+  disabled,
+  icon,
+  label,
+  onOpen,
+  open,
+}: {
+  children: ReactNode;
+  disabled?: boolean;
+  icon: DialogIconName;
+  label: string;
+  onOpen: () => void;
+  open: boolean;
+}) {
+  return (
+    <div className="import-tool-redesign">
+      <button
+        aria-expanded={open}
+        className={open ? "open" : ""}
+        disabled={disabled}
+        onClick={onOpen}
+        type="button"
+      >
+        <DIcon name={icon} size={15} />
+        {label}
+        <DIcon name="chevdown" size={12} />
+      </button>
+      {open ? <div className="import-popover-redesign">{children}</div> : null}
+    </div>
+  );
+}
+
+function BulkFieldEditor({
+  field,
+  value,
+  scope,
+  onValue,
+  onScope,
+  onApply,
+  onCancel,
+  t,
+}: {
+  field: Exclude<BulkField, null>;
+  value: string;
+  scope: "all" | "empty";
+  onValue: (value: string) => void;
+  onScope: (value: "all" | "empty") => void;
+  onApply: () => void;
+  onCancel: () => void;
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
+  return (
+    <>
+      <Field label={field === "user" ? t("connections.import.bulkUserLabel") : t("connections.import.bulkPasswordLabel")}>
+        <TextInput
+          autoFocus
+          onChange={(event) => onValue(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              onApply();
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              onCancel();
+            }
+          }}
+          placeholder={
+            field === "user"
+              ? t("connections.import.bulkUserPlaceholder")
+              : t("connections.import.bulkPasswordPlaceholder")
+          }
+          type={field === "user" ? "text" : "password"}
+          value={value}
+        />
+      </Field>
+      <div className="import-bulk-scope" role="radiogroup">
+        <label className="import-bulk-scope-option">
+          <input
+            checked={scope === "empty"}
+            name={`import-bulk-scope-${field}`}
+            onChange={() => onScope("empty")}
+            type="radio"
+          />
+          <span>{t("connections.import.bulkScopeUnfilled")}</span>
+        </label>
+        <label className="import-bulk-scope-option">
+          <input
+            checked={scope === "all"}
+            name={`import-bulk-scope-${field}`}
+            onChange={() => onScope("all")}
+            type="radio"
+          />
+          <span>{t("connections.import.bulkScopeAll")}</span>
+        </label>
+      </div>
+      <div className="import-popover-actions">
+        <Btn kind="primary" onClick={onApply} sm>{t("connections.import.bulkApply")}</Btn>
+        <Btn onClick={onCancel} sm>{t("connections.import.bulkCancel")}</Btn>
+      </div>
+    </>
+  );
+}
+
+function DestinationPicker({
+  folderOptions,
+  folderTarget,
+  newFolderName,
+  onFolderTarget,
+  onNewFolderName,
+  open,
+  setOpen,
+}: {
+  folderOptions: ReturnType<typeof flattenFolders>;
+  folderTarget: string;
+  newFolderName: string;
+  onFolderTarget: (value: string) => void;
+  onNewFolderName: (value: string) => void;
+  open: boolean;
+  setOpen: (value: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const destinationLabel =
+    folderTarget === "__new__"
+      ? newFolderName || t("connections.import.destinationNewFolder")
+      : folderTarget === "__root__"
+        ? t("connections.import.destinationRoot")
+        : folderOptions.find((option) => option.folder.id === folderTarget)?.folder.name ??
+          t("connections.import.destinationLabel");
+
+  return (
+    <div className="import-destination-redesign">
+      <span>{t("connections.import.destinationLabel")}</span>
+      <button
+        className={open ? "open" : ""}
+        onClick={() => setOpen(!open)}
+        type="button"
+      >
+        <DIcon name="folder" size={14} />
+        {destinationLabel}
+        <DIcon name="updown" size={12} />
+      </button>
+      {open ? (
+        <div className="import-popover-redesign import-destination-popover">
+          <Field label={t("connections.import.destinationLabel")}>
+            <Select
+              onChange={(event) => onFolderTarget(event.currentTarget.value)}
+              options={[
+                { value: "__new__", label: t("connections.import.destinationNewFolder") },
+                { value: "__root__", label: t("connections.import.destinationRoot") },
+                ...folderOptions.map((option) => ({
+                  value: option.folder.id,
+                  label: `${"  ".repeat(option.level)}${option.folder.name}`,
+                })),
+              ]}
+              value={folderTarget}
+            />
+          </Field>
+          {folderTarget === "__new__" ? (
+            <Field label={t("connections.import.newFolderNameLabel")}>
+              <TextInput
+                onChange={(event) => onNewFolderName(event.currentTarget.value)}
+                value={newFolderName}
+              />
+            </Field>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MiniCheck({
+  indeterminate,
+  label,
+  on,
+  onChange,
+}: {
+  indeterminate?: boolean;
+  label: string;
+  on: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <button
+      aria-checked={indeterminate ? "mixed" : on}
+      aria-label={label}
+      className={`import-check-redesign${on ? " on" : ""}${indeterminate ? " ind" : ""}`}
+      onClick={() => onChange(!on)}
+      role="checkbox"
+      type="button"
+    >
+      {indeterminate ? <DIcon name="minus" size={12} /> : on ? <DIcon name="check" size={12} /> : null}
+    </button>
+  );
+}
+
+function TypeGlyph({ type }: { type: ConnectionType }) {
+  const icon = TYPE_ICONS[type] ?? "server";
+  return <DIcon name={icon} size={12} />;
+}
+
+function draftToCandidate(draft: ImportFilePreview["drafts"][number], index: number): Candidate {
+  return {
+    id: `${index}`,
+    selected: true,
+    name: draft.name,
+    host: draft.host,
+    user: draft.user,
+    password: "",
+    url: draft.url,
+    port: draft.port,
+    type: draft.type,
+    folderPath: draft.folderPath,
+  };
+}
+
+function scanResultToCandidate(entry: ScanResultEntry, index: number): Candidate {
+  return {
+    id: `${index}`,
+    selected: true,
+    name: entry.host,
+    host: entry.host,
+    user: "",
+    password: "",
+    port: entry.port,
+    type: entry.type,
+    folderPath: [],
+  };
+}
+
+function collectBookmarkNodeIds(node: BookmarkTreeNode): string[] {
+  return [
+    node.id,
+    ...node.children.flatMap((child) => collectBookmarkNodeIds(child)),
+  ];
+}
+
+function connectionTypeText(type: ConnectionType, t: ReturnType<typeof useTranslation>["t"]) {
+  if (type === "local") {
+    return t("connections.localTerminal");
+  }
+  return t(`connections.${type}` as const);
 }
 
 function suggestFolderName(format: string) {
@@ -1322,12 +1358,12 @@ function suggestFolderName(format: string) {
       ? i18next.t("connections.import.importedFromBookmarks")
       : format === "scan"
         ? i18next.t("connections.import.importedFromScan")
-      : format === "rdcman"
-        ? i18next.t("connections.import.importedFromRdcman")
-        : format === "mobaxterm"
-          ? i18next.t("connections.import.importedFromMobaxterm")
-          : format === "putty"
-            ? i18next.t("connections.import.importedFromPutty")
-            : i18next.t("connections.import.importedDefault");
+        : format === "rdcman"
+          ? i18next.t("connections.import.importedFromRdcman")
+          : format === "mobaxterm"
+            ? i18next.t("connections.import.importedFromMobaxterm")
+            : format === "putty"
+              ? i18next.t("connections.import.importedFromPutty")
+              : i18next.t("connections.import.importedDefault");
   return `${label} ${stamp}`;
 }

@@ -90,7 +90,6 @@ test("multi-action legacy dialogs use the shared platform-aware adapter", async 
     "modules/settings/SshSettings.tsx",
     "modules/workspace/NewWorkspaceDialog.tsx",
     "modules/workspace/connections/ConnectionSidebar.tsx",
-    "modules/workspace/connections/ImportDialog.tsx",
   ];
 
   const indexSource = await readFile(new URL("app/ui/dialog/index.ts", SRC_ROOT), "utf8");
