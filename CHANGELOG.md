@@ -3,6 +3,68 @@
 All notable changes to KKTerm are documented here.
 
 ## Direct Downloads
+* 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.103/kkterm-0.1.103-windows-x64-setup.exe)
+* 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.103/kkterm-0.1.103-windows-arm64-setup.exe)
+
+## Highlights
+- Connection-tree folder nodes now use the default folder glyph (less “mystery icon,” more “that’s a folder”).  
+- Terminal display is better aligned when emoji appear (Unicode 11 cell widths).  
+- Assistant code sends won’t steal your focus from the terminal—your Session stays ready.  
+
+## New
+- Enhance status popup message styling to support multi-line wrapping.
+
+## Improved
+- SSH Port Forwarding now warns when saved port forwards fail to start (instead of only logging a transient notice), including amber toolbar state and clearer dialog rows.
+- SSH Port Forwarding rules are persisted more reliably: durable rules are saved even if there’s no active/healthy Session when you add them.
+- Explain outdated GitHub Copilot CLI with actionable guidance instead of surfacing a raw serde error.
+- Connection import dialog refactor and styling updates (including refreshed test coverage and i18n resources).
+
+## Fixed
+- Fix emoji column misalignment in the terminal by @ryantsai in https://github.com/ryantsai/KKTerm/pull/455 (Fixes #454)  
+  _Also reported by:_ **JosephCLJ** (Issue #454, PR #455) — “[Windows] 圖形顯示問題”
+- Restore terminal focus after assistant sends code by @ryantsai in https://github.com/ryantsai/KKTerm/pull/459
+- Fix SSH port forward rule persistence order by @ryantsai in https://github.com/ryantsai/KKTerm/pull/458
+- Use default folder glyph for connection-tree folders by @ryantsai in https://github.com/ryantsai/KKTerm/pull/453
+- Explain outdated Copilot CLI instead of raw serde error by @ryantsai in https://github.com/ryantsai/KKTerm/pull/457 (Fixes #456)  
+  _Also reported by:_ **mickeoL** (Issue #456, PR #457) — “Looks like there is some syntax issue in AI Assistant”
+
+## Internal
+- Add scrcpy tool for Android screen mirroring and control.
+- Update/adjust import-dialog-related assets, CSS, locales, and associated tests.
+- Update .gitignore to include brag-output and ensure proper newline.
+
+---
+
+## 亮點
+- 連線樹（Connection-tree）資料夾節點改用預設資料夾圖示（少一點「這到底是什麼」）。  
+- 終端機（Terminal）在出現 emoji 時的排版更準確（Unicode 11 的字元寬度）。  
+- 助理（Assistant）送出程式碼後不再奪走終端機焦點——你的 Session 依然保持就緒。  
+
+## 新增
+- 強化狀態彈出視窗（status popup）樣式，支援多行自動換行。
+
+## 改進
+- SSH 連接埠轉送（SSH Port Forwarding）當「儲存的轉送規則無法啟動」時會明確提醒：包含工具列琥珀色狀態與對話框更清楚的列狀態。
+- SSH 連接埠轉送規則持久化更可靠：即使當下沒有可用/健康的 Session 也會先確實保存「耐久（durable）規則」。
+- 當 GitHub Copilot CLI 太舊導致 SDK 啟動失敗時，改為提供可操作的更新建議，而不是直接顯示原始 serde 錯誤。
+- 連線匯入對話框（Connection import dialog）重構與樣式更新（包含更新測試與 i18n 資源）。
+
+## 修正
+- 修正終端機 emoji 欄位錯位（Unicode 11 字元寬度）by @ryantsai in https://github.com/ryantsai/KKTerm/pull/455（Fixes #454）  
+  _同時被回報：_ **JosephCLJ**（Issue #454, PR #455）— “[Windows] 圖形顯示問題”
+- 助理送出程式碼後恢復終端機焦點 by @ryantsai in https://github.com/ryantsai/KKTerm/pull/459
+- 修正 SSH 連接埠轉送規則持久化順序 by @ryantsai in https://github.com/ryantsai/KKTerm/pull/458
+- 連線樹資料夾改用預設資料夾圖示 by @ryantsai in https://github.com/ryantsai/KKTerm/pull/453
+- 以可操作方式說明過舊的 GitHub Copilot CLI（取代原始 serde 錯誤）by @ryantsai in https://github.com/ryantsai/KKTerm/pull/457（Fixes #456）  
+  _同時被回報：_ **mickeoL**（Issue #456, PR #457）— “Looks like there is some syntax issue in AI Assistant”
+
+## 內部
+- 新增 scrcpy 工具，用於 Android 螢幕鏡像與控制。
+- 更新/調整匯入對話框相關資源、CSS、語系檔與對應測試。
+- 更新 .gitignore：加入 brag-output 並確保換行正確。
+
+## Direct Downloads
 * 💻 [Download for Windows (64-bit)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.102/kkterm-0.1.102-windows-x64-setup.exe)
 * 💻 [Download for Windows (ARM64)](https://github.com/ryantsai/KKTerm/releases/download/v0.1.102/kkterm-0.1.102-windows-arm64-setup.exe)
 
