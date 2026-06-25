@@ -112,6 +112,7 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
   const [bookmarkSources, setBookmarkSources] = useState<BookmarkImportSource[]>([]);
   const [bookmarkSourceId, setBookmarkSourceId] = useState("");
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(() => new Set());
+  const [bookmarksLoaded, setBookmarksLoaded] = useState(false);
   const [bookmarksLoading, setBookmarksLoading] = useState(false);
   const [bookmarksPreviewing, setBookmarksPreviewing] = useState(false);
   const [search, setSearch] = useState("");
@@ -209,7 +210,7 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
   }, [activeWorkspaceId, destinationWorkspaceId, workspaceOptions]);
 
   useEffect(() => {
-    if (source !== "bookmarks" || bookmarkSources.length > 0 || bookmarksLoading) {
+    if (source !== "bookmarks" || bookmarksLoaded || bookmarksLoading) {
       return;
     }
     let cancelled = false;
@@ -226,10 +227,12 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
         if (first) {
           setBookmarkSourceId(first.id);
         }
+        setBookmarksLoaded(true);
       })
       .catch((failure) => {
         if (!cancelled) {
           setError(failure instanceof Error ? failure.message : String(failure));
+          setBookmarksLoaded(true);
         }
       })
       .finally(() => {
@@ -240,7 +243,7 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
     return () => {
       cancelled = true;
     };
-  }, [bookmarkSources.length, bookmarksLoading, source]);
+  }, [bookmarksLoaded, bookmarksLoading, source]);
 
   async function handleBrowse() {
     setError("");
@@ -314,6 +317,15 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
     setSelectedNodeIds(new Set());
     clearPreview();
     setError("");
+  }
+
+  function handleBookmarkRefresh() {
+    setError("");
+    setBookmarkSources([]);
+    setBookmarkSourceId("");
+    setSelectedNodeIds(new Set());
+    setBookmarksLoaded(false);
+    clearPreview();
   }
 
   function toggleBookmarkNode(node: BookmarkTreeNode, checked: boolean) {
@@ -578,12 +590,14 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
           />
           <SourceContext
             bookmarkSources={bookmarkSources}
+            bookmarksLoaded={bookmarksLoaded}
             bookmarksLoading={bookmarksLoading}
             bookmarksPreviewing={bookmarksPreviewing}
             enabledPorts={enabledPorts}
             fileLoading={fileLoading}
             filePath={filePath}
             onBookmarkPreview={() => void handleBookmarkPreview()}
+            onBookmarkRefresh={handleBookmarkRefresh}
             onBookmarkSourceChange={handleBookmarkSourceChange}
             onChooseFile={() => void handleBrowse()}
             onPortToggle={togglePort}
@@ -685,12 +699,14 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
 
 function SourceContext({
   bookmarkSources,
+  bookmarksLoaded,
   bookmarksLoading,
   bookmarksPreviewing,
   enabledPorts,
   fileLoading,
   filePath,
   onBookmarkPreview,
+  onBookmarkRefresh,
   onBookmarkSourceChange,
   onChooseFile,
   onPortToggle,
@@ -706,12 +722,14 @@ function SourceContext({
   t,
 }: {
   bookmarkSources: BookmarkImportSource[];
+  bookmarksLoaded: boolean;
   bookmarksLoading: boolean;
   bookmarksPreviewing: boolean;
   enabledPorts: Set<number>;
   fileLoading: boolean;
   filePath: string;
   onBookmarkPreview: () => void;
+  onBookmarkRefresh: () => void;
   onBookmarkSourceChange: (sourceId: string) => void;
   onChooseFile: () => void;
   onPortToggle: (port: number) => void;
@@ -747,9 +765,9 @@ function SourceContext({
       <div className="import-source-card">
         <SourceIcon source="bookmarks" />
         <div className="import-source-copy">
-          {bookmarksLoading ? (
+          {bookmarksLoading || !bookmarksLoaded ? (
             <strong>{t("connections.import.bookmarksLoading")}</strong>
-          ) : bookmarkSources.length === 0 ? (
+          ) : bookmarksLoaded && bookmarkSources.length === 0 ? (
             <strong>{t("connections.import.bookmarksNoSources")}</strong>
           ) : (
             <>
@@ -768,13 +786,20 @@ function SourceContext({
           )}
         </div>
         <Btn
-          disabled={bookmarksPreviewing || !selectedSource || selectedNodeCount === 0}
+          disabled={
+            bookmarksLoading ||
+            !bookmarksLoaded ||
+            bookmarksPreviewing ||
+            (Boolean(selectedSource) && selectedNodeCount === 0)
+          }
           icon="star"
-          onClick={onBookmarkPreview}
+          onClick={selectedSource ? onBookmarkPreview : onBookmarkRefresh}
           sm
         >
           {bookmarksPreviewing ? <Loader2 className="spin" size={13} /> : null}
-          {t("connections.import.bookmarksPreview", { count: selectedNodeCount })}
+          {selectedSource
+            ? t("connections.import.bookmarksPreview", { count: selectedNodeCount })
+            : t("common.refresh")}
         </Btn>
       </div>
     );
