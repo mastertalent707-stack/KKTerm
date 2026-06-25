@@ -59,6 +59,7 @@ import {
 import { useWorkspaceStore } from "../store";
 import { useDashboardStore } from "../modules/dashboard/state/dashboardStore";
 import {
+  focusPaneRenderer,
   getPaneRenderer,
   sendTextToRdpPane,
   writeInputToPane,
@@ -633,6 +634,7 @@ export function AssistantPanel({
     if (activeTerminalPaneId) {
       const data = prepareAssistantTerminalInput(code);
       writeInputToPane(activeTerminalPaneId, data);
+      focusPaneRenderer(activeTerminalPaneId);
       return;
     }
 
