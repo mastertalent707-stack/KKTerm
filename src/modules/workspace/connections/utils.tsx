@@ -256,8 +256,6 @@ export function connectionPasswordOwnerId(connection: Connection) {
   return connection.passwordCredentialId || connection.id;
 }
 
-export const SSH_SETTINGS_SOCKS_PROXY_PASSWORD_OWNER_ID = "ssh-settings-socks-proxy";
-
 export function connectionSshSocksProxyPasswordOwnerId(connection: Pick<Connection, "id">) {
   return connection.id;
 }
@@ -269,21 +267,19 @@ export type SshSocksProxyRequestFields = {
 };
 
 /**
- * Resolve the effective SOCKS proxy for an SSH Connection launch: the
- * per-Connection value when it opted out of inheriting Settings defaults,
- * otherwise the global SSH SOCKS proxy default. Returns `undefined` when no
- * proxy applies so the backend uses a direct connection.
+ * Resolve the per-Connection SOCKS proxy override for an SSH Connection launch.
+ * A Connection that opted out of inheriting defaults provides its own endpoint;
+ * otherwise this returns `undefined` and the backend applies the global app
+ * proxy (Settings → General → Proxy) as the fallback.
  */
 export function resolveSshSocksProxy(
   connection: Pick<Connection, "sshSocksProxy" | "sshSocksProxyInheritDefaults">,
-  sshSettings: Pick<SshSettings, "defaultSshSocksProxy">,
 ): string | undefined {
-  const value =
-    connection.sshSocksProxyInheritDefaults === false
-      ? connection.sshSocksProxy
-      : sshSettings.defaultSshSocksProxy;
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
+  if (connection.sshSocksProxyInheritDefaults === false) {
+    const trimmed = connection.sshSocksProxy?.trim();
+    return trimmed ? trimmed : undefined;
+  }
+  return undefined;
 }
 
 /**
@@ -302,17 +298,14 @@ export function resolveSshCompression(
 
 export function resolveSshSocksProxyRequest(
   connection: Pick<Connection, "id" | "sshSocksProxy" | "sshSocksProxyUsername" | "sshSocksProxyInheritDefaults">,
-  sshSettings: Pick<SshSettings, "defaultSshSocksProxy" | "defaultSshSocksProxyUsername">,
 ): SshSocksProxyRequestFields {
-  const inheritsSettings = connection.sshSocksProxyInheritDefaults !== false;
-  const proxy = resolveSshSocksProxy(connection, sshSettings);
+  const proxy = resolveSshSocksProxy(connection);
   if (!proxy) {
+    // No per-Connection override: the backend applies the global app proxy.
     return {};
   }
 
-  const username = (
-    inheritsSettings ? sshSettings.defaultSshSocksProxyUsername : connection.sshSocksProxyUsername
-  )?.trim();
+  const username = connection.sshSocksProxyUsername?.trim();
   if (!username) {
     return { sshSocksProxy: proxy };
   }
@@ -320,9 +313,7 @@ export function resolveSshSocksProxyRequest(
   return {
     sshSocksProxy: proxy,
     sshSocksProxyUsername: username,
-    sshSocksProxySecretOwnerId: inheritsSettings
-      ? SSH_SETTINGS_SOCKS_PROXY_PASSWORD_OWNER_ID
-      : connectionSshSocksProxyPasswordOwnerId(connection),
+    sshSocksProxySecretOwnerId: connectionSshSocksProxyPasswordOwnerId(connection),
   };
 }
 

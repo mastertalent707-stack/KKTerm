@@ -102,7 +102,7 @@ export function sftpBrowserCommands(connection: Connection): FileBrowserCommands
           port: connection.port,
           keyPath: connection.keyPath,
           proxyJump: connection.proxyJump,
-          ...resolveSshSocksProxyRequest(connection, useWorkspaceStore.getState().sshSettings),
+          ...resolveSshSocksProxyRequest(connection),
           sshCompression: resolveSshCompression(connection, useWorkspaceStore.getState().sshSettings),
           authMethod: connection.authMethod,
           secretOwnerId: connectionPasswordOwnerId(connection),

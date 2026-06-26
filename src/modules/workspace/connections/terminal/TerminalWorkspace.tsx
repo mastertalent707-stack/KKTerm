@@ -1415,7 +1415,7 @@ function tmuxConnectionRequest(connection: Connection) {
     port: connection.port,
     keyPath: connection.keyPath,
     proxyJump: connection.proxyJump,
-    ...resolveSshSocksProxyRequest(connection, sshSettings),
+    ...resolveSshSocksProxyRequest(connection),
     sshCompression: resolveSshCompression(connection, sshSettings),
     authMethod: connection.authMethod,
     secretOwnerId: connectionPasswordOwnerId(connection),
@@ -2078,7 +2078,7 @@ function TerminalPaneView({
             request: {
               host: connection.host,
               port: connection.port,
-              ...resolveSshSocksProxyRequest(connection, sshSettings),
+              ...resolveSshSocksProxyRequest(connection),
             },
           });
           await confirmTrustedSshHostKey(preview);
@@ -2126,7 +2126,7 @@ function TerminalPaneView({
             port: connection.port,
             keyPath: connection.keyPath,
             proxyJump: connection.proxyJump,
-            ...resolveSshSocksProxyRequest(connection, sshSettings),
+            ...resolveSshSocksProxyRequest(connection),
             authMethod: connection.authMethod,
             secretOwnerId: connectionPasswordOwnerId(connection),
             passphraseOwnerId: connection.type === "ssh" ? connection.id : undefined,

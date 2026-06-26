@@ -899,7 +899,7 @@ export function ConnectionSidebar({
           port: connection.port,
           keyPath: connection.keyPath,
           proxyJump: connection.proxyJump,
-          ...resolveSshSocksProxyRequest(connection, sshSettings),
+          ...resolveSshSocksProxyRequest(connection),
           sshCompression: resolveSshCompression(connection, sshSettings),
           authMethod: connection.authMethod,
           secretOwnerId: connectionPasswordOwnerId(connection),
@@ -1040,7 +1040,7 @@ export function ConnectionSidebar({
         request: {
           host: connection.host,
           port: connection.port,
-          ...resolveSshSocksProxyRequest(connection, sshSettings),
+          ...resolveSshSocksProxyRequest(connection),
         },
       });
       await confirmTrustedSshHostKey(hostKeyPreview);
@@ -1052,7 +1052,7 @@ export function ConnectionSidebar({
           password,
           keyPath,
           proxyJump: connection.proxyJump,
-          ...resolveSshSocksProxyRequest(connection, sshSettings),
+          ...resolveSshSocksProxyRequest(connection),
           sshCompression: resolveSshCompression(connection, sshSettings),
         },
       });
@@ -4229,12 +4229,13 @@ function ConnectionDialog({
     const sshUsesDefaultOptions = form.get("sshSocksProxyInheritDefaults") === "on";
     const proxyJump =
       usesSshDefaults && sshUsesDefaultOptions ? (sshSettings.defaultProxyJump ?? "").trim() : formProxyJump;
+    // Inheriting defaults stores a blank SOCKS proxy so the Connection falls
+    // back to the global app proxy (Settings → General → Proxy) at launch; an
+    // explicit per-Connection value is stored only when defaults are overridden.
     const sshSocksProxy =
-      usesSshDefaults && sshUsesDefaultOptions ? (sshSettings.defaultSshSocksProxy ?? "").trim() : formSshSocksProxy;
+      usesSshDefaults && sshUsesDefaultOptions ? "" : formSshSocksProxy;
     const sshSocksProxyUsername =
-      usesSshDefaults && sshUsesDefaultOptions
-        ? (sshSettings.defaultSshSocksProxyUsername ?? "").trim()
-        : formSshSocksProxyUsername;
+      usesSshDefaults && sshUsesDefaultOptions ? "" : formSshSocksProxyUsername;
     const useTmuxSessions =
       usesSshDefaults && sshUsesDefaultOptions
         ? sshSettings.defaultUseTmuxSessions

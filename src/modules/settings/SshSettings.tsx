@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { invokeCommand, isTauriRuntime, selectKeyFile } from "../../lib/tauri";
 import { LegacyDialogActions } from "../../app/ui/dialog";
-import { SSH_SETTINGS_SOCKS_PROXY_PASSWORD_OWNER_ID } from "../workspace/connections/utils";
 import { useWorkspaceStore } from "../../store";
 import type { SshCompressionMode, SshSettings as SshSettingsType } from "../../types";
 import { SettingsSectionHeader, useSettingsSaveRegistration } from "./shared";
@@ -14,8 +13,6 @@ function normalizeSshSettingsDraft(settings: SshSettingsType, t: TFunction): Ssh
   const defaultUser = settings.defaultUser.trim();
   const defaultKeyPath = settings.defaultKeyPath?.trim() || undefined;
   const defaultProxyJump = settings.defaultProxyJump?.trim() || undefined;
-  const defaultSshSocksProxy = settings.defaultSshSocksProxy?.trim() || undefined;
-  const defaultSshSocksProxyUsername = settings.defaultSshSocksProxyUsername?.trim() || undefined;
   const defaultPort = Math.round(settings.defaultPort);
   const bufferLines = Math.round(settings.bufferLines ?? 5000);
   const defaultTransparency = Math.round(settings.defaultTransparency ?? 50);
@@ -43,8 +40,6 @@ function normalizeSshSettingsDraft(settings: SshSettingsType, t: TFunction): Ssh
     defaultPort,
     defaultKeyPath,
     defaultProxyJump,
-    defaultSshSocksProxy,
-    defaultSshSocksProxyUsername,
     defaultSshCompression: settings.defaultSshCompression ?? "fast",
     bufferLines,
     defaultTransparency,
@@ -68,44 +63,13 @@ export function SshSettings() {
   const [keyEmailDraft, setKeyEmailDraft] = useState("");
   const [keyPassphraseDraft, setKeyPassphraseDraft] = useState("");
   const [keyPassphraseConfirmDraft, setKeyPassphraseConfirmDraft] = useState("");
-  const [sshSocksProxyPasswordDraft, setSshSocksProxyPasswordDraft] = useState("");
-  const [hasSavedSshSocksProxyPassword, setHasSavedSshSocksProxyPassword] = useState(false);
   const [isGeneratingKey, setIsGeneratingKey] = useState(false);
   const [error, setError] = useState("");
-  const hasChanges =
-    JSON.stringify(sshDraft) !== JSON.stringify(sshSettings) || sshSocksProxyPasswordDraft.length > 0;
+  const hasChanges = JSON.stringify(sshDraft) !== JSON.stringify(sshSettings);
 
   useEffect(() => {
     setSshDraft(sshSettings);
-    setSshSocksProxyPasswordDraft("");
   }, [sshSettings]);
-
-  useEffect(() => {
-    if (!isTauriRuntime()) {
-      setHasSavedSshSocksProxyPassword(false);
-      return;
-    }
-    let canceled = false;
-    void invokeCommand("secret_exists", {
-      request: {
-        kind: "sshSocksProxyPassword",
-        ownerId: SSH_SETTINGS_SOCKS_PROXY_PASSWORD_OWNER_ID,
-      },
-    })
-      .then((presence) => {
-        if (!canceled) {
-          setHasSavedSshSocksProxyPassword(presence.exists);
-        }
-      })
-      .catch(() => {
-        if (!canceled) {
-          setHasSavedSshSocksProxyPassword(false);
-        }
-      });
-    return () => {
-      canceled = true;
-    };
-  }, [sshSettings.defaultSshSocksProxy, sshSettings.defaultSshSocksProxyUsername]);
 
   async function handleBrowseKeyFile() {
     try {
@@ -173,31 +137,8 @@ export function SshSettings() {
       const savedSshSettings = isTauriRuntime()
         ? await invokeCommand("update_ssh_settings", { request: nextSshSettings })
         : nextSshSettings;
-      if (isTauriRuntime()) {
-        if (savedSshSettings.defaultSshSocksProxy?.trim() && savedSshSettings.defaultSshSocksProxyUsername?.trim()) {
-          if (sshSocksProxyPasswordDraft.length > 0) {
-            await invokeCommand("store_secret", {
-              request: {
-                kind: "sshSocksProxyPassword",
-                ownerId: SSH_SETTINGS_SOCKS_PROXY_PASSWORD_OWNER_ID,
-                secret: sshSocksProxyPasswordDraft,
-              },
-            });
-            setHasSavedSshSocksProxyPassword(true);
-          }
-        } else if (hasSavedSshSocksProxyPassword || sshSocksProxyPasswordDraft.length > 0) {
-          await invokeCommand("delete_secret", {
-            request: {
-              kind: "sshSocksProxyPassword",
-              ownerId: SSH_SETTINGS_SOCKS_PROXY_PASSWORD_OWNER_ID,
-            },
-          });
-          setHasSavedSshSocksProxyPassword(false);
-        }
-      }
       setSshSettings(savedSshSettings);
       setSshDraft(savedSshSettings);
-      setSshSocksProxyPasswordDraft("");
       showStatusBarNotice(t("settings.sshDefaultsSaved"), { tone: "success" });
     } catch (saveError) {
       showStatusBarNotice(saveError instanceof Error ? saveError.message : String(saveError), { tone: "error" });
@@ -291,51 +232,6 @@ export function SshSettings() {
               value={sshDraft.defaultProxyJump ?? ""}
             />
             <small className="field-hint">{t("settings.proxyJumpHint")}</small>
-          </label>
-          <label>
-            <span>{t("settings.sshSocksProxy")}</span>
-            <input
-              onChange={(event) => {
-                const defaultSshSocksProxy = event.currentTarget.value;
-                setSshDraft((settings) => ({
-                  ...settings,
-                  defaultSshSocksProxy,
-                }));
-              }}
-              placeholder={t("settings.sshSocksProxyPlaceholder")}
-              value={sshDraft.defaultSshSocksProxy ?? ""}
-            />
-            <small className="field-hint">{t("settings.sshSocksProxyHint")}</small>
-          </label>
-          <label>
-            <span>{t("settings.sshSocksProxyUsername")}</span>
-            <input
-              autoComplete="username"
-              onChange={(event) => {
-                const defaultSshSocksProxyUsername = event.currentTarget.value;
-                setSshDraft((settings) => ({
-                  ...settings,
-                  defaultSshSocksProxyUsername,
-                }));
-              }}
-              value={sshDraft.defaultSshSocksProxyUsername ?? ""}
-            />
-            <small className="field-hint">{t("settings.sshSocksProxyUsernameHint")}</small>
-          </label>
-          <label>
-            <span>{t("settings.sshSocksProxyPassword")}</span>
-            <input
-              autoComplete="new-password"
-              onChange={(event) => setSshSocksProxyPasswordDraft(event.currentTarget.value)}
-              placeholder={
-                hasSavedSshSocksProxyPassword
-                  ? t("settings.sshSocksProxyPasswordSavedPlaceholder")
-                  : t("settings.sshSocksProxyPasswordPlaceholder")
-              }
-              type="password"
-              value={sshSocksProxyPasswordDraft}
-            />
-            <small className="field-hint">{t("settings.sshSocksProxyPasswordHint")}</small>
           </label>
           <label>
             <span>{t("settings.sshCompression")}</span>

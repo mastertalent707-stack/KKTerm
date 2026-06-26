@@ -409,6 +409,37 @@ impl NativeTelnetTerminal {
     }
 }
 
+/// Open a blocking TCP connection for a Telnet session, routing through the
+/// global SOCKS5 proxy (Settings → General → Proxy) when one is configured.
+///
+/// Telnet uses a blocking `std::net::TcpStream`, so the async SOCKS5 handshake
+/// runs on a temporary current-thread runtime (this function is called from a
+/// blocking worker) and the tunnel is converted back to a blocking std socket.
+fn connect_telnet_stream(host: &str, port: u16) -> Result<TcpStream, String> {
+    if let Some(proxy) = crate::net::proxy::socks_endpoint() {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|error| format!("failed to create Telnet SOCKS runtime: {error}"))?;
+        let tunnel = runtime.block_on(crate::socks::connect_via_socks5(&proxy, host, port))?;
+        let stream = tunnel
+            .into_std()
+            .map_err(|error| format!("failed to adopt Telnet SOCKS stream: {error}"))?;
+        stream
+            .set_nonblocking(false)
+            .map_err(|error| format!("failed to configure Telnet SOCKS stream: {error}"))?;
+        return Ok(stream);
+    }
+
+    let address = (host, port)
+        .to_socket_addrs()
+        .map_err(|error| format!("failed to resolve Telnet host {host}: {error}"))?
+        .next()
+        .ok_or_else(|| format!("Telnet host {host} did not resolve to an address"))?;
+    TcpStream::connect_timeout(&address, Duration::from_secs(10))
+        .map_err(|error| format!("failed to connect Telnet session: {error}"))
+}
+
 pub fn start_native_terminal(
     app: AppHandle,
     request: NativeTelnetTerminalRequest,
@@ -433,13 +464,7 @@ pub fn start_native_terminal(
             "terminalTypes": TERMINAL_TYPES,
         }),
     );
-    let address = (host, request.port)
-        .to_socket_addrs()
-        .map_err(|error| format!("failed to resolve Telnet host {host}: {error}"))?
-        .next()
-        .ok_or_else(|| format!("Telnet host {host} did not resolve to an address"))?;
-    let stream = TcpStream::connect_timeout(&address, Duration::from_secs(10))
-        .map_err(|error| format!("failed to connect Telnet session: {error}"))?;
+    let stream = connect_telnet_stream(host, request.port)?;
     stream
         .set_nodelay(true)
         .map_err(|error| format!("failed to configure Telnet socket: {error}"))?;
@@ -463,7 +488,7 @@ pub fn start_native_terminal(
         "terminal.connected",
         json!({
             "sessionId": request.session_id,
-            "remoteAddress": address.to_string(),
+            "remoteAddress": format!("{host}:{}", request.port),
         }),
     );
     std::thread::spawn(move || {

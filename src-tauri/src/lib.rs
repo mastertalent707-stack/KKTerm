@@ -734,6 +734,10 @@ fn update_general_settings(
 ) -> Result<storage::GeneralSettings, String> {
     auto_start::sync_auto_start_with_windows(request.auto_start_with_windows())?;
     let saved = storage.update_general_settings(request)?;
+    net::proxy::set(net::proxy::from_settings(
+        saved.proxy_mode(),
+        saved.proxy_url(),
+    ));
     logging::set_advanced_debugging_enabled(saved.advanced_debugging_enabled());
     debug_heartbeat::start(app);
     tray_state.set_minimize_to_tray(saved.minimize_to_tray());
@@ -995,11 +999,13 @@ async fn transfer_ssh_public_key(
     mut request: ssh_keys::TransferSshPublicKeyRequest,
 ) -> Result<ssh_keys::TransferSshPublicKeyResult, String> {
     let secrets = app.state::<secrets::Secrets>();
+    let transfer_has_proxy_jump = trimmed_optional(request.proxy_jump.clone()).is_some();
     request.ssh_socks_proxy = resolve_ssh_socks_proxy(
         &secrets,
         request.ssh_socks_proxy.take(),
         request.ssh_socks_proxy_username.take(),
         request.ssh_socks_proxy_secret_owner_id.take(),
+        transfer_has_proxy_jump,
     )?;
     run_blocking_command("SSH public key transfer", move || {
         ssh_keys::transfer_public_key(app, request)
@@ -1445,6 +1451,7 @@ fn resolve_ssh_socks_proxy(
     proxy: Option<String>,
     username: Option<String>,
     secret_owner_id: Option<String>,
+    has_proxy_jump: bool,
 ) -> Result<Option<String>, String> {
     let password = match trimmed_optional(username.clone()) {
         Some(_) => match trimmed_optional(secret_owner_id) {
@@ -1455,7 +1462,15 @@ fn resolve_ssh_socks_proxy(
         },
         None => None,
     };
-    compose_ssh_socks_proxy(proxy, username, password)
+    let composed = compose_ssh_socks_proxy(proxy, username, password)?;
+    // A per-Connection SOCKS proxy wins. Otherwise fall back to the global app
+    // proxy (Settings → General → Proxy) when it is a manual SOCKS5 endpoint —
+    // but never when the Connection uses ProxyJump, which is its own mutually
+    // exclusive reachability path.
+    if composed.is_none() && !has_proxy_jump {
+        return Ok(net::proxy::socks_endpoint());
+    }
+    Ok(composed)
 }
 
 fn compose_ssh_socks_proxy(
@@ -1764,6 +1779,9 @@ async fn inspect_ssh_host_key(
             request.ssh_socks_proxy.take(),
             request.ssh_socks_proxy_username.take(),
             request.ssh_socks_proxy_secret_owner_id.take(),
+            // Host-key inspection has no ProxyJump path; a global SOCKS5 proxy is
+            // the only routing it can apply.
+            false,
         )?;
         ssh::inspect_host_key(ssh::app_known_hosts_path(&app)?, request)
     })
@@ -3274,6 +3292,10 @@ pub fn run() {
             let general_settings = storage.general_settings().map_err(setup_error)?;
             let credential_settings = storage.credential_settings().map_err(setup_error)?;
             let ai_provider_settings = storage.ai_provider_settings().map_err(setup_error)?;
+            net::proxy::set(net::proxy::from_settings(
+                general_settings.proxy_mode(),
+                general_settings.proxy_url(),
+            ));
             logging::set_advanced_debugging_enabled(general_settings.advanced_debugging_enabled());
             debug_heartbeat::start(app.handle().clone());
 

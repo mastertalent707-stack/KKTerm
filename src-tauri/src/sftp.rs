@@ -282,11 +282,17 @@ impl SftpSessionManager {
         secrets: &secrets::Secrets,
         mut request: StartSftpSessionRequest,
     ) -> Result<SftpSessionStarted, String> {
+        let has_proxy_jump = request
+            .proxy_jump
+            .as_deref()
+            .map(str::trim)
+            .is_some_and(|value| !value.is_empty());
         request.ssh_socks_proxy = crate::resolve_ssh_socks_proxy(
             secrets,
             request.ssh_socks_proxy.take(),
             request.ssh_socks_proxy_username.take(),
             request.ssh_socks_proxy_secret_owner_id.take(),
+            has_proxy_jump,
         )?;
         if request
             .proxy_jump

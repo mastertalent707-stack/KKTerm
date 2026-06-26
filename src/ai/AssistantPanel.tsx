@@ -1015,7 +1015,7 @@ export function AssistantPanel({
             port: pane.connection.port,
             keyPath: pane.connection.keyPath,
             proxyJump: pane.connection.proxyJump,
-            ...resolveSshSocksProxyRequest(pane.connection, useWorkspaceStore.getState().sshSettings),
+            ...resolveSshSocksProxyRequest(pane.connection),
             sshCompression: resolveSshCompression(pane.connection, useWorkspaceStore.getState().sshSettings),
             authMethod: pane.connection.authMethod,
             secretOwnerId: connectionPasswordOwnerId(pane.connection),

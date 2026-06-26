@@ -435,30 +435,6 @@ fn ssh_socks_proxy_username_round_trips_without_storing_passwords_in_sqlite() {
 }
 
 #[test]
-fn ssh_settings_store_socks_proxy_username_without_password() {
-    let storage = Storage::open(temp_db_path("ssh-socks-proxy-settings")).expect("storage opens");
-    let mut settings = storage.ssh_settings().expect("SSH settings load");
-    settings.default_ssh_socks_proxy = Some("  10.0.0.119:1080  ".to_string());
-    settings.default_ssh_socks_proxy_username = Some("  proxy-user  ".to_string());
-
-    let saved = storage
-        .update_ssh_settings(settings)
-        .expect("SSH settings update");
-    assert_eq!(
-        saved.default_ssh_socks_proxy.as_deref(),
-        Some("10.0.0.119:1080")
-    );
-    assert_eq!(
-        saved.default_ssh_socks_proxy_username.as_deref(),
-        Some("proxy-user")
-    );
-
-    let sqlite_bytes = fs::read(&storage.db_path).expect("database is readable");
-    let sqlite_text = String::from_utf8_lossy(&sqlite_bytes);
-    assert!(!sqlite_text.contains("proxy-login-password"));
-}
-
-#[test]
 fn local_connection_persists_startup_directory_and_script() {
     let storage = Storage::open(temp_db_path("local-startup-options")).expect("storage opens");
 
@@ -2176,6 +2152,8 @@ fn general_settings_round_trip_through_settings_table() {
             status_bar_monitor_interval_seconds: 30,
             advanced_debugging_enabled: true,
             rdp_webview_stability: true,
+            proxy_mode: "system".to_string(),
+            proxy_url: None,
             last_backup_at: None,
         })
         .expect("general settings update");
@@ -2540,6 +2518,8 @@ fn database_backup_import_restores_settings_and_connections() {
             status_bar_monitor_interval_seconds: 15,
             advanced_debugging_enabled: true,
             rdp_webview_stability: false,
+            proxy_mode: "manual".to_string(),
+            proxy_url: Some("socks5://127.0.0.1:1080".to_string()),
             last_backup_at: None,
         })
         .expect("general settings update");
@@ -2575,6 +2555,8 @@ fn database_backup_import_restores_settings_and_connections() {
             status_bar_monitor_interval_seconds: 5,
             advanced_debugging_enabled: false,
             rdp_webview_stability: false,
+            proxy_mode: "system".to_string(),
+            proxy_url: None,
             last_backup_at: None,
         })
         .expect("general settings changes after export");
@@ -2587,6 +2569,11 @@ fn database_backup_import_restores_settings_and_connections() {
         .expect("database imports");
 
     assert!(!imported.general_settings.auto_backup_enabled);
+    assert_eq!(imported.general_settings.proxy_mode(), "manual");
+    assert_eq!(
+        imported.general_settings.proxy_url(),
+        Some("socks5://127.0.0.1:1080")
+    );
     assert!(imported.general_settings.show_connected_connections_in_rail);
     assert!(!imported.general_settings.show_workspace_on_rail);
     assert!(!imported.general_settings.show_dashboard_on_rail);
@@ -2813,8 +2800,6 @@ fn ssh_settings_round_trip_through_settings_table() {
             default_port: 2200,
             default_key_path: Some("  C:\\Users\\example\\.ssh\\deploy_ed25519  ".to_string()),
             default_proxy_jump: Some("  bastion.internal  ".to_string()),
-            default_ssh_socks_proxy: Some("  127.0.0.1:1080  ".to_string()),
-            default_ssh_socks_proxy_username: None,
             default_ssh_compression: "off".to_string(),
             buffer_lines: 12_000,
             default_transparency: 40,
@@ -2855,10 +2840,6 @@ fn ssh_settings_round_trip_through_settings_table() {
         reloaded.default_proxy_jump.as_deref(),
         Some("bastion.internal")
     );
-    assert_eq!(
-        reloaded.default_ssh_socks_proxy.as_deref(),
-        Some("127.0.0.1:1080")
-    );
 }
 
 #[test]
@@ -2898,47 +2879,51 @@ fn url_settings_round_trip_through_settings_table() {
 
     let defaults = storage.url_settings().expect("default URL settings load");
     assert!(!defaults.ignore_certificate_errors);
-    assert_eq!(defaults.default_proxy_url, None);
     assert_eq!(defaults.default_data_partition, None);
 
     let updated = storage
         .update_url_settings(UrlSettings {
             ignore_certificate_errors: true,
-            default_proxy_url: Some(" socks5://127.0.0.1:1080 ".to_string()),
             default_data_partition: Some(" ops ".to_string()),
         })
         .expect("URL settings update");
 
     assert!(updated.ignore_certificate_errors);
-    assert_eq!(
-        updated.default_proxy_url.as_deref(),
-        Some("socks5://127.0.0.1:1080")
-    );
     assert_eq!(updated.default_data_partition.as_deref(), Some("ops"));
 
     let reloaded = storage.url_settings().expect("URL settings reload");
     assert!(reloaded.ignore_certificate_errors);
-    assert_eq!(
-        reloaded.default_proxy_url.as_deref(),
-        Some("socks5://127.0.0.1:1080")
-    );
     assert_eq!(reloaded.default_data_partition.as_deref(), Some("ops"));
+}
+
+#[test]
+fn app_proxy_url_normalization_accepts_valid_and_rejects_invalid() {
+    // The global app proxy (Settings → General → Proxy) accepts http/https/socks5
+    // endpoints with no credentials, path, query, or fragment.
+    assert_eq!(
+        crate::storage::normalize_app_proxy_url(Some(" socks5://127.0.0.1:1080 ".to_string()))
+            .expect("valid socks5"),
+        Some("socks5://127.0.0.1:1080".to_string())
+    );
+    assert_eq!(
+        crate::storage::normalize_app_proxy_url(Some("https://proxy.example:443".to_string()))
+            .expect("valid https"),
+        Some("https://proxy.example:443".to_string())
+    );
+    assert_eq!(
+        crate::storage::normalize_app_proxy_url(Some("   ".to_string())).expect("blank is none"),
+        None
+    );
 
     for invalid in [
-        "https://proxy.example:443",
+        "ftp://proxy.example:21",
         "http://user:password@proxy.example:3128",
         "http://proxy.example",
         "socks5://proxy.example:0",
         "http://proxy.example:3128/path",
     ] {
         assert!(
-            storage
-                .update_url_settings(UrlSettings {
-                    ignore_certificate_errors: false,
-                    default_proxy_url: Some(invalid.to_string()),
-                    default_data_partition: None,
-                })
-                .is_err(),
+            crate::storage::normalize_app_proxy_url(Some(invalid.to_string())).is_err(),
             "{invalid} must be rejected"
         );
     }

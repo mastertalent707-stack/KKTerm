@@ -497,8 +497,12 @@ export interface GeneralSettings {
   statusBarMonitorIntervalSeconds: number;
   advancedDebuggingEnabled: boolean;
   rdpWebviewStability: boolean;
+  proxyMode: ProxyMode;
+  proxyUrl?: string;
   lastBackupAt?: string | null;
 }
+
+export type ProxyMode = "system" | "none" | "manual";
 
 export type ActivityRailItemId =
   | "workspace"
@@ -725,8 +729,6 @@ export interface SshSettings {
   defaultPort: number;
   defaultKeyPath?: string;
   defaultProxyJump?: string;
-  defaultSshSocksProxy?: string;
-  defaultSshSocksProxyUsername?: string;
   defaultSshCompression: SshCompressionMode;
   bufferLines: number;
   defaultTransparency: number;
@@ -751,7 +753,6 @@ export interface SftpSettings {
 
 export interface UrlSettings {
   ignoreCertificateErrors: boolean;
-  defaultProxyUrl?: string;
   defaultDataPartition?: string;
 }
 
