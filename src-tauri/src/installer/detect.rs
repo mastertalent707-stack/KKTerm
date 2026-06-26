@@ -422,6 +422,7 @@ fn detect_winget_cli_fallback(tool_id: &str) -> Option<DetectedState> {
 fn winget_cli_fallback_command(tool_id: &str) -> Option<(&'static str, &'static [&'static str])> {
     match tool_id {
         "oh-my-posh" => Some(("oh-my-posh", &["version"])),
+        "powershell-7" => Some(("pwsh", &["--version"])),
         _ => None,
     }
 }
@@ -538,6 +539,19 @@ fn detect_winget(recipe: &Recipe) -> DetectedState {
     }
     let snapshot = guard.as_ref().unwrap();
     detect_installed_software(recipe, snapshot)
+}
+
+pub fn detect_winget_recipe_by_id(winget_id: &str) -> DetectedState {
+    let cell = installed_software_snapshot_cell();
+    let mut guard = cell.lock().unwrap();
+    if guard.is_none() {
+        drop(guard);
+        let parsed = load_installed_software_snapshot();
+        *cell.lock().unwrap() = Some(parsed);
+        guard = cell.lock().unwrap();
+    }
+    let snapshot = guard.as_ref().unwrap();
+    detect_installed_software_match(winget_id, &Detection::default(), snapshot)
 }
 
 fn detect_installed_software_aliases(recipe: &Recipe) -> DetectedState {
@@ -1169,6 +1183,14 @@ mod tests {
     }
 
     #[test]
+    fn powershell_7_has_cli_detection_fallback() {
+        assert_eq!(
+            winget_cli_fallback_command("powershell-7"),
+            Some(("pwsh", &["--version"][..]))
+        );
+    }
+
+    #[test]
     fn dism_feature_state_parses_enabled_state() {
         let state = windows_feature_state_from_dism_stdout(
             "Feature Name : Microsoft-Windows-Subsystem-Linux\r\nState : Enabled\r\n",
@@ -1410,6 +1432,33 @@ mod tests {
 
         assert!(state.installed);
         assert_eq!(state.installed_version.as_deref(), Some("1.2.2"));
+    }
+
+    #[test]
+    fn powershell_7_detection_accepts_versioned_display_name_prefix() {
+        let catalog = crate::installer::catalog::load_bundled_catalog().unwrap();
+        let recipe = catalog
+            .recipes
+            .iter()
+            .find(|recipe| recipe.id == "powershell-7")
+            .expect("catalog should include PowerShell 7");
+        let snapshot = InstalledSoftwareSnapshot {
+            entries: vec![InstalledSoftwareEntry {
+                registry_key: "ARP\\Machine\\X64\\{7B031DCF-BDCE-47D6-89B9-4C558D76E773}".into(),
+                display_name: Some("PowerShell 7.6.3.0-x64".into()),
+                display_version: Some("7.6.3.0".into()),
+                install_location: Some("C:\\Program Files\\PowerShell\\7".into()),
+            }],
+        };
+
+        let state = detect_installed_software(recipe, &snapshot);
+
+        assert!(state.installed);
+        assert_eq!(state.installed_version.as_deref(), Some("7.6.3.0"));
+        assert_eq!(
+            state.install_location.as_deref(),
+            Some("C:\\Program Files\\PowerShell\\7")
+        );
     }
 
     #[test]

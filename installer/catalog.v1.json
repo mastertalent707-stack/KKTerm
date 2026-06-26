@@ -156,6 +156,10 @@
         "kind": "winget",
         "id": "Chocolatey.Chocolatey"
       },
+      "chocolateyProvider": {
+        "kind": "chocolatey",
+        "id": "chocolatey"
+      },
       "options": [
         "version"
       ],
@@ -421,7 +425,6 @@
         "id": "astral-sh.uv"
       },
       "options": [
-        "scope",
         "version"
       ],
       "descriptionLocales": {
@@ -1534,6 +1537,9 @@
           "PowerShell 7-x64",
           "PowerShell 7-arm64",
           "PowerShell"
+        ],
+        "displayNamePrefixes": [
+          "PowerShell 7"
         ]
       },
       "provider": {

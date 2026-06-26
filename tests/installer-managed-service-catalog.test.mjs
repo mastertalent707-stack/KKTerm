@@ -82,9 +82,41 @@ test("Chocolatey is a Windows Power User tool installed via winget", () => {
     kind: "winget",
     id: "Chocolatey.Chocolatey",
   });
+  assert.deepEqual(chocolatey.chocolateyProvider, {
+    kind: "chocolatey",
+    id: "chocolatey",
+  });
   assert.ok(
     chocolatey.needs?.includes("winget"),
     "Chocolatey should install through the existing winget prerequisite flow",
+  );
+  assert.ok(
+    !chocolatey.options?.includes("provider"),
+    "Chocolatey should bootstrap through winget, then use choco for self-updates without exposing a recursive provider picker",
+  );
+});
+
+test("uv is winget-backed but does not request scoped portable installs", () => {
+  const uv = byId.get("uv");
+
+  assert.ok(uv, "uv should be present in the installer catalog");
+  assert.deepEqual(uv.provider, {
+    kind: "winget",
+    id: "astral-sh.uv",
+  });
+  assert.ok(
+    !uv.options?.includes("scope"),
+    "uv is a portable winget package and should not ask winget for user/machine scope",
+  );
+});
+
+test("PowerShell 7 detection covers versioned ARP display names", () => {
+  const powershell = byId.get("powershell-7");
+
+  assert.ok(powershell, "PowerShell 7 should be present in the installer catalog");
+  assert.ok(
+    powershell.detection?.displayNamePrefixes?.includes("PowerShell 7"),
+    "PowerShell 7 should match versioned names such as PowerShell 7.6.3.0-x64",
   );
 });
 

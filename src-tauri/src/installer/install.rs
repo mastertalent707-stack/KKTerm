@@ -918,11 +918,16 @@ fn install_winget(
     cancel: Arc<AtomicBool>,
     emit: &EventSink,
 ) -> Result<Option<String>, String> {
+    if tool_id == "uv" {
+        ensure_uv_is_not_running()?;
+    }
+    let already_installed = super::detect::detect_winget_recipe_by_id(winget_id).installed;
+    let verb = if already_installed { "upgrade" } else { "install" };
     emit(ProgressEvent::Step {
         tool_id: tool_id.into(),
-        message: format!("winget install --id {winget_id}"),
+        message: format!("winget {verb} --id {winget_id}"),
     });
-    let args = winget_install_args(winget_id, options);
+    let args = winget_command_args(verb, winget_id, options);
     run_streamed("winget", &args, tool_id, cancel, emit)?;
     if winget_tool_should_add_links_to_path(tool_id) {
         if let Some(dir) = winget_links_dir() {
@@ -935,9 +940,14 @@ fn install_winget(
     Ok(None)
 }
 
+#[cfg(test)]
 fn winget_install_args(winget_id: &str, options: &InstallOptions) -> Vec<String> {
+    winget_command_args("install", winget_id, options)
+}
+
+fn winget_command_args(verb: &str, winget_id: &str, options: &InstallOptions) -> Vec<String> {
     let mut args: Vec<String> = vec![
-        "install".into(),
+        verb.into(),
         "--id".into(),
         winget_id.into(),
         "--exact".into(),
@@ -971,6 +981,77 @@ fn winget_install_args(winget_id: &str, options: &InstallOptions) -> Vec<String>
         }
     }
     args
+}
+
+fn ensure_uv_is_not_running() -> Result<(), String> {
+    let running = running_process_ids_by_image("uv.exe");
+    if running.is_empty() {
+        return Ok(());
+    }
+    Err(format!(
+        "uv is currently running (PID {}). Close uv-based tools and try the update again.",
+        running.join(", ")
+    ))
+}
+
+#[cfg(target_os = "windows")]
+fn running_process_ids_by_image(image_name: &str) -> Vec<String> {
+    let filter = format!("IMAGENAME eq {image_name}");
+    let output = no_window(Command::new("tasklist").args(["/FI", &filter, "/FO", "CSV", "/NH"]))
+        .output();
+    let Ok(output) = output else {
+        return Vec::new();
+    };
+    if !output.status.success() {
+        return Vec::new();
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    parse_tasklist_csv_process_ids(&stdout, image_name)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn running_process_ids_by_image(_image_name: &str) -> Vec<String> {
+    Vec::new()
+}
+
+fn parse_tasklist_csv_process_ids(output: &str, image_name: &str) -> Vec<String> {
+    let mut ids = Vec::new();
+    for line in output.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        if line.starts_with("INFO:") {
+            continue;
+        }
+        let fields = parse_simple_csv_line(line);
+        if fields.len() < 2 {
+            continue;
+        }
+        if fields[0].eq_ignore_ascii_case(image_name) {
+            ids.push(fields[1].clone());
+        }
+    }
+    ids
+}
+
+fn parse_simple_csv_line(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut current = String::new();
+    let mut chars = line.chars().peekable();
+    let mut in_quotes = false;
+    while let Some(ch) = chars.next() {
+        match ch {
+            '"' if in_quotes && chars.peek() == Some(&'"') => {
+                current.push('"');
+                let _ = chars.next();
+            }
+            '"' => in_quotes = !in_quotes,
+            ',' if !in_quotes => {
+                fields.push(current.trim().to_string());
+                current.clear();
+            }
+            _ => current.push(ch),
+        }
+    }
+    fields.push(current.trim().to_string());
+    fields
 }
 
 fn winget_tool_should_add_links_to_path(tool_id: &str) -> bool {
@@ -2579,6 +2660,34 @@ mod tests {
         assert!(joined.contains("--scope machine"));
         assert!(joined.contains("--version 2.50.0"));
         assert!(joined.contains(r"--location C:\Tools\Git"));
+    }
+
+    #[test]
+    fn winget_upgrade_args_use_upgrade_verb() {
+        let args = winget_command_args("upgrade", "astral-sh.uv", &InstallOptions::default());
+
+        assert_eq!(args[0], "upgrade");
+        assert!(args.contains(&"astral-sh.uv".to_string()));
+        assert!(args.contains(&"--verbose-logs".to_string()));
+    }
+
+    #[test]
+    fn tasklist_csv_parser_finds_matching_image_pids() {
+        let output = "\"uv.exe\",\"3824\",\"Console\",\"1\",\"10,000 K\"\r\n\"node.exe\",\"99\",\"Console\",\"1\",\"20,000 K\"\r\n\"UV.EXE\",\"35296\",\"Console\",\"1\",\"11,000 K\"\r\n";
+
+        assert_eq!(
+            parse_tasklist_csv_process_ids(output, "uv.exe"),
+            vec!["3824".to_string(), "35296".to_string()]
+        );
+    }
+
+    #[test]
+    fn tasklist_csv_parser_ignores_no_task_info() {
+        assert!(parse_tasklist_csv_process_ids(
+            "INFO: No tasks are running which match the specified criteria.\r\n",
+            "uv.exe"
+        )
+        .is_empty());
     }
 
     #[test]
