@@ -115,6 +115,7 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
   const [bookmarksLoaded, setBookmarksLoaded] = useState(false);
   const [bookmarksLoading, setBookmarksLoading] = useState(false);
   const [bookmarksPreviewing, setBookmarksPreviewing] = useState(false);
+  const bookmarkDiscoveryRef = useRef(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<ConnectionType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -210,10 +211,17 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
   }, [activeWorkspaceId, destinationWorkspaceId, workspaceOptions]);
 
   useEffect(() => {
-    if (source !== "bookmarks" || bookmarksLoaded || bookmarksLoading) {
+    // Guard re-entrancy with a ref, NOT with `bookmarksLoading`. Listing the
+    // loading flag in the dependency array (and writing it below) made the
+    // effect re-run the moment discovery started, whose cleanup cancelled the
+    // in-flight request before it could resolve — so the dialog hung on
+    // "Looking for browser bookmark sources…" forever regardless of which (or
+    // whether any) browsers were installed.
+    if (source !== "bookmarks" || bookmarksLoaded || bookmarkDiscoveryRef.current) {
       return;
     }
     let cancelled = false;
+    bookmarkDiscoveryRef.current = true;
     setBookmarksLoading(true);
     invokeCommand("list_browser_bookmark_sources", undefined)
       .then((response) => {
@@ -227,23 +235,23 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
         if (first) {
           setBookmarkSourceId(first.id);
         }
-        setBookmarksLoaded(true);
       })
       .catch((failure) => {
         if (!cancelled) {
           setError(failure instanceof Error ? failure.message : String(failure));
-          setBookmarksLoaded(true);
         }
       })
       .finally(() => {
+        bookmarkDiscoveryRef.current = false;
         if (!cancelled) {
+          setBookmarksLoaded(true);
           setBookmarksLoading(false);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [bookmarksLoaded, bookmarksLoading, source]);
+  }, [bookmarksLoaded, source]);
 
   async function handleBrowse() {
     setError("");
@@ -324,6 +332,7 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
     setBookmarkSources([]);
     setBookmarkSourceId("");
     setSelectedNodeIds(new Set());
+    bookmarkDiscoveryRef.current = false;
     setBookmarksLoaded(false);
     clearPreview();
   }
