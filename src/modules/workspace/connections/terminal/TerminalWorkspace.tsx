@@ -1416,6 +1416,7 @@ function tmuxConnectionRequest(connection: Connection) {
     keyPath: connection.keyPath,
     proxyJump: connection.proxyJump,
     ...resolveSshSocksProxyRequest(connection, sshSettings),
+    sshCompression: resolveSshCompression(connection, sshSettings),
     authMethod: connection.authMethod,
     secretOwnerId: connectionPasswordOwnerId(connection),
     passphraseOwnerId: connection.id,

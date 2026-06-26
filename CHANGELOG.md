@@ -22,6 +22,7 @@ All notable changes to KKTerm are documented here.
 
 ## Fixed
 - Persist the global SSH zlib compression default so setting it to “off” actually takes effect; previously the backend dropped the unknown field on save and connections that inherit defaults always fell back to “fast”.
+- Honor the resolved SSH compression setting on every SSH-backed channel, not just terminals: SFTP file browsing/transfers, tmux session management, batch IT-Ops runs, and SSH key installs no longer hard-code compression on.
 - Fix emoji column misalignment in the terminal by @ryantsai in https://github.com/ryantsai/KKTerm/pull/455 (Fixes #454)  
   _Also reported by:_ **JosephCLJ** (Issue #454, PR #455) — “[Windows] 圖形顯示問題”
 - Restore terminal focus after assistant sends code by @ryantsai in https://github.com/ryantsai/KKTerm/pull/459
