@@ -1236,17 +1236,17 @@ mod platform {
     /// that clicking the remote desktop neither brings KKTerm to the foreground
     /// nor routes keyboard focus into the control: mouse messages still reach the
     /// control (Windows delivers them to the window under the cursor), but
-    /// keystrokes keep going to whatever window held OS focus — e.g. another app
+    /// keystrokes keep going to whatever window held OS focus - e.g. another app
     /// on a second monitor, or any other foreground window. The user had to click
     /// the connection tab (an activatable WebView region) first.
     ///
     /// `WM_MOUSEACTIVATE` is sent when the user clicks an inactive window, so we
     /// intercept it to foreground the owner and focus the control, then return
-    /// `MA_ACTIVATE` so the click still flows through to the remote session
-    /// (unlike `MA_ACTIVATEANDEAT`, which would swallow it). `SetForegroundWindow`
-    /// is permitted here because our process is the one receiving the user's
-    /// click; if Windows' foreground lock denies it, `SetFocus` on the in-process
-    /// HWND still routes keystrokes, mirroring `focus_rdp_control`.
+    /// `MA_NOACTIVATE` so the click still flows through to the remote session
+    /// without activating the no-activate overlay. `SetForegroundWindow` is
+    /// permitted here because our process is the one receiving the user's click;
+    /// if Windows' foreground lock denies it, `SetFocus` on the in-process HWND
+    /// still routes keystrokes, mirroring `focus_rdp_control`.
     unsafe extern "system" fn rdp_overlay_subclass_proc(
         hwnd: HWND,
         msg: u32,
@@ -1259,14 +1259,14 @@ mod platform {
         use windows::Win32::UI::Shell::DefSubclassProc;
         use windows::Win32::UI::WindowsAndMessaging::WM_MOUSEACTIVATE;
 
-        const MA_ACTIVATE: isize = 1;
+        const MA_NOACTIVATE: isize = 3;
         if msg == WM_MOUSEACTIVATE {
             let owner = HWND(owner_ref as *mut c_void);
             unsafe {
                 let _ = SetForegroundWindow(owner);
                 let _ = SetFocus(Some(hwnd));
             }
-            return LRESULT(MA_ACTIVATE);
+            return LRESULT(MA_NOACTIVATE);
         }
         unsafe { DefSubclassProc(hwnd, msg, wparam, lparam) }
     }

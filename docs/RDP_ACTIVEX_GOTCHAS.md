@@ -201,9 +201,10 @@ both windows stay visible.
 
 Fix: a comctl32 subclass (`rdp_overlay_subclass_proc`) intercepts
 `WM_MOUSEACTIVATE` on the overlay HWND, foregrounds the owner and `SetFocus`es
-the control, then returns `MA_ACTIVATE` so the click still reaches the remote
-session. SSH/TELNET do not need this because they render inside the activatable
-WebView2 window and `TerminalWorkspace` already restores focus on activation.
+the control, then returns `MA_NOACTIVATE` so the click still reaches the remote
+session without activating the no-activate overlay. SSH/TELNET do not need this
+because they render inside the activatable WebView2 window and
+`TerminalWorkspace` already restores focus on activation.
 
 ## Current Architectural Constraint
 
