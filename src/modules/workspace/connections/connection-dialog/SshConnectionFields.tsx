@@ -257,10 +257,10 @@ export function SshConnectionOptions({
 }) {
   const { t } = useTranslation();
   const [sshSocksProxyDraft, setSshSocksProxyDraft] = useState(
-    initialConnection?.sshSocksProxy ?? sshSettings.defaultSshSocksProxy ?? "",
+    initialConnection?.sshSocksProxy ?? "",
   );
   const [sshSocksProxyUsernameDraft, setSshSocksProxyUsernameDraft] = useState(
-    initialConnection?.sshSocksProxyUsername ?? sshSettings.defaultSshSocksProxyUsername ?? "",
+    initialConnection?.sshSocksProxyUsername ?? "",
   );
   const [proxyJumpDraft, setProxyJumpDraft] = useState(
     initialConnection?.proxyJump ?? sshSettings.defaultProxyJump ?? "",
@@ -271,11 +271,11 @@ export function SshConnectionOptions({
   const [sshCompressionDraft, setSshCompressionDraft] = useState<SshCompressionMode>(
     initialConnection?.sshCompression ?? sshSettings.defaultSshCompression ?? "fast",
   );
-  const displayedSshSocksProxy = sshInheritsSettingsDefaults
-    ? sshSettings.defaultSshSocksProxy ?? ""
-    : sshSocksProxyDraft;
+  // When inheriting defaults the per-Connection SOCKS fields are blank, so the
+  // launch falls back to the global app proxy (Settings → General → Proxy).
+  const displayedSshSocksProxy = sshInheritsSettingsDefaults ? "" : sshSocksProxyDraft;
   const displayedSshSocksProxyUsername = sshInheritsSettingsDefaults
-    ? sshSettings.defaultSshSocksProxyUsername ?? ""
+    ? ""
     : sshSocksProxyUsernameDraft;
   const displayedProxyJump = sshInheritsSettingsDefaults ? sshSettings.defaultProxyJump ?? "" : proxyJumpDraft;
   const displayedUseTmuxSessions = sshInheritsSettingsDefaults

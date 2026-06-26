@@ -395,6 +395,13 @@ pub struct GeneralSettings {
     advanced_debugging_enabled: bool,
     #[serde(default)]
     rdp_webview_stability: bool,
+    // Global application proxy. `proxy_mode` is "system" (default), "none", or
+    // "manual"; `proxy_url` holds the normalized `<scheme>://host:port` value
+    // (http/https/socks5) when the mode is "manual". See `net::proxy`.
+    #[serde(default = "default_proxy_mode")]
+    proxy_mode: String,
+    #[serde(default)]
+    proxy_url: Option<String>,
     #[serde(default)]
     last_backup_at: Option<String>,
 }
@@ -446,6 +453,14 @@ impl GeneralSettings {
 
     pub(crate) fn rdp_webview_stability(&self) -> bool {
         self.rdp_webview_stability
+    }
+
+    pub(crate) fn proxy_mode(&self) -> &str {
+        &self.proxy_mode
+    }
+
+    pub(crate) fn proxy_url(&self) -> Option<&str> {
+        self.proxy_url.as_deref()
     }
 }
 
@@ -593,10 +608,6 @@ pub struct SshSettings {
     default_port: u16,
     default_key_path: Option<String>,
     default_proxy_jump: Option<String>,
-    #[serde(default)]
-    default_ssh_socks_proxy: Option<String>,
-    #[serde(default)]
-    default_ssh_socks_proxy_username: Option<String>,
     #[serde(default = "default_ssh_buffer_lines")]
     buffer_lines: u32,
     #[serde(default = "default_terminal_transparency")]
@@ -654,8 +665,6 @@ pub struct SftpSettings {
 pub struct UrlSettings {
     #[serde(default)]
     ignore_certificate_errors: bool,
-    #[serde(default)]
-    default_proxy_url: Option<String>,
     #[serde(default)]
     default_data_partition: Option<String>,
 }
@@ -4365,8 +4374,14 @@ fn default_general_settings() -> GeneralSettings {
         status_bar_monitor_interval_seconds: default_status_bar_monitor_interval_seconds(),
         advanced_debugging_enabled: false,
         rdp_webview_stability: false,
+        proxy_mode: default_proxy_mode(),
+        proxy_url: None,
         last_backup_at: None,
     }
+}
+
+fn default_proxy_mode() -> String {
+    "system".to_string()
 }
 
 pub(crate) fn default_secret_store() -> String {
@@ -4567,8 +4582,6 @@ fn default_ssh_settings() -> SshSettings {
         default_port: 22,
         default_key_path: default_ssh_key_path(),
         default_proxy_jump: None,
-        default_ssh_socks_proxy: None,
-        default_ssh_socks_proxy_username: None,
         buffer_lines: default_ssh_buffer_lines(),
         default_transparency: default_terminal_transparency(),
         default_use_tmux_sessions: default_use_tmux_sessions(),
@@ -4632,7 +4645,6 @@ fn default_file_explorer_terminal_shell() -> String {
 fn default_url_settings() -> UrlSettings {
     UrlSettings {
         ignore_certificate_errors: false,
-        default_proxy_url: None,
         default_data_partition: None,
     }
 }
@@ -4920,7 +4932,74 @@ fn validate_general_settings(mut settings: GeneralSettings) -> Result<GeneralSet
         3_600 | 86_400 | 604_800 | 2_592_000 => settings.installer_check_interval_seconds,
         _ => default_installer_check_interval_seconds(),
     };
+    settings.proxy_mode = match settings.proxy_mode.trim().to_lowercase().as_str() {
+        "none" => "none".to_string(),
+        "manual" => "manual".to_string(),
+        _ => default_proxy_mode(),
+    };
+    if settings.proxy_mode == "manual" {
+        settings.proxy_url = normalize_app_proxy_url(settings.proxy_url.take())?;
+        if settings.proxy_url.is_none() {
+            return Err("Manual proxy requires a proxy address".to_string());
+        }
+    } else {
+        settings.proxy_url = None;
+    }
     Ok(settings)
+}
+
+/// Validate and normalize a global app proxy URL to `<scheme>://host:port`.
+///
+/// Accepts http/https/socks5 schemes with no credentials, path, query, or
+/// fragment. Credentials are not supported yet. Used by both the General
+/// settings validation and the URL WebView2 proxy path.
+pub(crate) fn normalize_app_proxy_url(value: Option<String>) -> Result<Option<String>, String> {
+    let Some(value) = value.map(|value| value.trim().to_string()) else {
+        return Ok(None);
+    };
+    if value.is_empty() {
+        return Ok(None);
+    }
+
+    let parsed = url::Url::parse(&value).map_err(|error| format!("Proxy URL is invalid: {error}"))?;
+    if !matches!(parsed.scheme(), "http" | "https" | "socks5") {
+        return Err("Proxy scheme must be http, https, or socks5".to_string());
+    }
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err("Proxy credentials are not supported".to_string());
+    }
+    if !matches!(parsed.path(), "" | "/") || parsed.query().is_some() || parsed.fragment().is_some()
+    {
+        return Err("Proxy must not include a path, query, or fragment".to_string());
+    }
+    let host = parsed
+        .host()
+        .ok_or_else(|| "Proxy host is required".to_string())?;
+    // `Url::port()` returns None when the port equals the scheme default (e.g.
+    // 443 for https), so an explicit port must be detected from the raw value
+    // before reading `port_or_known_default()` for the normalized form.
+    if !has_explicit_port(&value) {
+        return Err("Proxy requires a port between 1 and 65535".to_string());
+    }
+    let port = parsed
+        .port_or_known_default()
+        .filter(|port| *port > 0)
+        .ok_or_else(|| "Proxy requires a port between 1 and 65535".to_string())?;
+
+    Ok(Some(format!("{}://{}:{port}", parsed.scheme(), host)))
+}
+
+/// Whether a proxy URL string carries an explicit `:port` in its authority.
+fn has_explicit_port(value: &str) -> bool {
+    let after_scheme = value.split_once("://").map_or(value, |(_, rest)| rest);
+    let authority = after_scheme.split(['/', '?', '#']).next().unwrap_or("");
+    // Bracketed IPv6: the port, if any, follows the closing ']'.
+    let tail = match authority.rfind(']') {
+        Some(close) => &authority[close + 1..],
+        None => authority,
+    };
+    tail.rsplit_once(':')
+        .is_some_and(|(_, port)| !port.is_empty() && port.chars().all(|ch| ch.is_ascii_digit()))
 }
 
 fn validate_credential_settings(
@@ -5147,12 +5226,6 @@ fn validate_ssh_settings(mut settings: SshSettings) -> Result<SshSettings, Strin
 
     settings.default_key_path = trim_optional(settings.default_key_path);
     settings.default_proxy_jump = trim_optional(settings.default_proxy_jump);
-    settings.default_ssh_socks_proxy = match trim_optional(settings.default_ssh_socks_proxy) {
-        Some(value) => Some(crate::socks::validate_socks_proxy(&value)?),
-        None => None,
-    };
-    settings.default_ssh_socks_proxy_username =
-        normalize_socks_proxy_username(settings.default_ssh_socks_proxy_username)?;
     if !(100..=100_000).contains(&settings.buffer_lines) {
         return Err("SSH buffer must be between 100 and 100000 lines".to_string());
     }
@@ -5207,7 +5280,6 @@ fn validate_sftp_settings(mut settings: SftpSettings) -> Result<SftpSettings, St
 }
 
 fn validate_url_settings(mut settings: UrlSettings) -> Result<UrlSettings, String> {
-    settings.default_proxy_url = normalize_url_proxy(settings.default_proxy_url)?;
     settings.default_data_partition = settings
         .default_data_partition
         .map(|partition| partition.trim().to_string())

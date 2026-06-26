@@ -51,6 +51,8 @@ export const defaultGeneralSettings: GeneralSettings = {
   statusBarMonitorIntervalSeconds: 5,
   advancedDebuggingEnabled: false,
   rdpWebviewStability: false,
+  proxyMode: "system",
+  proxyUrl: "",
   lastBackupAt: null,
 };
 
@@ -105,8 +107,6 @@ export const defaultSshSettings: SshSettings = {
   defaultPort: 22,
   defaultKeyPath: "",
   defaultProxyJump: "",
-  defaultSshSocksProxy: "",
-  defaultSshSocksProxyUsername: "",
   defaultSshCompression: "fast",
   bufferLines: 5000,
   defaultTransparency: 50,
@@ -128,7 +128,6 @@ export const defaultSftpSettings: SftpSettings = {
 
 export const defaultUrlSettings: UrlSettings = {
   ignoreCertificateErrors: false,
-  defaultProxyUrl: "",
   defaultDataPartition: "",
 };
 

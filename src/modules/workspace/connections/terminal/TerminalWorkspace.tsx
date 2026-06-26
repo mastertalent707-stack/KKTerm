@@ -1408,14 +1408,13 @@ function TmuxSessionTag({
 }
 
 function tmuxConnectionRequest(connection: Connection) {
-  const sshSettings = useWorkspaceStore.getState().sshSettings;
   return {
     host: connection.host,
     user: connection.user,
     port: connection.port,
     keyPath: connection.keyPath,
     proxyJump: connection.proxyJump,
-    ...resolveSshSocksProxyRequest(connection, sshSettings),
+    ...resolveSshSocksProxyRequest(connection),
     authMethod: connection.authMethod,
     secretOwnerId: connectionPasswordOwnerId(connection),
     passphraseOwnerId: connection.id,
@@ -2077,7 +2076,7 @@ function TerminalPaneView({
             request: {
               host: connection.host,
               port: connection.port,
-              ...resolveSshSocksProxyRequest(connection, sshSettings),
+              ...resolveSshSocksProxyRequest(connection),
             },
           });
           await confirmTrustedSshHostKey(preview);
@@ -2125,7 +2124,7 @@ function TerminalPaneView({
             port: connection.port,
             keyPath: connection.keyPath,
             proxyJump: connection.proxyJump,
-            ...resolveSshSocksProxyRequest(connection, sshSettings),
+            ...resolveSshSocksProxyRequest(connection),
             authMethod: connection.authMethod,
             secretOwnerId: connectionPasswordOwnerId(connection),
             passphraseOwnerId: connection.type === "ssh" ? connection.id : undefined,

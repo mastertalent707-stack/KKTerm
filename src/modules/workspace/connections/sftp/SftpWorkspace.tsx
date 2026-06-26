@@ -577,7 +577,7 @@ export function SftpWorkspace({
             request: {
               host: connection.host,
               port: connection.port,
-              ...resolveSshSocksProxyRequest(connection, useWorkspaceStore.getState().sshSettings),
+              ...resolveSshSocksProxyRequest(connection),
             },
           });
           await confirmTrustedSshHostKey(preview);
