@@ -435,30 +435,6 @@ fn ssh_socks_proxy_username_round_trips_without_storing_passwords_in_sqlite() {
 }
 
 #[test]
-fn ssh_settings_store_socks_proxy_username_without_password() {
-    let storage = Storage::open(temp_db_path("ssh-socks-proxy-settings")).expect("storage opens");
-    let mut settings = storage.ssh_settings().expect("SSH settings load");
-    settings.default_ssh_socks_proxy = Some("  10.0.0.119:1080  ".to_string());
-    settings.default_ssh_socks_proxy_username = Some("  proxy-user  ".to_string());
-
-    let saved = storage
-        .update_ssh_settings(settings)
-        .expect("SSH settings update");
-    assert_eq!(
-        saved.default_ssh_socks_proxy.as_deref(),
-        Some("10.0.0.119:1080")
-    );
-    assert_eq!(
-        saved.default_ssh_socks_proxy_username.as_deref(),
-        Some("proxy-user")
-    );
-
-    let sqlite_bytes = fs::read(&storage.db_path).expect("database is readable");
-    let sqlite_text = String::from_utf8_lossy(&sqlite_bytes);
-    assert!(!sqlite_text.contains("proxy-login-password"));
-}
-
-#[test]
 fn local_connection_persists_startup_directory_and_script() {
     let storage = Storage::open(temp_db_path("local-startup-options")).expect("storage opens");
 
@@ -2823,8 +2799,6 @@ fn ssh_settings_round_trip_through_settings_table() {
             default_port: 2200,
             default_key_path: Some("  C:\\Users\\example\\.ssh\\deploy_ed25519  ".to_string()),
             default_proxy_jump: Some("  bastion.internal  ".to_string()),
-            default_ssh_socks_proxy: Some("  127.0.0.1:1080  ".to_string()),
-            default_ssh_socks_proxy_username: None,
             buffer_lines: 12_000,
             default_transparency: 40,
             default_use_tmux_sessions: false,
@@ -2862,10 +2836,6 @@ fn ssh_settings_round_trip_through_settings_table() {
     assert_eq!(
         reloaded.default_proxy_jump.as_deref(),
         Some("bastion.internal")
-    );
-    assert_eq!(
-        reloaded.default_ssh_socks_proxy.as_deref(),
-        Some("127.0.0.1:1080")
     );
 }
 

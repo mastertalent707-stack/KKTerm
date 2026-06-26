@@ -63,6 +63,23 @@ pub fn current() -> GlobalProxy {
         .unwrap_or(GlobalProxy::System)
 }
 
+/// The `host:port` (or `user:pass@host:port`) endpoint for a raw-TCP SOCKS5
+/// dialer (SSH/SFTP, Telnet), when the global proxy is a manual SOCKS5 proxy.
+///
+/// Raw-TCP transports cannot use a system or HTTP/HTTPS proxy, so every other
+/// mode returns `None` (direct). The stored manual value is normalized to
+/// `socks5://host:port`; the scheme is stripped here because
+/// `crate::socks::connect_via_socks5` takes a bare `host:port` endpoint.
+pub fn socks_endpoint() -> Option<String> {
+    match current() {
+        GlobalProxy::Manual(url) => url
+            .strip_prefix("socks5://")
+            .filter(|endpoint| !endpoint.is_empty())
+            .map(str::to_string),
+        _ => None,
+    }
+}
+
 /// Apply the cached global proxy to an async `reqwest` client builder.
 pub fn apply_async(builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
     match current() {
@@ -109,15 +126,27 @@ mod tests {
     }
 
     #[test]
-    fn cache_round_trips() {
+    fn cache_and_socks_endpoint_round_trip() {
+        // One test owns the process-global cache so parallel tests cannot race
+        // on it.
         set(GlobalProxy::Direct);
         assert_eq!(current(), GlobalProxy::Direct);
-        set(GlobalProxy::Manual("http://proxy.example:3128".to_string()));
+        assert_eq!(socks_endpoint(), None);
+
+        set(GlobalProxy::Manual("socks5://127.0.0.1:1080".to_string()));
         assert_eq!(
             current(),
-            GlobalProxy::Manual("http://proxy.example:3128".to_string())
+            GlobalProxy::Manual("socks5://127.0.0.1:1080".to_string())
         );
+        // A manual SOCKS5 proxy yields a bare host:port for raw-TCP dialers.
+        assert_eq!(socks_endpoint().as_deref(), Some("127.0.0.1:1080"));
+
+        // HTTP/HTTPS manual proxies cannot carry raw TCP sessions.
+        set(GlobalProxy::Manual("http://proxy.example:3128".to_string()));
+        assert_eq!(socks_endpoint(), None);
+
         set(GlobalProxy::System);
         assert_eq!(current(), GlobalProxy::System);
+        assert_eq!(socks_endpoint(), None);
     }
 }

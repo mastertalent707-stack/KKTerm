@@ -608,10 +608,6 @@ pub struct SshSettings {
     default_port: u16,
     default_key_path: Option<String>,
     default_proxy_jump: Option<String>,
-    #[serde(default)]
-    default_ssh_socks_proxy: Option<String>,
-    #[serde(default)]
-    default_ssh_socks_proxy_username: Option<String>,
     #[serde(default = "default_ssh_buffer_lines")]
     buffer_lines: u32,
     #[serde(default = "default_terminal_transparency")]
@@ -4586,8 +4582,6 @@ fn default_ssh_settings() -> SshSettings {
         default_port: 22,
         default_key_path: default_ssh_key_path(),
         default_proxy_jump: None,
-        default_ssh_socks_proxy: None,
-        default_ssh_socks_proxy_username: None,
         buffer_lines: default_ssh_buffer_lines(),
         default_transparency: default_terminal_transparency(),
         default_use_tmux_sessions: default_use_tmux_sessions(),
@@ -5232,12 +5226,6 @@ fn validate_ssh_settings(mut settings: SshSettings) -> Result<SshSettings, Strin
 
     settings.default_key_path = trim_optional(settings.default_key_path);
     settings.default_proxy_jump = trim_optional(settings.default_proxy_jump);
-    settings.default_ssh_socks_proxy = match trim_optional(settings.default_ssh_socks_proxy) {
-        Some(value) => Some(crate::socks::validate_socks_proxy(&value)?),
-        None => None,
-    };
-    settings.default_ssh_socks_proxy_username =
-        normalize_socks_proxy_username(settings.default_ssh_socks_proxy_username)?;
     if !(100..=100_000).contains(&settings.buffer_lines) {
         return Err("SSH buffer must be between 100 and 100000 lines".to_string());
     }

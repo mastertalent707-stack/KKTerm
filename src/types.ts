@@ -729,8 +729,6 @@ export interface SshSettings {
   defaultPort: number;
   defaultKeyPath?: string;
   defaultProxyJump?: string;
-  defaultSshSocksProxy?: string;
-  defaultSshSocksProxyUsername?: string;
   defaultSshCompression: SshCompressionMode;
   bufferLines: number;
   defaultTransparency: number;
