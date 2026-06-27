@@ -148,7 +148,10 @@ export function FleetsTab() {
     }
   }, [view, activeGroup, loadRacks]);
 
-  const racks = activeGroup ? (racksByFleet[activeGroup.id] ?? []) : [];
+  const racks = useMemo(
+    () => (activeGroup ? (racksByFleet[activeGroup.id] ?? []) : []),
+    [activeGroup, racksByFleet],
+  );
   const rackRegions = useMemo(() => groupRacksByRegionArea(racks), [racks]);
 
   // A placed Connection whose id no longer resolves to a Fleet member (deleted

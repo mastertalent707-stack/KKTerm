@@ -92,7 +92,8 @@ fn validate_height(height_u: u32) -> Result<u32> {
 }
 
 fn metadata_to_json(metadata: &RackItemMetadata) -> Result<String> {
-    serde_json::to_string(metadata).map_err(|error| ItopsStorageError::Validation(error.to_string()))
+    serde_json::to_string(metadata)
+        .map_err(|error| ItopsStorageError::Validation(error.to_string()))
 }
 
 fn parse_metadata(raw: &str) -> RackItemMetadata {
@@ -116,13 +117,13 @@ fn row_to_item(row: &rusqlite::Row<'_>) -> rusqlite::Result<RackItem> {
     })
 }
 
-const SELECT_ITEM_COLUMNS: &str =
-    "id, rack_id, connection_id, kind, label, start_u, height_u, metadata_json \
+const SELECT_ITEM_COLUMNS: &str = "id, rack_id, connection_id, kind, label, start_u, height_u, metadata_json \
      FROM itops_fleet_rack_items";
 
 fn list_items_for_rack(conn: &SqliteConnection, rack_id: &str) -> Result<Vec<RackItem>> {
-    let mut stmt =
-        conn.prepare(&format!("SELECT {SELECT_ITEM_COLUMNS} WHERE rack_id = ? ORDER BY start_u"))?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {SELECT_ITEM_COLUMNS} WHERE rack_id = ? ORDER BY start_u"
+    ))?;
     let items = stmt
         .query_map(params![rack_id], row_to_item)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -175,8 +176,9 @@ const SELECT_RACK_COLUMNS: &str =
 
 /// All Racks in a Fleet, ordered by `sort_order`, each with its items hydrated.
 pub fn list_racks(conn: &SqliteConnection, fleet_id: &str) -> Result<Vec<Rack>> {
-    let mut stmt =
-        conn.prepare(&format!("SELECT {SELECT_RACK_COLUMNS} WHERE fleet_id = ? ORDER BY sort_order"))?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {SELECT_RACK_COLUMNS} WHERE fleet_id = ? ORDER BY sort_order"
+    ))?;
     let mut racks = stmt
         .query_map(params![fleet_id], row_to_rack)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -206,7 +208,15 @@ pub fn create_rack(
     conn.execute(
         "INSERT INTO itops_fleet_racks (id, fleet_id, name, region, area, height_u, sort_order)
          VALUES (?, ?, ?, ?, ?, ?, ?)",
-        params![id, fleet_id, name, region.trim(), area.trim(), height_u, next_sort],
+        params![
+            id,
+            fleet_id,
+            name,
+            region.trim(),
+            area.trim(),
+            height_u,
+            next_sort
+        ],
     )?;
     Ok(Rack {
         id: id.to_string(),
@@ -280,7 +290,11 @@ pub fn delete_rack(conn: &SqliteConnection, id: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn reorder_racks(conn: &SqliteConnection, fleet_id: &str, ordered_ids: &[String]) -> Result<()> {
+pub fn reorder_racks(
+    conn: &SqliteConnection,
+    fleet_id: &str,
+    ordered_ids: &[String],
+) -> Result<()> {
     for (index, id) in ordered_ids.iter().enumerate() {
         conn.execute(
             "UPDATE itops_fleet_racks SET sort_order = ? WHERE id = ? AND fleet_id = ?",
@@ -294,12 +308,18 @@ pub fn reorder_racks(conn: &SqliteConnection, fleet_id: &str, ordered_ids: &[Str
 
 /// Validate that a Connection-backed item carries a connection id, and passive
 /// items do not masquerade as openable.
-fn validate_kind_connection(kind: RackItemKind, connection_id: &Option<String>) -> Result<()> {
+fn normalize_item_connection(
+    kind: RackItemKind,
+    connection_id: Option<String>,
+) -> Result<Option<String>> {
     match (kind, connection_id) {
-        (RackItemKind::Connection, None) => Err(ItopsStorageError::Validation(
+        (RackItemKind::Connection, Some(connection_id)) if !connection_id.trim().is_empty() => {
+            Ok(Some(connection_id))
+        }
+        (RackItemKind::Connection, _) => Err(ItopsStorageError::Validation(
             "a connection rack item requires a connectionId".to_string(),
         )),
-        _ => Ok(()),
+        _ => Ok(None),
     }
 }
 
@@ -315,7 +335,7 @@ pub fn place_rack_item(
     height_u: u32,
     metadata: RackItemMetadata,
 ) -> Result<RackItem> {
-    validate_kind_connection(kind, &connection_id)?;
+    let connection_id = normalize_item_connection(kind, connection_id)?;
     let rack_height = fetch_rack_height(conn, rack_id)?;
     let existing = existing_spans(conn, rack_id)?;
     validate_placement(rack_height, &existing, None, Span { start_u, height_u })?;
@@ -357,7 +377,7 @@ pub fn update_rack_item(
     label: &str,
     metadata: RackItemMetadata,
 ) -> Result<RackItem> {
-    validate_kind_connection(kind, &connection_id)?;
+    let connection_id = normalize_item_connection(kind, connection_id)?;
     let metadata_json = metadata_to_json(&metadata)?;
     let affected = conn.execute(
         "UPDATE itops_fleet_rack_items
@@ -396,7 +416,10 @@ pub fn move_rack_item(
 }
 
 pub fn remove_rack_item(conn: &SqliteConnection, id: &str) -> Result<()> {
-    let affected = conn.execute("DELETE FROM itops_fleet_rack_items WHERE id = ?", params![id])?;
+    let affected = conn.execute(
+        "DELETE FROM itops_fleet_rack_items WHERE id = ?",
+        params![id],
+    )?;
     if affected == 0 {
         return Err(ItopsStorageError::NotFound);
     }
@@ -499,7 +522,10 @@ mod tests {
 
         delete_rack(&conn, "r1").unwrap();
         assert!(list_racks(&conn, "f1").unwrap().is_empty());
-        assert!(matches!(delete_rack(&conn, "r1"), Err(ItopsStorageError::NotFound)));
+        assert!(matches!(
+            delete_rack(&conn, "r1"),
+            Err(ItopsStorageError::NotFound)
+        ));
     }
 
     #[test]
@@ -567,15 +593,64 @@ mod tests {
             Err(ItopsStorageError::Validation(_))
         ));
 
+        let passive = place_rack_item(
+            &conn,
+            "i4",
+            "r1",
+            Some("stale-connection".into()),
+            RackItemKind::Switch,
+            "sw2",
+            20,
+            1,
+            RackItemMetadata::default(),
+        )
+        .unwrap();
+        assert_eq!(passive.connection_id, None);
+
         // Move the web host down; it must clear the PDU at U1.
         let moved = move_rack_item(&conn, "i1", "r1", 10, 2).unwrap();
         assert_eq!(moved.start_u, 10);
 
         let racks = list_racks(&conn, "f1").unwrap();
-        assert_eq!(racks[0].items.len(), 2);
+        assert_eq!(racks[0].items.len(), 3);
 
         remove_rack_item(&conn, "i1").unwrap();
-        assert_eq!(list_racks(&conn, "f1").unwrap()[0].items.len(), 1);
+        assert_eq!(list_racks(&conn, "f1").unwrap()[0].items.len(), 2);
+    }
+
+    #[test]
+    fn updating_to_passive_item_clears_connection_id() {
+        let conn = open_test_db();
+        create_rack(&conn, "r1", "f1", "A12", "", "", 42).unwrap();
+        place_rack_item(
+            &conn,
+            "i1",
+            "r1",
+            Some("c1".into()),
+            RackItemKind::Connection,
+            "web-01",
+            10,
+            1,
+            RackItemMetadata::default(),
+        )
+        .unwrap();
+
+        let updated = update_rack_item(
+            &conn,
+            "i1",
+            RackItemKind::Switch,
+            Some("c1".into()),
+            "top switch",
+            RackItemMetadata::default(),
+        )
+        .unwrap();
+
+        assert_eq!(updated.kind, RackItemKind::Switch);
+        assert_eq!(updated.connection_id, None);
+        assert_eq!(
+            list_racks(&conn, "f1").unwrap()[0].items[0].connection_id,
+            None
+        );
     }
 
     #[test]
