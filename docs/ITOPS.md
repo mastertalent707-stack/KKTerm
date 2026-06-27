@@ -481,6 +481,60 @@ metadata-only page-context projection.
 Phases 0–3 are the minimum that delivers durable monitoring + SSH batch.
 Phases 4–8 are independent and can be reordered by demand.
 
+## Planned / Deferred Enhancements
+
+The plumbing above is complete (Host Groups, SSH Batch Runs, durable
+Automations + action catalog, playbooks, AI integration), but from an
+operator's seat the Module today is mostly a transport: it returns N raw
+per-host output blobs and a flat list of names. The enhancements below turn it
+into something that produces *answers* and a fleet you *see*. They are captured
+here so the design is not lost; sequence them by demand.
+
+**Fleet management (in progress, planned in `docs/FLEET.md`).** Phase A has
+**landed**: Host Group is renamed to **Fleet** across the product — the table is
+now `itops_fleets`, the run-history soft reference is `fleet_id`, and the IT Ops
+tab/commands/i18n use the Fleet term. The historical design prose above still
+refers to the original "Host Group" naming; treat `docs/FLEET.md` as the source
+of truth for current Fleet naming and the remaining topology phases (B–E).
+The remaining Fleet work adds a virtual-datacenter layer: per-Fleet **Racks**
+grouped by
+Region/Area, drawn as full 42U **rack elevations**, holding placed Connections
+(click to open ssh/rdp/vnc/etc.) and passive items (switch, PDU, patch panel,
+blank, label). Also enables rack/area/region-scoped Batch Runs. See
+`docs/FLEET.md` for the detailed plan and data model.
+
+The following are noted for later consideration (not yet planned in detail):
+
+1. **Run result synthesis (low-hanging).** A Batch Run already persists
+   per-host `{exitCode, ok, output}` in `itops_run_history.report_json` and
+   `RunReportView` replays the text. Add a synthesis layer over that *existing*
+   data: an **aggregate view** (group hosts by identical output / exit code —
+   "27 OK, 2 disk 94%, 1 unreachable"), an **outlier/diff** mode (show only
+   hosts whose output differs from the majority — fleet drift), and an
+   **AI run summary** that reads the finished report and writes a verdict.
+   Mostly frontend + AI over data the backend already stores; highest
+   value-per-effort. Reframes a run from "30 transcripts" to "one answer."
+
+3. **Built-in task library (cheap quick win).** A new Batch Run today is an
+   empty textarea. Ship a curated, per-OS task catalog (disk/mem/uptime,
+   who's-logged-in, service status, package-update dry-run, security-patch
+   status) so the tool is usable in the first 30 seconds. Matches the ROADMAP
+   "reusable workflow templates" item.
+
+4. **Durable Automation event log.** Automation fires are transient today
+   (`itops://automation` emits a one-shot notice/popup, then it's gone). Batch
+   Runs get durable `itops_run_history`; Automations get nothing. Add a durable
+   automation-event log (what fired, when, trigger snapshot, which actions ran,
+   outcome) with an acknowledge state, so "did it fire overnight?" is
+   answerable. Live runtime state still stays in-memory; only the fire record
+   is durable.
+
+5. **Scheduled inventory with trend.** The `Schedule` (cron) trigger only
+   drives fire-and-forget actions. Add a pattern that runs a query on a
+   schedule, stores each snapshot, and shows what changed since the last run —
+   reusing the run-history store plus the diff from (1). This is where ongoing
+   (vs. one-shot) value comes from, and feeds a future fleet-health overview.
+
 ## Target `CONTEXT.md` Vocabulary (lands with Phase 3)
 
 These entries are **not** yet true of the shipping code — Watchdogs are

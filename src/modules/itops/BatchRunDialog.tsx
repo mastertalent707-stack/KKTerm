@@ -1,4 +1,4 @@
-// Launch a Batch Run: pick a Host Group, then either a one-shot script body or
+// Launch a Batch Run: pick a Fleet, then either a one-shot script body or
 // an interactive Playbook (an ordered expect-style step sequence run over a
 // single shell — docs/ITOPS.md). Built from the shared dialog primitives.
 
@@ -16,11 +16,15 @@ import {
   TextArea,
   TextInput,
 } from "../../app/ui/dialog";
-import type { BatchTask, PlaybookStep } from "../../types";
+import type { BatchTask, PlaybookStep, RunScope } from "../../types";
 import { useWorkspaceStore } from "../../store";
 import { useItOpsStore } from "./state";
 
 type TaskMode = "script" | "playbook";
+
+function scopeIsSet(scope?: RunScope | null): scope is RunScope {
+  return !!scope && !!(scope.rackId || scope.region || scope.area);
+}
 
 function emptyStep(): PlaybookStep {
   return { name: "", send: "", expect: "", timeoutSeconds: null };
@@ -28,26 +32,41 @@ function emptyStep(): PlaybookStep {
 
 export function BatchRunDialog({
   defaultGroupId,
+  defaultScope,
   onClose,
   onStarted,
 }: {
   defaultGroupId?: string | null;
+  defaultScope?: RunScope | null;
   onClose: () => void;
   onStarted: () => void;
 }) {
   const { t } = useTranslation();
-  const hostGroups = useItOpsStore((state) => state.hostGroups);
+  const fleets = useItOpsStore((state) => state.fleets);
+  const racksByFleet = useItOpsStore((state) => state.racksByFleet);
   const startBatchRun = useItOpsStore((state) => state.startBatchRun);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
 
-  const [groupId, setGroupId] = useState(defaultGroupId ?? hostGroups[0]?.id ?? "");
+  const [groupId, setGroupId] = useState(defaultGroupId ?? fleets[0]?.id ?? "");
+  // A scoped run targets only the placed hosts in the matching racks; the scope
+  // is fixed for the launch (it came from a rack/region/area "Run" affordance).
+  const scope = scopeIsSet(defaultScope) ? defaultScope : null;
+  const scopeLabel = (() => {
+    if (!scope) return "";
+    if (scope.rackId) {
+      const rack = (racksByFleet[groupId] ?? []).find((entry) => entry.id === scope.rackId);
+      return t("itops.batchRuns.scopeRack", { name: rack?.name ?? scope.rackId });
+    }
+    if (scope.region) return t("itops.batchRuns.scopeRegion", { name: scope.region });
+    return t("itops.batchRuns.scopeArea", { name: scope.area ?? "" });
+  })();
   const [mode, setMode] = useState<TaskMode>("script");
   const [body, setBody] = useState("");
   const [playbookName, setPlaybookName] = useState("");
   const [steps, setSteps] = useState<PlaybookStep[]>([emptyStep()]);
   const [busy, setBusy] = useState(false);
 
-  const hasGroups = hostGroups.length > 0;
+  const hasGroups = fleets.length > 0;
   // Drop only fully-blank steps. A step with an empty `send` but a set `expect`
   // is valid (e.g. wait for the initial prompt before the first command).
   const filledSteps = steps.filter(
@@ -87,7 +106,7 @@ export function BatchRunDialog({
     }
     setBusy(true);
     try {
-      await startBatchRun(groupId, buildTask());
+      await startBatchRun(groupId, buildTask(), scope);
       showStatusBarNotice(t("itops.batchRuns.startedNotice"), { tone: "success" });
       onStarted();
       onClose();
@@ -117,13 +136,15 @@ export function BatchRunDialog({
       >
         {hasGroups ? (
           <>
-            <Field label={t("itops.batchRuns.hostGroupLabel")} req>
+            <Field label={t("itops.batchRuns.fleetLabel")} req>
               <Select
                 value={groupId}
+                disabled={!!scope}
                 onChange={(event) => setGroupId(event.currentTarget.value)}
-                options={hostGroups.map((group) => ({ value: group.id, label: group.name }))}
+                options={fleets.map((group) => ({ value: group.id, label: group.name }))}
               />
             </Field>
+            {scope ? <div className="it-scope-note">{scopeLabel}</div> : null}
             <Field label={t("itops.batchRuns.taskTypeLabel")}>
               <Segmented
                 value={mode}

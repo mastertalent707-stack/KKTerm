@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 33;
+const SCHEMA_USER_VERSION: i32 = 35;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -277,11 +277,11 @@ CREATE TABLE IF NOT EXISTS installer_tool_state (
     last_check_at INTEGER
 );
 
--- IT Ops Module (docs/ITOPS.md). A Host Group is a durable, named selection of
+-- IT Ops Module (docs/ITOPS.md). A Fleet is a durable, named selection of
 -- existing Connections used as a fleet target for Batch Runs and Automations.
 -- It references Connection ids and owns no Session and no secret. Additive in
 -- schema v29.
-CREATE TABLE IF NOT EXISTS itops_host_groups (
+CREATE TABLE IF NOT EXISTS itops_fleets (
     id              TEXT PRIMARY KEY,
     name            TEXT NOT NULL,
     sort_order      INTEGER NOT NULL,
@@ -297,13 +297,13 @@ CREATE TABLE IF NOT EXISTS itops_host_groups (
 );
 
 -- One completed Batch Run (docs/ITOPS.md Phase 2). Append-only audit log; the
--- host_group_id is a soft reference (no FK) so a run survives its group being
+-- fleet_id is a soft reference (no FK) so a run survives its group being
 -- deleted. Live run progress is in-memory only and never lands here. v30.
 CREATE TABLE IF NOT EXISTS itops_run_history (
     id             TEXT PRIMARY KEY,
     -- 'manual' or 'automation:<automation_id>'.
     source         TEXT NOT NULL,
-    host_group_id  TEXT,
+    fleet_id  TEXT,
     -- Redacted one-line task label, never a secret-bearing script body.
     task_summary   TEXT NOT NULL,
     started_at     TEXT NOT NULL,
@@ -330,6 +330,44 @@ CREATE TABLE IF NOT EXISTS itops_automations (
     created_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Fleet topology (docs/FLEET.md Phase B). A Rack is a fixed-height cabinet that
+-- belongs to one Fleet, grouped visually by region + area. v35.
+CREATE TABLE IF NOT EXISTS itops_fleet_racks (
+    id          TEXT PRIMARY KEY,
+    fleet_id    TEXT NOT NULL REFERENCES itops_fleets(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    region      TEXT NOT NULL DEFAULT '',
+    area        TEXT NOT NULL DEFAULT '',
+    height_u    INTEGER NOT NULL DEFAULT 42,
+    sort_order  INTEGER NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_itops_fleet_racks_fleet
+    ON itops_fleet_racks(fleet_id, sort_order);
+
+-- One device occupying a contiguous U span in a Rack. Connection-backed when
+-- connection_id is set; passive otherwise. connection_id is a SOFT reference
+-- (no FK): a placed host whose Connection is later deleted becomes a flagged
+-- "ghost" item the UI surfaces, rather than vanishing the rack layout. v35.
+CREATE TABLE IF NOT EXISTS itops_fleet_rack_items (
+    id            TEXT PRIMARY KEY,
+    rack_id       TEXT NOT NULL REFERENCES itops_fleet_racks(id) ON DELETE CASCADE,
+    connection_id TEXT,
+    -- 'connection' | 'switch' | 'pdu' | 'patchPanel' | 'blank' | 'label' | 'server'
+    kind          TEXT NOT NULL,
+    label         TEXT NOT NULL DEFAULT '',
+    start_u       INTEGER NOT NULL,
+    height_u      INTEGER NOT NULL DEFAULT 1,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_itops_fleet_rack_items_rack
+    ON itops_fleet_rack_items(rack_id, start_u);
 "#;
 
 pub struct Storage {
@@ -1725,6 +1763,15 @@ impl Storage {
         })
     }
 
+    /// Fetch a single Connection by id, across all Workspaces. Used by the IT
+    /// Ops Fleet Rack View to open a placed Connection's Session (docs/FLEET.md
+    /// Phase D); a Fleet may reference Connections in any Workspace, so this is
+    /// not Workspace-scoped.
+    pub fn get_connection(&self, connection_id: &str) -> Result<SavedConnection, String> {
+        let connection = self.lock()?;
+        get_connection_by_id(&connection, connection_id)
+    }
+
     /// Root tree scoped to a single Workspace — the UI Connection Tree path.
     pub fn list_connection_tree_for_workspace(
         &self,
@@ -1814,6 +1861,37 @@ impl Storage {
         connection
             .execute_batch(CURRENT_SCHEMA)
             .map_err(to_storage_error)?;
+        // v34: IT Ops "Host Group" -> "Fleet" rename (docs/FLEET.md Phase A).
+        // CURRENT_SCHEMA now defines `itops_fleets`; copy any legacy
+        // `itops_host_groups` rows into it and drop the old table. Guarded by an
+        // existence check so it runs once on upgrade and is a no-op on fresh
+        // installs (which never create the legacy table).
+        if table_exists(&connection, "itops_host_groups")? {
+            connection
+                .execute_batch(
+                    r#"
+                    INSERT INTO itops_fleets
+                        (id, name, sort_order, member_ids_json, filter_json, transport, created_at, updated_at)
+                    SELECT id, name, sort_order, member_ids_json, filter_json, transport, created_at, updated_at
+                    FROM itops_host_groups;
+                    DROP TABLE itops_host_groups;
+                    "#,
+                )
+                .map_err(to_storage_error)?;
+        }
+        // v34: rename the run-history soft-reference column to match. The column
+        // is a soft ref (no FK), so a plain RENAME COLUMN is safe; guard on the
+        // legacy column still being present.
+        if column_exists(&connection, "itops_run_history", "host_group_id")?
+            && !column_exists(&connection, "itops_run_history", "fleet_id")?
+        {
+            connection
+                .execute(
+                    "ALTER TABLE itops_run_history RENAME COLUMN host_group_id TO fleet_id",
+                    [],
+                )
+                .map_err(to_storage_error)?;
+        }
         // v32: IT Ops Automations gain an ordered action catalog (Phase 4).
         // Unconditional ensure_column so an existing v31 database picks up the
         // new column (CREATE TABLE IF NOT EXISTS won't add it).

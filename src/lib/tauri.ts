@@ -39,9 +39,14 @@ import type {
   FileBrowserViewOptions,
   FtpConnectionOptions,
   GeneralSettings,
-  HostGroup,
-  HostGroupFilter,
+  Fleet,
+  FleetFilter,
   ItopsTransport,
+  Rack,
+  RackItem,
+  RackItemKind,
+  RackItemMetadata,
+  RunScope,
   ResolvedHost,
   BatchTask,
   RunHistoryEntry,
@@ -1076,43 +1081,98 @@ type CommandMap = {
     args: { workspaceId?: string } | undefined;
     result: ConnectionTree;
   };
-  itops_list_host_groups: {
+  itops_list_fleets: {
     args: undefined;
-    result: HostGroup[];
+    result: Fleet[];
   };
-  itops_create_host_group: {
+  itops_create_fleet: {
     args: {
       name: string;
       memberIds: string[];
-      filter: HostGroupFilter | null;
+      filter: FleetFilter | null;
       transport: ItopsTransport;
     };
-    result: HostGroup;
+    result: Fleet;
   };
-  itops_update_host_group: {
+  itops_update_fleet: {
     args: {
       id: string;
       name: string;
       memberIds: string[];
-      filter: HostGroupFilter | null;
+      filter: FleetFilter | null;
       transport: ItopsTransport;
     };
-    result: HostGroup;
+    result: Fleet;
   };
-  itops_remove_host_group: {
+  itops_remove_fleet: {
     args: { id: string };
     result: void;
   };
-  itops_reorder_host_groups: {
+  itops_reorder_fleets: {
     args: { orderedIds: string[] };
     result: void;
   };
-  itops_resolve_host_group: {
+  itops_resolve_fleet: {
     args: { id: string };
     result: ResolvedHost[];
   };
+  // Fleet topology: Racks + Rack Items (docs/FLEET.md Phase B).
+  itops_list_racks: {
+    args: { fleetId: string };
+    result: Rack[];
+  };
+  itops_create_rack: {
+    args: { fleetId: string; name: string; region: string; area: string; heightU: number };
+    result: Rack;
+  };
+  itops_update_rack: {
+    args: { id: string; name: string; region: string; area: string; heightU: number };
+    result: Rack;
+  };
+  itops_delete_rack: {
+    args: { id: string };
+    result: void;
+  };
+  itops_reorder_racks: {
+    args: { fleetId: string; orderedIds: string[] };
+    result: void;
+  };
+  itops_place_rack_item: {
+    args: {
+      rackId: string;
+      connectionId: string | null;
+      kind: RackItemKind;
+      label: string;
+      startU: number;
+      heightU: number;
+      metadata?: RackItemMetadata;
+    };
+    result: RackItem;
+  };
+  itops_update_rack_item: {
+    args: {
+      id: string;
+      kind: RackItemKind;
+      connectionId: string | null;
+      label: string;
+      metadata?: RackItemMetadata;
+    };
+    result: RackItem;
+  };
+  itops_move_rack_item: {
+    args: { id: string; rackId: string; startU: number; heightU: number };
+    result: RackItem;
+  };
+  itops_remove_rack_item: {
+    args: { id: string };
+    result: void;
+  };
+  itops_get_connection: {
+    args: { id: string };
+    result: Connection;
+  };
   itops_start_batch_run: {
-    args: { hostGroupId: string; task: BatchTask };
+    args: { fleetId: string; task: BatchTask; scope?: RunScope | null };
     result: string;
   };
   itops_cancel_batch_run: {

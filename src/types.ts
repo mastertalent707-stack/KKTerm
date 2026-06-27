@@ -135,22 +135,22 @@ export interface ConnectionTree {
   folders: ConnectionFolder[];
 }
 
-// IT Ops Module (docs/ITOPS.md). A Host Group is a durable, named selection of
+// IT Ops Module (docs/ITOPS.md). A Fleet is a durable, named selection of
 // existing Connections used as a fleet target; ResolvedHost is one concrete
 // target produced by resolving a group at run time.
 export type ItopsTransport = "ssh" | "winrm" | "psexec" | "auto";
 
-export interface HostGroupFilter {
+export interface FleetFilter {
   types: string[];
   folderId?: string | null;
 }
 
-export interface HostGroup {
+export interface Fleet {
   id: string;
   name: string;
   sortOrder: number;
   memberIds: string[];
-  filter?: HostGroupFilter | null;
+  filter?: FleetFilter | null;
   transport: ItopsTransport;
 }
 
@@ -162,6 +162,54 @@ export interface ResolvedHost {
   port?: number | null;
   connectionType: string;
   transport: ItopsTransport;
+}
+
+// Fleet topology (docs/FLEET.md Phase B). A Rack belongs to one Fleet, grouped
+// by region/area, and holds Rack Items at U positions.
+export type RackItemKind =
+  | "connection"
+  | "switch"
+  | "pdu"
+  | "patchPanel"
+  | "blank"
+  | "label"
+  | "server";
+
+export interface RackItemMetadata {
+  accent?: string | null;
+  icon?: string | null;
+  notes?: string | null;
+}
+
+export interface RackItem {
+  id: string;
+  rackId: string;
+  // Soft reference to a Connection id; null for passive items.
+  connectionId?: string | null;
+  kind: RackItemKind;
+  label: string;
+  // Bottom-most U occupied (1-based) and height in U.
+  startU: number;
+  heightU: number;
+  metadata: RackItemMetadata;
+}
+
+export interface Rack {
+  id: string;
+  fleetId: string;
+  name: string;
+  region: string;
+  area: string;
+  heightU: number;
+  sortOrder: number;
+  items: RackItem[];
+}
+
+// Narrows a Batch Run to part of a Fleet's rack topology (docs/FLEET.md Phase D).
+export interface RunScope {
+  rackId?: string | null;
+  region?: string | null;
+  area?: string | null;
 }
 
 // One step of an interactive Playbook: text sent to the host's PTY shell, then
@@ -204,7 +252,7 @@ export interface RunReport {
 export interface RunHistoryEntry {
   id: string;
   source: string;
-  hostGroupId?: string | null;
+  fleetId?: string | null;
   taskSummary: string;
   startedAt: string;
   finishedAt?: string | null;
@@ -223,7 +271,7 @@ export type RunEvent =
   | {
       kind: "started";
       runId: string;
-      hostGroupId?: string | null;
+      fleetId?: string | null;
       taskSummary: string;
       hosts: RunEventHost[];
     }
@@ -251,7 +299,7 @@ export type AutomationAction =
   | { kind: "popup"; title: string; body: string }
   | { kind: "email"; to: string[]; subject: string; body: string }
   | { kind: "webhook"; url: string; method: string; body?: string | null }
-  | { kind: "runBatch"; hostGroupId: string; task: BatchTask };
+  | { kind: "runBatch"; fleetId: string; task: BatchTask };
 
 export interface Automation {
   id: string;

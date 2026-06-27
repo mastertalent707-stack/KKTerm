@@ -1,4 +1,4 @@
-// IT Ops durable types (docs/ITOPS.md). Phase 1 covers Host Groups, Phase 2 the
+// IT Ops durable types (docs/ITOPS.md). Phase 1 covers Fleets, Phase 2 the
 // Batch Run report shapes, and Phase 3 the durable Automation.
 
 use serde::{Deserialize, Serialize};
@@ -63,7 +63,10 @@ pub enum AutomationAction {
         body: Option<String>,
     },
     RunBatch {
-        host_group_id: String,
+        // `hostGroupId` alias keeps Automation actions persisted before the
+        // Fleet rename (docs/FLEET.md Phase A) deserializable from actions_json.
+        #[serde(alias = "hostGroupId")]
+        fleet_id: String,
         task: BatchTask,
     },
 }
@@ -72,7 +75,7 @@ fn default_webhook_method() -> String {
     "POST".to_string()
 }
 
-/// How a Batch Run reaches one host. Stored per Host Group as the default;
+/// How a Batch Run reaches one host. Stored per Fleet as the default;
 /// `Auto` means "derive from the Connection at run time" (resolved in Phase 2+).
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -105,12 +108,12 @@ impl Transport {
     }
 }
 
-/// Optional dynamic membership filter resolved at run time: a Host Group picks up
+/// Optional dynamic membership filter resolved at run time: a Fleet picks up
 /// later-added Connections that match these criteria. An empty filter is treated
 /// as "no filter" and stored as NULL.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct HostGroupFilter {
+pub struct FleetFilter {
     /// Connection `connection_type` values to include (e.g. `["ssh"]`).
     #[serde(default)]
     pub types: Vec<String>,
@@ -119,7 +122,7 @@ pub struct HostGroupFilter {
     pub folder_id: Option<String>,
 }
 
-impl HostGroupFilter {
+impl FleetFilter {
     pub fn is_empty(&self) -> bool {
         self.types.is_empty() && self.folder_id.is_none()
     }
@@ -129,17 +132,129 @@ impl HostGroupFilter {
 /// References Connection ids; owns no Session and no secret.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct HostGroup {
+pub struct Fleet {
     pub id: String,
     pub name: String,
     pub sort_order: i64,
     pub member_ids: Vec<String>,
     #[serde(default)]
-    pub filter: Option<HostGroupFilter>,
+    pub filter: Option<FleetFilter>,
     pub transport: Transport,
 }
 
-/// One concrete fleet target produced by resolving a Host Group at run time.
+/// A Rack in a Fleet's virtual datacenter (docs/FLEET.md Phase B): a fixed-height
+/// cabinet grouped by `region` and `area`, holding Rack Items at U positions.
+/// `items` is hydrated on read (storage joins the items in U order).
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Rack {
+    pub id: String,
+    pub fleet_id: String,
+    pub name: String,
+    #[serde(default)]
+    pub region: String,
+    #[serde(default)]
+    pub area: String,
+    pub height_u: u32,
+    pub sort_order: i64,
+    #[serde(default)]
+    pub items: Vec<RackItem>,
+}
+
+/// What a Rack Item represents. `Connection` items are openable (carry a
+/// `connection_id`); the rest are passive inventory/visual devices.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum RackItemKind {
+    Connection,
+    Switch,
+    Pdu,
+    PatchPanel,
+    Blank,
+    Label,
+    Server,
+}
+
+impl RackItemKind {
+    pub fn as_db_str(self) -> &'static str {
+        match self {
+            RackItemKind::Connection => "connection",
+            RackItemKind::Switch => "switch",
+            RackItemKind::Pdu => "pdu",
+            RackItemKind::PatchPanel => "patchPanel",
+            RackItemKind::Blank => "blank",
+            RackItemKind::Label => "label",
+            RackItemKind::Server => "server",
+        }
+    }
+
+    pub fn from_db_str(value: &str) -> Option<Self> {
+        match value {
+            "connection" => Some(RackItemKind::Connection),
+            "switch" => Some(RackItemKind::Switch),
+            "pdu" => Some(RackItemKind::Pdu),
+            "patchPanel" => Some(RackItemKind::PatchPanel),
+            "blank" => Some(RackItemKind::Blank),
+            "label" => Some(RackItemKind::Label),
+            "server" => Some(RackItemKind::Server),
+            _ => None,
+        }
+    }
+}
+
+/// Presentation-only metadata for a Rack Item. No secrets ever land here.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RackItemMetadata {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+}
+
+/// One device occupying a contiguous `start_u..start_u + height_u` span in a
+/// Rack. `connection_id` is a soft reference to `connections.id` (None = passive).
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RackItem {
+    pub id: String,
+    pub rack_id: String,
+    #[serde(default)]
+    pub connection_id: Option<String>,
+    pub kind: RackItemKind,
+    #[serde(default)]
+    pub label: String,
+    pub start_u: u32,
+    pub height_u: u32,
+    #[serde(default)]
+    pub metadata: RackItemMetadata,
+}
+
+/// Optional narrowing of a Batch Run to part of a Fleet's rack topology
+/// (docs/FLEET.md Phase D). When set, only the placed Connection items in the
+/// matching racks are targeted. All provided (non-empty) fields must match.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RunScope {
+    #[serde(default)]
+    pub rack_id: Option<String>,
+    #[serde(default)]
+    pub region: Option<String>,
+    #[serde(default)]
+    pub area: Option<String>,
+}
+
+impl RunScope {
+    pub fn is_empty(&self) -> bool {
+        self.rack_id.as_deref().unwrap_or("").is_empty()
+            && self.region.as_deref().unwrap_or("").is_empty()
+            && self.area.as_deref().unwrap_or("").is_empty()
+    }
+}
+
+/// One concrete fleet target produced by resolving a Fleet at run time.
 /// Lightweight and secret-free — the seam the Phase 2 Batch Run executor builds
 /// on. Passwords/keys are never carried here; they stay in the keychain.
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
@@ -303,7 +418,7 @@ pub struct RunReport {
 pub struct RunHistoryEntry {
     pub id: String,
     pub source: String,
-    pub host_group_id: Option<String>,
+    pub fleet_id: Option<String>,
     pub task_summary: String,
     pub started_at: String,
     pub finished_at: Option<String>,
@@ -327,7 +442,7 @@ pub struct RunEventHost {
 pub enum RunEvent {
     Started {
         run_id: String,
-        host_group_id: Option<String>,
+        fleet_id: Option<String>,
         task_summary: String,
         hosts: Vec<RunEventHost>,
     },
