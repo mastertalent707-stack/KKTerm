@@ -15,6 +15,7 @@ import antigravity from "../../assets/installer-icons/antigravity.svg?url";
 import astral from "../../assets/installer-icons/astral.svg?url";
 import bentopdf from "../../assets/installer-icons/bentopdf.svg?url";
 import bruno from "../../assets/installer-icons/bruno.svg?url";
+import bun from "../../assets/installer-icons/bun.svg?url";
 import claudeCode from "../../assets/installer-icons/claude-code.svg?url";
 import codex from "../../assets/installer-icons/codex.svg?url";
 import cursor from "../../assets/installer-icons/cursor.svg?url";
@@ -80,7 +81,7 @@ const RECIPE_ICON_URLS: Record<string, string> = {
   coreutils: defaultIcon,
   opencode,
   rustup: rust,
-  bun: defaultIcon,
+  bun,
   "codex-desktop": codex,
   "claude-desktop": anthropic,
   "hermes-agent": hermesAgent,

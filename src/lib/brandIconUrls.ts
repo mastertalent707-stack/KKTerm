@@ -6,6 +6,7 @@ import antigravityIcon from "../assets/installer-icons/antigravity.svg?url";
 import astralIcon from "../assets/installer-icons/astral.svg?url";
 import bentoPdfIcon from "../assets/installer-icons/bentopdf.svg?url";
 import brunoIcon from "../assets/installer-icons/bruno.svg?url";
+import bunIcon from "../assets/installer-icons/bun.svg?url";
 import claudeCodeIcon from "../assets/installer-icons/claude-code.svg?url";
 import codexIcon from "../assets/installer-icons/codex.svg?url";
 import cursorIcon from "../assets/installer-icons/cursor.svg?url";
@@ -67,6 +68,7 @@ const brandIconUrlById: Record<string, string> = {
   astral: astralIcon,
   bentopdf: bentoPdfIcon,
   bruno: brunoIcon,
+  bun: bunIcon,
   ditto: dittoIcon,
   docker: dockerIcon,
   everything: everythingIcon,

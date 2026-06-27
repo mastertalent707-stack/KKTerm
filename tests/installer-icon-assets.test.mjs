@@ -49,6 +49,7 @@ for (const { id, asset } of [
   { id: "ffmpeg", asset: "ffmpeg.svg" },
   { id: "oh-my-posh", asset: "oh-my-posh.svg" },
   { id: "bentopdf", asset: "bentopdf.svg" },
+  { id: "bun", asset: "bun.svg" },
   { id: "openflowkit", asset: "openflowkit.svg" },
   { id: "scrcpy", asset: "scrcpy.svg" },
 ]) {

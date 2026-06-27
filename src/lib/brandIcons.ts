@@ -139,6 +139,11 @@ export const BRAND_ICON_ENTRIES: BrandIconEntry[] = [
     keywords: ["bruno", "api", "network", "developer"],
   },
   {
+    id: "bun",
+    label: "Bun",
+    keywords: ["bun", "javascript", "runtime", "package", "developer"],
+  },
+  {
     id: "claude-code-installer",
     label: "Claude Code",
     keywords: ["claude", "anthropic", "ai", "assistant", "code", "developer", "cli"],

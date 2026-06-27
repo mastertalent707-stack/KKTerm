@@ -20,8 +20,8 @@ limited to small app-identification assets.
 
 ## Sources
 
-- `7zip.svg`, `anthropic.svg`, `cursor.svg`, `excalidraw.svg`, `ffmpeg.svg`,
-  `git.svg`, `langflow.svg`, `n8n.svg`, `notepadpp.svg`, `ollama.svg`,
+- `7zip.svg`, `anthropic.svg`, `bun.svg`, `cursor.svg`, `excalidraw.svg`,
+  `ffmpeg.svg`, `git.svg`, `langflow.svg`, `n8n.svg`, `notepadpp.svg`, `ollama.svg`,
   `rust.svg`, `rustdesk.svg`, `sharex.svg`, `tailscale.svg`: Simple Icons CDN
   (`git.svg` uses the official Git brand color `#F05032`).
 - `openai.svg`: Simple Icons npm package.
