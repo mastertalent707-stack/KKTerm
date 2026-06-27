@@ -13,6 +13,7 @@ import type {
   Fleet,
   FleetFilter,
   ItopsTransport,
+  Rack,
   ResolvedHost,
   RunEvent,
   RunHistoryEntry,
@@ -157,6 +158,11 @@ interface ItOpsState {
   removeFleet: (id: string) => Promise<void>;
   resolveFleet: (id: string) => Promise<ResolvedHost[]>;
 
+  // ── Fleet topology / Rack View (docs/FLEET.md Phase C) ──
+  /** Racks per Fleet id, hydrated with their items. Loaded on demand. */
+  racksByFleet: Record<string, Rack[]>;
+  loadRacks: (fleetId: string) => Promise<void>;
+
   // ── Batch Runs (Phase 2) ──
   activeRun: LiveRun | null;
   runHistory: RunHistoryEntry[];
@@ -252,6 +258,18 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
       return [];
     }
     return invokeCommand("itops_resolve_fleet", { id });
+  },
+
+  // ── Fleet topology / Rack View ──
+  racksByFleet: {},
+
+  async loadRacks(fleetId) {
+    if (!isTauriRuntime()) {
+      set({ racksByFleet: { ...get().racksByFleet, [fleetId]: [] } });
+      return;
+    }
+    const racks = await invokeCommand("itops_list_racks", { fleetId });
+    set({ racksByFleet: { ...get().racksByFleet, [fleetId]: racks } });
   },
 
   // ── Batch Runs ──

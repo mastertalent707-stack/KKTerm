@@ -909,7 +909,26 @@
       "savedNotice": "已保存主机组“{{name}}”。",
       "deletedNotice": "已删除主机组“{{name}}”。",
       "deleteTitle": "删除主机组？",
-      "deleteBody": "“{{name}}” 将被移除。其连接不受影响。"
+      "deleteBody": "“{{name}}” 将被移除。其连接不受影响。",
+      "viewToggleLabel": "Fleet view",
+      "viewMembers": "Members",
+      "viewRacks": "Racks"
+    },
+    "racks": {
+      "heading": "Racks",
+      "empty": "No racks yet. Arrange this Fleet's hosts into a virtual datacenter.",
+      "rackCount": "{{count}} racks",
+      "unitCount": "{{count}}U",
+      "deviceCount": "{{count}} devices",
+      "kind": {
+        "connection": "Host",
+        "switch": "Switch",
+        "pdu": "PDU",
+        "patchPanel": "Patch panel",
+        "blank": "Blank",
+        "label": "Label",
+        "server": "Server"
+      }
     },
     "batchRuns": {
       "emptyTitle": "暂无批量运行",

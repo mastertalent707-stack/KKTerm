@@ -909,7 +909,26 @@
       "savedNotice": "Grup host “{{name}}” disimpan.",
       "deletedNotice": "Grup host “{{name}}” dihapus.",
       "deleteTitle": "Hapus grup host?",
-      "deleteBody": "“{{name}}” akan dihapus. Koneksinya tidak terpengaruh."
+      "deleteBody": "“{{name}}” akan dihapus. Koneksinya tidak terpengaruh.",
+      "viewToggleLabel": "Fleet view",
+      "viewMembers": "Members",
+      "viewRacks": "Racks"
+    },
+    "racks": {
+      "heading": "Racks",
+      "empty": "No racks yet. Arrange this Fleet's hosts into a virtual datacenter.",
+      "rackCount": "{{count}} racks",
+      "unitCount": "{{count}}U",
+      "deviceCount": "{{count}} devices",
+      "kind": {
+        "connection": "Host",
+        "switch": "Switch",
+        "pdu": "PDU",
+        "patchPanel": "Patch panel",
+        "blank": "Blank",
+        "label": "Label",
+        "server": "Server"
+      }
     },
     "batchRuns": {
       "emptyTitle": "Belum ada eksekusi batch",

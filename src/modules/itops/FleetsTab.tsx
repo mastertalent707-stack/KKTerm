@@ -11,7 +11,32 @@ import type { Fleet, ItopsTransport, ResolvedHost } from "../../types";
 import { ItIcon, IT_ACCENTS, type ItIconName } from "./icons";
 import { TransportChip } from "./TransportChip";
 import { FleetDialog } from "./FleetDialog";
+import { RackElevation } from "./RackElevation";
 import { useItOpsStore } from "./state";
+
+type FleetView = "members" | "racks";
+
+// Group a Fleet's racks by region, then area, preserving stored order, so the
+// Rack View can render region → area sections of the virtual datacenter.
+function groupRacksByRegionArea<T extends { region: string; area: string }>(
+  racks: T[],
+): { region: string; areas: { area: string; racks: T[] }[] }[] {
+  const regions: { region: string; areas: { area: string; racks: T[] }[] }[] = [];
+  for (const rack of racks) {
+    let region = regions.find((entry) => entry.region === rack.region);
+    if (!region) {
+      region = { region: rack.region, areas: [] };
+      regions.push(region);
+    }
+    let area = region.areas.find((entry) => entry.area === rack.area);
+    if (!area) {
+      area = { area: rack.area, racks: [] };
+      region.areas.push(area);
+    }
+    area.racks.push(rack);
+  }
+  return regions;
+}
 
 const TRANSPORT_ORDER: ItopsTransport[] = ["auto", "ssh", "winrm", "psexec"];
 const TILE_COLORS = [
@@ -47,8 +72,11 @@ export function FleetsTab() {
   const resolveFleet = useItOpsStore((state) => state.resolveFleet);
   const requestNewBatchRun = useItOpsStore((state) => state.requestNewBatchRun);
   const newGroupRequest = useItOpsStore((state) => state.newGroupRequest);
+  const racksByFleet = useItOpsStore((state) => state.racksByFleet);
+  const loadRacks = useItOpsStore((state) => state.loadRacks);
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [view, setView] = useState<FleetView>("members");
   const [members, setMembers] = useState<ResolvedHost[]>([]);
   const [dialog, setDialog] = useState<{ group: Fleet | null } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Fleet | null>(null);
@@ -97,6 +125,17 @@ export function FleetsTab() {
       disposed = true;
     };
   }, [activeGroup, resolveFleet]);
+
+  // Load the active Fleet's racks when the Rack View is shown (or the Fleet
+  // changes while it's open). Cached per Fleet in the store.
+  useEffect(() => {
+    if (view === "racks" && activeGroup) {
+      void loadRacks(activeGroup.id);
+    }
+  }, [view, activeGroup, loadRacks]);
+
+  const racks = activeGroup ? (racksByFleet[activeGroup.id] ?? []) : [];
+  const rackRegions = useMemo(() => groupRacksByRegionArea(racks), [racks]);
 
   async function applyUpdate(
     group: Fleet,
@@ -203,6 +242,26 @@ export function FleetsTab() {
                 {activeGroup.filter ? `  ·  ${t("itops.fleets.dynamicMembership")}` : ""}
               </div>
             </div>
+            <div className="seg" role="tablist" aria-label={t("itops.fleets.viewToggleLabel")}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "members"}
+                className={view === "members" ? "on" : ""}
+                onClick={() => setView("members")}
+              >
+                {t("itops.fleets.viewMembers")}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "racks"}
+                className={view === "racks" ? "on" : ""}
+                onClick={() => setView("racks")}
+              >
+                {t("itops.fleets.viewRacks")}
+              </button>
+            </div>
             <button
               type="button"
               className="it-icon-btn"
@@ -231,6 +290,8 @@ export function FleetsTab() {
             </button>
           </div>
 
+          {view === "members" ? (
+          <>
           <div className="it-section-label">{t("itops.fleets.transportDefaultLabel")}</div>
           <div className="card">
             <div className="hg-opt">
@@ -342,6 +403,38 @@ export function FleetsTab() {
               {t("itops.actions.addConnections")}
             </button>
           </div>
+          </>
+          ) : (
+            <>
+              <div className="it-section-label">
+                <span>{t("itops.racks.heading")}</span>
+                <span className="ct">{t("itops.racks.rackCount", { count: racks.length })}</span>
+              </div>
+              {racks.length === 0 ? (
+                <div className="card">
+                  <div className="hg-dlg-empty">{t("itops.racks.empty")}</div>
+                </div>
+              ) : (
+                <div className="rk-canvas">
+                  {rackRegions.map((region) => (
+                    <div className="rk-region" key={region.region || "_"}>
+                      {region.region ? <div className="rk-region-h">{region.region}</div> : null}
+                      {region.areas.map((area) => (
+                        <div className="rk-area" key={area.area || "_"}>
+                          {area.area ? <div className="rk-area-h">{area.area}</div> : null}
+                          <div className="rk-row">
+                            {area.racks.map((rack) => (
+                              <RackElevation key={rack.id} rack={rack} />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       ) : null}
 

@@ -909,7 +909,26 @@
       "savedNotice": "Groupe d'hôtes « {{name}} » enregistré.",
       "deletedNotice": "Groupe d'hôtes « {{name}} » supprimé.",
       "deleteTitle": "Supprimer le groupe d'hôtes ?",
-      "deleteBody": "« {{name}} » sera supprimé. Ses connexions ne sont pas affectées."
+      "deleteBody": "« {{name}} » sera supprimé. Ses connexions ne sont pas affectées.",
+      "viewToggleLabel": "Fleet view",
+      "viewMembers": "Members",
+      "viewRacks": "Racks"
+    },
+    "racks": {
+      "heading": "Racks",
+      "empty": "No racks yet. Arrange this Fleet's hosts into a virtual datacenter.",
+      "rackCount": "{{count}} racks",
+      "unitCount": "{{count}}U",
+      "deviceCount": "{{count}} devices",
+      "kind": {
+        "connection": "Host",
+        "switch": "Switch",
+        "pdu": "PDU",
+        "patchPanel": "Patch panel",
+        "blank": "Blank",
+        "label": "Label",
+        "server": "Server"
+      }
     },
     "batchRuns": {
       "emptyTitle": "Aucune exécution par lot pour le moment",

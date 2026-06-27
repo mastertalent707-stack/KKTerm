@@ -1,9 +1,9 @@
 # Fleet Management — Design & Implementation Plan
 
-Status: **Phases A–B landed** (Host Group → Fleet rename + the rack topology
-data model, storage, and commands); Phases C–E planned. This document is the
-detailed plan for evolving the IT Ops **Host Groups** tab into **Fleet**
-management with a
+Status: **Phases A–B landed**, **Phase C in progress** (read-only Rack View
+shipped; drag-to-place, dialogs, and click-to-connect still to come); Phases
+D–E planned. This document is the detailed plan for evolving the IT Ops **Host
+Groups** tab into **Fleet** management with a
 visual virtual-datacenter (rack elevation) layer. It extends `docs/ITOPS.md`
 (which remains the source of truth for shipped IT Ops architecture) and follows
 the same durable-vs-live split. When this doc conflicts with `docs/ITOPS.md`
@@ -373,9 +373,11 @@ Each phase is one reviewable PR and leaves the app shippable.
   event (nothing emits or listens for it yet — wire it in Phase C with the store
   listener), and selective export/import inclusion (Fleets themselves are not in
   the ADR-0010 export shape yet; add racks when Fleets are added).
-- **Phase C — Rack View (read + place).** `RackElevation.tsx`, Region→Area
-  sectioning, the List/Rack mode toggle, add-rack/add-item dialogs, drag-place
-  with overlap gating, passive items, ghost-item handling.
+- **Phase C — Rack View (read + place).** _Read-only slice landed:_
+  `RackElevation.tsx` (U-keyed CSS-grid front elevation), the Members/Racks
+  toggle in the Fleet detail, Region→Area sectioning, and the `racksByFleet`
+  store loader. _Still to come in C:_ add-rack/add-item dialogs, drag-place with
+  overlap gating, ghost-item handling, and the `itops-changed` reload listener.
 - **Phase D — Click-to-connect + scoped Batch Runs.** Wire item click to
   `openConnection`; add rack/area/region-scoped "Run task" via
   `resolve_fleet_scoped` + `itops_start_batch_run` scope.
