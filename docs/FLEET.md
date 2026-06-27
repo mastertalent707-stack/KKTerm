@@ -2,9 +2,9 @@
 
 Status: **Phases A–D landed** (rename, rack data model, Rack View with the
 dialogs-first editor, click-to-connect with ghost handling, and rack/area/region
-scoped Batch Runs). Remaining: drag-to-place/resize, then Phase E (AI + polish).
-This document is the detailed plan for evolving the IT Ops **Host Groups** tab
-into **Fleet** management with a
+scoped Batch Runs, and drag-to-place). Remaining: drag-resize (polish) and
+Phase E (AI + live reload + export/import). This document is the detailed plan
+for evolving the IT Ops **Host Groups** tab into **Fleet** management with a
 visual virtual-datacenter (rack elevation) layer. It extends `docs/ITOPS.md`
 (which remains the source of truth for shipped IT Ops architecture) and follows
 the same durable-vs-live split. When this doc conflicts with `docs/ITOPS.md`
@@ -380,8 +380,11 @@ Each phase is one reviewable PR and leaves the app shippable.
   **dialogs-first editor** — add/edit/delete racks (`RackDialog`) and
   place/edit/move/remove devices (`RackItemDialog`): click an empty U to add,
   click an item to edit, with backend overlap/fit validation surfaced as a
-  Status Bar error. _Still to come in C:_ drag-to-place/resize (layered on the
-  dialog baseline), ghost-item handling, and the `itops-changed` reload listener.
+  Status Bar error. _Drag-to-place landed:_ devices are draggable onto any U
+  slot (restack within a rack or move across racks), re-validated by the
+  backend; resize stays in the edit dialog (drag-resize is a later polish).
+  Ghost-item handling landed in Phase D. _Still to come:_ the `itops-changed`
+  reload listener (Phase E).
 - **Phase D — Click-to-connect + scoped Batch Runs.** _Click-to-connect
   landed:_ a placed host opens its Session on click via a new
   `itops_get_connection(id)` command (hydrates the full Connection across any

@@ -37,6 +37,7 @@ export function RackElevation({
   onEditRack,
   onDeleteRack,
   onRunRack,
+  onMoveItem,
   isGhost,
 }: {
   rack: Rack;
@@ -46,6 +47,8 @@ export function RackElevation({
   onEditRack?: (rack: Rack) => void;
   onDeleteRack?: (rack: Rack) => void;
   onRunRack?: (rack: Rack) => void;
+  /** Drag-drop a device onto a U slot (move/restack, possibly across racks). */
+  onMoveItem?: (itemId: string, targetRackId: string, startU: number) => void;
   isGhost?: (item: RackItem) => boolean;
 }) {
   const { t } = useTranslation();
@@ -116,6 +119,23 @@ export function RackElevation({
               style={{ gridColumn: 2, gridRow: rack.heightU - u + 1 }}
               title={t("itops.racks.addAtUnit", { unit: u })}
               onClick={() => onSlotClick(u)}
+              onDragOver={
+                onMoveItem
+                  ? (event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                    }
+                  : undefined
+              }
+              onDrop={
+                onMoveItem
+                  ? (event) => {
+                      event.preventDefault();
+                      const itemId = event.dataTransfer.getData("application/x-itops-rack-item");
+                      if (itemId) onMoveItem(itemId, rack.id, u);
+                    }
+                  : undefined
+              }
             />
           ) : (
             <div
@@ -157,7 +177,20 @@ export function RackElevation({
             );
           }
           return (
-            <div key={item.id} className={`${className} rk-item-row`} style={style}>
+            <div
+              key={item.id}
+              className={`${className} rk-item-row${onMoveItem ? " draggable" : ""}`}
+              style={style}
+              draggable={!!onMoveItem}
+              onDragStart={
+                onMoveItem
+                  ? (event) => {
+                      event.dataTransfer.setData("application/x-itops-rack-item", item.id);
+                      event.dataTransfer.effectAllowed = "move";
+                    }
+                  : undefined
+              }
+            >
               <button
                 type="button"
                 className="rk-item-main"

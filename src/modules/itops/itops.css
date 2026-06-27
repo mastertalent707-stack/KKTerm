@@ -2247,3 +2247,15 @@
   text-transform: uppercase;
   color: var(--red);
 }
+
+/* ── Drag-to-place (docs/FLEET.md Phase D) ────────────────────────────────── */
+.itops-page .rk-item-row.draggable {
+  cursor: grab;
+}
+.itops-page .rk-item-row.draggable:active {
+  cursor: grabbing;
+}
+.itops-page .rk-slot-btn:where(:hover) {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+}

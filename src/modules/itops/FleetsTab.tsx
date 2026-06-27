@@ -93,6 +93,7 @@ export function FleetsTab() {
   } | null>(null);
   const [pendingRackDelete, setPendingRackDelete] = useState<Rack | null>(null);
   const deleteRack = useItOpsStore((state) => state.deleteRack);
+  const moveRackItem = useItOpsStore((state) => state.moveRackItem);
 
   const activeGroup = useMemo(
     () => fleets.find((group) => group.id === activeId) ?? fleets[0] ?? null,
@@ -155,6 +156,26 @@ export function FleetsTab() {
   const memberIds = useMemo(() => new Set(members.map((m) => m.connectionId)), [members]);
   function isGhostItem(item: RackItem): boolean {
     return item.kind === "connection" && !!item.connectionId && !memberIds.has(item.connectionId);
+  }
+
+  // Drag-drop move/restack: drop a device onto a U slot (possibly in another
+  // rack). Keeps its height; the backend re-validates overlap/fit.
+  async function moveItem(itemId: string, targetRackId: string, startU: number) {
+    if (!activeGroup) return;
+    const item = racks.flatMap((rack) => rack.items).find((entry) => entry.id === itemId);
+    if (!item) return;
+    if (item.rackId === targetRackId && item.startU === startU) return;
+    try {
+      await moveRackItem(activeGroup.id, {
+        id: itemId,
+        rackId: targetRackId,
+        startU,
+        heightU: item.heightU,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      showStatusBarNotice(t("itops.errorNotice", { message }), { tone: "error" });
+    }
   }
 
   // Open a placed host's Session by hydrating its full Connection (across any
@@ -520,6 +541,9 @@ export function FleetsTab() {
                                 onEditRack={(target) => setRackDialog({ rack: target })}
                                 onDeleteRack={(target) => setPendingRackDelete(target)}
                                 onRunRack={(target) => requestNewBatchRun(activeGroup.id, { rackId: target.id })}
+                                onMoveItem={(itemId, targetRackId, startU) =>
+                                  void moveItem(itemId, targetRackId, startU)
+                                }
                                 isGhost={isGhostItem}
                               />
                             ))}
