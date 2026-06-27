@@ -3,9 +3,9 @@
 ## AI grep hints
 
 - Keys: `itops.*`, `settings.sectionItOps`, `watchdog.*`
-- Topics: IT Ops Module, Fleets, Batch Runs, Automations, fleet task, run history, Run Report, transport, SSH, WinRM, PsExec, trigger, condition, action, armed, disabled, Watchdog Status Bar
+- Topics: IT Ops Module, Fleets, Rack View, racks, rack unit (U), region, area, virtual datacenter, click-to-connect, Batch Runs, Automations, fleet task, run history, Run Report, transport, SSH, WinRM, PsExec, trigger, condition, action, armed, disabled, Watchdog Status Bar
 - Tutorial targets: `app.activityRailItOps`, `itops.tabs`, `itops.groups`, `itops.runs`, `itops.autos`, `itops.primaryAction`
-- Synonyms: "run on many hosts", "bulk command", "fleet", "host group" (renamed to Fleet), "host collection", "scheduled monitor", "saved watchdog", "automation rule", "batch script", "run report"
+- Synonyms: "run on many hosts", "bulk command", "fleet", "host group" (renamed to Fleet), "host collection", "rack diagram", "rack elevation", "virtual datacenter", "data center map", "open from rack", "scheduled monitor", "saved watchdog", "automation rule", "batch script", "run report"
 
 The **IT Ops Module** is an Activity Rail destination for operating across multiple existing Connections. It has three tabs: Fleets (`itops.tabs.fleets`), Batch Runs (`itops.tabs.runs`), and Automations (`itops.tabs.autos`). Settings → General → `settings.activityRail` controls whether the Module appears; it is hidden by default.
 
@@ -16,6 +16,14 @@ A **Fleet** is a durable named selection of existing Connections. It references 
 Open Fleets and choose `itops.actions.newFleet`. Enter `itops.fleets.nameLabel`, select Connections, and choose the per-Fleet transport default. `itops.transport.auto` derives transport from each Connection; explicit SSH, WinRM, and PsExec choices override it. Save with `itops.actions.create`. Editing membership does not modify or delete the referenced Connections.
 
 The Fleet detail view can edit or delete the Fleet, add Connections, change transport, and start a Batch Run with `itops.actions.runTask`. Deleting a Fleet leaves its Connections untouched and does not erase completed run history.
+
+### Rack View
+
+The Fleet detail has a `itops.fleets.viewMembers` / `itops.fleets.viewRacks` toggle. **Rack View** renders the Fleet as a virtual datacenter: **Racks** grouped by region and area, each drawn as a front elevation measured in rack units (U). Choose `itops.racks.newTitle` to add a Rack (`itops.racks.nameLabel`, `itops.racks.regionLabel`, `itops.racks.areaLabel`, `itops.racks.heightLabel`).
+
+Click an empty U slot to add a device (`itops.racks.addItemTitle`): either a placed Fleet Connection or a passive device (`itops.racks.kind.switch`, `itops.racks.kind.pdu`, `itops.racks.kind.patchPanel`, `itops.racks.kind.blank`, `itops.racks.kind.label`) at a chosen position and height. Placements that overlap an existing device or fall outside the Rack report an error in the Status Bar and are not saved; shrinking a Rack below a placed device is likewise rejected.
+
+A placed host **opens its Session on click** (ssh/RDP/VNC/etc., via the same path as the Connection Tree); a hover pencil edits it. Passive items open the edit dialog. A placed Connection that no longer resolves to a Fleet member is shown dimmed with a `itops.racks.ghostBadge` badge — it cannot be opened but can still be edited or removed. Placement is a visual arrangement only; it does not modify the referenced Connections.
 
 ## Batch Runs
 
