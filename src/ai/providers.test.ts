@@ -39,6 +39,10 @@ const ollamaDefinition = getAiProviderDefinition("ollama");
 if (ollamaDefinition.modelListStrategy !== "ollamaTags" || !ollamaDefinition.strictModelList) {
   throw new Error("Ollama should refresh from native tags and treat pulled models as strict.");
 }
+if (!ollamaDefinition.settingsFields.includes("apiKey") || ollamaDefinition.requiresApiKey) {
+  throw new Error("Ollama should expose an optional API key field for hosted-compatible endpoints.");
+}
+validateAiProviderForChat(providerDefaultsFor("ollama"), false);
 
 const opencodeDefinition = getAiProviderDefinition("opencode");
 if (opencodeDefinition.baseUrl !== "https://opencode.ai/zen/go/v1") {

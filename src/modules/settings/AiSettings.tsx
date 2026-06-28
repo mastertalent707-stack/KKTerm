@@ -443,7 +443,7 @@ function AiProviderSettingsFieldControl({
           </span>
           <input
             autoComplete="off"
-            disabled={!definition.requiresApiKey || useCliBackend}
+            disabled={!definition.settingsFields.includes("apiKey") || useCliBackend}
             onBlur={() => setIsApiKeyInputFocused(false)}
             onChange={(event) => onApiKeyDraftChange(event.currentTarget.value)}
             onFocus={() => setIsApiKeyInputFocused(true)}
