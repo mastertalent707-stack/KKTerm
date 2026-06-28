@@ -157,6 +157,16 @@ export interface Fleet {
   background?: DashboardBackground | null;
   // Per-server-room backgrounds, keyed by the room's string tag.
   roomBackgrounds?: Record<string, DashboardBackground>;
+  // Custom icon (data URL or lucide/material ref) and background colour.
+  iconDataUrl?: string | null;
+  iconBackgroundColor?: string | null;
+  // Per-server-room icons, keyed by the room's string tag.
+  roomIcons?: Record<string, RoomIconEntry>;
+}
+
+export interface RoomIconEntry {
+  iconDataUrl?: string | null;
+  iconBackgroundColor?: string | null;
 }
 
 export interface ResolvedHost {

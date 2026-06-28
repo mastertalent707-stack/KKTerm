@@ -20,7 +20,7 @@ use super::run_storage;
 use super::storage as ito;
 use super::types::{
     BatchTask, Fleet, FleetFilter, Rack, RackItem, RackItemKind, RackItemMetadata, ResolvedHost,
-    RunEvent, RunEventHost, RunHistoryEntry, RunScope, Transport,
+    RoomIcon, RunEvent, RunEventHost, RunHistoryEntry, RunScope, Transport,
 };
 
 fn storage(app: &AppHandle) -> State<'_, crate::storage::Storage> {
@@ -40,10 +40,12 @@ pub fn itops_create_fleet(
     member_ids: Vec<String>,
     filter: Option<FleetFilter>,
     transport: Transport,
+    icon_data_url: Option<String>,
+    icon_background_color: Option<String>,
 ) -> Result<Fleet, String> {
     let id = new_itops_id("hg");
     storage(&app).with_connection_infallible(|conn| {
-        ito::create_fleet(conn, &id, &name, member_ids, filter, transport)
+        ito::create_fleet(conn, &id, &name, member_ids, filter, transport, icon_data_url.as_deref(), icon_background_color.as_deref())
             .map_err(|error| error.to_string())
     })
 }
@@ -56,9 +58,11 @@ pub fn itops_update_fleet(
     member_ids: Vec<String>,
     filter: Option<FleetFilter>,
     transport: Transport,
+    icon_data_url: Option<String>,
+    icon_background_color: Option<String>,
 ) -> Result<Fleet, String> {
     storage(&app).with_connection_infallible(|conn| {
-        ito::update_fleet(conn, &id, &name, member_ids, filter, transport)
+        ito::update_fleet(conn, &id, &name, member_ids, filter, transport, icon_data_url.as_deref(), icon_background_color.as_deref())
             .map_err(|error| error.to_string())
     })
 }
@@ -364,6 +368,20 @@ pub fn itops_set_server_room_background(
 ) -> Result<Fleet, String> {
     storage(&app).with_connection_infallible(|conn| {
         ito::set_server_room_background(conn, &fleet_id, &server_room, background)
+            .map_err(|error| error.to_string())
+    })
+}
+
+/// Set (or clear) a server room's icon within a Fleet.
+#[tauri::command]
+pub fn itops_set_room_icon(
+    app: AppHandle,
+    fleet_id: String,
+    server_room: String,
+    icon: Option<RoomIcon>,
+) -> Result<Fleet, String> {
+    storage(&app).with_connection_infallible(|conn| {
+        ito::set_room_icon(conn, &fleet_id, &server_room, icon)
             .map_err(|error| error.to_string())
     })
 }

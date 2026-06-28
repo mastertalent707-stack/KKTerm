@@ -1,15 +1,15 @@
 // Create / edit a Fleet. Built from the shared dialog primitives
-// (docs/DESIGN_LANGUAGE.md): a name field, the per-host transport default, and a
-// multi-select of the active Workspace's Connections for static membership.
-//
-// Phase 1 edits static membership only; an existing group's dynamic filter is
-// preserved on save but not editable here yet (a later refinement).
+// (docs/DESIGN_LANGUAGE.md): a name field, an icon picker, the per-host
+// transport default (edit only), and a multi-select of the active Workspace's
+// Connections for static membership.
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Actions, Btn, DialogShell, Field, Sheet, TextInput } from "../../app/ui/dialog";
 import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
 import { flattenConnections } from "../workspace/connections/treeUtils";
+import { ConnectionIconBackgroundPicker } from "../workspace/connections/ConnectionIconBackgroundPicker";
+import { ConnectionIconPicker } from "../workspace/connections/ConnectionIconPicker";
 import { useWorkspaceStore } from "../../store";
 import type { Connection, Fleet, ItopsTransport } from "../../types";
 import { ItIcon } from "./icons";
@@ -35,6 +35,10 @@ export function FleetDialog({
 
   const [name, setName] = useState(group?.name ?? "");
   const [transport, setTransport] = useState<ItopsTransport>(group?.transport ?? "auto");
+  const [iconDataUrl, setIconDataUrl] = useState<string | null>(group?.iconDataUrl ?? null);
+  const [iconBackgroundColor, setIconBackgroundColor] = useState<string | null>(
+    group?.iconBackgroundColor ?? null,
+  );
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(group?.memberIds ?? []),
   );
@@ -92,6 +96,8 @@ export function FleetDialog({
       memberIds: orderedMemberIds(group?.memberIds ?? [], selected),
       filter: group?.filter ?? null,
       transport,
+      iconDataUrl,
+      iconBackgroundColor,
     };
     try {
       const saved = isEdit
@@ -127,6 +133,19 @@ export function FleetDialog({
         }
       >
         {isEdit ? null : <p className="hg-dlg-help">{t("itops.fleets.createHelp")}</p>}
+        <div className="connection-type-summary">
+          <ConnectionIconPicker
+            customIconDataUrls={[]}
+            iconBackgroundColor={iconBackgroundColor}
+            iconDataUrl={iconDataUrl}
+            onChange={setIconDataUrl}
+            type="localFiles"
+          />
+          <ConnectionIconBackgroundPicker
+            color={iconBackgroundColor}
+            onChange={setIconBackgroundColor}
+          />
+        </div>
         <Field label={t("itops.fleets.nameLabel")} req>
           <TextInput
             value={name}
@@ -136,20 +155,22 @@ export function FleetDialog({
           />
         </Field>
 
-        <Field label={t("itops.fleets.perHostTransport")}>
-          <div className="hg-dlg-seg">
-            {TRANSPORTS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                className={value === transport ? "on" : ""}
-                onClick={() => setTransport(value)}
-              >
-                {value === "auto" ? t("itops.transport.auto") : value.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </Field>
+        {isEdit ? (
+          <Field label={t("itops.fleets.perHostTransport")}>
+            <div className="hg-dlg-seg">
+              {TRANSPORTS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={value === transport ? "on" : ""}
+                  onClick={() => setTransport(value)}
+                >
+                  {value === "auto" ? t("itops.transport.auto") : value.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </Field>
+        ) : null}
 
         <Field
           label={t("itops.fleets.connectionsLabel")}

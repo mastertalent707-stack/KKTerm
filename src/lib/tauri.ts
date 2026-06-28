@@ -48,6 +48,7 @@ import type {
   RackItemMetadata,
   RunScope,
   ResolvedHost,
+  RoomIconEntry,
   BatchTask,
   RunHistoryEntry,
   Automation,
@@ -1092,6 +1093,8 @@ type CommandMap = {
       memberIds: string[];
       filter: FleetFilter | null;
       transport: ItopsTransport;
+      iconDataUrl: string | null;
+      iconBackgroundColor: string | null;
     };
     result: Fleet;
   };
@@ -1102,6 +1105,8 @@ type CommandMap = {
       memberIds: string[];
       filter: FleetFilter | null;
       transport: ItopsTransport;
+      iconDataUrl: string | null;
+      iconBackgroundColor: string | null;
     };
     result: Fleet;
   };
@@ -1150,6 +1155,10 @@ type CommandMap = {
   };
   itops_set_server_room_background: {
     args: { fleetId: string; serverRoom: string; background: DashboardBackground | null };
+    result: Fleet;
+  };
+  itops_set_room_icon: {
+    args: { fleetId: string; serverRoom: string; icon: RoomIconEntry | null };
     result: Fleet;
   };
   itops_set_rack_background: {

@@ -295,6 +295,11 @@ CREATE TABLE IF NOT EXISTS itops_fleets (
     -- Rack View customization: Fleet-view background + per-server-room map.
     background_json       TEXT,
     room_backgrounds_json TEXT,
+    -- Custom icon (data URL or icon ref) and background colour.
+    icon_data_url         TEXT,
+    icon_background_color TEXT,
+    -- Per-server-room icons, keyed by the room's string tag (JSON map).
+    room_icons_json       TEXT,
     created_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -1926,6 +1931,9 @@ impl Storage {
         ensure_column(&connection, "itops_fleet_racks", "background_json", "TEXT")?;
         ensure_column(&connection, "itops_fleets", "background_json", "TEXT")?;
         ensure_column(&connection, "itops_fleets", "room_backgrounds_json", "TEXT")?;
+        ensure_column(&connection, "itops_fleets", "icon_data_url", "TEXT")?;
+        ensure_column(&connection, "itops_fleets", "icon_background_color", "TEXT")?;
+        ensure_column(&connection, "itops_fleets", "room_icons_json", "TEXT")?;
         ensure_column(&connection, "connections", "rdp_options", "TEXT")?;
         ensure_column(&connection, "connections", "vnc_options", "TEXT")?;
         ensure_column(&connection, "connections", "ftp_options", "TEXT")?;

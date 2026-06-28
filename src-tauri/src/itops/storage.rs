@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 use rusqlite::{Connection as SqliteConnection, OptionalExtension, params, params_from_iter};
 
 use crate::dashboard_storage::DashboardBackground;
-use super::types::{Fleet, FleetFilter, RackItemKind, ResolvedHost, RunScope, Transport};
+use super::types::{Fleet, FleetFilter, RackItemKind, ResolvedHost, RoomIcon, RunScope, Transport};
 
 #[derive(Debug)]
 pub enum ItopsStorageError {
@@ -103,6 +103,15 @@ fn room_backgrounds_to_json(map: &HashMap<String, DashboardBackground>) -> Resul
     serde_json::to_string(map).map_err(|error| ItopsStorageError::Validation(error.to_string()))
 }
 
+fn parse_room_icons(raw: Option<String>) -> HashMap<String, RoomIcon> {
+    raw.and_then(|json| serde_json::from_str(&json).ok())
+        .unwrap_or_default()
+}
+
+fn room_icons_to_json(map: &HashMap<String, RoomIcon>) -> Result<String> {
+    serde_json::to_string(map).map_err(|error| ItopsStorageError::Validation(error.to_string()))
+}
+
 fn row_to_group(row: &rusqlite::Row<'_>) -> rusqlite::Result<Fleet> {
     let member_ids: String = row.get(3)?;
     let filter_json: Option<String> = row.get(4)?;
@@ -116,11 +125,15 @@ fn row_to_group(row: &rusqlite::Row<'_>) -> rusqlite::Result<Fleet> {
         transport: Transport::from_db_str(&transport).unwrap_or(Transport::Auto),
         background: parse_background(row.get(6)?),
         room_backgrounds: parse_room_backgrounds(row.get(7)?),
+        icon_data_url: row.get(8)?,
+        icon_background_color: row.get(9)?,
+        room_icons: parse_room_icons(row.get(10)?),
     })
 }
 
 const SELECT_GROUP_COLUMNS: &str = "id, name, sort_order, member_ids_json, filter_json, transport, \
-     background_json, room_backgrounds_json FROM itops_fleets";
+     background_json, room_backgrounds_json, icon_data_url, icon_background_color, \
+     room_icons_json FROM itops_fleets";
 
 /// Re-read one Fleet by id (used after a mutation to return preserved fields
 /// such as backgrounds that the mutation does not touch).
@@ -163,6 +176,8 @@ pub fn create_fleet(
     member_ids: Vec<String>,
     filter: Option<FleetFilter>,
     transport: Transport,
+    icon_data_url: Option<&str>,
+    icon_background_color: Option<&str>,
 ) -> Result<Fleet> {
     let name = validate_name(name)?;
     let next_sort: i64 = conn.query_row(
@@ -173,9 +188,9 @@ pub fn create_fleet(
     let member_json = member_ids_to_json(&member_ids)?;
     let filter_json = filter_to_json(&filter)?;
     conn.execute(
-        "INSERT INTO itops_fleets (id, name, sort_order, member_ids_json, filter_json, transport)
-         VALUES (?, ?, ?, ?, ?, ?)",
-        params![id, name, next_sort, member_json, filter_json, transport.as_db_str()],
+        "INSERT INTO itops_fleets (id, name, sort_order, member_ids_json, filter_json, transport, icon_data_url, icon_background_color)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        params![id, name, next_sort, member_json, filter_json, transport.as_db_str(), icon_data_url, icon_background_color],
     )?;
     Ok(Fleet {
         id: id.to_string(),
@@ -186,6 +201,9 @@ pub fn create_fleet(
         transport,
         background: None,
         room_backgrounds: HashMap::new(),
+        icon_data_url: icon_data_url.map(|s| s.to_string()),
+        icon_background_color: icon_background_color.map(|s| s.to_string()),
+        room_icons: HashMap::new(),
     })
 }
 
@@ -196,6 +214,8 @@ pub fn update_fleet(
     member_ids: Vec<String>,
     filter: Option<FleetFilter>,
     transport: Transport,
+    icon_data_url: Option<&str>,
+    icon_background_color: Option<&str>,
 ) -> Result<Fleet> {
     let name = validate_name(name)?;
     // Existence check (returns NotFound before the UPDATE).
@@ -211,11 +231,11 @@ pub fn update_fleet(
     let filter_json = filter_to_json(&filter)?;
     conn.execute(
         "UPDATE itops_fleets
-         SET name = ?, member_ids_json = ?, filter_json = ?, transport = ?, updated_at = CURRENT_TIMESTAMP
+         SET name = ?, member_ids_json = ?, filter_json = ?, transport = ?, icon_data_url = ?, icon_background_color = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?",
-        params![name, member_json, filter_json, transport.as_db_str(), id],
+        params![name, member_json, filter_json, transport.as_db_str(), icon_data_url, icon_background_color, id],
     )?;
-    // Re-read so preserved fields (backgrounds) round-trip into the response.
+    // Re-read so preserved fields (backgrounds, room icons) round-trip into the response.
     load_fleet(conn, id)
 }
 
@@ -257,6 +277,30 @@ pub fn set_server_room_background(
     let json = room_backgrounds_to_json(&fleet.room_backgrounds)?;
     conn.execute(
         "UPDATE itops_fleets SET room_backgrounds_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        params![json, fleet_id],
+    )?;
+    load_fleet(conn, fleet_id)
+}
+
+/// Set (or clear with `None`) a server room's icon. Stored on the owning Fleet.
+pub fn set_room_icon(
+    conn: &SqliteConnection,
+    fleet_id: &str,
+    server_room: &str,
+    icon: Option<RoomIcon>,
+) -> Result<Fleet> {
+    let mut fleet = load_fleet(conn, fleet_id)?;
+    match icon {
+        Some(entry) => {
+            fleet.room_icons.insert(server_room.to_string(), entry);
+        }
+        None => {
+            fleet.room_icons.remove(server_room);
+        }
+    }
+    let json = room_icons_to_json(&fleet.room_icons)?;
+    conn.execute(
+        "UPDATE itops_fleets SET room_icons_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         params![json, fleet_id],
     )?;
     load_fleet(conn, fleet_id)
@@ -479,6 +523,9 @@ mod tests {
                     CHECK (transport IN ('ssh', 'winrm', 'psexec', 'auto')),
                 background_json TEXT,
                 room_backgrounds_json TEXT,
+                icon_data_url TEXT,
+                icon_background_color TEXT,
+                room_icons_json TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
@@ -523,6 +570,8 @@ mod tests {
             vec!["c1".into(), "c2".into()],
             None,
             Transport::Ssh,
+            None,
+            None,
         )
         .unwrap();
         assert_eq!(created.name, "Production Web"); // trimmed
@@ -544,6 +593,8 @@ mod tests {
                 folder_id: Some("f1".into()),
             }),
             Transport::Auto,
+            None,
+            None,
         )
         .unwrap();
         assert_eq!(updated.name, "Web");
@@ -564,7 +615,7 @@ mod tests {
     fn empty_name_is_rejected() {
         let conn = open_test_db();
         assert!(matches!(
-            create_fleet(&conn, "hg-x", "   ", vec![], None, Transport::Auto),
+            create_fleet(&conn, "hg-x", "   ", vec![], None, Transport::Auto, None, None),
             Err(ItopsStorageError::Validation(_))
         ));
     }
@@ -579,6 +630,8 @@ mod tests {
             vec![],
             Some(FleetFilter::default()),
             Transport::Auto,
+            None,
+            None,
         )
         .unwrap();
         assert!(group.filter.is_none());
@@ -604,6 +657,8 @@ mod tests {
                 folder_id: Some("prod".into()),
             }),
             Transport::Ssh,
+            None,
+            None,
         )
         .unwrap();
 
@@ -618,8 +673,8 @@ mod tests {
     #[test]
     fn reorder_rewrites_sort_order() {
         let conn = open_test_db();
-        create_fleet(&conn, "a", "A", vec![], None, Transport::Auto).unwrap();
-        create_fleet(&conn, "b", "B", vec![], None, Transport::Auto).unwrap();
+        create_fleet(&conn, "a", "A", vec![], None, Transport::Auto, None, None).unwrap();
+        create_fleet(&conn, "b", "B", vec![], None, Transport::Auto, None, None).unwrap();
         reorder_fleets(&conn, &["b".to_string(), "a".to_string()]).unwrap();
         let order: Vec<String> = list_fleets(&conn)
             .unwrap()

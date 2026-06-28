@@ -8,6 +8,8 @@ import type { ReactNode } from "react";
 export type ItIconName =
   | "ops"
   | "group"
+  | "network"
+  | "room"
   | "run"
   | "auto"
   | "server"
@@ -91,6 +93,27 @@ const GLYPHS: Record<ItIconName, (p: GlyphProps) => ReactNode> = {
       <path d="M17 8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
       <path d="M2.5 19v-1a3.5 3.5 0 0 1 3.5-3.5h2A3.5 3.5 0 0 1 11.5 18v1" />
       <path d="M12.5 19v-1A3.5 3.5 0 0 1 16 14.5h2a3.5 3.5 0 0 1 3.5 3.5v1" />
+    </Svg>
+  ),
+  network: (p) => (
+    <Svg {...p} sw={1.6}>
+      <circle cx="12" cy="5" r="2" />
+      <circle cx="5" cy="19" r="2" />
+      <circle cx="19" cy="19" r="2" />
+      <path d="M12 7v4" />
+      <path d="M12 11l-5 6" />
+      <path d="M12 11l5 6" />
+    </Svg>
+  ),
+  room: (p) => (
+    <Svg {...p} sw={1.6}>
+      <path d="M4 21V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v16" />
+      <path d="M4 21h16" />
+      <path d="M9 21v-5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5" />
+      <path d="M8 8h2" />
+      <path d="M14 8h2" />
+      <path d="M8 11h2" />
+      <path d="M14 11h2" />
     </Svg>
   ),
   run: (p) => (

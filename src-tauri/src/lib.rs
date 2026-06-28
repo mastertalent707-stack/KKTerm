@@ -3936,6 +3936,7 @@ pub fn run() {
             itops::commands::itops_update_rack,
             itops::commands::itops_set_fleet_background,
             itops::commands::itops_set_server_room_background,
+            itops::commands::itops_set_room_icon,
             itops::commands::itops_set_rack_background,
             itops::commands::itops_delete_rack,
             itops::commands::itops_reorder_racks,
