@@ -39,10 +39,30 @@ const ollamaDefinition = getAiProviderDefinition("ollama");
 if (ollamaDefinition.modelListStrategy !== "ollamaTags" || !ollamaDefinition.strictModelList) {
   throw new Error("Ollama should refresh from native tags and treat pulled models as strict.");
 }
-if (ollamaDefinition.settingsFields.includes("apiKey") || ollamaDefinition.requiresApiKey) {
-  throw new Error("Local Ollama should not expose an API key field.");
+if (ollamaDefinition.requiresApiKey) {
+  throw new Error("Local Ollama should keep the API key optional (vanilla localhost needs no auth).");
 }
+if (
+  !ollamaDefinition.settingsFields.includes("apiKey") ||
+  !ollamaDefinition.settingsFields.includes("extraHeaders")
+) {
+  throw new Error(
+    "Local Ollama should expose optional API key and extra header fields for proxied/self-hosted endpoints.",
+  );
+}
+// No key supplied: still valid, because the key is optional for local Ollama.
 validateAiProviderForChat(providerDefaultsFor("ollama"), false);
+// Custom headers entered against Ollama should be preserved (not stripped like hosted providers).
+const ollamaSettings = validateAiProviderForChat(
+  {
+    ...providerDefaultsFor("ollama"),
+    extraHeaders: " x-proxy-key=secret ",
+  },
+  false,
+);
+if (ollamaSettings.extraHeaders !== "x-proxy-key=secret") {
+  throw new Error(`Local Ollama extra headers should be trimmed and kept, got: ${ollamaSettings.extraHeaders}`);
+}
 
 const ollamaCloudDefinition = getAiProviderDefinition("ollama-cloud");
 if (ollamaCloudDefinition.modelListStrategy !== "ollamaTags") {

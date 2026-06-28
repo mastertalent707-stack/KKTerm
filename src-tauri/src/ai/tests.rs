@@ -2697,6 +2697,30 @@ fn explicit_strict_tool_flags_are_only_sent_to_openai_family_providers() {
 }
 
 #[test]
+fn extra_headers_apply_to_proxy_capable_providers_only() {
+    // openai-compatible and local Ollama expose the extra-headers field, so a
+    // user-supplied custom header (e.g. for an authenticating Ollama proxy)
+    // flows through. Hosted providers ignore it.
+    assert_eq!(
+        extra_headers_for_provider_kind("ollama", "  x-proxy-key=secret  "),
+        Some("x-proxy-key=secret")
+    );
+    assert_eq!(
+        extra_headers_for_provider_kind("openai-compatible", "x-env=prod"),
+        Some("x-env=prod")
+    );
+    assert_eq!(extra_headers_for_provider_kind("ollama", "   "), None);
+    assert_eq!(
+        extra_headers_for_provider_kind("ollama-cloud", "x-proxy-key=secret"),
+        None
+    );
+    assert_eq!(
+        extra_headers_for_provider_kind("openai", "x-proxy-key=secret"),
+        None
+    );
+}
+
+#[test]
 fn generic_openai_compatible_provider_uses_configured_api_mode() {
     let provider = openai_provider("openai-compatible");
     assert!(matches!(

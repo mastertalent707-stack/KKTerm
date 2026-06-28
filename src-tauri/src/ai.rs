@@ -6645,7 +6645,10 @@ fn extra_headers_for_provider_kind<'a>(
     provider_kind: &str,
     extra_headers: &'a str,
 ) -> Option<&'a str> {
-    if provider_kind == "openai-compatible" {
+    // Providers whose registry definition exposes the `extraHeaders` settings
+    // field. Local Ollama joins openai-compatible here so users can reach a
+    // self-hosted Ollama behind a proxy that wants an arbitrary custom header.
+    if matches!(provider_kind, "openai-compatible" | "ollama") {
         let trimmed = extra_headers.trim();
         if !trimmed.is_empty() {
             return Some(trimmed);
