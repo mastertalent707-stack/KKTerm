@@ -58,7 +58,7 @@ function groupColor(id: string): string {
 }
 
 function groupIcon(group: Fleet): ItIconName {
-  return group.filter ? "filter" : "group";
+  return group.filter ? "filter" : "network";
 }
 
 export function FleetsTab({
@@ -115,33 +115,48 @@ export function FleetsTab({
     });
   }, []);
 
-  // Drag the splitter to resize the tree; persist on release.
-  useEffect(() => {
-    function onMove(event: MouseEvent) {
-      if (!resizing.current) return;
-      const left = treeRef.current?.getBoundingClientRect().left ?? 0;
-      const width = Math.min(
+  // Drag the splitter to resize the tree. During the drag we set the width
+  // directly on the DOM element so the cursor stays in sync with the bar —
+  // calling setTreeWidth on every pointermove triggers a full tree re-render
+  // which causes the 1–2 second lag. React state (and persistence) sync on
+  // pointer up.
+  const handleResizeStart = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (treeCollapsed) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    resizing.current = true;
+    document.body.style.cursor = "col-resize";
+
+    const startX = event.clientX;
+    const startWidth = treeWidth;
+    const el = treeRef.current;
+    let lastWidth = startWidth;
+
+    function onMove(event: PointerEvent) {
+      if (!resizing.current || !el) return;
+      lastWidth = Math.min(
         FLEET_TREE_MAX_WIDTH,
-        Math.max(FLEET_TREE_MIN_WIDTH, event.clientX - left),
+        Math.max(FLEET_TREE_MIN_WIDTH, startWidth + event.clientX - startX),
       );
-      setTreeWidth(width);
+      el.style.width = `${lastWidth}px`;
+      el.style.flex = `0 0 ${lastWidth}px`;
     }
+
     function onUp() {
       if (!resizing.current) return;
       resizing.current = false;
       document.body.style.cursor = "";
-      setTreeWidth((width) => {
-        saveFleetTreeWidth(width);
-        return width;
-      });
+      setTreeWidth(lastWidth);
+      saveFleetTreeWidth(lastWidth);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     }
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, []);
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }, [treeCollapsed, treeWidth]);
 
   const activeGroup = useMemo(
     () => fleets.find((group) => group.id === activeId) ?? fleets[0] ?? null,
@@ -263,7 +278,7 @@ export function FleetsTab({
       <>
         <div className="it-empty">
           <span className="glyph">
-            <ItIcon name="group" size={30} sw={1.5} />
+            <ItIcon name="network" size={30} sw={1.5} />
           </span>
           <h2>{t("itops.fleets.emptyTitle")}</h2>
           <p>{t("itops.fleets.emptyBody")}</p>
@@ -344,7 +359,7 @@ export function FleetsTab({
                           setDialog({ group: null });
                         }}
                       >
-                        <ItIcon name="group" size={14} />
+                        <ItIcon name="network" size={14} />
                         {t("itops.racks.addFleet")}
                       </button>
                       <button
@@ -356,7 +371,7 @@ export function FleetsTab({
                           setServerRoomDialogOpen(true);
                         }}
                       >
-                        <ItIcon name="ops" size={14} />
+                        <ItIcon name="room" size={14} />
                         {t("itops.racks.addServerRoom")}
                       </button>
                       <button
@@ -426,7 +441,7 @@ export function FleetsTab({
                               <div key={mId}>
                                 <TreeRow
                                   depth={1}
-                                  icon="ops"
+                                  icon="room"
                                   label={room.key || t("itops.racks.unassigned")}
                                   count={room.racks.length}
                                   hasChildren={room.racks.length > 0}
@@ -468,11 +483,7 @@ export function FleetsTab({
         ) : null}
         <div
           className="ft-resize"
-          onMouseDown={() => {
-            if (treeCollapsed) return;
-            resizing.current = true;
-            document.body.style.cursor = "col-resize";
-          }}
+          onPointerDown={handleResizeStart}
         />
       </div>
 
@@ -674,7 +685,7 @@ function RackDrill({
             {topology.map((room) => (
               <DrillCard
                 key={room.key}
-                icon="ops"
+                icon="room"
                 title={room.key || unassigned}
                 meta={t("itops.racks.rackCount", { count: room.racks.length })}
                 onClick={() => setDrill({ serverRoom: room.key, rackId: null })}

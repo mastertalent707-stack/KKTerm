@@ -131,6 +131,16 @@ impl FleetFilter {
     }
 }
 
+/// Icon + background colour for a server room, stored on the owning Fleet.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RoomIcon {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_data_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_background_color: Option<String>,
+}
+
 /// A durable, named selection of existing Connections used as a fleet target.
 /// References Connection ids; owns no Session and no secret.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -151,6 +161,14 @@ pub struct Fleet {
     /// not entities, so their backgrounds live as a map on the owning Fleet.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub room_backgrounds: HashMap<String, DashboardBackground>,
+    /// Custom icon (data URL or lucide/material ref) and background colour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_data_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_background_color: Option<String>,
+    /// Per-server-room icons, keyed by the room's string tag.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub room_icons: HashMap<String, RoomIcon>,
 }
 
 /// A Rack in a Fleet's virtual datacenter (docs/FLEET.md): a fixed-height cabinet

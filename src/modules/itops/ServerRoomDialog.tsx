@@ -13,6 +13,8 @@ import {
   Sheet,
   TextInput,
 } from "../../app/ui/dialog";
+import { ConnectionIconBackgroundPicker } from "../workspace/connections/ConnectionIconBackgroundPicker";
+import { ConnectionIconPicker } from "../workspace/connections/ConnectionIconPicker";
 import { useWorkspaceStore } from "../../store";
 import type { Fleet, Rack, RackShell } from "../../types";
 import { useItOpsStore } from "./state";
@@ -33,10 +35,13 @@ export function ServerRoomDialog({
   const { t } = useTranslation();
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const createRack = useItOpsStore((state) => state.createRack);
+  const setRoomIcon = useItOpsStore((state) => state.setRoomIcon);
 
   const [fleetId, setFleetId] = useState(defaultFleetId || fleets[0]?.id || "");
   const [serverRoom, setServerRoom] = useState("");
   const [rackName, setRackName] = useState("");
+  const [iconDataUrl, setIconDataUrl] = useState<string | null>(null);
+  const [iconBackgroundColor, setIconBackgroundColor] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -63,6 +68,10 @@ export function ServerRoomDialog({
         shell: DEFAULT_SHELL,
         heightU: 42,
       });
+      // Persist the server room icon on the owning Fleet.
+      if (iconDataUrl || iconBackgroundColor) {
+        await setRoomIcon(fleetId, trimmedServerRoom, { iconDataUrl, iconBackgroundColor });
+      }
       onCreated(rack);
       onClose();
     } catch (error) {
@@ -90,6 +99,19 @@ export function ServerRoomDialog({
         }
       >
         <p className="hg-dlg-help">{t("itops.racks.serverRoomCreateHelp")}</p>
+        <div className="connection-type-summary">
+          <ConnectionIconPicker
+            customIconDataUrls={[]}
+            iconBackgroundColor={iconBackgroundColor}
+            iconDataUrl={iconDataUrl}
+            onChange={setIconDataUrl}
+            type="localFiles"
+          />
+          <ConnectionIconBackgroundPicker
+            color={iconBackgroundColor}
+            onChange={setIconBackgroundColor}
+          />
+        </div>
         <Field label={t("itops.racks.serverRoomFleetLabel")} req>
           <Select
             value={fleetId}

@@ -17,6 +17,7 @@ import type {
   RackItemKind,
   RackItemMetadata,
   ResolvedHost,
+  RoomIconEntry,
   RunEvent,
   RunHistoryEntry,
   RunScope,
@@ -29,6 +30,8 @@ export interface FleetInput {
   memberIds: string[];
   filter: FleetFilter | null;
   transport: ItopsTransport;
+  iconDataUrl?: string | null;
+  iconBackgroundColor?: string | null;
 }
 
 export interface RackInput {
@@ -201,6 +204,11 @@ interface ItOpsState {
     serverRoom: string,
     background: DashboardBackground | null,
   ) => Promise<void>;
+  setRoomIcon: (
+    fleetId: string,
+    serverRoom: string,
+    icon: RoomIconEntry | null,
+  ) => Promise<void>;
   setRackBackground: (
     fleetId: string,
     rackId: string,
@@ -282,6 +290,8 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
       memberIds: input.memberIds,
       filter: input.filter,
       transport: input.transport,
+      iconDataUrl: input.iconDataUrl ?? null,
+      iconBackgroundColor: input.iconBackgroundColor ?? null,
     });
     set({ fleets: [...get().fleets, created] });
     return created;
@@ -294,6 +304,8 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
       memberIds: input.memberIds,
       filter: input.filter,
       transport: input.transport,
+      iconDataUrl: input.iconDataUrl ?? null,
+      iconBackgroundColor: input.iconBackgroundColor ?? null,
     });
     set({
       fleets: get().fleets.map((group) => (group.id === id ? updated : group)),
@@ -371,6 +383,15 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
       fleetId,
       serverRoom,
       background,
+    });
+    set({ fleets: get().fleets.map((fleet) => (fleet.id === fleetId ? updated : fleet)) });
+  },
+
+  async setRoomIcon(fleetId, serverRoom, icon) {
+    const updated = await invokeCommand("itops_set_room_icon", {
+      fleetId,
+      serverRoom,
+      icon,
     });
     set({ fleets: get().fleets.map((fleet) => (fleet.id === fleetId ? updated : fleet)) });
   },
