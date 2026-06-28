@@ -225,13 +225,22 @@ export function SftpContextMenu({
     }
     const margin = 8;
     const rect = node.getBoundingClientRect();
+    // Clamp against the status bar's top edge rather than the full viewport so the
+    // menu's bottom items are not hidden behind the status bar (which paints above it).
+    const statusBar = document.querySelector(".status-bar");
+    const bottomLimit = statusBar
+      ? statusBar.getBoundingClientRect().top
+      : window.innerHeight;
     let x = menu.x;
     let y = menu.y;
     if (x + rect.width > window.innerWidth - margin) {
       x = window.innerWidth - rect.width - margin;
     }
-    if (y + rect.height > window.innerHeight - margin) {
-      y = window.innerHeight - rect.height - margin;
+    if (y + rect.height > bottomLimit - margin) {
+      y = bottomLimit - rect.height - margin;
+    }
+    if (y < margin) {
+      y = margin;
     }
     node.style.left = `${x}px`;
     node.style.top = `${y}px`;
