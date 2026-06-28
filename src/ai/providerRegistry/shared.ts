@@ -18,11 +18,5 @@ export const CONFIGURABLE_ENDPOINT_SETTINGS_FIELDS: AiProviderSettingsField[] = 
   "apiKey",
 ];
 
-export const CONFIGURABLE_ENDPOINT_WITHOUT_KEY_FIELDS: AiProviderSettingsField[] = [
-  "baseUrl",
-  "model",
-  "reasoningEffort",
-];
-
 export const STANDARD_REASONING_EFFORTS = ["default", "low", "medium", "high", "max"] as const;
 export const HIGH_REASONING_EFFORTS = ["default", "high", "max"] as const;

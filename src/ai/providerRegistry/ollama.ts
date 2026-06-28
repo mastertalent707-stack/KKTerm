@@ -1,6 +1,12 @@
-import { CONFIGURABLE_ENDPOINT_WITHOUT_KEY_FIELDS, STANDARD_REASONING_EFFORTS } from "./shared";
+import { STANDARD_REASONING_EFFORTS } from "./shared";
 import type { AiProviderDefinition } from "./types";
 
+// Vanilla local Ollama (http://localhost:11434) needs no auth, so the API key
+// stays optional. But the base URL is user-configurable, and people routinely
+// point this provider at a remote/self-hosted Ollama placed behind an
+// authenticating reverse proxy (nginx/Caddy bearer, OpenWebUI keys, etc.). The
+// optional key rides as `Authorization: Bearer` only when filled, and the extra
+// headers field covers proxies that expect an arbitrary custom header instead.
 export const ollamaProvider: AiProviderDefinition = {
   kind: "ollama",
   label: "Ollama",
@@ -11,7 +17,7 @@ export const ollamaProvider: AiProviderDefinition = {
   requiresApiKey: false,
   allowsCustomBaseUrl: true,
   allowsCustomModel: true,
-  apiKeyLabel: "Ollama API key",
+  apiKeyLabel: "Ollama API key (optional, for authenticating proxies)",
   modelListStrategy: "ollamaTags",
   strictModelList: true,
   modelOptions: [
@@ -20,6 +26,6 @@ export const ollamaProvider: AiProviderDefinition = {
     { id: "deepseek-r1", label: "DeepSeek-R1", note: "Local reasoning", supportsImageInput: false },
     { id: "gemma3", label: "Gemma 3", supportsImageInput: true },
   ],
-  settingsFields: CONFIGURABLE_ENDPOINT_WITHOUT_KEY_FIELDS,
+  settingsFields: ["baseUrl", "model", "reasoningEffort", "apiKey", "extraHeaders"],
   capabilities: ["chat", "imageInput", "streaming", "toolCalling", "localRuntime", "openAiCompatible"],
 };

@@ -108,8 +108,9 @@ export function normalizeAiProviderDraft(draft: AiProviderSettings): AiProviderS
     reasoningEffort,
     customInstructions,
     apiMode: normalizeApiMode(definition.kind, draft.apiMode),
-    extraHeaders:
-      definition.kind === "openai-compatible" ? (draft.extraHeaders ?? "").trim() : "",
+    extraHeaders: definition.settingsFields.includes("extraHeaders")
+      ? (draft.extraHeaders ?? "").trim()
+      : "",
     allowInsecureTls: Boolean(draft.allowInsecureTls),
     allowInsecureMcpHttp: Boolean(draft.allowInsecureMcpHttp),
     showAllModels: Boolean(draft.showAllModels),
