@@ -3161,7 +3161,7 @@
 /* Drill cards (regions / datacenters / server rooms). */
 .itops-page .ft-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 .itops-page .ft-card {

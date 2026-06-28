@@ -23,7 +23,7 @@ import { useItOpsStore } from "./state";
 type TaskMode = "script" | "playbook";
 
 function scopeIsSet(scope?: RunScope | null): scope is RunScope {
-  return !!scope && !!(scope.rackId || scope.region || scope.datacenter || scope.serverRoom);
+  return !!scope && !!(scope.rackId || scope.serverRoom);
 }
 
 function emptyStep(): PlaybookStep {
@@ -57,9 +57,7 @@ export function BatchRunDialog({
       const rack = (racksByFleet[groupId] ?? []).find((entry) => entry.id === scope.rackId);
       return t("itops.batchRuns.scopeRack", { name: rack?.name ?? scope.rackId });
     }
-    if (scope.serverRoom) return t("itops.batchRuns.scopeServerRoom", { name: scope.serverRoom });
-    if (scope.datacenter) return t("itops.batchRuns.scopeDatacenter", { name: scope.datacenter });
-    return t("itops.batchRuns.scopeRegion", { name: scope.region ?? "" });
+    return t("itops.batchRuns.scopeServerRoom", { name: scope.serverRoom ?? "" });
   })();
   const [mode, setMode] = useState<TaskMode>("script");
   const [body, setBody] = useState("");

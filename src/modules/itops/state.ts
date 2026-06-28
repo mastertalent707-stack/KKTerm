@@ -32,8 +32,6 @@ export interface FleetInput {
 
 export interface RackInput {
   name: string;
-  region: string;
-  datacenter: string;
   serverRoom: string;
   shell?: string | null;
   heightU: number;

@@ -163,18 +163,16 @@ fn row_to_rack(row: &rusqlite::Row<'_>) -> rusqlite::Result<Rack> {
         id: row.get(0)?,
         fleet_id: row.get(1)?,
         name: row.get(2)?,
-        region: row.get(3)?,
-        datacenter: row.get(4)?,
-        server_room: row.get(5)?,
-        shell: row.get(6)?,
-        height_u: row.get(7)?,
-        sort_order: row.get(8)?,
+        server_room: row.get(3)?,
+        shell: row.get(4)?,
+        height_u: row.get(5)?,
+        sort_order: row.get(6)?,
         items: Vec::new(),
     })
 }
 
-const SELECT_RACK_COLUMNS: &str = "id, fleet_id, name, region, datacenter, server_room, shell, \
-     height_u, sort_order FROM itops_fleet_racks";
+const SELECT_RACK_COLUMNS: &str =
+    "id, fleet_id, name, server_room, shell, height_u, sort_order FROM itops_fleet_racks";
 
 /// Normalize a shell choice to a stored value: blank/"black"/None → NULL (the
 /// default), otherwise the trimmed colour name.
@@ -205,8 +203,6 @@ pub fn create_rack(
     id: &str,
     fleet_id: &str,
     name: &str,
-    region: &str,
-    datacenter: &str,
     server_room: &str,
     shell: Option<&str>,
     height_u: u32,
@@ -221,26 +217,14 @@ pub fn create_rack(
     )?;
     conn.execute(
         "INSERT INTO itops_fleet_racks
-            (id, fleet_id, name, region, datacenter, server_room, shell, height_u, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        params![
-            id,
-            fleet_id,
-            name,
-            region.trim(),
-            datacenter.trim(),
-            server_room.trim(),
-            shell,
-            height_u,
-            next_sort
-        ],
+            (id, fleet_id, name, server_room, shell, height_u, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?)",
+        params![id, fleet_id, name, server_room.trim(), shell, height_u, next_sort],
     )?;
     Ok(Rack {
         id: id.to_string(),
         fleet_id: fleet_id.to_string(),
         name,
-        region: region.trim().to_string(),
-        datacenter: datacenter.trim().to_string(),
         server_room: server_room.trim().to_string(),
         shell,
         height_u,
@@ -249,15 +233,12 @@ pub fn create_rack(
     })
 }
 
-/// Update a Rack's name/topology/shell/height. Shrinking the height is rejected
-/// if any existing item would no longer fit, so the layout never silently breaks.
-#[allow(clippy::too_many_arguments)]
+/// Update a Rack's name/server-room/shell/height. Shrinking the height is
+/// rejected if any existing item would no longer fit, so the layout never breaks.
 pub fn update_rack(
     conn: &SqliteConnection,
     id: &str,
     name: &str,
-    region: &str,
-    datacenter: &str,
     server_room: &str,
     shell: Option<&str>,
     height_u: u32,
@@ -288,25 +269,14 @@ pub fn update_rack(
     )?;
     conn.execute(
         "UPDATE itops_fleet_racks
-         SET name = ?, region = ?, datacenter = ?, server_room = ?, shell = ?, height_u = ?,
-             updated_at = CURRENT_TIMESTAMP
+         SET name = ?, server_room = ?, shell = ?, height_u = ?, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?",
-        params![
-            name,
-            region.trim(),
-            datacenter.trim(),
-            server_room.trim(),
-            shell,
-            height_u,
-            id
-        ],
+        params![name, server_room.trim(), shell, height_u, id],
     )?;
     Ok(Rack {
         id: id.to_string(),
         fleet_id,
         name,
-        region: region.trim().to_string(),
-        datacenter: datacenter.trim().to_string(),
         server_room: server_room.trim().to_string(),
         shell,
         height_u,
@@ -482,8 +452,6 @@ mod tests {
                 id TEXT PRIMARY KEY,
                 fleet_id TEXT NOT NULL,
                 name TEXT NOT NULL,
-                region TEXT NOT NULL DEFAULT '',
-                datacenter TEXT NOT NULL DEFAULT '',
                 server_room TEXT NOT NULL DEFAULT '',
                 shell TEXT,
                 height_u INTEGER NOT NULL DEFAULT 42,
@@ -541,13 +509,9 @@ mod tests {
     #[test]
     fn rack_create_list_update_delete_roundtrip() {
         let conn = open_test_db();
-        let rack = create_rack(
-            &conn, "r1", "f1", "  A12  ", " us-east ", " dc1 ", " Room B ", Some("white"), 42,
-        )
-        .unwrap();
+        let rack =
+            create_rack(&conn, "r1", "f1", "  A12  ", " Room B ", Some("white"), 42).unwrap();
         assert_eq!(rack.name, "A12");
-        assert_eq!(rack.region, "us-east");
-        assert_eq!(rack.datacenter, "dc1");
         assert_eq!(rack.server_room, "Room B");
         assert_eq!(rack.shell.as_deref(), Some("white"));
         assert_eq!(rack.sort_order, 0);
@@ -557,7 +521,7 @@ mod tests {
         assert!(listed[0].items.is_empty());
         assert_eq!(listed[0].server_room, "Room B");
 
-        let updated = update_rack(&conn, "r1", "A13", "us-west", "dc2", "Room C", None, 24).unwrap();
+        let updated = update_rack(&conn, "r1", "A13", "Room C", None, 24).unwrap();
         assert_eq!(updated.name, "A13");
         assert_eq!(updated.height_u, 24);
         assert_eq!(updated.sort_order, 0); // preserved
@@ -573,7 +537,7 @@ mod tests {
     #[test]
     fn place_move_and_remove_items() {
         let conn = open_test_db();
-        create_rack(&conn, "r1", "f1", "A12", "", "", "", None, 42).unwrap();
+        create_rack(&conn, "r1", "f1", "A12", "", None, 42).unwrap();
 
         let item = place_rack_item(
             &conn,
@@ -663,7 +627,7 @@ mod tests {
     #[test]
     fn updating_to_passive_item_clears_connection_id() {
         let conn = open_test_db();
-        create_rack(&conn, "r1", "f1", "A12", "", "", "", None, 42).unwrap();
+        create_rack(&conn, "r1", "f1", "A12", "", None, 42).unwrap();
         place_rack_item(
             &conn,
             "i1",
@@ -698,7 +662,7 @@ mod tests {
     #[test]
     fn shrinking_rack_below_an_item_is_rejected() {
         let conn = open_test_db();
-        create_rack(&conn, "r1", "f1", "A12", "", "", "", None, 42).unwrap();
+        create_rack(&conn, "r1", "f1", "A12", "", None, 42).unwrap();
         place_rack_item(
             &conn,
             "i1",
@@ -713,7 +677,7 @@ mod tests {
         .unwrap();
         // Item occupies U40-U41; shrinking to 24U must fail.
         assert!(matches!(
-            update_rack(&conn, "r1", "A12", "", "", "", None, 24),
+            update_rack(&conn, "r1", "A12", "", None, 24),
             Err(ItopsStorageError::Validation(_))
         ));
     }
@@ -721,8 +685,8 @@ mod tests {
     #[test]
     fn reorder_scopes_to_fleet() {
         let conn = open_test_db();
-        create_rack(&conn, "a", "f1", "A", "", "", "", None, 42).unwrap();
-        create_rack(&conn, "b", "f1", "B", "", "", "", None, 42).unwrap();
+        create_rack(&conn, "a", "f1", "A", "", None, 42).unwrap();
+        create_rack(&conn, "b", "f1", "B", "", None, 42).unwrap();
         reorder_racks(&conn, "f1", &["b".to_string(), "a".to_string()]).unwrap();
         let order: Vec<String> = list_racks(&conn, "f1")
             .unwrap()

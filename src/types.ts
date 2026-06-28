@@ -165,7 +165,7 @@ export interface ResolvedHost {
 }
 
 // Fleet topology (docs/FLEET.md Phase B). A Rack belongs to one Fleet, grouped
-// down region → datacenter → server room, and holds Rack Items at U positions.
+// grouped by server room, and holds Rack Items at U positions.
 export type RackItemKind =
   | "connection"
   | "switch"
@@ -221,10 +221,7 @@ export interface Rack {
   id: string;
   fleetId: string;
   name: string;
-  // Topology: region → datacenter → server room. All optional (blank groups
-  // under "Unassigned"). Replaces the retired flat `area`.
-  region: string;
-  datacenter: string;
+  // Topology is Fleet → Server Room → Rack; blank groups under "Unassigned".
   serverRoom: string;
   // Cabinet shell colour; null/"black" = default.
   shell?: RackShell | null;
@@ -236,8 +233,6 @@ export interface Rack {
 // Narrows a Batch Run to part of a Fleet's rack topology (docs/FLEET.md Phase D).
 export interface RunScope {
   rackId?: string | null;
-  region?: string | null;
-  datacenter?: string | null;
   serverRoom?: string | null;
 }
 

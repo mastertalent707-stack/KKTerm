@@ -143,20 +143,15 @@ pub struct Fleet {
 }
 
 /// A Rack in a Fleet's virtual datacenter (docs/FLEET.md): a fixed-height cabinet
-/// grouped down the topology `region → datacenter → server_room`, holding Rack
-/// Items at U positions. `items` is hydrated on read (storage joins the items in
-/// U order). The legacy `area` field was retired in favour of the deeper
-/// datacenter/server_room split; old exports that still carry `area` ignore it.
+/// grouped by `server_room`, holding Rack Items at U positions. `items` is
+/// hydrated on read (storage joins the items in U order). The topology is
+/// Fleet → Server Room → Rack; older region/datacenter/area fields are retired.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Rack {
     pub id: String,
     pub fleet_id: String,
     pub name: String,
-    #[serde(default)]
-    pub region: String,
-    #[serde(default)]
-    pub datacenter: String,
     #[serde(default)]
     pub server_room: String,
     /// Cabinet shell colour: "black" (default) | "white" | "grey".
@@ -286,18 +281,12 @@ pub struct RunScope {
     #[serde(default)]
     pub rack_id: Option<String>,
     #[serde(default)]
-    pub region: Option<String>,
-    #[serde(default)]
-    pub datacenter: Option<String>,
-    #[serde(default)]
     pub server_room: Option<String>,
 }
 
 impl RunScope {
     pub fn is_empty(&self) -> bool {
         self.rack_id.as_deref().unwrap_or("").is_empty()
-            && self.region.as_deref().unwrap_or("").is_empty()
-            && self.datacenter.as_deref().unwrap_or("").is_empty()
             && self.server_room.as_deref().unwrap_or("").is_empty()
     }
 }

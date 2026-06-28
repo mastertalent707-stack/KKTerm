@@ -316,13 +316,9 @@ export function FleetsTab() {
     ? ""
     : drill.rackId
       ? nodeId.rack(drill.rackId)
-      : drill.serverRoom != null && drill.datacenter != null && drill.region != null
-        ? nodeId.serverRoom(activeGroup.id, drill.region, drill.datacenter, drill.serverRoom)
-        : drill.datacenter != null && drill.region != null
-          ? nodeId.datacenter(activeGroup.id, drill.region, drill.datacenter)
-          : drill.region != null
-            ? nodeId.region(activeGroup.id, drill.region)
-            : nodeId.fleet(activeGroup.id);
+      : drill.serverRoom != null
+        ? nodeId.serverRoom(activeGroup.id, drill.serverRoom)
+        : nodeId.fleet(activeGroup.id);
 
   const q = query.trim().toLowerCase();
   const matchQ = (s: string) => !q || (s || t("itops.racks.unassigned")).toLowerCase().includes(q);
@@ -360,7 +356,7 @@ export function FleetsTab() {
                   tint={groupColor(fleet.id)}
                   hasChildren={fleetRacks.length > 0}
                   open={open}
-                  selected={selectedId === fId && drill.region == null}
+                  selected={selectedId === fId && drill.serverRoom == null}
                   onToggle={() => toggleNode(fId)}
                   onSelect={() => {
                     setActiveId(fleet.id);
@@ -369,111 +365,43 @@ export function FleetsTab() {
                 />
                 {open
                   ? fleetTopo
-                      .filter((region) => matchQ(region.key))
-                      .map((region) => {
-                        const rId = nodeId.region(fleet.id, region.key);
-                        const rOpen = isExpanded(rId);
+                      .filter((room) => matchQ(room.key))
+                      .map((room) => {
+                        const mId = nodeId.serverRoom(fleet.id, room.key);
+                        const mOpen = isExpanded(mId);
                         return (
-                          <div key={rId}>
+                          <div key={mId}>
                             <TreeRow
                               depth={1}
-                              icon="globe"
-                              label={region.key || t("itops.racks.unassigned")}
-                              count={region.rackCount}
-                              hasChildren={region.datacenters.length > 0}
-                              open={rOpen}
-                              selected={selectedId === rId}
-                              onToggle={() => toggleNode(rId)}
+                              icon="ops"
+                              label={room.key || t("itops.racks.unassigned")}
+                              count={room.racks.length}
+                              hasChildren={room.racks.length > 0}
+                              open={mOpen}
+                              selected={selectedId === mId}
+                              onToggle={() => toggleNode(mId)}
                               onSelect={() =>
-                                selectNode(fleet.id, {
-                                  region: region.key,
-                                  datacenter: null,
-                                  serverRoom: null,
-                                  rackId: null,
-                                })
+                                selectNode(fleet.id, { serverRoom: room.key, rackId: null })
                               }
                             />
-                            {rOpen
-                              ? region.datacenters.map((dc) => {
-                                  const dId = nodeId.datacenter(fleet.id, region.key, dc.key);
-                                  const dOpen = isExpanded(dId);
-                                  return (
-                                    <div key={dId}>
-                                      <TreeRow
-                                        depth={2}
-                                        icon="database"
-                                        label={dc.key || t("itops.racks.unassigned")}
-                                        count={dc.rackCount}
-                                        hasChildren={dc.serverRooms.length > 0}
-                                        open={dOpen}
-                                        selected={selectedId === dId}
-                                        onToggle={() => toggleNode(dId)}
-                                        onSelect={() =>
-                                          selectNode(fleet.id, {
-                                            region: region.key,
-                                            datacenter: dc.key,
-                                            serverRoom: null,
-                                            rackId: null,
-                                          })
-                                        }
-                                      />
-                                      {dOpen
-                                        ? dc.serverRooms.map((room) => {
-                                            const mId = nodeId.serverRoom(
-                                              fleet.id,
-                                              region.key,
-                                              dc.key,
-                                              room.key,
-                                            );
-                                            const mOpen = isExpanded(mId);
-                                            return (
-                                              <div key={mId}>
-                                                <TreeRow
-                                                  depth={3}
-                                                  icon="ops"
-                                                  label={room.key || t("itops.racks.unassigned")}
-                                                  count={room.racks.length}
-                                                  hasChildren={room.racks.length > 0}
-                                                  open={mOpen}
-                                                  selected={selectedId === mId}
-                                                  onToggle={() => toggleNode(mId)}
-                                                  onSelect={() =>
-                                                    selectNode(fleet.id, {
-                                                      region: region.key,
-                                                      datacenter: dc.key,
-                                                      serverRoom: room.key,
-                                                      rackId: null,
-                                                    })
-                                                  }
-                                                />
-                                                {mOpen
-                                                  ? room.racks.map((rack) => (
-                                                      <TreeRow
-                                                        key={rack.id}
-                                                        depth={4}
-                                                        icon="server"
-                                                        label={rack.name}
-                                                        hasChildren={false}
-                                                        open={false}
-                                                        selected={selectedId === nodeId.rack(rack.id)}
-                                                        onSelect={() =>
-                                                          selectNode(fleet.id, {
-                                                            region: region.key,
-                                                            datacenter: dc.key,
-                                                            serverRoom: room.key,
-                                                            rackId: rack.id,
-                                                          })
-                                                        }
-                                                      />
-                                                    ))
-                                                  : null}
-                                              </div>
-                                            );
-                                          })
-                                        : null}
-                                    </div>
-                                  );
-                                })
+                            {mOpen
+                              ? room.racks.map((rack) => (
+                                  <TreeRow
+                                    key={rack.id}
+                                    depth={2}
+                                    icon="server"
+                                    label={rack.name}
+                                    hasChildren={false}
+                                    open={false}
+                                    selected={selectedId === nodeId.rack(rack.id)}
+                                    onSelect={() =>
+                                      selectNode(fleet.id, {
+                                        serverRoom: room.key,
+                                        rackId: rack.id,
+                                      })
+                                    }
+                                  />
+                                ))
                               : null}
                           </div>
                         );
@@ -851,51 +779,25 @@ function RackDrill({
   const { t } = useTranslation();
   const unassigned = t("itops.racks.unassigned");
 
-  const region = drill.region != null ? topology.find((r) => r.key === drill.region) : undefined;
-  const datacenter =
-    region && drill.datacenter != null
-      ? region.datacenters.find((d) => d.key === drill.datacenter)
-      : undefined;
   const serverRoom =
-    datacenter && drill.serverRoom != null
-      ? datacenter.serverRooms.find((s) => s.key === drill.serverRoom)
-      : undefined;
+    drill.serverRoom != null ? topology.find((s) => s.key === drill.serverRoom) : undefined;
   const rack = drill.rackId != null ? racks.find((r) => r.id === drill.rackId) : undefined;
 
   const crumbs: { label: string; onClick: () => void }[] = [
     { label: group.name, onClick: () => setDrill(EMPTY_DRILL) },
   ];
-  if (drill.region != null)
-    crumbs.push({
-      label: drill.region || unassigned,
-      onClick: () => setDrill({ ...EMPTY_DRILL, region: drill.region }),
-    });
-  if (drill.datacenter != null)
-    crumbs.push({
-      label: drill.datacenter || unassigned,
-      onClick: () =>
-        setDrill({ ...EMPTY_DRILL, region: drill.region, datacenter: drill.datacenter }),
-    });
   if (drill.serverRoom != null)
     crumbs.push({
       label: drill.serverRoom || unassigned,
-      onClick: () =>
-        setDrill({
-          region: drill.region,
-          datacenter: drill.datacenter,
-          serverRoom: drill.serverRoom,
-          rackId: null,
-        }),
+      onClick: () => setDrill({ serverRoom: drill.serverRoom, rackId: null }),
     });
   if (rack) crumbs.push({ label: rack.name, onClick: () => {} });
 
-  // Scoped run for the current non-rack level (skip "Unassigned" — empty keys
-  // act as wildcards in the matcher, so a scoped run there would target all).
+  // Scoped run for the current server room (skip "Unassigned" — an empty key
+  // acts as a wildcard in the matcher, so a scoped run there would target all).
   const scope: RunScope | null = (() => {
     if (rack) return { rackId: rack.id };
-    if (drill.serverRoom) return { region: drill.region, datacenter: drill.datacenter, serverRoom: drill.serverRoom };
-    if (drill.datacenter) return { region: drill.region, datacenter: drill.datacenter };
-    if (drill.region) return { region: drill.region };
+    if (drill.serverRoom) return { serverRoom: drill.serverRoom };
     return null;
   })();
 
@@ -957,55 +859,15 @@ function RackDrill({
         <div className="ft-rack-detail">{elevation(rack, true)}</div>
       ) : serverRoom ? (
         <div className="rk-row">{serverRoom.racks.map((r) => elevation(r))}</div>
-      ) : datacenter ? (
+      ) : (
         <div className="ft-cards">
-          {datacenter.serverRooms.map((room) => (
+          {topology.map((room) => (
             <DrillCard
               key={room.key}
               icon="ops"
               title={room.key || unassigned}
               meta={t("itops.racks.rackCount", { count: room.racks.length })}
-              onClick={() =>
-                setDrill({
-                  region: drill.region,
-                  datacenter: drill.datacenter,
-                  serverRoom: room.key,
-                  rackId: null,
-                })
-              }
-            />
-          ))}
-        </div>
-      ) : region ? (
-        <div className="ft-cards">
-          {region.datacenters.map((dc) => (
-            <DrillCard
-              key={dc.key}
-              icon="database"
-              title={dc.key || unassigned}
-              meta={`${t("itops.racks.serverRoomCount", { count: dc.serverRooms.length })} · ${t("itops.racks.rackCount", { count: dc.rackCount })}`}
-              onClick={() =>
-                setDrill({
-                  region: drill.region,
-                  datacenter: dc.key,
-                  serverRoom: null,
-                  rackId: null,
-                })
-              }
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="ft-cards">
-          {topology.map((r) => (
-            <DrillCard
-              key={r.key}
-              icon="globe"
-              title={r.key || unassigned}
-              meta={`${t("itops.racks.datacenterCount", { count: r.datacenters.length })} · ${t("itops.racks.rackCount", { count: r.rackCount })}`}
-              onClick={() =>
-                setDrill({ region: r.key, datacenter: null, serverRoom: null, rackId: null })
-              }
+              onClick={() => setDrill({ serverRoom: room.key, rackId: null })}
             />
           ))}
         </div>

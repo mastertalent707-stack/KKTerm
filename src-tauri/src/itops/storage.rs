@@ -311,10 +311,7 @@ fn rack_matches_scope(rack: &super::types::Rack, scope: &RunScope) -> bool {
         Some(wanted) if !wanted.is_empty() => wanted == value,
         _ => true,
     };
-    matches(&scope.rack_id, &rack.id)
-        && matches(&scope.region, &rack.region)
-        && matches(&scope.datacenter, &rack.datacenter)
-        && matches(&scope.server_room, &rack.server_room)
+    matches(&scope.rack_id, &rack.id) && matches(&scope.server_room, &rack.server_room)
 }
 
 #[cfg(test)]
@@ -322,13 +319,11 @@ mod tests {
     use super::*;
     use crate::itops::types::Rack;
 
-    fn test_rack(region: &str, datacenter: &str, server_room: &str) -> Rack {
+    fn test_rack(server_room: &str) -> Rack {
         Rack {
             id: "r1".into(),
             fleet_id: "f1".into(),
             name: "A12".into(),
-            region: region.into(),
-            datacenter: datacenter.into(),
             server_room: server_room.into(),
             shell: None,
             height_u: 42,
@@ -339,7 +334,7 @@ mod tests {
 
     #[test]
     fn scope_matching_treats_empty_fields_as_wildcards() {
-        let rack = test_rack("us-east", "dc1", "Room B");
+        let rack = test_rack("Room B");
         // Empty scope matches anything.
         assert!(rack_matches_scope(&rack, &RunScope::default()));
         // Exact rack id matches.
@@ -352,26 +347,14 @@ mod tests {
             &rack,
             &RunScope { rack_id: Some("other".into()), ..Default::default() }
         ));
-        // Region matches; mismatched server room within it fails the AND.
+        // Server room matches; a mismatched server room does not.
         assert!(rack_matches_scope(
             &rack,
-            &RunScope { region: Some("us-east".into()), ..Default::default() }
-        ));
-        assert!(rack_matches_scope(
-            &rack,
-            &RunScope {
-                region: Some("us-east".into()),
-                datacenter: Some("dc1".into()),
-                ..Default::default()
-            }
+            &RunScope { server_room: Some("Room B".into()), ..Default::default() }
         ));
         assert!(!rack_matches_scope(
             &rack,
-            &RunScope {
-                region: Some("us-east".into()),
-                server_room: Some("Room C".into()),
-                ..Default::default()
-            }
+            &RunScope { server_room: Some("Room C".into()), ..Default::default() }
         ));
     }
 

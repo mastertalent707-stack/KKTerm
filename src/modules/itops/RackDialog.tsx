@@ -36,8 +36,6 @@ export function RackDialog({
   const updateRack = useItOpsStore((state) => state.updateRack);
 
   const [name, setName] = useState(rack?.name ?? "");
-  const [region, setRegion] = useState(rack?.region ?? "");
-  const [datacenter, setDatacenter] = useState(rack?.datacenter ?? "");
   const [serverRoom, setServerRoom] = useState(rack?.serverRoom ?? "");
   const [shell, setShell] = useState<RackShell>(rack?.shell ?? "black");
   const [heightU, setHeightU] = useState(rack?.heightU ?? 42);
@@ -51,8 +49,6 @@ export function RackDialog({
     setBusy(true);
     const input = {
       name: trimmedName,
-      region: region.trim(),
-      datacenter: datacenter.trim(),
       serverRoom: serverRoom.trim(),
       shell,
       heightU,
@@ -96,29 +92,13 @@ export function RackDialog({
             autoFocus
           />
         </Field>
-        <Field label={t("itops.racks.regionLabel")}>
+        <Field label={t("itops.racks.serverRoomLabel")}>
           <TextInput
-            value={region}
-            placeholder={t("itops.racks.regionPlaceholder")}
-            onChange={(event) => setRegion(event.currentTarget.value)}
+            value={serverRoom}
+            placeholder={t("itops.racks.serverRoomPlaceholder")}
+            onChange={(event) => setServerRoom(event.currentTarget.value)}
           />
         </Field>
-        <div style={{ display: "flex", gap: 12 }}>
-          <Field label={t("itops.racks.datacenterLabel")}>
-            <TextInput
-              value={datacenter}
-              placeholder={t("itops.racks.datacenterPlaceholder")}
-              onChange={(event) => setDatacenter(event.currentTarget.value)}
-            />
-          </Field>
-          <Field label={t("itops.racks.serverRoomLabel")}>
-            <TextInput
-              value={serverRoom}
-              placeholder={t("itops.racks.serverRoomPlaceholder")}
-              onChange={(event) => setServerRoom(event.currentTarget.value)}
-            />
-          </Field>
-        </div>
         <Field label={t("itops.racks.shellLabel")}>
           <Select
             value={shell}

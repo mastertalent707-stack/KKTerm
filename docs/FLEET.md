@@ -63,24 +63,21 @@ Replaces the **Host Group** entry in `CONTEXT.md`; adds the rest. Follows the
   owns no Session and no secret. It is not a Connection type. _Avoid_: host
   group, inventory, host list, connection group (as a Connection type).
 - **Rack** — a durable, fixed-height (default 42U) cabinet that belongs to one
-  Fleet, placed in the topology **Region → Datacenter → Server Room** for
-  grouping, with an optional **shell** finish (black/white/grey). Holds Rack
-  Items at U positions. Stored in `itops_fleet_racks`. _Avoid_: cabinet group,
-  shelf.
+  Fleet, grouped by **Server Room** (topology Fleet → Server Room → Rack), with
+  an optional **shell** finish (black/white/grey). Holds Rack Items at U
+  positions. Stored in `itops_fleet_racks`. _Avoid_: cabinet group, shelf.
 - **Rack Item** — one device occupying a contiguous `start_u..start_u+height_u`
   span in a Rack. Either **Connection-backed** (carries a `connection_id`,
   clickable to open its Session) or **passive** (a switch, PDU, patch panel,
   blank filler, or label — inventory/visual only, not openable). Stored in
   `itops_fleet_rack_items`. _Avoid_: slot, node, host card.
-- **Region / Datacenter / Server Room** — string grouping tags on a Rack (e.g.
-  Region "us-east", Datacenter "dc1", Server Room "Room B"). They nest the Rack
-  View tree and scope a Batch Run; blank levels group under "Unassigned". Plain
-  text, not first-class entities. (Replaces the retired single **Area** tag.)
-  _Avoid_: zone, site object.
+- **Server Room** — a string grouping tag on a Rack (e.g. "Room B"). It nests
+  the Rack View tree and scopes a Batch Run; blank server rooms group under
+  "Unassigned". Plain text, not a first-class entity. (Replaces the retired
+  Region/Datacenter/Area tags.) _Avoid_: zone, site object.
 - **Rack View (Datacenter View)** — the Connection-tree-style navigator inside
-  the Fleet tab: a left tree of Fleet → Region → Datacenter → Server Room → Rack
-  and a drill-down that ends at a single animated rack elevation. _Avoid_: floor
-  plan, topology graph.
+  the Fleet tab: a left tree of Fleet → Server Room → Rack and a drill-down that
+  ends at a single animated rack elevation. _Avoid_: floor plan, topology graph.
 
 `Watchdog`, `Automation`, `Batch Run`, `Playbook`, `Transport` are unchanged.
 
@@ -113,14 +110,12 @@ tables directly; the rename branch only runs for upgrades. Add a focused
 migration test mirroring the existing storage tests.
 
 ```sql
--- A Rack belongs to one Fleet; grouped down region → datacenter → server_room.
--- The legacy `area` column is retired in place (no longer read/written).
+-- A Rack belongs to one Fleet; grouped by server_room (Fleet → Server Room →
+-- Rack). The legacy region/datacenter/area columns are retired in place.
 CREATE TABLE IF NOT EXISTS itops_fleet_racks (
     id          TEXT PRIMARY KEY,
     fleet_id    TEXT NOT NULL REFERENCES itops_fleets(id) ON DELETE CASCADE,
     name        TEXT NOT NULL,           -- e.g. "A12"
-    region      TEXT NOT NULL DEFAULT '',
-    datacenter  TEXT NOT NULL DEFAULT '',
     server_room TEXT NOT NULL DEFAULT '',
     shell       TEXT,                    -- cabinet finish: black|white|grey
     height_u    INTEGER NOT NULL DEFAULT 42,
@@ -185,8 +180,6 @@ pub struct Rack {
     pub id: String,
     pub fleet_id: String,
     pub name: String,
-    pub region: String,
-    pub datacenter: String,
     pub server_room: String,
     pub shell: Option<String>, // cabinet finish: black|white|grey
     pub height_u: u32,         // default 42
@@ -234,7 +227,7 @@ deduplicated `Vec<ResolvedHost>` from the union of:
 So placing a host in a rack automatically makes it a batch target, and a Fleet
 with no racks resolves exactly as a Host Group does today. A new
 `resolve_fleet_scoped(fleet, scope)` variant accepts an optional
-`{ region?, datacenter?, serverRoom?, rackId? }` scope so the Rack View can launch a Batch Run on
+`{ serverRoom?, rackId? }` scope so the Rack View can launch a Batch Run on
 one rack/area/region (Phase D).
 
 ## Backend changes
@@ -304,7 +297,7 @@ The Fleets tab gets a two-mode view toggled in the tab header:
 
 ### Editing affordances
 
-- "Add Rack" (name, region, datacenter, server_room, height_u) and "Add Item" (choose a Fleet
+- "Add Rack" (name, server_room, shell, height_u) and "Add Item" (choose a Fleet
   member Connection, or a passive device kind) via dialogs built from
   `src/app/ui/dialog` primitives, footer order per host platform
   (`docs/DESIGN_LANGUAGE.md`).
@@ -408,7 +401,7 @@ Each phase is one reviewable PR and leaves the app shippable.
   Workspace) handed to the existing `openConnection`; a pencil edits it. Items
   whose Connection no longer resolves to a Fleet member render as dimmed
   **ghosts** (not openable, still editable/removable). _Scoped Batch Runs
-  landed:_ a `RunScope { rackId?, region?, datacenter?, serverRoom? }` + `resolve_fleet_scoped`
+  landed:_ a `RunScope { rackId?, serverRoom? }` + `resolve_fleet_scoped`
   (storage) and an optional `scope` on `itops_start_batch_run`; per-rack and
   per-region/area "Run" affordances launch a run over only the placed hosts in
   the matching racks, with the launcher showing a scope banner.
