@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { invokeCommand } from "../../lib/tauri";
 import { useWorkspaceStore } from "../../store";
 import type { Fleet, Rack, RackItem, ResolvedHost } from "../../types";
+import { ConnectionIcon } from "../workspace/connections/ConnectionIcon";
 import { ItIcon, IT_ACCENTS, type ItIconName } from "./icons";
 import { FleetDialog } from "./FleetDialog";
 import { RackElevation } from "./RackElevation";
@@ -46,6 +47,11 @@ const TILE_COLORS = [
   IT_ACCENTS.orange,
   IT_ACCENTS.purple,
 ];
+
+type ItOpsCustomIcon = {
+  iconDataUrl?: string | null;
+  iconBackgroundColor?: string | null;
+};
 
 // A stable per-group tile colour (Fleets don't store one); hashing the id
 // keeps a group's colour steady across reloads without a durable field.
@@ -420,6 +426,7 @@ export function FleetsTab({
                     <TreeRow
                       depth={0}
                       icon={groupIcon(fleet)}
+                      customIcon={fleet}
                       label={fleet.name}
                       tint={groupColor(fleet.id)}
                       hasChildren={fleetRacks.length > 0}
@@ -442,6 +449,7 @@ export function FleetsTab({
                                 <TreeRow
                                   depth={1}
                                   icon="room"
+                                  customIcon={fleet.roomIcons?.[room.key]}
                                   label={room.key || t("itops.racks.unassigned")}
                                   count={room.racks.length}
                                   hasChildren={room.racks.length > 0}
@@ -496,6 +504,7 @@ export function FleetsTab({
             drill={drill}
             setDrill={setDrill}
             viewBackground={viewBackground}
+            roomIcons={activeGroup.roomIcons}
             hostForItem={hostForItem}
             isGhostItem={isGhostItem}
             onSlotClick={(rack, startU) => setItemDialog({ rack, item: null, startU })}
@@ -552,10 +561,40 @@ export function FleetsTab({
   );
 }
 
+function ItOpsIcon({
+  icon,
+  customIcon,
+  size,
+}: {
+  icon: ItIconName;
+  customIcon?: ItOpsCustomIcon;
+  size: number;
+}) {
+  if (customIcon?.iconDataUrl) {
+    return (
+      <ConnectionIcon
+        iconBackgroundColor={customIcon.iconBackgroundColor}
+        iconDataUrl={customIcon.iconDataUrl}
+        size={size}
+        type="localFiles"
+      />
+    );
+  }
+  if (customIcon?.iconBackgroundColor) {
+    return (
+      <span className="ft-custom-icon" style={{ background: customIcon.iconBackgroundColor }}>
+        <ItIcon name={icon} size={size} sw={1.6} />
+      </span>
+    );
+  }
+  return <ItIcon name={icon} size={size} sw={1.6} />;
+}
+
 // ── Tree row ──────────────────────────────────────────────────────────────
 function TreeRow({
   depth,
   icon,
+  customIcon,
   label,
   count,
   tint,
@@ -567,6 +606,7 @@ function TreeRow({
 }: {
   depth: number;
   icon: ItIconName;
+  customIcon?: ItOpsCustomIcon;
   label: string;
   count?: number;
   tint?: string;
@@ -595,7 +635,7 @@ function TreeRow({
         {hasChildren ? <ItIcon name={open ? "chevD" : "chevR"} size={11} /> : null}
       </button>
       <span className="ft-ic" style={tint ? { color: tint } : undefined}>
-        <ItIcon name={icon} size={14} sw={1.6} />
+        <ItOpsIcon icon={icon} customIcon={customIcon} size={14} />
       </span>
       <span className="ft-label">{label}</span>
       {count != null ? <span className="ft-count">{count}</span> : null}
@@ -610,6 +650,7 @@ function RackDrill({
   drill,
   setDrill,
   viewBackground,
+  roomIcons,
   hostForItem,
   isGhostItem,
   onSlotClick,
@@ -622,6 +663,7 @@ function RackDrill({
   drill: DrillPath;
   setDrill: (next: DrillPath) => void;
   viewBackground: DashboardBackground | null | undefined;
+  roomIcons?: Record<string, ItOpsCustomIcon>;
   hostForItem: (item: RackItem) => string | null;
   isGhostItem: (item: RackItem) => boolean;
   onSlotClick: (rack: Rack, startU: number) => void;
@@ -686,6 +728,7 @@ function RackDrill({
               <DrillCard
                 key={room.key}
                 icon="room"
+                customIcon={roomIcons?.[room.key]}
                 title={room.key || unassigned}
                 meta={t("itops.racks.rackCount", { count: room.racks.length })}
                 onClick={() => setDrill({ serverRoom: room.key, rackId: null })}
@@ -700,11 +743,13 @@ function RackDrill({
 
 function DrillCard({
   icon,
+  customIcon,
   title,
   meta,
   onClick,
 }: {
   icon: ItIconName;
+  customIcon?: ItOpsCustomIcon;
   title: string;
   meta: string;
   onClick: () => void;
@@ -712,7 +757,7 @@ function DrillCard({
   return (
     <button type="button" className="ft-card" onClick={onClick}>
       <span className="ft-card-ic">
-        <ItIcon name={icon} size={20} sw={1.6} />
+        <ItOpsIcon icon={icon} customIcon={customIcon} size={20} />
       </span>
       <span className="ft-card-txt">
         <span className="ft-card-title">{title}</span>

@@ -3235,6 +3235,18 @@
 .itops-page .ft-row.sel .ft-ic {
   color: #fff;
 }
+.itops-page .ft-ic .connection-icon-shell {
+  flex: 0 0 auto;
+}
+.itops-page .ft-custom-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: #fff;
+}
 .itops-page .ft-label {
   flex: 1 1 auto;
   white-space: nowrap;
@@ -3351,6 +3363,14 @@
   border-radius: 10px;
   background: var(--accent-soft);
   color: var(--accent);
+}
+.itops-page .ft-card-ic .connection-icon-shell {
+  flex: 0 0 auto;
+}
+.itops-page .ft-card-ic .ft-custom-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
 }
 .itops-page .ft-card-txt {
   flex: 1 1 auto;

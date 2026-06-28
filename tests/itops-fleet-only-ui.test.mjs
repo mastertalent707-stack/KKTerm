@@ -62,7 +62,12 @@ test("Fleet tree add menu opens distinct Fleet, Server Room, and Rack dialogs", 
   assert.match(fleets, /selectedServerRoomForDialog/);
   assert.match(fleets, /setServerRoomDialogOpen\(true\)/);
   assert.match(fleets, /setRackDialog\(\{[\s\S]*fleetId: selectedFleetIdForDialog[\s\S]*rack: null/);
+  assert.match(fleets, /customIcon=\{fleet\}/);
+  assert.match(fleets, /customIcon=\{fleet\.roomIcons\?\.\[room\.key\]\}/);
+  assert.match(fleets, /<ConnectionIcon\b/);
   assert.match(fleetDialog, /itops\.fleets\.createHelp/);
+  assert.match(fleetDialog, /\{isEdit \? \([\s\S]*itops\.fleets\.perHostTransport/);
+  assert.doesNotMatch(fleetDialog, /\{isEdit \? \([\s\S]{0,120}<Field\s+label=\{t\("itops\.fleets\.connectionsLabel"\)\}/);
   assert.match(serverRoomDialog, /itops\.racks\.serverRoomFleetLabel/);
   assert.match(serverRoomDialog, /createRack\(/);
   assert.match(rackDialog, /itops\.racks\.fleetLabel/);

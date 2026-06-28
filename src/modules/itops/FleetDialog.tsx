@@ -172,43 +172,41 @@ export function FleetDialog({
           </Field>
         ) : null}
 
-        {isEdit ? (
-          <Field
-            label={t("itops.fleets.connectionsLabel")}
-            hint={t("itops.fleets.selectedCount", { count: selected.size })}
-          >
-            <div className="hg-dlg-list">
-              {orderedConnections.length === 0 ? (
-                <div className="hg-dlg-empty">{t("itops.fleets.noConnections")}</div>
-              ) : (
-                orderedConnections.map((connection) => {
-                  const checked = selected.has(connection.id);
-                  return (
-                    <button
-                      key={connection.id}
-                      type="button"
-                      className={`hg-dlg-row${checked ? " checked" : ""}`}
-                      aria-pressed={checked}
-                      onClick={() => toggle(connection.id)}
-                    >
-                      <span className="hg-dlg-check">
-                        {checked ? <ItIcon name="check" size={13} sw={2.4} /> : null}
+        <Field
+          label={t("itops.fleets.connectionsLabel")}
+          hint={t("itops.fleets.selectedCount", { count: selected.size })}
+        >
+          <div className="hg-dlg-list">
+            {orderedConnections.length === 0 ? (
+              <div className="hg-dlg-empty">{t("itops.fleets.noConnections")}</div>
+            ) : (
+              orderedConnections.map((connection) => {
+                const checked = selected.has(connection.id);
+                return (
+                  <button
+                    key={connection.id}
+                    type="button"
+                    className={`hg-dlg-row${checked ? " checked" : ""}`}
+                    aria-pressed={checked}
+                    onClick={() => toggle(connection.id)}
+                  >
+                    <span className="hg-dlg-check">
+                      {checked ? <ItIcon name="check" size={13} sw={2.4} /> : null}
+                    </span>
+                    <span className="hg-dlg-row-txt">
+                      <span className="nm">{connection.name}</span>
+                      <span className="host">
+                        {connection.user ? `${connection.user}@` : ""}
+                        {connection.host}
                       </span>
-                      <span className="hg-dlg-row-txt">
-                        <span className="nm">{connection.name}</span>
-                        <span className="host">
-                          {connection.user ? `${connection.user}@` : ""}
-                          {connection.host}
-                        </span>
-                      </span>
-                      <span className="hg-dlg-type">{connection.type}</span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </Field>
-        ) : null}
+                    </span>
+                    <span className="hg-dlg-type">{connection.type}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </Field>
       </Sheet>
     </DialogShell>
   );
