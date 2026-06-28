@@ -1504,7 +1504,6 @@ const AI_PROVIDER_CREDENTIALS: &[(&str, &str, &str)] = &[
     ("azure-openai", "Azure OpenAI", "Azure OpenAI API key"),
     ("litellm", "LiteLLM", "LiteLLM key"),
     ("github-copilot", "GitHub Copilot", "GitHub OAuth token"),
-    ("ollama", "Ollama", "Ollama API key"),
     ("ollama-cloud", "Ollama Cloud", "Ollama API key"),
     ("nvidia", "NVIDIA", "NVIDIA API key"),
     ("opencode", "OpenCode", "OpenCode API key"),

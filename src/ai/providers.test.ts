@@ -39,8 +39,8 @@ const ollamaDefinition = getAiProviderDefinition("ollama");
 if (ollamaDefinition.modelListStrategy !== "ollamaTags" || !ollamaDefinition.strictModelList) {
   throw new Error("Ollama should refresh from native tags and treat pulled models as strict.");
 }
-if (!ollamaDefinition.settingsFields.includes("apiKey") || ollamaDefinition.requiresApiKey) {
-  throw new Error("Ollama should expose an optional API key field for hosted-compatible endpoints.");
+if (ollamaDefinition.settingsFields.includes("apiKey") || ollamaDefinition.requiresApiKey) {
+  throw new Error("Local Ollama should not expose an API key field.");
 }
 validateAiProviderForChat(providerDefaultsFor("ollama"), false);
 
@@ -55,6 +55,9 @@ if (ollamaCloudDefinition.baseUrl !== "https://ollama.com/v1") {
 }
 if (!ollamaCloudDefinition.requiresApiKey || ollamaCloudDefinition.allowsCustomBaseUrl) {
   throw new Error("Ollama Cloud should require a bearer API key against the fixed cloud endpoint.");
+}
+if (!ollamaCloudDefinition.settingsFields.includes("apiKey")) {
+  throw new Error("Ollama Cloud should expose the API key field.");
 }
 validateAiProviderForChat(providerDefaultsFor("ollama-cloud"), true);
 

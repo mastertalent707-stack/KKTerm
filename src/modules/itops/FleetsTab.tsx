@@ -338,6 +338,39 @@ export function FleetsTab() {
         ? nodeId.serverRoom(activeGroup.id, drill.serverRoom)
         : nodeId.fleet(activeGroup.id);
 
+  // ── Unified toolbar derivations (breadcrumb + scoped run + per-view bg) ──
+  const drillRack = drill.rackId != null ? racks.find((r) => r.id === drill.rackId) : undefined;
+  const crumbs: { label: string; onClick: () => void }[] = activeGroup
+    ? [{ label: activeGroup.name, onClick: () => setDrill(EMPTY_DRILL) }]
+    : [];
+  if (activeGroup && drill.serverRoom != null) {
+    crumbs.push({
+      label: drill.serverRoom || t("itops.racks.unassigned"),
+      onClick: () => setDrill({ serverRoom: drill.serverRoom, rackId: null }),
+    });
+  }
+  if (drillRack) crumbs.push({ label: drillRack.name, onClick: () => {} });
+
+  // Scoped run for the current level (skip "Unassigned" — empty keys wildcard).
+  const drillScope: RunScope | null = drillRack
+    ? { rackId: drillRack.id }
+    : drill.serverRoom
+      ? { serverRoom: drill.serverRoom }
+      : null;
+
+  const viewBackground = drillRack
+    ? drillRack.background
+    : drill.serverRoom != null
+      ? activeGroup?.roomBackgrounds?.[drill.serverRoom]
+      : activeGroup?.background;
+  function setViewBackground(bg: DashboardBackground | null) {
+    if (!activeGroup) return;
+    if (drill.rackId) void setRackBackground(activeGroup.id, drill.rackId, bg);
+    else if (drill.serverRoom != null)
+      void setServerRoomBackground(activeGroup.id, drill.serverRoom, bg);
+    else void setFleetBackground(activeGroup.id, bg);
+  }
+
   const q = query.trim().toLowerCase();
   const matchQ = (s: string) => !q || (s || t("itops.racks.unassigned")).toLowerCase().includes(q);
 
@@ -503,17 +536,30 @@ export function FleetsTab() {
       {/* ── Detail ── */}
       {activeGroup ? (
         <div className="hg-detail">
-          <div className="hg-detail-head">
-            <span className="tile" style={{ background: groupColor(activeGroup.id) }}>
-              <ItIcon name={groupIcon(activeGroup)} size={22} sw={1.6} />
+          {/* Unified compact toolbar: fleet identity + breadcrumb + actions. */}
+          <div className="hg-bar">
+            <span className="hg-bar-tile" style={{ background: groupColor(activeGroup.id) }}>
+              <ItIcon name={groupIcon(activeGroup)} size={15} sw={1.7} />
             </span>
-            <div style={{ minWidth: 0, flex: "1 1 auto" }}>
-              <div className="nm">{activeGroup.name}</div>
-              <div className="sub">
-                {t("itops.fleets.connectionsCount", { count: members.length })}
-                {activeGroup.filter ? `  ·  ${t("itops.fleets.dynamicMembership")}` : ""}
-              </div>
-            </div>
+            {view === "racks" ? (
+              <nav className="ft-breadcrumb">
+                {crumbs.map((crumb, i) => (
+                  <span key={i} className="ft-crumb">
+                    {i > 0 ? <ItIcon name="chevR" size={11} /> : null}
+                    <button
+                      type="button"
+                      className={i === crumbs.length - 1 ? "cur" : ""}
+                      onClick={crumb.onClick}
+                    >
+                      {crumb.label}
+                    </button>
+                  </span>
+                ))}
+              </nav>
+            ) : (
+              <span className="hg-bar-name">{activeGroup.name}</span>
+            )}
+            <span style={{ flex: "1 1 auto" }} />
             <div className="seg" role="tablist" aria-label={t("itops.fleets.viewToggleLabel")}>
               <button
                 type="button"
@@ -534,27 +580,52 @@ export function FleetsTab() {
                 {t("itops.fleets.viewRacks")}
               </button>
             </div>
+            {view === "racks" ? (
+              <>
+                <BackgroundButton background={viewBackground} onChange={setViewBackground} />
+                {drillScope ? (
+                  <button
+                    type="button"
+                    className="it-icon-btn sm"
+                    title={t("itops.racks.runScope")}
+                    onClick={() => requestNewBatchRun(activeGroup.id, drillScope)}
+                  >
+                    <ItIcon name="run" size={13} />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="it-icon-btn sm"
+                  title={t("itops.racks.newTitle")}
+                  onClick={() =>
+                    setRackDialog({
+                      rack: null,
+                      defaultServerRoom: drill.serverRoom ?? undefined,
+                      defaultGroup: drill.rackId ? drillRack?.rackGroup : undefined,
+                    })
+                  }
+                >
+                  <ItIcon name="plus" size={14} />
+                </button>
+              </>
+            ) : null}
             <button
               type="button"
-              className="it-icon-btn"
+              className="it-icon-btn sm"
               title={t("itops.actions.edit")}
               onClick={() => setDialog({ group: activeGroup })}
             >
-              <ItIcon name="edit" size={15} />
+              <ItIcon name="edit" size={14} />
             </button>
             <button
               type="button"
-              className="it-icon-btn"
+              className="it-icon-btn sm"
               title={t("itops.actions.delete")}
               onClick={() => setPendingDelete(activeGroup)}
             >
-              <ItIcon name="trash" size={15} />
+              <ItIcon name="trash" size={14} />
             </button>
-            <button
-              type="button"
-              className="it-btn"
-              onClick={() => requestNewBatchRun(activeGroup.id)}
-            >
+            <button type="button" className="it-btn sm" onClick={() => requestNewBatchRun(activeGroup.id)}>
               <span className="it-btn-ic">
                 <ItIcon name="run" size={13} />
               </span>
@@ -571,26 +642,11 @@ export function FleetsTab() {
             />
           ) : (
             <RackDrill
-              group={activeGroup}
               topology={topology}
               racks={racks}
               drill={drill}
               setDrill={setDrill}
-              onNewRack={(group) =>
-                setRackDialog({
-                  rack: null,
-                  defaultServerRoom: drill.serverRoom ?? undefined,
-                  defaultGroup: group,
-                })
-              }
-              onRunScope={(scope) => requestNewBatchRun(activeGroup.id, scope)}
-              onSetFleetBackground={(bg) => void setFleetBackground(activeGroup.id, bg)}
-              onSetRoomBackground={(room, bg) =>
-                void setServerRoomBackground(activeGroup.id, room, bg)
-              }
-              onSetRackBackground={(rackId, bg) =>
-                void setRackBackground(activeGroup.id, rackId, bg)
-              }
+              viewBackground={viewBackground}
               hostForItem={hostForItem}
               isGhostItem={isGhostItem}
               onSlotClick={(rack, startU) => setItemDialog({ rack, item: null, startU })}
@@ -834,18 +890,13 @@ function MembersView({
   );
 }
 
-// ── Rack drill-down ─────────────────────────────────────────────────────────
+// ── Rack drill body (the toolbar lives in the unified .hg-bar above) ─────────
 function RackDrill({
-  group,
   topology,
   racks,
   drill,
   setDrill,
-  onNewRack,
-  onRunScope,
-  onSetFleetBackground,
-  onSetRoomBackground,
-  onSetRackBackground,
+  viewBackground,
   hostForItem,
   isGhostItem,
   onSlotClick,
@@ -856,16 +907,11 @@ function RackDrill({
   onRunRack,
   onMoveItem,
 }: {
-  group: Fleet;
   topology: ReturnType<typeof groupRackTopology>;
   racks: Rack[];
   drill: DrillPath;
   setDrill: (next: DrillPath) => void;
-  onNewRack: (group?: string) => void;
-  onRunScope: (scope: RunScope) => void;
-  onSetFleetBackground: (bg: DashboardBackground | null) => void;
-  onSetRoomBackground: (room: string, bg: DashboardBackground | null) => void;
-  onSetRackBackground: (rackId: string, bg: DashboardBackground | null) => void;
+  viewBackground: DashboardBackground | null | undefined;
   hostForItem: (item: RackItem) => string | null;
   isGhostItem: (item: RackItem) => boolean;
   onSlotClick: (rack: Rack, startU: number) => void;
@@ -880,41 +926,11 @@ function RackDrill({
   const unassigned = t("itops.racks.unassigned");
   const ungrouped = t("itops.racks.ungrouped");
 
-  // Background for the current drill level + its setter.
-  const viewBackground: DashboardBackground | null | undefined = drill.rackId
-    ? racks.find((r) => r.id === drill.rackId)?.background
-    : drill.serverRoom != null
-      ? group.roomBackgrounds?.[drill.serverRoom]
-      : group.background;
-  const onSetBackground = (bg: DashboardBackground | null) => {
-    if (drill.rackId) onSetRackBackground(drill.rackId, bg);
-    else if (drill.serverRoom != null) onSetRoomBackground(drill.serverRoom, bg);
-    else onSetFleetBackground(bg);
-  };
-
   const serverRoom =
     drill.serverRoom != null ? topology.find((s) => s.key === drill.serverRoom) : undefined;
   const rack = drill.rackId != null ? racks.find((r) => r.id === drill.rackId) : undefined;
 
-  const crumbs: { label: string; onClick: () => void }[] = [
-    { label: group.name, onClick: () => setDrill(EMPTY_DRILL) },
-  ];
-  if (drill.serverRoom != null)
-    crumbs.push({
-      label: drill.serverRoom || unassigned,
-      onClick: () => setDrill({ serverRoom: drill.serverRoom, rackId: null }),
-    });
-  if (rack) crumbs.push({ label: rack.name, onClick: () => {} });
-
-  // Scoped run for the current server room (skip "Unassigned" — an empty key
-  // acts as a wildcard in the matcher, so a scoped run there would target all).
-  const scope: RunScope | null = (() => {
-    if (rack) return { rackId: rack.id };
-    if (drill.serverRoom) return { serverRoom: drill.serverRoom };
-    return null;
-  })();
-
-  function elevation(r: Rack, detailed = false) {
+  function elevation(r: Rack) {
     return (
       <RackElevation
         key={r.id}
@@ -928,43 +944,12 @@ function RackDrill({
         onRunRack={onRunRack}
         onMoveItem={onMoveItem}
         isGhost={isGhostItem}
-        detailed={detailed}
       />
     );
   }
 
   return (
     <div className="ft-drill">
-      <div className="ft-bar">
-        <nav className="ft-breadcrumb">
-          {crumbs.map((crumb, i) => (
-            <span key={i} className="ft-crumb">
-              {i > 0 ? <ItIcon name="chevR" size={11} /> : null}
-              <button
-                type="button"
-                className={i === crumbs.length - 1 ? "cur" : ""}
-                onClick={crumb.onClick}
-              >
-                {crumb.label}
-              </button>
-            </span>
-          ))}
-        </nav>
-        <span style={{ flex: "1 1 auto" }} />
-        <BackgroundButton background={viewBackground} onChange={onSetBackground} />
-        {scope ? (
-          <button type="button" className="it-icon-btn sm" title={t("itops.racks.runScope")} onClick={() => onRunScope(scope)}>
-            <ItIcon name="run" size={12} />
-          </button>
-        ) : null}
-        <button type="button" className="it-btn sm" onClick={() => onNewRack(drill.rackId ? rack?.rackGroup : undefined)}>
-          <span className="it-btn-ic">
-            <ItIcon name="plus" size={13} />
-          </span>
-          {t("itops.racks.newTitle")}
-        </button>
-      </div>
-
       <ItOpsBackground background={viewBackground} className="ft-drill-bg">
         {racks.length === 0 ? (
           <div className="card">

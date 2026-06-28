@@ -1,4 +1,4 @@
-import { CONFIGURABLE_ENDPOINT_SETTINGS_FIELDS, STANDARD_REASONING_EFFORTS } from "./shared";
+import { CONFIGURABLE_ENDPOINT_WITHOUT_KEY_FIELDS, STANDARD_REASONING_EFFORTS } from "./shared";
 import type { AiProviderDefinition } from "./types";
 
 export const ollamaProvider: AiProviderDefinition = {
@@ -20,6 +20,6 @@ export const ollamaProvider: AiProviderDefinition = {
     { id: "deepseek-r1", label: "DeepSeek-R1", note: "Local reasoning", supportsImageInput: false },
     { id: "gemma3", label: "Gemma 3", supportsImageInput: true },
   ],
-  settingsFields: CONFIGURABLE_ENDPOINT_SETTINGS_FIELDS,
+  settingsFields: CONFIGURABLE_ENDPOINT_WITHOUT_KEY_FIELDS,
   capabilities: ["chat", "imageInput", "streaming", "toolCalling", "localRuntime", "openAiCompatible"],
 };

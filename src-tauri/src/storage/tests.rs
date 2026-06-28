@@ -3245,7 +3245,6 @@ fn stored_credential_candidates_include_one_ai_key_owner_per_provider() {
         "azure-openai",
         "litellm",
         "github-copilot",
-        "ollama",
         "ollama-cloud",
         "nvidia",
         "opencode",

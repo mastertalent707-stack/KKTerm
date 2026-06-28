@@ -446,6 +446,41 @@
   padding: var(--pad);
   background: var(--bg-2);
 }
+/* Unified compact detail toolbar (fleet identity + breadcrumb + actions). */
+.itops-page .hg-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  margin: -4px -4px 12px;
+  padding: 0 4px 11px;
+  border-bottom: 1px solid var(--hairline);
+}
+.itops-page .hg-bar-tile {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #fff;
+}
+.itops-page .hg-bar-name {
+  font-size: 14px;
+  font-weight: 660;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itops-page .hg-bar .ft-breadcrumb {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.itops-page .hg-bar .seg {
+  margin-right: 2px;
+}
 .itops-page .hg-detail-head {
   display: flex;
   align-items: center;
@@ -3438,16 +3473,12 @@
   min-height: 0;
 }
 
-/* Background picker popover anchor (the popover styles itself via dw-bg-*). */
+/* Background picker button wrap. The popover itself is the shared
+   `.dw-bg-popover`, a centered fixed modal — do not re-anchor it (an absolute
+   override would clip it inside the scrolling drill). */
 .itops-page .itops-bg-pop-wrap {
   position: relative;
   flex: 0 0 auto;
-}
-.itops-page .itops-bg-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 60;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
