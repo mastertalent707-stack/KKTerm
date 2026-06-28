@@ -170,7 +170,7 @@ export function RackDevice({
   return (
     <div
       className="rkd"
-      data-shell={shell && shell !== "black" ? shell : undefined}
+      data-shell={shell ?? undefined}
       style={{ ["--rkd-accent" as string]: devAccent }}
     >
       {/* left rack ear */}
