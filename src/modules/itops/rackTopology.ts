@@ -7,6 +7,10 @@
 
 import type { Rack } from "../../types";
 
+export function topologyGroupKey(value: string | null | undefined): string {
+  return (value ?? "").trim().toLocaleLowerCase();
+}
+
 export interface ServerRoomGroup {
   /** Stored value ("" = Unassigned). */
   key: string;
@@ -17,7 +21,8 @@ export function groupRackTopology(racks: Rack[]): ServerRoomGroup[] {
   const rooms: ServerRoomGroup[] = [];
   for (const rack of racks) {
     const roomKey = rack.serverRoom ?? "";
-    let room = rooms.find((entry) => entry.key === roomKey);
+    const comparableKey = topologyGroupKey(roomKey);
+    let room = rooms.find((entry) => topologyGroupKey(entry.key) === comparableKey);
     if (!room) {
       room = { key: roomKey, racks: [] };
       rooms.push(room);
@@ -38,7 +43,8 @@ export function groupRacksByGroup(racks: Rack[]): RackGroup[] {
   const groups: RackGroup[] = [];
   for (const rack of racks) {
     const key = rack.rackGroup ?? "";
-    let group = groups.find((entry) => entry.key === key);
+    const comparableKey = topologyGroupKey(key);
+    let group = groups.find((entry) => topologyGroupKey(entry.key) === comparableKey);
     if (!group) {
       group = { key, racks: [] };
       groups.push(group);

@@ -23,6 +23,7 @@ import {
   groupRackTopology,
   groupRacksByGroup,
   nodeId,
+  topologyGroupKey,
   type DrillPath,
 } from "./rackTopology";
 import { ItOpsBackground } from "./ItOpsBackground";
@@ -927,7 +928,9 @@ function RackDrill({
   const ungrouped = t("itops.racks.ungrouped");
 
   const serverRoom =
-    drill.serverRoom != null ? topology.find((s) => s.key === drill.serverRoom) : undefined;
+    drill.serverRoom != null
+      ? topology.find((s) => topologyGroupKey(s.key) === topologyGroupKey(drill.serverRoom))
+      : undefined;
   const rack = drill.rackId != null ? racks.find((r) => r.id === drill.rackId) : undefined;
 
   function elevation(r: Rack) {

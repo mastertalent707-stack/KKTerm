@@ -89,6 +89,7 @@ export function RackDevice({
   disks,
   battery,
   load,
+  heightU,
   accent,
   shell,
   seed,
@@ -123,7 +124,7 @@ export function RackDevice({
     return { active, color: active ? "var(--green)" : "var(--rkd-dim)", blk: active ? `blk-${(i % 5) + 1}` : "" };
   });
 
-  const drawDisks = Math.min(disks || (isServer ? 4 : isStorage ? 8 : 0), 14);
+  const drawDisks = Math.min(disks || (isServer ? 4 : isStorage ? 8 : 0), Math.max(1, heightU) * 24);
   const diskList = Array.from({ length: drawDisks }, (_, i) => {
     const busy = !offline && rand() > 0.42;
     return {

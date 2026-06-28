@@ -2090,8 +2090,10 @@
 .itops-page .rk-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  row-gap: 16px;
+  column-gap: 0;
   align-items: flex-start;
+  padding: 4px 18px 22px 4px;
 }
 /* ──────────────────────────────────────────────────────────────────────────
    Rack elevation — skeuomorphic frame + animated device faceplates, ported
@@ -2271,11 +2273,11 @@
 .itops-page .rk-frame {
   position: relative;
   border-radius: 14px;
-  padding: 12px;
+  padding: 6px;
   background: linear-gradient(180deg, var(--rk-frame-top), var(--rk-frame-bot));
   border: 0.5px solid var(--rk-frame-border);
   box-shadow:
-    0 22px 50px -24px rgba(0, 0, 0, 0.8),
+    0 18px 30px -30px rgba(0, 0, 0, 0.85),
     inset 0 0.5px 0 rgba(255, 255, 255, 0.05);
 }
 .itops-page .rk-rail {
@@ -2291,15 +2293,15 @@
 }
 .itops-page .rk-grid {
   display: grid;
-  grid-template-columns: 22px 1fr;
-  column-gap: 6px;
+  grid-template-columns: 7px minmax(0, 1fr) 7px;
+  column-gap: 2px;
   flex: 1 1 auto;
 }
 .itops-page .rk-u {
   grid-column: 1;
   align-self: center;
   text-align: right;
-  padding-right: 4px;
+  padding-right: 1px;
   font-size: 8px;
   font-family: var(--app-mono-font-family, monospace);
   font-variant-numeric: tabular-nums;
@@ -2322,6 +2324,8 @@
 .itops-page .rk-item {
   grid-column: 2;
   position: relative;
+  min-width: 0;
+  max-width: 100%;
   margin: 1.5px 0;
   z-index: 1;
 }
@@ -2360,6 +2364,7 @@
   display: block;
   width: 100%;
   height: 100%;
+  min-width: 0;
   padding: 0;
   background: transparent;
   border: 0;
@@ -2557,8 +2562,8 @@
   flex: 1 1 auto;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 0 10px;
+  gap: 4px;
+  padding: 0 4px;
   min-width: 0;
   position: relative;
 }
@@ -2767,9 +2772,14 @@
   gap: 9px;
 }
 .itops-page .rkd-disks-row {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   display: flex;
+  flex-wrap: wrap;
+  align-content: center;
   gap: 2px;
+  min-width: 0;
+  max-height: 100%;
+  overflow: hidden;
 }
 .itops-page .rkd-disk-bay {
   position: relative;
@@ -3488,7 +3498,7 @@
   position: relative;
   display: flex;
   justify-content: center;
-  padding: 8px 0 24px;
+  padding: 8px 28px 30px;
   min-height: 0;
 }
 .itops-page .rk-stage-rack {

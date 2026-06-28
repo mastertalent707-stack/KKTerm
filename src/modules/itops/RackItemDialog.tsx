@@ -56,6 +56,13 @@ function showsDisks(kind: RackItemKind): boolean {
   return kind === "server" || kind === "storage" || kind === "connection";
 }
 
+const DISKS_PER_U = 24;
+
+function clampStartUForHeight(startU: number, heightU: number, rackHeightU: number) {
+  const maxStartU = Math.max(1, rackHeightU - heightU + 1);
+  return Math.max(1, Math.min(maxStartU, startU));
+}
+
 export function RackItemDialog({
   fleetId,
   rack,
@@ -94,6 +101,8 @@ export function RackItemDialog({
   const [load, setLoad] = useState(item?.metadata?.load ?? 60);
   const [shell, setShell] = useState<RackShell>(item?.metadata?.shell ?? "black");
   const [busy, setBusy] = useState(false);
+  const maxDisks = Math.max(1, heightU) * DISKS_PER_U;
+  const placedStartU = clampStartUForHeight(startU, heightU, rack.heightU);
 
   const metadata: RackItemMetadata = {
     accent: accent === "none" ? null : accent,
@@ -122,8 +131,8 @@ export function RackItemDialog({
           label: label.trim(),
           metadata,
         });
-        if (startU !== item!.startU || heightU !== item!.heightU) {
-          await moveRackItem(fleetId, { id: item!.id, rackId: rack.id, startU, heightU });
+        if (placedStartU !== item!.startU || heightU !== item!.heightU) {
+          await moveRackItem(fleetId, { id: item!.id, rackId: rack.id, startU: placedStartU, heightU });
         }
       } else {
         await placeRackItem(fleetId, {
@@ -131,7 +140,7 @@ export function RackItemDialog({
           connectionId: resolvedConnectionId,
           kind,
           label: label.trim(),
-          startU,
+          startU: placedStartU,
           heightU,
           metadata,
         });
@@ -255,7 +264,7 @@ export function RackItemDialog({
                 <Stepper
                   value={disks}
                   min={0}
-                  onChange={(next) => setDisks(Math.max(0, Math.min(14, next)))}
+                  onChange={(next) => setDisks(Math.max(0, Math.min(maxDisks, next)))}
                   ariaDecrease={t("itops.racks.disksDecrease")}
                   ariaIncrease={t("itops.racks.disksIncrease")}
                 />
@@ -300,7 +309,7 @@ export function RackItemDialog({
             <Stepper
               value={startU}
               min={1}
-              onChange={(next) => setStartU(Math.max(1, Math.min(rack.heightU, next)))}
+              onChange={(next) => setStartU(clampStartUForHeight(next, heightU, rack.heightU))}
               ariaDecrease={t("itops.racks.startUDecrease")}
               ariaIncrease={t("itops.racks.startUIncrease")}
             />
@@ -309,7 +318,12 @@ export function RackItemDialog({
             <Stepper
               value={heightU}
               min={1}
-              onChange={(next) => setHeightU(Math.max(1, Math.min(rack.heightU, next)))}
+              onChange={(next) => {
+                const clampedHeight = Math.max(1, Math.min(rack.heightU, next));
+                setHeightU(clampedHeight);
+                setStartU((current) => clampStartUForHeight(current, clampedHeight, rack.heightU));
+                setDisks((current) => Math.min(current, clampedHeight * DISKS_PER_U));
+              }}
               ariaDecrease={t("itops.racks.itemHeightDecrease")}
               ariaIncrease={t("itops.racks.itemHeightIncrease")}
             />
