@@ -3069,6 +3069,8 @@
     "selectFileForDiff": "Selecciona un archivo para ver su diff",
     "loadingDiff": "Cargando diff…",
     "noDiff": "No hay cambios que mostrar",
+    "filteredLines": "{{count}} líneas filtradas: haz clic para expandir",
+    "collapseLines": "{{count}} líneas: haz clic para contraer",
     "advancedDiffTitle": "Comparar — {{file}}",
     "searchDiff": "Buscar en el diff…",
     "previousDifference": "Diferencia anterior",
