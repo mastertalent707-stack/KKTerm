@@ -28,6 +28,7 @@ import {
 } from "./rackTopology";
 import { ItOpsBackground } from "./ItOpsBackground";
 import { RackStage } from "./RackStage";
+import { selectRandomRackCallouts } from "./rackInventory";
 import type { DashboardBackground } from "../dashboard/types";
 import {
   FLEET_TREE_COLLAPSED_WIDTH,
@@ -680,6 +681,13 @@ function RackDrill({
       ? topology.find((s) => topologyGroupKey(s.key) === topologyGroupKey(drill.serverRoom))
       : undefined;
   const rack = drill.rackId != null ? racks.find((r) => r.id === drill.rackId) : undefined;
+  const roomCallouts = serverRoom
+    ? selectRandomRackCallouts(
+        serverRoom.racks.flatMap((entry) => entry.items),
+        serverRoom.key,
+        3,
+      )
+    : [];
 
   function elevation(r: Rack) {
     return (
@@ -714,14 +722,39 @@ function RackDrill({
             onMoveItem={onMoveItem}
           />
         ) : serverRoom ? (
-          groupRacksByGroup(serverRoom.racks).map((g) => (
-            <div className="rk-group" key={g.key}>
-              {groupRacksByGroup(serverRoom.racks).length > 1 || g.key ? (
-                <div className="rk-group-h">{g.key || ungrouped}</div>
-              ) : null}
-              <div className="rk-row">{g.racks.map((r) => elevation(r))}</div>
-            </div>
-          ))
+          <>
+            {roomCallouts.length > 0 ? (
+              <div className="rack-random-callouts room">
+                {roomCallouts.map((callout) => {
+                  const owner = serverRoom.racks.find((entry) =>
+                    entry.items.some((item) => item.id === callout.itemId),
+                  );
+                  const item = owner?.items.find((entry) => entry.id === callout.itemId);
+                  return (
+                    <button
+                      key={callout.itemId}
+                      type="button"
+                      onClick={() => owner && item && onEditItem(owner, item)}
+                    >
+                      <span>{callout.label}</span>
+                      {callout.text ? <small>{callout.text}</small> : null}
+                      {callout.connectionIds.length > 0 ? (
+                        <small>{t("itops.racks.boundConnectionCount", { count: callout.connectionIds.length })}</small>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+            {groupRacksByGroup(serverRoom.racks).map((g) => (
+              <div className="rk-group" key={g.key}>
+                {groupRacksByGroup(serverRoom.racks).length > 1 || g.key ? (
+                  <div className="rk-group-h">{g.key || ungrouped}</div>
+                ) : null}
+                <div className="rk-row">{g.racks.map((r) => elevation(r))}</div>
+              </div>
+            ))}
+          </>
         ) : (
           <div className="ft-cards">
             {topology.map((room) => (

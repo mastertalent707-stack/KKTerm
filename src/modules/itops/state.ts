@@ -221,6 +221,7 @@ interface ItOpsState {
     input: { id: string; rackId: string; startU: number; heightU: number },
   ) => Promise<void>;
   removeRackItem: (fleetId: string, id: string) => Promise<void>;
+  refreshRackItemSnmp: (fleetId: string, id: string) => Promise<void>;
 
   // ── Batch Runs (Phase 2) ──
   activeRun: LiveRun | null;
@@ -370,6 +371,11 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
 
   async removeRackItem(fleetId, id) {
     await invokeCommand("itops_remove_rack_item", { id });
+    await get().loadRacks(fleetId);
+  },
+
+  async refreshRackItemSnmp(fleetId, id) {
+    await invokeCommand("itops_refresh_rack_item_snmp", { id });
     await get().loadRacks(fleetId);
   },
 

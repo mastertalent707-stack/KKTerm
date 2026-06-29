@@ -1107,7 +1107,47 @@
         "equipment": "Thiết bị",
         "general": "Chung",
         "kuaiguai": "乖乖"
-      }
+      },
+      "kuaiguaiSizeLabel": "Package size",
+      "kuaiguaiSize": {
+        "small": "Small",
+        "regular": "Regular",
+        "large": "Large"
+      },
+      "auditAction": {
+        "installed": "Installed",
+        "removed": "Removed",
+        "maintenance": "Maintenance",
+        "cabling": "Cabling",
+        "note": "Note"
+      },
+      "auditLabelPlaceholder": "Event label",
+      "addAuditRecord": "Add audit record",
+      "portState": {
+        "unknown": "Unknown",
+        "up": "Up",
+        "down": "Down"
+      },
+      "addNetworkPort": "Add network port",
+      "snmpOidLabel": "OID",
+      "refreshSnmp": "Refresh SNMP",
+      "snmpRefreshComplete": "SNMP refresh completed.",
+      "relationshipKind": {
+        "hostVm": "Host/VM",
+        "storageAp": "Storage/AP",
+        "vsan": "VSAN",
+        "san": "SAN",
+        "nas": "NAS",
+        "hyperConverged": "Hyper-converged",
+        "custom": "Custom"
+      },
+      "ipamLabel": "IPAM addresses",
+      "ipamHint": "Store inventory IP addresses for this Rack Device; this does not manage DHCP or DNS.",
+      "vlanPlaceholder": "VLAN",
+      "macPlaceholder": "MAC",
+      "addIpamAddress": "Add IP address",
+      "boundConnectionCount_one": "{{count}} bound Connection",
+      "boundConnectionCount_other": "{{count}} bound Connections"
     },
     "batchRuns": {
       "emptyTitle": "Chưa có lần chạy hàng loạt nào",
