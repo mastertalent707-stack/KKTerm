@@ -561,6 +561,46 @@
   background: color-mix(in srgb, var(--git-accent) 8%, var(--git-bg));
   font-weight: 600;
 }
+/* "X filtered lines" fold standing in for rows hidden by the diff/same filter;
+   click to expand the run. Spans the full width like a hunk header. */
+.git-adv-row.git-adv-fold {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 12px;
+  border: 0;
+  border-top: 1px solid var(--git-hairline);
+  border-bottom: 1px solid var(--git-hairline);
+  background: color-mix(in srgb, var(--git-muted) 55%, var(--git-bg));
+  color: var(--git-text-3);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  /* Pin the row to the viewport width so its centered label stays visible even
+     when a wide, un-wrapped diff is scrolled horizontally. */
+  position: sticky;
+  left: 0;
+  width: 100%;
+}
+.git-adv-row.git-adv-fold:hover {
+  color: var(--git-text);
+  background: color-mix(in srgb, var(--git-accent) 12%, var(--git-bg));
+}
+.git-adv-fold-icon {
+  flex: 0 0 auto;
+  opacity: 0.8;
+}
+/* The header above an expanded run reads as the inverse of a collapsed fold —
+   a faint accent tint so it's clearly the "collapse again" control. */
+.git-adv-row.git-adv-fold-open {
+  background: color-mix(in srgb, var(--git-accent) 9%, var(--git-bg));
+  color: color-mix(in srgb, var(--git-accent) 60%, var(--git-text));
+}
+.git-adv-row.git-adv-fold-open:hover {
+  background: color-mix(in srgb, var(--git-accent) 16%, var(--git-bg));
+}
 .git-adv-cell {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr);

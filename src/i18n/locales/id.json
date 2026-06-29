@@ -3069,6 +3069,8 @@
     "selectFileForDiff": "Pilih file untuk melihat diff-nya",
     "loadingDiff": "Memuat diff…",
     "noDiff": "Tidak ada perubahan untuk ditampilkan",
+    "filteredLines": "{{count}} baris terfilter — klik untuk memperluas",
+    "collapseLines": "{{count}} baris — klik untuk menciutkan",
     "advancedDiffTitle": "Bandingkan — {{file}}",
     "searchDiff": "Cari di diff…",
     "previousDifference": "Perbedaan sebelumnya",
