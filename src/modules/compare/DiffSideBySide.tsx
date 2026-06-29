@@ -6,11 +6,18 @@
 // caller's responsibility. Reuses the `git-adv-*` classes from git.css.
 import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, ChevronUp, Search, WrapText } from "lucide-react";
+import { ChevronDown, ChevronsUpDown, ChevronUp, Search, WrapText } from "lucide-react";
 import type { GitDiffLine } from "../git/gitTypes";
 
 type DiffSideKind = "ctx" | "add" | "del" | "blank";
 type DiffViewMode = "all" | "diff" | "same";
+
+// A rendered item in the body: either a real diff row, or a fold standing in for
+// a contiguous run of rows the active filter hid, which the user can expand —
+// the Beyond Compare "X filtered lines" divider.
+type RenderItem =
+  | { kind: "row"; row: SideBySideRow; index: number }
+  | { kind: "gap"; start: number; count: number };
 
 interface SideBySideRow {
   id: string;
@@ -301,6 +308,8 @@ export function DiffSideBySide({
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<DiffViewMode>("all");
   const [wrap, setWrap] = useState(true);
+  // Folds the user has expanded, keyed by the start index of the hidden run.
+  const [expandedGaps, setExpandedGaps] = useState<Set<number>>(new Set());
   const [activeChange, setActiveChange] = useState(0);
   const [viewport, setViewport] = useState({ top: 0, height: 0, fill: 1, scrollable: false });
   const pendingScrollRow = useRef<number | null>(null);
@@ -320,6 +329,31 @@ export function DiffSideBySide({
         .filter(({ row }) => isChangedRow(row) && isVisibleInMode(row, mode)),
     [rows, mode],
   );
+  // Body items: filter-passing rows verbatim, and a single expandable fold for
+  // each contiguous run of rows the filter hid (unless the user expanded it).
+  const renderItems = useMemo<RenderItem[]>(() => {
+    const items: RenderItem[] = [];
+    let idx = 0;
+    while (idx < rows.length) {
+      if (isVisibleInMode(rows[idx], mode)) {
+        items.push({ kind: "row", row: rows[idx], index: idx });
+        idx += 1;
+        continue;
+      }
+      const start = idx;
+      while (idx < rows.length && !isVisibleInMode(rows[idx], mode)) {
+        idx += 1;
+      }
+      if (expandedGaps.has(start)) {
+        for (let j = start; j < idx; j += 1) {
+          items.push({ kind: "row", row: rows[j], index: j });
+        }
+      } else {
+        items.push({ kind: "gap", start, count: idx - start });
+      }
+    }
+    return items;
+  }, [rows, mode, expandedGaps]);
   const markers = useMemo<ChangeMarker[]>(
     () =>
       rows
@@ -344,7 +378,18 @@ export function DiffSideBySide({
 
   useEffect(() => {
     setActiveChange(0);
+    // Gap keys are start indices that only mean anything for the current rows +
+    // mode, so any change to either clears the expanded set.
+    setExpandedGaps(new Set());
   }, [resetKey, lines, mode]);
+
+  const expandGap = (start: number) => {
+    setExpandedGaps((prev) => {
+      const next = new Set(prev);
+      next.add(start);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (activeRow === null) {
@@ -396,7 +441,7 @@ export function DiffSideBySide({
 
   useEffect(() => {
     window.requestAnimationFrame(updateViewport);
-  }, [visibleRows.length, mode, loading]);
+  }, [renderItems.length, mode, loading]);
 
   // Drag the minimap like a scrollbar: map the pointer position within the
   // content-proportional track to a centered scroll offset.
@@ -540,10 +585,32 @@ export function DiffSideBySide({
           <div className="git-adv-content" ref={contentRef}>
             {loading ? (
               <div className="git-diff-loading">{t("git.loadingDiff")}</div>
-            ) : visibleRows.length === 0 ? (
+            ) : rows.length === 0 ? (
               <div className="git-diff-loading">{t("git.noDiff")}</div>
             ) : (
-              visibleRows.map(({ row, i }) => {
+              renderItems.map((item) => {
+                if (item.kind === "gap") {
+                  return (
+                    <div
+                      key={`gap-${item.start}`}
+                      className="git-adv-row git-adv-fold"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={t("git.filteredLines", { count: item.count })}
+                      onClick={() => expandGap(item.start)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          expandGap(item.start);
+                        }
+                      }}
+                    >
+                      <ChevronsUpDown size={12} className="git-adv-fold-icon" />
+                      <span>{t("git.filteredLines", { count: item.count })}</span>
+                    </div>
+                  );
+                }
+                const { row, index: i } = item;
                 if (row.kind === "hunk") {
                   return (
                     <div key={row.id} className="git-adv-row git-adv-hunk" data-row-index={i}>
