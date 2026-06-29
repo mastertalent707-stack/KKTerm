@@ -1067,6 +1067,33 @@ fn connection_brand_icon_ref_updates_for_any_connection_type() {
 }
 
 #[test]
+fn connection_icon_color_updates_for_any_connection_type() {
+    let storage = Storage::open(temp_db_path("connection-icon-color")).expect("storage opens");
+    let created = create_test_ssh_connection(&storage, "Bastion", "bastion.internal", None);
+
+    let updated = storage
+        .update_connection_icon_color(created.id.clone(), Some(" #ff375f ".to_string()))
+        .expect("connection icon foreground is updated")
+        .expect("changed foreground returns the updated connection");
+
+    assert_eq!(updated.icon_color.as_deref(), Some("#ff375f"));
+
+    let tree = storage.list_connection_tree().expect("connection tree loads");
+    let reloaded = tree
+        .connections
+        .iter()
+        .find(|connection| connection.id == created.id)
+        .expect("connection exists");
+    assert_eq!(reloaded.icon_color.as_deref(), Some("#ff375f"));
+
+    let cleared = storage
+        .update_connection_icon_color(created.id.clone(), None)
+        .expect("connection icon foreground is cleared")
+        .expect("cleared foreground returns the updated connection");
+    assert!(cleared.icon_color.is_none());
+}
+
+#[test]
 fn connection_icon_background_color_updates_for_any_connection_type() {
     let storage = Storage::open(temp_db_path("connection-icon-background")).expect("storage opens");
     let created = create_test_ssh_connection(&storage, "Bastion", "bastion.internal", None);
@@ -3759,6 +3786,7 @@ fn default_workspace_is_seeded_and_scopes_the_connection_tree() {
             name: "Staging".to_string(),
             icon: Some("Server".to_string()),
             icon_color: None,
+            icon_background_color: None,
             import_connection_ids: None,
         })
         .expect("workspace is created");
@@ -4010,6 +4038,7 @@ fn create_workspace_copy_imports_connections_independently() {
             name: "Ops".to_string(),
             icon: None,
             icon_color: None,
+            icon_background_color: None,
             import_connection_ids: Some(vec![source.id.clone()]),
         })
         .expect("workspace with import is created");
@@ -4034,6 +4063,7 @@ fn root_connection_sorting_is_scoped_per_workspace() {
             name: "Ops".to_string(),
             icon: None,
             icon_color: None,
+            icon_background_color: None,
             import_connection_ids: None,
         })
         .expect("workspace is created");
@@ -4089,6 +4119,7 @@ fn delete_workspace_rejects_the_default_workspace() {
             name: "Temp".to_string(),
             icon: None,
             icon_color: None,
+            icon_background_color: None,
             import_connection_ids: None,
         })
         .expect("workspace is created");
@@ -4107,6 +4138,7 @@ fn create_workspace_persists_icon_color() {
             name: "Blue Ops".to_string(),
             icon: Some("Server".to_string()),
             icon_color: Some("#2563eb".to_string()),
+            icon_background_color: None,
             import_connection_ids: None,
         })
         .expect("workspace is created");
@@ -4130,6 +4162,7 @@ fn rename_workspace_updates_icon_properties() {
             name: "Blue Ops".to_string(),
             icon: Some("Server".to_string()),
             icon_color: Some("#2563eb".to_string()),
+            icon_background_color: None,
             import_connection_ids: None,
         })
         .expect("workspace is created");
@@ -4139,6 +4172,7 @@ fn rename_workspace_updates_icon_properties() {
             name: "Green Ops".to_string(),
             icon: Some("Folder".to_string()),
             icon_color: Some("#16a34a".to_string()),
+            icon_background_color: None,
         })
         .expect("workspace is updated");
 

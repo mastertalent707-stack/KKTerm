@@ -70,23 +70,25 @@ function resolveIcon(name?: string | null): LucideIcon | null {
  * unknown.
  */
 export function WorkspaceIcon({
+  backgroundColor,
   color,
   icon,
   name,
   shellSize,
   size = 18,
 }: {
+  backgroundColor?: string | null;
   color?: string | null;
   icon?: string | null;
   name: string;
   shellSize?: number;
   size?: number;
 }) {
-  const hasBackground = Boolean(color);
+  const hasBackground = Boolean(backgroundColor);
   const resolvedShellSize = shellSize ?? (hasBackground ? size + 6 : size);
   const style = {
-    "--workspace-icon-bg": color ?? "transparent",
-    "--workspace-icon-color": hasBackground ? "var(--surface)" : "var(--accent)",
+    "--workspace-icon-bg": backgroundColor ?? "transparent",
+    "--workspace-icon-color": color ?? (hasBackground ? "var(--surface)" : "var(--accent)"),
     "--workspace-icon-size": `${size}px`,
     "--workspace-icon-shell-size": `${resolvedShellSize}px`,
   } as CSSProperties;

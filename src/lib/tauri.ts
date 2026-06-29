@@ -1127,6 +1127,7 @@ type CommandMap = {
       memberIds: string[];
       filter: FleetFilter | null;
       transport: ItopsTransport;
+      iconColor: string | null;
       iconDataUrl: string | null;
       iconBackgroundColor: string | null;
     };
@@ -1139,6 +1140,7 @@ type CommandMap = {
       memberIds: string[];
       filter: FleetFilter | null;
       transport: ItopsTransport;
+      iconColor: string | null;
       iconDataUrl: string | null;
       iconBackgroundColor: string | null;
     };
@@ -1331,6 +1333,10 @@ type CommandMap = {
   };
   update_connection_icon_data_url: {
     args: { connectionId: string; iconDataUrl?: string | null };
+    result: Connection | null;
+  };
+  update_connection_icon_color: {
+    args: { connectionId: string; iconColor?: string | null };
     result: Connection | null;
   };
   update_connection_icon_background_color: {

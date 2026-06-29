@@ -30,6 +30,7 @@ export interface FleetInput {
   memberIds: string[];
   filter: FleetFilter | null;
   transport: ItopsTransport;
+  iconColor?: string | null;
   iconDataUrl?: string | null;
   iconBackgroundColor?: string | null;
 }
@@ -291,6 +292,7 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
       memberIds: input.memberIds,
       filter: input.filter,
       transport: input.transport,
+      iconColor: input.iconColor ?? null,
       iconDataUrl: input.iconDataUrl ?? null,
       iconBackgroundColor: input.iconBackgroundColor ?? null,
     });
@@ -305,6 +307,7 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
       memberIds: input.memberIds,
       filter: input.filter,
       transport: input.transport,
+      iconColor: input.iconColor ?? null,
       iconDataUrl: input.iconDataUrl ?? null,
       iconBackgroundColor: input.iconBackgroundColor ?? null,
     });

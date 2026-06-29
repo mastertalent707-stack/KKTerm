@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 35;
+const SCHEMA_USER_VERSION: i32 = 36;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS workspaces (
     name TEXT NOT NULL,
     icon TEXT,
     icon_color TEXT,
+    icon_background_color TEXT,
     is_default INTEGER NOT NULL DEFAULT 0,
     sort_order INTEGER NOT NULL
 );
@@ -72,6 +73,7 @@ CREATE TABLE IF NOT EXISTS connections (
     vnc_options TEXT,
     ftp_options TEXT,
     password_credential_id TEXT REFERENCES connection_password_credentials(id) ON DELETE SET NULL,
+    icon_color TEXT,
     icon_data_url TEXT,
     icon_background_color TEXT,
     terminal_opacity INTEGER,
@@ -295,7 +297,8 @@ CREATE TABLE IF NOT EXISTS itops_fleets (
     -- Rack View customization: Fleet-view background + per-server-room map.
     background_json       TEXT,
     room_backgrounds_json TEXT,
-    -- Custom icon (data URL or icon ref) and background colour.
+    -- Custom icon (data URL or icon ref), foreground colour, and background colour.
+    icon_color            TEXT,
     icon_data_url         TEXT,
     icon_background_color TEXT,
     -- Per-server-room icons, keyed by the room's string tag (JSON map).
@@ -1103,6 +1106,7 @@ pub struct Workspace {
     name: String,
     icon: Option<String>,
     icon_color: Option<String>,
+    icon_background_color: Option<String>,
     is_default: bool,
     sort_order: i64,
 }
@@ -1116,6 +1120,8 @@ pub struct CreateWorkspaceRequest {
     #[serde(default)]
     icon_color: Option<String>,
     #[serde(default)]
+    icon_background_color: Option<String>,
+    #[serde(default)]
     import_connection_ids: Option<Vec<String>>,
 }
 
@@ -1128,6 +1134,8 @@ pub struct RenameWorkspaceRequest {
     icon: Option<String>,
     #[serde(default)]
     icon_color: Option<String>,
+    #[serde(default)]
+    icon_background_color: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -1182,6 +1190,7 @@ pub struct SavedConnection {
     #[serde(default)]
     ftp_options: Option<crate::ftp::FtpOptions>,
     password_credential_id: Option<String>,
+    icon_color: Option<String>,
     icon_data_url: Option<String>,
     icon_background_color: Option<String>,
     terminal_opacity: Option<u8>,
@@ -1931,6 +1940,7 @@ impl Storage {
         ensure_column(&connection, "itops_fleet_racks", "background_json", "TEXT")?;
         ensure_column(&connection, "itops_fleets", "background_json", "TEXT")?;
         ensure_column(&connection, "itops_fleets", "room_backgrounds_json", "TEXT")?;
+        ensure_column(&connection, "itops_fleets", "icon_color", "TEXT")?;
         ensure_column(&connection, "itops_fleets", "icon_data_url", "TEXT")?;
         ensure_column(&connection, "itops_fleets", "icon_background_color", "TEXT")?;
         ensure_column(&connection, "itops_fleets", "room_icons_json", "TEXT")?;
@@ -1950,6 +1960,7 @@ impl Storage {
             "ssh_socks_proxy_inherit_defaults",
             "INTEGER NOT NULL DEFAULT 1",
         )?;
+        ensure_column(&connection, "connections", "icon_color", "TEXT")?;
         ensure_column(&connection, "connections", "icon_data_url", "TEXT")?;
         ensure_column(&connection, "connections", "icon_background_color", "TEXT")?;
         ensure_column(&connection, "connection_folders", "icon_data_url", "TEXT")?;
@@ -2090,6 +2101,7 @@ impl Storage {
                         vnc_options TEXT,
                         ftp_options TEXT,
                         password_credential_id TEXT REFERENCES connection_password_credentials(id) ON DELETE SET NULL,
+                        icon_color TEXT,
                         icon_data_url TEXT,
                         icon_background_color TEXT,
                         terminal_opacity INTEGER,
@@ -2105,7 +2117,7 @@ impl Storage {
                         auth_method, local_shell, local_startup_directory,
                         local_startup_script, url, data_partition, use_tmux_sessions,
                         tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
-                        ftp_options, password_credential_id, icon_data_url, icon_background_color,
+                        ftp_options, password_credential_id, icon_color, icon_data_url, icon_background_color,
                         terminal_opacity, terminal_background_json, file_browser_view_options_json,
                         connection_type, status, sort_order
                     )
@@ -2115,7 +2127,7 @@ impl Storage {
                         auth_method, local_shell, local_startup_directory,
                         local_startup_script, url, data_partition, use_tmux_sessions,
                         tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
-                        ftp_options, password_credential_id, icon_data_url, icon_background_color,
+                        ftp_options, password_credential_id, NULL, icon_data_url, icon_background_color,
                         terminal_opacity, terminal_background_json, file_browser_view_options_json,
                         connection_type, status, sort_order
                     FROM connections_pre_v20;
@@ -2131,10 +2143,21 @@ impl Storage {
         repair_connections_pre_v20_references(&connection)?;
         ensure_column(&connection, "connection_folders", "workspace_id", "TEXT")?;
         ensure_column(&connection, "workspaces", "icon_color", "TEXT")?;
+        ensure_column(&connection, "workspaces", "icon_background_color", "TEXT")?;
+        if stored_version < 36 {
+            connection
+                .execute(
+                    "UPDATE workspaces
+                     SET icon_background_color = icon_color, icon_color = NULL
+                     WHERE icon_background_color IS NULL AND icon_color IS NOT NULL",
+                    [],
+                )
+                .map_err(to_storage_error)?;
+        }
         connection
             .execute(
-                "INSERT OR IGNORE INTO workspaces (id, name, icon, icon_color, is_default, sort_order)
-                 VALUES (?1, 'Default', NULL, NULL, 1, 0)",
+                "INSERT OR IGNORE INTO workspaces (id, name, icon, icon_color, icon_background_color, is_default, sort_order)
+                 VALUES (?1, 'Default', NULL, NULL, NULL, 1, 0)",
                 params![DEFAULT_WORKSPACE_ID],
             )
             .map_err(to_storage_error)?;
@@ -2193,6 +2216,7 @@ impl Storage {
                         vnc_options TEXT,
                         ftp_options TEXT,
                         password_credential_id TEXT REFERENCES connection_password_credentials(id) ON DELETE SET NULL,
+                        icon_color TEXT,
                         icon_data_url TEXT,
                         icon_background_color TEXT,
                         terminal_opacity INTEGER,
@@ -2208,7 +2232,7 @@ impl Storage {
                         auth_method, local_shell, local_startup_directory,
                         local_startup_script, url, data_partition, use_tmux_sessions,
                         tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
-                        ftp_options, password_credential_id, icon_data_url, icon_background_color,
+                        ftp_options, password_credential_id, icon_color, icon_data_url, icon_background_color,
                         terminal_opacity, terminal_background_json, file_browser_view_options_json,
                         connection_type, status, sort_order
                     )
@@ -2218,7 +2242,7 @@ impl Storage {
                         auth_method, local_shell, local_startup_directory,
                         local_startup_script, url, data_partition, use_tmux_sessions,
                         tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
-                        ftp_options, password_credential_id, icon_data_url, icon_background_color,
+                        ftp_options, password_credential_id, NULL, icon_data_url, icon_background_color,
                         terminal_opacity, terminal_background_json, file_browser_view_options_json,
                         connection_type, status, sort_order
                     FROM connections_pre_v25;
@@ -3162,7 +3186,7 @@ fn list_root_connections_for_workspace(
 ) -> Result<Vec<SavedConnection>, String> {
     let mut statement = connection
         .prepare(
-            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
+            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_color, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
                     (SELECT username FROM url_credentials WHERE url_credentials.connection_id = connections.id ORDER BY updated_at DESC LIMIT 1), file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
              FROM connections
              WHERE folder_id IS NULL AND workspace_id = ?1
@@ -3224,7 +3248,7 @@ fn list_connections_for_folder(
     };
     let mut statement = connection
         .prepare(&format!(
-            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
+            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_color, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
                     (SELECT username FROM url_credentials WHERE url_credentials.connection_id = connections.id ORDER BY updated_at DESC LIMIT 1), file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
              FROM connections
              WHERE {where_clause}
@@ -3599,14 +3623,14 @@ fn get_connection_by_id(
 ) -> Result<SavedConnection, String> {
     let saved_connection = connection
         .query_row(
-            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
+            "SELECT connections.id, name, tab_title, host, connections.username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, tmux_connection_id, connection_type, serial_line, serial_speed, rdp_options, vnc_options, ftp_options, icon_color, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, password_credential_id,
                     (SELECT username FROM url_credentials WHERE url_credentials.connection_id = connections.id ORDER BY updated_at DESC LIMIT 1), file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, use_psmux_sessions, ssh_compression, url_proxy, url_proxy_inherit_defaults
              FROM connections
              WHERE connections.id = ?1",
             params![connection_id],
             |row| {
-                let password_credential_id: Option<String> = row.get(29)?;
-                let url_credential_username: Option<String> = row.get(30)?;
+                let password_credential_id: Option<String> = row.get(30)?;
+                let url_credential_username: Option<String> = row.get(31)?;
                 Ok(SavedConnection {
                     id: row.get(0)?,
                     name: row.get(1)?,
@@ -3619,17 +3643,17 @@ fn get_connection_by_id(
                     ssh_socks_proxy: row.get(8)?,
                     ssh_socks_proxy_username: row.get(9)?,
                     ssh_socks_proxy_inherit_defaults: row.get(10)?,
-                    ssh_compression: row.get(35)?,
+                    ssh_compression: row.get(36)?,
                     auth_method: row.get(11)?,
                     local_shell: row.get(12)?,
                     local_startup_directory: row.get(13)?,
                     local_startup_script: row.get(14)?,
                     url: row.get(15)?,
                     data_partition: row.get(16)?,
-                    url_proxy: row.get(36)?,
-                    url_proxy_inherit_defaults: row.get(37)?,
+                    url_proxy: row.get(37)?,
+                    url_proxy_inherit_defaults: row.get(38)?,
                     use_tmux_sessions: row.get(17)?,
-                    use_psmux_sessions: row.get(34)?,
+                    use_psmux_sessions: row.get(35)?,
                     tmux_connection_id: row.get(18)?,
                     connection_type: row.get(19)?,
                     serial_line: row.get(20)?,
@@ -3637,13 +3661,14 @@ fn get_connection_by_id(
                     rdp_options: parse_rdp_connection_options(row.get(22)?)?,
                     vnc_options: parse_vnc_connection_options(row.get(23)?)?,
                     ftp_options: parse_ftp_connection_options(row.get(24)?)?,
-                    icon_data_url: row.get(25)?,
-                    icon_background_color: row.get(26)?,
-                    terminal_opacity: normalize_loaded_terminal_opacity(row.get(27)?),
-                    terminal_background: terminal_background_from_json(row.get(28)?),
-                    file_browser_view_options: file_browser_view_options_from_json(row.get(31)?),
-                    file_view_open_external: row.get(32)?,
-                    ssh_port_forwardings: ssh_port_forwardings_from_json(row.get(33)?),
+                    icon_color: row.get(25)?,
+                    icon_data_url: row.get(26)?,
+                    icon_background_color: row.get(27)?,
+                    terminal_opacity: normalize_loaded_terminal_opacity(row.get(28)?),
+                    terminal_background: terminal_background_from_json(row.get(29)?),
+                    file_browser_view_options: file_browser_view_options_from_json(row.get(32)?),
+                    file_view_open_external: row.get(33)?,
+                    ssh_port_forwardings: ssh_port_forwardings_from_json(row.get(34)?),
                     password_credential_id,
                     url_credential_username: url_credential_username.clone(),
                     has_url_credential: url_credential_username.is_some(),
@@ -3663,8 +3688,8 @@ fn get_connection_by_id(
 }
 
 fn saved_connection_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SavedConnection> {
-    let password_credential_id: Option<String> = row.get(29)?;
-    let url_credential_username: Option<String> = row.get(30)?;
+    let password_credential_id: Option<String> = row.get(30)?;
+    let url_credential_username: Option<String> = row.get(31)?;
     Ok(SavedConnection {
         id: row.get(0)?,
         name: row.get(1)?,
@@ -3677,17 +3702,17 @@ fn saved_connection_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SavedC
         ssh_socks_proxy: row.get(8)?,
         ssh_socks_proxy_username: row.get(9)?,
         ssh_socks_proxy_inherit_defaults: row.get(10)?,
-        ssh_compression: row.get(35)?,
+        ssh_compression: row.get(36)?,
         auth_method: row.get(11)?,
         local_shell: row.get(12)?,
         local_startup_directory: row.get(13)?,
         local_startup_script: row.get(14)?,
         url: row.get(15)?,
         data_partition: row.get(16)?,
-        url_proxy: row.get(36)?,
-        url_proxy_inherit_defaults: row.get(37)?,
+        url_proxy: row.get(37)?,
+        url_proxy_inherit_defaults: row.get(38)?,
         use_tmux_sessions: row.get(17)?,
-        use_psmux_sessions: row.get(34)?,
+        use_psmux_sessions: row.get(35)?,
         tmux_connection_id: row.get(18)?,
         connection_type: row.get(19)?,
         serial_line: row.get(20)?,
@@ -3696,13 +3721,14 @@ fn saved_connection_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SavedC
         vnc_options: parse_vnc_connection_options(row.get(23)?)?,
         ftp_options: parse_ftp_connection_options(row.get(24)?)?,
         password_credential_id,
-        icon_data_url: row.get(25)?,
-        icon_background_color: row.get(26)?,
-        terminal_opacity: normalize_loaded_terminal_opacity(row.get(27)?),
-        terminal_background: terminal_background_from_json(row.get(28)?),
-        file_browser_view_options: file_browser_view_options_from_json(row.get(31)?),
-        file_view_open_external: row.get(32)?,
-        ssh_port_forwardings: ssh_port_forwardings_from_json(row.get(33)?),
+        icon_color: row.get(25)?,
+        icon_data_url: row.get(26)?,
+        icon_background_color: row.get(27)?,
+        terminal_opacity: normalize_loaded_terminal_opacity(row.get(28)?),
+        terminal_background: terminal_background_from_json(row.get(29)?),
+        file_browser_view_options: file_browser_view_options_from_json(row.get(32)?),
+        file_view_open_external: row.get(33)?,
+        ssh_port_forwardings: ssh_port_forwardings_from_json(row.get(34)?),
         url_credential_username: url_credential_username.clone(),
         has_url_credential: url_credential_username.is_some(),
         status: "idle".to_string(),

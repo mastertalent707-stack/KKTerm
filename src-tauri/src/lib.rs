@@ -574,6 +574,15 @@ fn update_connection_icon_data_url(
 }
 
 #[tauri::command]
+fn update_connection_icon_color(
+    storage: tauri::State<'_, storage::Storage>,
+    connection_id: String,
+    icon_color: Option<String>,
+) -> Result<Option<storage::SavedConnection>, String> {
+    storage.update_connection_icon_color(connection_id, icon_color)
+}
+
+#[tauri::command]
 fn update_connection_icon_background_color(
     storage: tauri::State<'_, storage::Storage>,
     connection_id: String,
@@ -3651,6 +3660,7 @@ pub fn run() {
             rename_connection,
             update_connection,
             update_connection_icon_data_url,
+            update_connection_icon_color,
             update_connection_icon_background_color,
             update_connection_terminal_appearance,
             update_connection_file_browser_view_options,

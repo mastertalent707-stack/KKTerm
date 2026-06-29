@@ -29,13 +29,13 @@ A Child Connection Tab stores Workspace presentation and reopen hints:
 
 - Child Tab name, shown in the tree and as the Pane toolbar title.
 - Owning Workspace id, so switching Workspaces hides child rows and open child-tab locations that belong to another Workspace without closing their live Sessions.
-- Optional child-specific icon image and icon background.
+- Optional child-specific icon image, icon foreground, and icon background.
 - Optional tmux session id for tmux-enabled SSH.
 - Optional last terminal working directory for non-tmux terminal children.
 
 It does not duplicate the parent Connection's host, protocol, or credential metadata, and it is not a live Session while the app is closed. On app launch, Child Connection Tabs are restored as rows only; selecting a child row starts the actual Session. Tmux-enabled SSH children use the tmux session id as the default Child Connection Tab name and reopen the same tmux session. Non-tmux terminal children pass their last reported working directory back as the startup directory when reopened. Child terminal font size, transparency, and background are stored on the Child Connection Tab so relaunching the child row restores its own appearance instead of inheriting the parent Connection's current terminal appearance.
 
-Right-clicking a Child Connection Tab exposes `connections.rename` and `connections.properties`; the properties dialog `connections.childConnectionProperties` edits the child Tab name, icon image, and icon background. Double-clicking the child row name starts inline rename.
+Right-clicking a Child Connection Tab exposes `connections.rename` and `connections.properties`; the properties dialog `connections.childConnectionProperties` edits the child Tab name, icon image, icon foreground, and icon background. Double-clicking the child row name starts inline rename.
 
 Selecting a parent Connection that already has Child Connection Tabs for the active Workspace opens those children together in one split Tab when no child Session is already open. Two children use a left/right split, three use two Panes above one Pane, and larger sets use a grid-style split for monitoring many Sessions at once. If a child or child-layout Tab for the active Workspace is already live, KKTerm reuses the existing Tab/Pane instead of opening another SSH or terminal Session. When an existing child-layout Tab is refreshed or reselected, KKTerm restores the previously focused child Pane when that Pane is still part of the layout, preserves the live panorama split layout, clears any single-Pane maximize state, and returns terminal input focus to that Pane. The parent Connection row is the active tree target for the full panorama; a child row is active only while that child Pane is opened as the maximized child view.
 

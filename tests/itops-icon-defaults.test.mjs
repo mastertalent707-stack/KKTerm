@@ -39,13 +39,22 @@ test("shared Lucide icon selectors expose Fleet, Server Room, and Rack icons", a
 
 test("Connection icon picker keeps Lucide background and foreground separate", async () => {
   const picker = await read("src/modules/workspace/connections/ConnectionIconPicker.tsx");
+  const palette = await read("src/modules/workspace/connections/ConnectionIconBackgroundPicker.tsx");
   const icon = await read("src/modules/workspace/connections/ConnectionIcon.tsx");
   const css = await read("src/modules/workspace/connections/connections.css");
+  const types = await read("src/types.ts");
+  const tauri = await read("src/lib/tauri.ts");
 
+  assert.match(palette, /ConnectionIconColorPicker/);
+  assert.match(palette, /kind=\{[\s\S]*?"foreground"[\s\S]*\}/);
+  assert.match(picker, /iconColor\?: string \| null/);
+  assert.match(picker, /iconColor=\{iconColor\}/);
   assert.match(picker, /defaultIconDataUrl\?: string \| null/);
   assert.match(picker, /previewIconDataUrl = currentIconDataUrl \?\? defaultIconDataUrl \?\? null/);
   assert.match(picker, /iconDataUrl=\{previewIconDataUrl\}/);
-  assert.match(icon, /"--connection-icon-fg": hasBackground/);
+  assert.match(icon, /"--connection-icon-fg": iconColor \?\? \(hasBackground/);
   assert.match(icon, /function iconForegroundForBackground/);
   assert.match(css, /color: var\(--connection-icon-fg\);[\s\S]*background: var\(--connection-icon-bg\);/);
+  assert.match(types, /iconColor\?: string \| null;[\s\S]*iconDataUrl\?: string \| null;[\s\S]*iconBackgroundColor\?: string \| null;/);
+  assert.match(tauri, /update_connection_icon_color/);
 });

@@ -723,6 +723,7 @@ function terminalPaneTitleForConnection(connection: Connection) {
 type ConnectionPaneOptions = {
   childConnectionId?: string;
   cwd?: string;
+  iconColor?: string | null;
   iconBackgroundColor?: string | null;
   iconDataUrl?: string | null;
   fontSize?: number;
@@ -741,6 +742,7 @@ function connectionWithPaneOptions(
     !options ||
     (
       options.iconDataUrl === undefined &&
+      options.iconColor === undefined &&
       options.iconBackgroundColor === undefined &&
       options.terminalOpacity === undefined &&
       options.terminalBackground === undefined
@@ -750,6 +752,7 @@ function connectionWithPaneOptions(
   }
   return {
     ...connection,
+    iconColor: options.iconColor ?? connection.iconColor,
     iconBackgroundColor: options.iconBackgroundColor ?? connection.iconBackgroundColor,
     iconDataUrl: options.iconDataUrl ?? connection.iconDataUrl,
     terminalOpacity:
@@ -905,6 +908,7 @@ function buildPaneForStandaloneTab(tab: WorkspaceTab): WorkspacePane | null {
 function connectionForChild(connection: Connection, child: WorkspaceChildConnection): Connection {
   return {
     ...connection,
+    iconColor: child.iconColor ?? connection.iconColor,
     iconBackgroundColor: child.iconBackgroundColor ?? connection.iconBackgroundColor,
     iconDataUrl: child.iconDataUrl ?? connection.iconDataUrl,
     terminalOpacity: child.terminalOpacity !== undefined
@@ -1025,6 +1029,10 @@ function refreshChildPaneConnection(
   }
   return {
     ...parentAfter,
+    iconColor:
+      current.iconColor !== parentBefore?.iconColor
+        ? current.iconColor
+        : parentAfter.iconColor,
     iconBackgroundColor:
       current.iconBackgroundColor !== parentBefore?.iconBackgroundColor
         ? current.iconBackgroundColor
@@ -1219,6 +1227,7 @@ interface WorkspaceState {
     options?: {
       childConnectionId?: string;
       cwd?: string;
+      iconColor?: string | null;
       iconBackgroundColor?: string | null;
       iconDataUrl?: string | null;
       fontSize?: number;
@@ -1844,6 +1853,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     get().openConnectionInNewTab(connection, {
       childConnectionId: child.id,
       cwd: child.cwd,
+      iconColor: child.iconColor,
       iconBackgroundColor: child.iconBackgroundColor,
       iconDataUrl: child.iconDataUrl,
       fontSize: child.fontSize,
@@ -2087,14 +2097,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
           }
           panesChanged = true;
           const connection = pane.connection;
+          const nextIconColor = child.iconColor ?? connection.iconColor;
           const nextIconBackgroundColor = child.iconBackgroundColor ?? connection.iconBackgroundColor;
           const nextIconDataUrl = child.iconDataUrl ?? connection.iconDataUrl;
           const nextConnection =
+            nextIconColor === connection.iconColor &&
             nextIconBackgroundColor === connection.iconBackgroundColor &&
             nextIconDataUrl === connection.iconDataUrl
               ? connection
               : {
                   ...connection,
+                  iconColor: nextIconColor,
                   iconBackgroundColor: nextIconBackgroundColor,
                   iconDataUrl: nextIconDataUrl,
                 };
@@ -2111,13 +2124,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         const nextTabConnection =
           tabMatches && tabConnection
             ? (() => {
+                const nextIconColor = child.iconColor ?? tabConnection.iconColor;
                 const nextIconBackgroundColor = child.iconBackgroundColor ?? tabConnection.iconBackgroundColor;
                 const nextIconDataUrl = child.iconDataUrl ?? tabConnection.iconDataUrl;
-                return nextIconBackgroundColor === tabConnection.iconBackgroundColor &&
+                return nextIconColor === tabConnection.iconColor &&
+                  nextIconBackgroundColor === tabConnection.iconBackgroundColor &&
                   nextIconDataUrl === tabConnection.iconDataUrl
                   ? tabConnection
                   : {
                       ...tabConnection,
+                      iconColor: nextIconColor,
                       iconBackgroundColor: nextIconBackgroundColor,
                       iconDataUrl: nextIconDataUrl,
                     };

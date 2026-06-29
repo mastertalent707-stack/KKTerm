@@ -9,7 +9,7 @@ import { brandIconUrlForId } from "../../lib/brandIconUrls";
 import { BRAND_ICON_ENTRIES, brandIconRefForId } from "../../lib/brandIcons";
 import { invokeCommand } from "../../lib/tauri";
 import type { Connection, Workspace } from "../../types";
-import { ConnectionIconBackgroundPicker } from "./connections/ConnectionIconBackgroundPicker";
+import { ConnectionIconBackgroundPicker, ConnectionIconColorPicker } from "./connections/ConnectionIconBackgroundPicker";
 import { ConnectionIcon } from "./connections/ConnectionIcon";
 import { flattenConnections } from "./connections/treeUtils";
 import { connectionTypeLabel } from "./connections/utils";
@@ -50,6 +50,9 @@ export function NewWorkspaceDialog({
   const [name, setName] = useState(workspace?.name ?? "");
   const [icon, setIcon] = useState<string | null>(workspace?.icon ?? WORKSPACE_ICON_NAMES[0]);
   const [iconColor, setIconColor] = useState<string | null>(workspace?.iconColor ?? null);
+  const [iconBackgroundColor, setIconBackgroundColor] = useState<string | null>(
+    workspace?.iconBackgroundColor ?? null,
+  );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [importGroups, setImportGroups] = useState<ImportGroup[]>([]);
   const [selectedImportWorkspaceId, setSelectedImportWorkspaceId] = useState("");
@@ -181,17 +184,19 @@ export function NewWorkspaceDialog({
             name: name.trim(),
             icon,
             iconColor,
+            iconBackgroundColor,
           },
         });
         onSaved?.(updated);
         return;
       }
       const created = await invokeCommand("create_workspace", {
-        request: {
-          name: name.trim(),
-          icon,
-          iconColor,
-          importConnectionIds:
+          request: {
+            name: name.trim(),
+            icon,
+            iconColor,
+            iconBackgroundColor,
+            importConnectionIds:
             selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
         },
       });
@@ -221,15 +226,23 @@ export function NewWorkspaceDialog({
         <div className="new-workspace-body">
           <div className="connection-type-summary new-workspace-summary">
             <WorkspaceIconPicker
+              backgroundColor={iconBackgroundColor}
               color={iconColor}
               icon={icon}
               name={name || workspace?.name || t("workspace.newWorkspace")}
               onChange={setIcon}
             />
-            <ConnectionIconBackgroundPicker
-              color={iconColor}
-              onChange={setIconColor}
-            />
+            <div className="connection-icon-palettes">
+              <ConnectionIconColorPicker
+                color={iconColor}
+                kind="foreground"
+                onChange={setIconColor}
+              />
+              <ConnectionIconBackgroundPicker
+                color={iconBackgroundColor}
+                onChange={setIconBackgroundColor}
+              />
+            </div>
           </div>
 
           <div className="connection-dialog-fields new-workspace-fields">
@@ -377,11 +390,13 @@ export function NewWorkspaceDialog({
 }
 
 function WorkspaceIconPicker({
+  backgroundColor,
   color,
   icon,
   name,
   onChange,
 }: {
+  backgroundColor: string | null;
   color: string | null;
   icon: string | null;
   name: string;
@@ -426,7 +441,7 @@ function WorkspaceIconPicker({
         type="button"
         {...dialogButtonAria(open)}
       >
-        <WorkspaceIcon color={color} icon={icon} name={name} size={26} />
+        <WorkspaceIcon backgroundColor={backgroundColor} color={color} icon={icon} name={name} size={26} />
         <span className="connection-icon-edit-glyph" aria-hidden="true">
           <Pencil size={12} />
         </span>
@@ -444,7 +459,7 @@ function WorkspaceIconPicker({
                 value: null,
                 label: name,
                 keywords: ["letter", "workspace"],
-                icon: <WorkspaceIcon color={color} icon={null} name={name} size={19} />,
+                icon: <WorkspaceIcon backgroundColor={backgroundColor} color={color} icon={null} name={name} size={19} />,
               }}
               lucideNames={WORKSPACE_ICON_NAMES}
               staticOptions={BRAND_ICON_ENTRIES.flatMap((entry) => {

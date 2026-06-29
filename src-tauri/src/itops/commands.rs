@@ -40,12 +40,13 @@ pub fn itops_create_fleet(
     member_ids: Vec<String>,
     filter: Option<FleetFilter>,
     transport: Transport,
+    icon_color: Option<String>,
     icon_data_url: Option<String>,
     icon_background_color: Option<String>,
 ) -> Result<Fleet, String> {
     let id = new_itops_id("hg");
     storage(&app).with_connection_infallible(|conn| {
-        ito::create_fleet(conn, &id, &name, member_ids, filter, transport, icon_data_url.as_deref(), icon_background_color.as_deref())
+        ito::create_fleet(conn, &id, &name, member_ids, filter, transport, icon_color.as_deref(), icon_data_url.as_deref(), icon_background_color.as_deref())
             .map_err(|error| error.to_string())
     })
 }
@@ -58,11 +59,12 @@ pub fn itops_update_fleet(
     member_ids: Vec<String>,
     filter: Option<FleetFilter>,
     transport: Transport,
+    icon_color: Option<String>,
     icon_data_url: Option<String>,
     icon_background_color: Option<String>,
 ) -> Result<Fleet, String> {
     storage(&app).with_connection_infallible(|conn| {
-        ito::update_fleet(conn, &id, &name, member_ids, filter, transport, icon_data_url.as_deref(), icon_background_color.as_deref())
+        ito::update_fleet(conn, &id, &name, member_ids, filter, transport, icon_color.as_deref(), icon_data_url.as_deref(), icon_background_color.as_deref())
             .map_err(|error| error.to_string())
     })
 }

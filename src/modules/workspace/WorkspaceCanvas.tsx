@@ -224,6 +224,7 @@ export function TabStrip() {
                 >
                   <ConnectionIcon
                     iconBackgroundColor={connectionTypeForTab(tab).iconBackgroundColor}
+                    iconColor={connectionTypeForTab(tab).iconColor}
                     iconDataUrl={connectionTypeForTab(tab).iconDataUrl}
                     localShell={connectionTypeForTab(tab).localShell}
                     size={14}
@@ -248,6 +249,7 @@ export function TabStrip() {
                 >
                   <ConnectionIcon
                     iconBackgroundColor={connectionTypeForTab(tab).iconBackgroundColor}
+                    iconColor={connectionTypeForTab(tab).iconColor}
                     iconDataUrl={connectionTypeForTab(tab).iconDataUrl}
                     localShell={connectionTypeForTab(tab).localShell}
                     size={14}

@@ -195,6 +195,7 @@ export function connectionIconForType(type: ConnectionType) {
 
 export function connectionTypeForTab(tab: WorkspaceTab): {
   type: ConnectionType;
+  iconColor?: string | null;
   iconDataUrl?: string | null;
   iconBackgroundColor?: string | null;
   localShell?: string;
@@ -205,6 +206,7 @@ export function connectionTypeForTab(tab: WorkspaceTab): {
   if (tab.connection) {
     return {
       type: tab.connection.type,
+      iconColor: tab.connection.iconColor,
       iconDataUrl: tab.connection.iconDataUrl,
       iconBackgroundColor: tab.connection.iconBackgroundColor,
       localShell: tab.connection.localShell,

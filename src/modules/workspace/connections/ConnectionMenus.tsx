@@ -135,6 +135,7 @@ export function QuickConnectMenu({
           >
             <ConnectionGlyph
               iconBackgroundColor={connection.iconBackgroundColor}
+              iconColor={connection.iconColor}
               iconDataUrl={connection.iconDataUrl}
               localShell={connection.localShell}
               size={15}

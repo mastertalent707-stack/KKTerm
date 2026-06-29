@@ -9,7 +9,7 @@ import { Actions, Btn, DialogShell, Field, Sheet, TextInput } from "../../app/ui
 import { lucideIconRefForName } from "../../lib/iconCatalog";
 import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
 import { flattenConnections } from "../workspace/connections/treeUtils";
-import { ConnectionIconBackgroundPicker } from "../workspace/connections/ConnectionIconBackgroundPicker";
+import { ConnectionIconBackgroundPicker, ConnectionIconColorPicker } from "../workspace/connections/ConnectionIconBackgroundPicker";
 import { ConnectionIconPicker } from "../workspace/connections/ConnectionIconPicker";
 import { useWorkspaceStore } from "../../store";
 import type { Connection, Fleet, ItopsTransport } from "../../types";
@@ -37,6 +37,7 @@ export function FleetDialog({
 
   const [name, setName] = useState(group?.name ?? "");
   const [transport, setTransport] = useState<ItopsTransport>(group?.transport ?? "auto");
+  const [iconColor, setIconColor] = useState<string | null>(group?.iconColor ?? null);
   const [iconDataUrl, setIconDataUrl] = useState<string | null>(group?.iconDataUrl ?? null);
   const [iconBackgroundColor, setIconBackgroundColor] = useState<string | null>(
     group?.iconBackgroundColor ?? null,
@@ -98,6 +99,7 @@ export function FleetDialog({
       memberIds: orderedMemberIds(group?.memberIds ?? [], selected),
       filter: group?.filter ?? null,
       transport,
+      iconColor,
       iconDataUrl,
       iconBackgroundColor,
     };
@@ -142,14 +144,22 @@ export function FleetDialog({
             defaultIconKeywords={["fleet", "building", "default"]}
             defaultIconLabel={t("itops.fleets.heading")}
             iconBackgroundColor={iconBackgroundColor}
+            iconColor={iconColor}
             iconDataUrl={iconDataUrl}
             onChange={setIconDataUrl}
             type="localFiles"
           />
-          <ConnectionIconBackgroundPicker
-            color={iconBackgroundColor}
-            onChange={setIconBackgroundColor}
-          />
+          <div className="connection-icon-palettes">
+            <ConnectionIconColorPicker
+              color={iconColor}
+              kind="foreground"
+              onChange={setIconColor}
+            />
+            <ConnectionIconBackgroundPicker
+              color={iconBackgroundColor}
+              onChange={setIconBackgroundColor}
+            />
+          </div>
         </div>
         <Field label={t("itops.fleets.nameLabel")} req>
           <TextInput

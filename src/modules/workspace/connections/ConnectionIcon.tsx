@@ -79,6 +79,7 @@ export function connectionIconSrcForConnection({
 export function ConnectionIcon({
   className,
   iconBackgroundColor,
+  iconColor,
   iconDataUrl,
   localShell,
   size = 16,
@@ -86,6 +87,7 @@ export function ConnectionIcon({
 }: {
   className?: string;
   iconBackgroundColor?: string | null;
+  iconColor?: string | null;
   iconDataUrl?: string | null;
   localShell?: string;
   size?: number;
@@ -101,9 +103,9 @@ export function ConnectionIcon({
   const shellSize = hasBackground ? size + 6 : size;
   const style = {
     "--connection-icon-bg": iconBackgroundColor ?? "transparent",
-    "--connection-icon-fg": hasBackground
+    "--connection-icon-fg": iconColor ?? (hasBackground
       ? iconForegroundForBackground(iconBackgroundColor)
-      : "currentColor",
+      : "currentColor"),
     "--connection-icon-size": `${size}px`,
     "--connection-icon-shell-size": `${shellSize}px`,
   } as CSSProperties;

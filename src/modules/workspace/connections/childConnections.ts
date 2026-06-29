@@ -159,6 +159,7 @@ export function convertOpenTabsToChildConnections(params: {
           pane.terminalBackground !== undefined
             ? pane.terminalBackground
             : paneConnection.terminalBackground,
+        iconColor: paneConnection.iconColor,
         iconDataUrl: paneConnection.iconDataUrl,
         iconBackgroundColor: paneConnection.iconBackgroundColor,
       });

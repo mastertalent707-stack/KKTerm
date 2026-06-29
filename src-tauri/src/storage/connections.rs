@@ -181,6 +181,7 @@ impl Storage {
             vnc_options,
             ftp_options,
             password_credential_id: None,
+            icon_color: None,
             icon_data_url: None,
             icon_background_color: None,
             terminal_opacity: Some(DEFAULT_TERMINAL_OPACITY),
@@ -493,6 +494,35 @@ impl Storage {
             .execute(
                 "UPDATE connections SET icon_data_url = ?1 WHERE id = ?2",
                 params![icon_data_url, &connection_id],
+            )
+            .map_err(to_storage_error)?;
+        get_connection_by_id(&connection, &connection_id).map(Some)
+    }
+
+    pub fn update_connection_icon_color(
+        &self,
+        connection_id: String,
+        icon_color: Option<String>,
+    ) -> Result<Option<SavedConnection>, String> {
+        let connection_id = required_field("connection id", connection_id)?;
+        let icon_color = normalize_connection_icon_background_color(icon_color)?;
+        let connection = self.lock()?;
+        let current_icon_color = connection
+            .query_row(
+                "SELECT icon_color FROM connections WHERE id = ?1",
+                params![&connection_id],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .optional()
+            .map_err(to_storage_error)?
+            .ok_or_else(|| "connection was not found".to_string())?;
+        if current_icon_color == icon_color {
+            return Ok(None);
+        }
+        connection
+            .execute(
+                "UPDATE connections SET icon_color = ?1 WHERE id = ?2",
+                params![icon_color, &connection_id],
             )
             .map_err(to_storage_error)?;
         get_connection_by_id(&connection, &connection_id).map(Some)
@@ -1280,7 +1310,7 @@ impl Storage {
 
         let source = transaction
             .query_row(
-                "SELECT folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, use_psmux_sessions, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, workspace_id, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, ssh_compression, url_proxy, url_proxy_inherit_defaults
+                "SELECT folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, use_psmux_sessions, serial_line, serial_speed, connection_type, icon_color, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, workspace_id, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, ssh_compression, url_proxy, url_proxy_inherit_defaults
                  FROM connections
                  WHERE id = ?1",
                 params![source_id],
@@ -1310,15 +1340,16 @@ impl Storage {
                         row.get::<_, String>(21)?,
                         row.get::<_, Option<String>>(22)?,
                         row.get::<_, Option<String>>(23)?,
-                        normalize_loaded_terminal_opacity(row.get::<_, Option<i64>>(24)?),
-                        terminal_background_from_json(row.get::<_, Option<String>>(25)?),
-                        row.get::<_, Option<String>>(26)?,
-                        file_browser_view_options_from_json(row.get::<_, Option<String>>(27)?),
-                        row.get::<_, bool>(28)?,
-                        ssh_port_forwardings_from_json(row.get::<_, Option<String>>(29)?),
-                        row.get::<_, Option<String>>(30)?,
+                        row.get::<_, Option<String>>(24)?,
+                        normalize_loaded_terminal_opacity(row.get::<_, Option<i64>>(25)?),
+                        terminal_background_from_json(row.get::<_, Option<String>>(26)?),
+                        row.get::<_, Option<String>>(27)?,
+                        file_browser_view_options_from_json(row.get::<_, Option<String>>(28)?),
+                        row.get::<_, bool>(29)?,
+                        ssh_port_forwardings_from_json(row.get::<_, Option<String>>(30)?),
                         row.get::<_, Option<String>>(31)?,
-                        row.get::<_, bool>(32)?,
+                        row.get::<_, Option<String>>(32)?,
+                        row.get::<_, bool>(33)?,
                     ))
                 },
             )
@@ -1348,6 +1379,7 @@ impl Storage {
             serial_line,
             serial_speed,
             connection_type,
+            icon_color,
             icon_data_url,
             icon_background_color,
             terminal_opacity,
@@ -1380,8 +1412,8 @@ impl Storage {
         transaction
             .execute(
                 "INSERT INTO connections (
-                    id, folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, use_psmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, status, sort_order, workspace_id, ssh_compression, url_proxy, url_proxy_inherit_defaults
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, 'idle', ?32, ?33, ?34, ?35, ?36)",
+                    id, folder_id, name, tab_title, host, username, port, key_path, proxy_jump, ssh_socks_proxy, ssh_socks_proxy_username, ssh_socks_proxy_inherit_defaults, auth_method, local_shell, local_startup_directory, local_startup_script, url, data_partition, use_tmux_sessions, use_psmux_sessions, tmux_connection_id, serial_line, serial_speed, connection_type, icon_color, icon_data_url, icon_background_color, terminal_opacity, terminal_background_json, file_browser_view_options_json, file_view_open_external, ssh_port_forwardings_json, status, sort_order, workspace_id, ssh_compression, url_proxy, url_proxy_inherit_defaults
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, 'idle', ?33, ?34, ?35, ?36, ?37)",
                 params![
                     duplicate_id,
                     folder_id,
@@ -1407,6 +1439,7 @@ impl Storage {
                     serial_line,
                     serial_speed,
                     connection_type,
+                    icon_color,
                     icon_data_url,
                     icon_background_color,
                     terminal_opacity.map(i64::from),
@@ -1612,7 +1645,7 @@ impl Storage {
         let connection = self.lock()?;
         let mut statement = connection
             .prepare(
-                "SELECT id, name, icon, icon_color, is_default, sort_order
+                "SELECT id, name, icon, icon_color, icon_background_color, is_default, sort_order
                  FROM workspaces
                  ORDER BY sort_order, name",
             )
@@ -1624,8 +1657,9 @@ impl Storage {
                     name: row.get(1)?,
                     icon: row.get(2)?,
                     icon_color: row.get(3)?,
-                    is_default: row.get::<_, i64>(4)? != 0,
-                    sort_order: row.get(5)?,
+                    icon_background_color: row.get(4)?,
+                    is_default: row.get::<_, i64>(5)? != 0,
+                    sort_order: row.get(6)?,
                 })
             })
             .map_err(to_storage_error)?
@@ -1644,6 +1678,10 @@ impl Storage {
             .icon_color
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty());
+        let icon_background_color = request
+            .icon_background_color
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
         let id = make_workspace_id(&name);
         let mut connection = self.lock()?;
         let transaction = connection.transaction().map_err(to_storage_error)?;
@@ -1657,9 +1695,9 @@ impl Storage {
             .map_err(to_storage_error)?;
         transaction
             .execute(
-                "INSERT INTO workspaces (id, name, icon, icon_color, is_default, sort_order)
-                 VALUES (?1, ?2, ?3, ?4, 0, ?5)",
-                params![id, name, icon, icon_color, next_sort_order],
+                "INSERT INTO workspaces (id, name, icon, icon_color, icon_background_color, is_default, sort_order)
+                 VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6)",
+                params![id, name, icon, icon_color, icon_background_color, next_sort_order],
             )
             .map_err(to_storage_error)?;
 
@@ -1681,7 +1719,7 @@ impl Storage {
                             auth_method, local_shell, local_startup_directory,
                             local_startup_script, url, data_partition, use_tmux_sessions, use_psmux_sessions,
                             tmux_connection_id, serial_line, serial_speed, rdp_options, vnc_options,
-                            ftp_options, password_credential_id, icon_data_url, icon_background_color,
+                            ftp_options, password_credential_id, icon_color, icon_data_url, icon_background_color,
                             terminal_opacity, terminal_background_json, file_view_open_external,
                             connection_type, status, sort_order
                         )
@@ -1691,7 +1729,7 @@ impl Storage {
                             auth_method, local_shell, local_startup_directory,
                             local_startup_script, url, data_partition, use_tmux_sessions, use_psmux_sessions,
                             ?3, serial_line, serial_speed, rdp_options, vnc_options,
-                            ftp_options, password_credential_id, icon_data_url, icon_background_color,
+                            ftp_options, password_credential_id, icon_color, icon_data_url, icon_background_color,
                             terminal_opacity, terminal_background_json, file_view_open_external,
                             connection_type, 'idle', ?4
                         FROM connections
@@ -1714,6 +1752,7 @@ impl Storage {
             name,
             icon,
             icon_color,
+            icon_background_color,
             is_default: false,
             sort_order: next_sort_order,
         })
@@ -1730,11 +1769,15 @@ impl Storage {
             .icon_color
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty());
+        let icon_background_color = request
+            .icon_background_color
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
         let connection = self.lock()?;
         let updated = connection
             .execute(
-                "UPDATE workspaces SET name = ?1, icon = ?2, icon_color = ?3 WHERE id = ?4",
-                params![name, icon, icon_color, id],
+                "UPDATE workspaces SET name = ?1, icon = ?2, icon_color = ?3, icon_background_color = ?4 WHERE id = ?5",
+                params![name, icon, icon_color, icon_background_color, id],
             )
             .map_err(to_storage_error)?;
         if updated == 0 {
@@ -1752,6 +1795,7 @@ impl Storage {
             name,
             icon,
             icon_color,
+            icon_background_color,
             is_default,
             sort_order,
         })

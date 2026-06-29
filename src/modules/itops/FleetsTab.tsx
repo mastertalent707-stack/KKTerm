@@ -50,6 +50,7 @@ const TILE_COLORS = [
 ];
 
 type ItOpsCustomIcon = {
+  iconColor?: string | null;
   iconDataUrl?: string | null;
   iconBackgroundColor?: string | null;
 };
@@ -575,6 +576,7 @@ function ItOpsIcon({
     return (
       <ConnectionIcon
         iconBackgroundColor={customIcon.iconBackgroundColor}
+        iconColor={customIcon.iconColor}
         iconDataUrl={customIcon.iconDataUrl}
         size={size}
         type="localFiles"
@@ -584,6 +586,19 @@ function ItOpsIcon({
   if (customIcon?.iconBackgroundColor) {
     return (
       <span className="ft-custom-icon" style={{ background: customIcon.iconBackgroundColor }}>
+        {customIcon.iconColor ? (
+          <span style={{ color: customIcon.iconColor }}>
+            <ItIcon name={icon} size={size} sw={1.6} />
+          </span>
+        ) : (
+          <ItIcon name={icon} size={size} sw={1.6} />
+        )}
+      </span>
+    );
+  }
+  if (customIcon?.iconColor) {
+    return (
+      <span style={{ color: customIcon.iconColor }}>
         <ItIcon name={icon} size={size} sw={1.6} />
       </span>
     );

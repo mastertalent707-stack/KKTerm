@@ -694,6 +694,7 @@ export function ActivityRail({
                 <LayoutDashboard size={18} />
               ) : (
                 <WorkspaceIcon
+                  backgroundColor={workspace.iconBackgroundColor}
                   color={workspace.iconColor}
                   icon={workspace.icon}
                   name={label}
@@ -820,6 +821,7 @@ export function ActivityRail({
             >
               <ConnectionIcon
                 iconBackgroundColor={item.connection.iconBackgroundColor}
+                iconColor={item.connection.iconColor}
                 iconDataUrl={item.connection.iconDataUrl}
                 localShell={item.connection.localShell}
                 size={18}

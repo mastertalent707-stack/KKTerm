@@ -25,6 +25,7 @@ export function ConnectionIconPicker({
   defaultIconLabel,
   defaultIconKeywords,
   iconBackgroundColor,
+  iconColor,
   iconDataUrl,
   localShell,
   onChange,
@@ -35,6 +36,7 @@ export function ConnectionIconPicker({
   defaultIconLabel?: string;
   defaultIconKeywords?: string[];
   iconBackgroundColor?: string | null;
+  iconColor?: string | null;
   iconDataUrl?: string | null;
   localShell?: string;
   onChange: (iconDataUrl: string | null) => void;
@@ -152,6 +154,7 @@ export function ConnectionIconPicker({
       >
         <ConnectionIcon
           iconBackgroundColor={iconBackgroundColor}
+          iconColor={iconColor}
           iconDataUrl={previewIconDataUrl}
           localShell={localShell}
           size={44}
@@ -170,6 +173,7 @@ export function ConnectionIconPicker({
               keywords: defaultIconKeywords ?? [connectionTypeLabel(type), "default"],
               icon: (
                 <ConnectionIcon
+                  iconColor={iconColor}
                   iconDataUrl={defaultIconDataUrl}
                   localShell={localShell}
                   size={22}

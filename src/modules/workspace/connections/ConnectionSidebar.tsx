@@ -1,5 +1,5 @@
 import { ConnectionGlyph, connectionSubtitle, connectionTypeSubtitle } from "./ConnectionGlyph";
-import { ConnectionIconBackgroundPicker } from "./ConnectionIconBackgroundPicker";
+import { ConnectionIconBackgroundPicker, ConnectionIconColorPicker } from "./ConnectionIconBackgroundPicker";
 import { ConnectionIconPicker } from "./ConnectionIconPicker";
 import { ConnectionIcon, connectionIconSrcForConnection } from "./ConnectionIcon";
 import { AddConnectionMenu, QuickConnectMenu } from "./ConnectionMenus";
@@ -217,6 +217,7 @@ type TransferSshPublicKeyDialogState = {
 };
 
 type ConnectionDialogRequest = CreateConnectionRequest & {
+  iconColor?: string | null;
   iconDataUrl?: string | null;
   iconBackgroundColor?: string | null;
   password?: string;
@@ -623,7 +624,7 @@ export function ConnectionSidebar({
       const connection = await invokeCommand("create_connection", {
         request,
       });
-      await saveConnectionIconPresentation(connection, iconDataUrl, null);
+      await saveConnectionIconPresentation(connection, iconDataUrl, null, null);
       await handleConnectionSaved();
     } catch (error) {
       setTreeError(error instanceof Error ? error.message : String(error));
@@ -693,7 +694,7 @@ export function ConnectionSidebar({
             workspaceId,
           });
           const connection = await invokeCommand("create_connection", { request });
-          await saveConnectionIconPresentation(connection, iconDataUrl, null);
+          await saveConnectionIconPresentation(connection, iconDataUrl, null, null);
         }
         created += 1;
       } catch (error) {
@@ -1272,7 +1273,7 @@ export function ConnectionSidebar({
 
   async function handleConnectionSubmit(request: ConnectionDialogRequest) {
     setFormError("");
-    const { iconDataUrl, iconBackgroundColor, password, passwordCredentialId, keyPassphrase, sshSocksProxyPassword, urlCredentialUsername, urlPassword, sshStartupScriptApplyToExistingTmux, ...connectionRequest } = request;
+    const { iconColor, iconDataUrl, iconBackgroundColor, password, passwordCredentialId, keyPassphrase, sshSocksProxyPassword, urlCredentialUsername, urlPassword, sshStartupScriptApplyToExistingTmux, ...connectionRequest } = request;
     const appearance = supportsTerminalAppearanceDefaults(connectionRequest.type)
       ? resolveDefaultTerminalAppearance(connectionRequest.type, sshSettings, terminalSettings)
       : null;
@@ -1299,7 +1300,7 @@ export function ConnectionSidebar({
             terminalBackground: appearance.terminalBackground,
           };
         }
-        connection = await saveConnectionIconPresentation(connection, iconDataUrl, iconBackgroundColor);
+        connection = await saveConnectionIconPresentation(connection, iconDataUrl, iconBackgroundColor, iconColor);
         if (password) {
           connection = await createConnectionPasswordCredential(connection.id, password);
         } else if (passwordCredentialId) {
@@ -1378,7 +1379,7 @@ export function ConnectionSidebar({
       setFormError(t("connections.connectionNotFound"));
       return;
     }
-    const { iconDataUrl, iconBackgroundColor, password, passwordCredentialId, keyPassphrase, sshSocksProxyPassword, urlCredentialUsername, urlPassword, sshStartupScriptApplyToExistingTmux, ...connectionRequest } = request;
+    const { iconColor, iconDataUrl, iconBackgroundColor, password, passwordCredentialId, keyPassphrase, sshSocksProxyPassword, urlCredentialUsername, urlPassword, sshStartupScriptApplyToExistingTmux, ...connectionRequest } = request;
     const updateRequest: UpdateConnectionRequest = {
       ...connectionRequest,
       id: currentConnection.connection.id,
@@ -1392,7 +1393,7 @@ export function ConnectionSidebar({
       let connection = await invokeCommand("update_connection", {
         request: updateRequest,
       });
-      connection = await saveConnectionIconPresentation(connection, iconDataUrl, iconBackgroundColor);
+      connection = await saveConnectionIconPresentation(connection, iconDataUrl, iconBackgroundColor, iconColor);
       if (password) {
         connection = await createConnectionPasswordCredential(connection.id, password);
       } else if (passwordCredentialId) {
@@ -1522,17 +1523,25 @@ export function ConnectionSidebar({
     connection: Connection,
     iconDataUrl: string | null | undefined,
     iconBackgroundColor: string | null | undefined,
+    iconColor: string | null | undefined,
   ) {
     const updatedConnection = await saveConnectionIconDataUrl(connection, iconDataUrl);
+    const normalizedIconColor = iconColor ?? null;
+    const colorUpdatedConnection = (updatedConnection.iconColor ?? null) === normalizedIconColor
+      ? updatedConnection
+      : await invokeCommand("update_connection_icon_color", {
+        connectionId: updatedConnection.id,
+        iconColor: normalizedIconColor,
+      }) ?? { ...updatedConnection, iconColor: normalizedIconColor };
     const normalizedIconBackgroundColor = iconBackgroundColor ?? null;
-    if ((updatedConnection.iconBackgroundColor ?? null) === normalizedIconBackgroundColor) {
-      return updatedConnection;
+    if ((colorUpdatedConnection.iconBackgroundColor ?? null) === normalizedIconBackgroundColor) {
+      return colorUpdatedConnection;
     }
     const updated = await invokeCommand("update_connection_icon_background_color", {
-      connectionId: updatedConnection.id,
+      connectionId: colorUpdatedConnection.id,
       iconBackgroundColor: normalizedIconBackgroundColor,
     });
-    return updated ?? { ...updatedConnection, iconBackgroundColor: normalizedIconBackgroundColor };
+    return updated ?? { ...colorUpdatedConnection, iconBackgroundColor: normalizedIconBackgroundColor };
   }
 
   async function handleDeleteFolder(folder: ConnectionFolder) {
@@ -2728,6 +2737,7 @@ export function ConnectionSidebar({
               <LayoutDashboard aria-hidden="true" size={16} />
             ) : (
               <WorkspaceIcon
+                backgroundColor={activeWorkspace?.iconBackgroundColor}
                 color={activeWorkspace?.iconColor}
                 icon={activeWorkspace?.icon}
                 name={activeWorkspace?.name || panelTitle}
@@ -3214,6 +3224,7 @@ function ChildConnectionPropertiesDialog({
 }) {
   const { t } = useTranslation();
   const [name, setName] = useState(state.child.name);
+  const [iconColor, setIconColor] = useState<string | null>(state.child.iconColor ?? null);
   const [iconDataUrl, setIconDataUrl] = useState<string | null>(state.child.iconDataUrl ?? null);
   const [iconBackgroundColor, setIconBackgroundColor] = useState<string | null>(
     state.child.iconBackgroundColor ?? null,
@@ -3228,6 +3239,7 @@ function ChildConnectionPropertiesDialog({
     onSave({
       ...state.child,
       name: trimmedName,
+      iconColor,
       iconDataUrl,
       iconBackgroundColor,
     });
@@ -3246,6 +3258,7 @@ function ChildConnectionPropertiesDialog({
           <ConnectionIconPicker
             customIconDataUrls={customIconDataUrls}
             iconBackgroundColor={iconBackgroundColor}
+            iconColor={iconColor}
             iconDataUrl={iconDataUrl}
             localShell={state.connection.localShell}
             onChange={setIconDataUrl}
@@ -3255,10 +3268,17 @@ function ChildConnectionPropertiesDialog({
             <strong>{state.connection.name}</strong>
             <small>{connectionSubtitle(state.connection)}</small>
           </span>
-          <ConnectionIconBackgroundPicker
-            color={iconBackgroundColor}
-            onChange={setIconBackgroundColor}
-          />
+          <div className="connection-icon-palettes">
+            <ConnectionIconColorPicker
+              color={iconColor}
+              kind="foreground"
+              onChange={setIconColor}
+            />
+            <ConnectionIconBackgroundPicker
+              color={iconBackgroundColor}
+              onChange={setIconBackgroundColor}
+            />
+          </div>
         </div>
         <div className="connection-dialog-fields">
           <label>
@@ -4036,6 +4056,7 @@ function ConnectionDialog({
   const [selectedPasswordCredentialId, setSelectedPasswordCredentialId] = useState(
     initialConnection?.passwordCredentialId ?? "",
   );
+  const [iconColor, setIconColor] = useState<string | null>(initialConnection?.iconColor ?? null);
   const [iconDataUrl, setIconDataUrl] = useState<string | null>(initialConnection?.iconDataUrl ?? null);
   const [iconManuallyChanged, setIconManuallyChanged] = useState(false);
   const [iconBackgroundColor, setIconBackgroundColor] = useState<string | null>(
@@ -4427,6 +4448,7 @@ function ConnectionDialog({
           ? String(form.get("urlCredentialUsername") ?? "").trim() || undefined
           : undefined,
       urlPassword: connectionType === "url" ? String(form.get("urlPassword") ?? "") || undefined : undefined,
+      iconColor: mode === "quick" ? undefined : iconColor,
       iconDataUrl: mode === "quick" ? undefined : iconDataUrl,
       iconBackgroundColor: mode === "quick" ? undefined : iconBackgroundColor,
     });
@@ -4721,6 +4743,7 @@ function ConnectionDialog({
             {mode === "quick" ? (
               <ConnectionGlyph
                 iconBackgroundColor={initialConnection?.iconBackgroundColor}
+                iconColor={initialConnection?.iconColor}
                 iconDataUrl={initialConnection?.iconDataUrl}
                 localShell={initialConnection?.localShell}
                 size={20}
@@ -4730,6 +4753,7 @@ function ConnectionDialog({
               <ConnectionIconPicker
                 customIconDataUrls={reusableIconDataUrls}
                 iconBackgroundColor={iconBackgroundColor}
+                iconColor={iconColor}
                 iconDataUrl={iconDataUrl}
                 localShell={initialConnection?.localShell}
                 onChange={handleIconDataUrlChange}
@@ -4745,10 +4769,17 @@ function ConnectionDialog({
               </small>
             </span>
             {mode !== "quick" ? (
-              <ConnectionIconBackgroundPicker
-                color={iconBackgroundColor}
-                onChange={setIconBackgroundColor}
-              />
+              <div className="connection-icon-palettes">
+                <ConnectionIconColorPicker
+                  color={iconColor}
+                  kind="foreground"
+                  onChange={setIconColor}
+                />
+                <ConnectionIconBackgroundPicker
+                  color={iconBackgroundColor}
+                  onChange={setIconBackgroundColor}
+                />
+              </div>
             ) : null}
           </div>
         ) : null}
@@ -5352,6 +5383,7 @@ function ConnectionChildTabRow({
       >
         <ConnectionGlyph
           iconBackgroundColor={child.iconBackgroundColor ?? connection.iconBackgroundColor}
+          iconColor={child.iconColor ?? connection.iconColor}
           iconDataUrl={child.iconDataUrl ?? connection.iconDataUrl}
           localShell={connection.localShell}
           size={14}
@@ -5446,6 +5478,7 @@ function ConnectionRow({
         <div className="connection-open connection-open-editing">
           <ConnectionGlyph
             iconBackgroundColor={connection.iconBackgroundColor}
+            iconColor={connection.iconColor}
             iconDataUrl={connection.iconDataUrl}
             localShell={connection.localShell}
             size={18}
@@ -5480,6 +5513,7 @@ function ConnectionRow({
         >
           <ConnectionGlyph
             iconBackgroundColor={connection.iconBackgroundColor}
+            iconColor={connection.iconColor}
             iconDataUrl={connection.iconDataUrl}
             localShell={connection.localShell}
             size={18}

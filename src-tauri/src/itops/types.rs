@@ -136,6 +136,8 @@ impl FleetFilter {
 #[serde(rename_all = "camelCase")]
 pub struct RoomIcon {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon_data_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon_background_color: Option<String>,
@@ -161,7 +163,9 @@ pub struct Fleet {
     /// not entities, so their backgrounds live as a map on the owning Fleet.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub room_backgrounds: HashMap<String, DashboardBackground>,
-    /// Custom icon (data URL or lucide/material ref) and background colour.
+    /// Custom icon (data URL or lucide/material ref), foreground colour, and background colour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_color: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon_data_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

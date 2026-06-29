@@ -24,6 +24,7 @@ export interface Workspace {
   name: string;
   icon?: string | null;
   iconColor?: string | null;
+  iconBackgroundColor?: string | null;
   isDefault: boolean;
   sortOrder: number;
 }
@@ -32,6 +33,7 @@ export interface CreateWorkspaceRequest {
   name: string;
   icon?: string | null;
   iconColor?: string | null;
+  iconBackgroundColor?: string | null;
   importConnectionIds?: string[];
 }
 
@@ -40,6 +42,7 @@ export interface RenameWorkspaceRequest {
   name: string;
   icon?: string | null;
   iconColor?: string | null;
+  iconBackgroundColor?: string | null;
 }
 
 export interface ReorderWorkspacesRequest {
@@ -108,6 +111,7 @@ export interface Connection {
   passwordCredentialId?: string | null;
   urlCredentialUsername?: string;
   hasUrlCredential?: boolean;
+  iconColor?: string | null;
   iconDataUrl?: string | null;
   iconBackgroundColor?: string | null;
   terminalOpacity?: number | null;
@@ -157,7 +161,8 @@ export interface Fleet {
   background?: DashboardBackground | null;
   // Per-server-room backgrounds, keyed by the room's string tag.
   roomBackgrounds?: Record<string, DashboardBackground>;
-  // Custom icon (data URL or lucide/material ref) and background colour.
+  // Custom icon (data URL or lucide/material ref), foreground colour, and background colour.
+  iconColor?: string | null;
   iconDataUrl?: string | null;
   iconBackgroundColor?: string | null;
   // Per-server-room icons, keyed by the room's string tag.
@@ -165,6 +170,7 @@ export interface Fleet {
 }
 
 export interface RoomIconEntry {
+  iconColor?: string | null;
   iconDataUrl?: string | null;
   iconBackgroundColor?: string | null;
 }
@@ -1137,6 +1143,7 @@ export interface WorkspaceChildConnection {
   fontSize?: number;
   terminalOpacity?: number | null;
   terminalBackground?: DashboardBackground | null;
+  iconColor?: string | null;
   iconDataUrl?: string | null;
   iconBackgroundColor?: string | null;
 }

@@ -2654,6 +2654,7 @@ function TerminalPaneView({
             <ConnectionGlyph
               className="terminal-pane-connection-icon"
               iconBackgroundColor={pane.connection.iconBackgroundColor}
+              iconColor={pane.connection.iconColor}
               iconDataUrl={pane.connection.iconDataUrl}
               localShell={pane.connection.localShell}
               size={18}
