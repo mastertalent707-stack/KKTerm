@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::dashboard_storage::DashboardBackground;
 use crate::watchdog::types::WatchdogConfig;
@@ -263,6 +263,264 @@ impl RackItemKind {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RackAuditRecord {
+    pub id: String,
+    pub action: String,
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub occurred_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RackNetworkPort {
+    pub name: String,
+    pub speed: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub oid: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RackRelationship {
+    pub kind: String,
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub related_item_ids: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub related_connection_ids: Option<Vec<String>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RackIpamAddress {
+    pub address: String,
+    pub family: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vlan: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mac: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RackIpamMetadata {
+    #[serde(default)]
+    pub addresses: Vec<RackIpamAddress>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RackSnmpHint {
+    pub target: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub oid: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub community_secret_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_refreshed_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_error: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum AuditRecordCompat {
+    Typed(RackAuditRecord),
+    Legacy(String),
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum NetworkPortCompat {
+    Typed(RackNetworkPort),
+    Legacy(String),
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum RelationshipCompat {
+    Typed(RackRelationship),
+    Legacy(String),
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum SnmpCompat {
+    Typed(RackSnmpHint),
+    Legacy(String),
+}
+
+fn audit_action_from_text(value: &str) -> &'static str {
+    let lower = value.to_ascii_lowercase();
+    if value.contains("上架") || lower.contains("install") {
+        "installed"
+    } else if value.contains("下架") || lower.contains("remove") {
+        "removed"
+    } else if lower.contains("cabl") || value.contains('線') || value.contains('线') {
+        "cabling"
+    } else if lower.contains("maint") || value.contains("維護") || value.contains("维护") {
+        "maintenance"
+    } else {
+        "note"
+    }
+}
+
+fn relationship_kind_from_text(value: &str) -> &'static str {
+    let lower = value.to_ascii_lowercase();
+    if lower.contains("host/vm") || lower.contains("host vm") {
+        "hostVm"
+    } else if lower.contains("storage/ap") || lower.contains("storage ap") {
+        "storageAp"
+    } else if lower.contains("vsan") {
+        "vsan"
+    } else if lower == "san" {
+        "san"
+    } else if lower.contains("nas") {
+        "nas"
+    } else if lower.contains("hyper") {
+        "hyperConverged"
+    } else {
+        "custom"
+    }
+}
+
+fn deserialize_audit_records<'de, D>(
+    deserializer: D,
+) -> Result<Option<Vec<RackAuditRecord>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let values = Option::<Vec<AuditRecordCompat>>::deserialize(deserializer)?;
+    Ok(values.map(|entries| {
+        entries
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, entry)| match entry {
+                AuditRecordCompat::Typed(mut record) => {
+                    record.label = record.label.trim().to_string();
+                    (!record.label.is_empty()).then_some(record)
+                }
+                AuditRecordCompat::Legacy(label) => {
+                    let label = label.trim().to_string();
+                    (!label.is_empty()).then(|| RackAuditRecord {
+                        id: format!("audit-{index}"),
+                        action: audit_action_from_text(&label).to_string(),
+                        label,
+                        occurred_at: None,
+                    })
+                }
+            })
+            .collect()
+    }))
+}
+
+fn deserialize_network_ports<'de, D>(
+    deserializer: D,
+) -> Result<Option<Vec<RackNetworkPort>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let values = Option::<Vec<NetworkPortCompat>>::deserialize(deserializer)?;
+    Ok(values.map(|entries| {
+        entries
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, entry)| match entry {
+                NetworkPortCompat::Typed(mut port) => {
+                    port.name = port.name.trim().to_string();
+                    (!port.name.is_empty()).then_some(port)
+                }
+                NetworkPortCompat::Legacy(value) => {
+                    let mut parts = value.splitn(2, ':');
+                    let name = parts
+                        .next()
+                        .map(str::trim)
+                        .filter(|value| !value.is_empty())
+                        .map(ToString::to_string)
+                        .unwrap_or_else(|| (index + 1).to_string());
+                    let speed = parts
+                        .next()
+                        .map(str::trim)
+                        .filter(|value| !value.is_empty())
+                        .unwrap_or("custom")
+                        .to_ascii_lowercase();
+                    Some(RackNetworkPort {
+                        name,
+                        speed,
+                        state: None,
+                        oid: None,
+                        note: None,
+                    })
+                }
+            })
+            .collect()
+    }))
+}
+
+fn deserialize_relationship<'de, D>(deserializer: D) -> Result<Option<RackRelationship>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<RelationshipCompat>::deserialize(deserializer)?;
+    Ok(value.and_then(|entry| match entry {
+        RelationshipCompat::Typed(mut relationship) => {
+            relationship.label = relationship.label.trim().to_string();
+            (!relationship.label.is_empty()).then_some(relationship)
+        }
+        RelationshipCompat::Legacy(label) => {
+            let label = label.trim().to_string();
+            (!label.is_empty()).then(|| RackRelationship {
+                kind: relationship_kind_from_text(&label).to_string(),
+                label,
+                related_item_ids: None,
+                related_connection_ids: None,
+            })
+        }
+    }))
+}
+
+fn deserialize_snmp<'de, D>(deserializer: D) -> Result<Option<RackSnmpHint>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<SnmpCompat>::deserialize(deserializer)?;
+    Ok(value.and_then(|entry| match entry {
+        SnmpCompat::Typed(mut snmp) => {
+            snmp.target = snmp.target.trim().to_string();
+            (!snmp.target.is_empty()).then_some(snmp)
+        }
+        SnmpCompat::Legacy(raw) => {
+            let raw = raw.trim();
+            if raw.is_empty() {
+                return None;
+            }
+            let target_and_oid = raw.split('@').nth(1).unwrap_or(raw);
+            let mut parts = target_and_oid.splitn(2, ':');
+            let target = parts.next().unwrap_or("").trim().to_string();
+            (!target.is_empty()).then(|| RackSnmpHint {
+                target,
+                oid: parts
+                    .next()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .map(ToString::to_string),
+                community_secret_ref: None,
+                last_refreshed_at: None,
+                last_error: None,
+            })
+        }
+    }))
+}
+
 /// Presentation-only metadata for a Rack Device. No secrets ever land here.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -298,16 +556,36 @@ pub struct RackItemMetadata {
     pub yaw: Option<i32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audit_records: Option<Vec<String>>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_audit_records",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub audit_records: Option<Vec<RackAuditRecord>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connection_ids: Option<Vec<String>>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_network_ports",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub network_ports: Option<Vec<RackNetworkPort>>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_snmp",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub snmp: Option<RackSnmpHint>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_relationship",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub relationship: Option<RackRelationship>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub network_ports: Option<Vec<String>>,
+    pub ipam: Option<RackIpamMetadata>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub snmp: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub relationship: Option<String>,
+    pub kuaiguai_size: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub vendor: Option<String>,
 }

@@ -25,6 +25,7 @@ export interface RackDeviceProps {
   expiry?: string | null;
   rotation?: number | null;
   yaw?: number | null;
+  kuaiguaiSize?: "small" | "regular" | "large" | null;
   heightU: number;
   /** User accent override; falls back to the per-kind device colour. */
   accent?: string | null;
@@ -96,6 +97,7 @@ export function RackDevice({
   expiry,
   rotation,
   yaw,
+  kuaiguaiSize,
   heightU,
   accent,
   shell,
@@ -179,6 +181,7 @@ export function RackDevice({
     <div
       className="rkd"
       data-shell={shell ?? undefined}
+      data-kuaiguai-size={isKuaiguai ? kuaiguaiSize ?? "regular" : undefined}
       style={{
         ["--rkd-accent" as string]: devAccent,
         ["--rkd-rotate" as string]: `${rotation ?? -2}deg`,

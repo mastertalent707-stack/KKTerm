@@ -19,8 +19,8 @@ use super::runner::{self, SshTransport, DEFAULT_CONCURRENCY, DEFAULT_TIMEOUT_SEC
 use super::run_storage;
 use super::storage as ito;
 use super::types::{
-    BatchTask, Fleet, FleetFilter, Rack, RackItem, RackItemKind, RackItemMetadata, ResolvedHost,
-    RoomIcon, RunEvent, RunEventHost, RunHistoryEntry, RunScope, Transport,
+    BatchTask, Fleet, FleetFilter, Rack, RackItem, RackItemKind, RackItemMetadata, RackNetworkPort,
+    ResolvedHost, RoomIcon, RunEvent, RunEventHost, RunHistoryEntry, RunScope, Transport,
 };
 
 fn storage(app: &AppHandle) -> State<'_, crate::storage::Storage> {
@@ -478,6 +478,45 @@ pub fn itops_move_rack_item(
 pub fn itops_remove_rack_item(app: AppHandle, id: String) -> Result<(), String> {
     storage(&app).with_connection_infallible(|conn| {
         topo::remove_rack_item(conn, &id).map_err(|error| error.to_string())
+    })
+}
+
+#[tauri::command]
+pub async fn itops_refresh_rack_item_snmp(app: AppHandle, id: String) -> Result<RackItem, String> {
+    let item = storage(&app).with_connection_infallible(|conn| {
+        topo::get_rack_item(conn, &id).map_err(|error| error.to_string())
+    })?;
+    let Some(snmp) = item.metadata.snmp.clone() else {
+        return Err("rack device has no SNMP target".to_string());
+    };
+    let samples = crate::net::snmp::refresh_ports(crate::net::snmp::SnmpRefreshRequest {
+        target: snmp.target,
+        oid: snmp.oid,
+    })
+    .await?;
+    storage(&app).with_connection_infallible(|conn| {
+        let mut metadata = item.metadata.clone();
+        metadata.network_ports = Some(
+            samples
+                .into_iter()
+                .map(|sample| RackNetworkPort {
+                    name: sample.name,
+                    speed: sample.speed,
+                    state: Some(sample.state),
+                    oid: sample.oid,
+                    note: None,
+                })
+                .collect(),
+        );
+        topo::update_rack_item(
+            conn,
+            &id,
+            item.kind,
+            item.connection_id,
+            &item.label,
+            metadata,
+        )
+        .map_err(|error| error.to_string())
     })
 }
 

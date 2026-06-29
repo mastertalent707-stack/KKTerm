@@ -95,11 +95,17 @@ Replaces the **Host Group** entry in `CONTEXT.md`; adds the rest. Follows the
   the older `RackItem` / Rack Item names. _Avoid_: slot, node, host card.
 - **Rack Device Type** — the finite visual/device kind for a Rack Device:
   connection, server, storage, switch, router, firewall, PDU, UPS, KVM, patch
-  panel, equipment, general, blank, or label. It controls faceplate rendering
-  and editing fields; it is not a Connection type.
+  panel, equipment, general, 乖乖, blank, or label. It controls faceplate
+  rendering and editing fields; it is not a Connection type.
 - **Rack Device Properties** — non-secret presentation metadata for a Rack
-  Device: label, status, accent, notes, ports, disks, battery, load, icon, and
-  placement. Never store credentials or live Session state here.
+  Device: label, status, accent, notes, tags, structured rack-audit records,
+  additional Connection bindings, typed port rows, SNMP target/OID hints for
+  user-triggered refresh, per-device IPAM address inventory, relationship
+  badges, shell/vendor preview data, 乖乖 package expiry/size/rotation/yaw,
+  ports, disks, battery, load, icon, and placement. Never store credentials,
+  secrets, or live Session state here. IPAM is inventory metadata, not an
+  authoritative DHCP/DNS integration, and SNMP refresh is manual rather than a
+  background polling service.
 
 `Watchdog`, `Automation`, `Batch Run`, `Playbook`, `Transport` are unchanged.
 
@@ -227,7 +233,7 @@ pub struct RackItem {
     pub start_u: u32,
     pub height_u: u32,
     #[serde(default)]
-    pub metadata: RackItemMetadata,   // accent, icon, notes, status, ports, disks, battery, load
+    pub metadata: RackItemMetadata,   // non-secret rack inventory/presentation metadata
 }
 ```
 

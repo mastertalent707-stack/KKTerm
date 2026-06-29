@@ -7,6 +7,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Rack, RackItem, RackItemStatus } from "../../types";
+import { selectRandomRackCallouts, summarizeRackDeviceMetadata } from "./rackInventory";
 import { RackElevation } from "./RackElevation";
 
 const BALLOON_MIN_GAP = 44; // px between same-side balloon centers
@@ -17,6 +18,8 @@ function itemStatus(item: RackItem): RackItemStatus {
 
 // One concise spec line per device kind.
 function specOf(item: RackItem, t: (k: string, o?: Record<string, unknown>) => string): string {
+  const summary = summarizeRackDeviceMetadata(item.metadata ?? {});
+  if (summary.length > 0) return summary[0];
   const m = item.metadata ?? {};
   switch (item.kind) {
     case "switch":
@@ -70,6 +73,7 @@ export function RackStage({
   const [geom, setGeom] = useState<{ top: number; height: number; left: number; right: number } | null>(
     null,
   );
+  const randomCallouts = selectRandomRackCallouts(rack.items, rack.id, 2);
 
   // Measure the device grid relative to the stage so balloons anchor to the
   // right U rows regardless of the rack header's height.
@@ -168,6 +172,26 @@ export function RackStage({
             );
           })
         : null}
+      {randomCallouts.length > 0 ? (
+        <div className="rack-random-callouts">
+          {randomCallouts.map((callout) => {
+            const item = rack.items.find((entry) => entry.id === callout.itemId);
+            return (
+              <button
+                key={callout.itemId}
+                type="button"
+                onClick={() => item && onEditItem?.(item)}
+              >
+                <span>{callout.label}</span>
+                {callout.text ? <small>{callout.text}</small> : null}
+                {callout.connectionIds.length > 0 ? (
+                  <small>{t("itops.racks.boundConnectionCount", { count: callout.connectionIds.length })}</small>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }

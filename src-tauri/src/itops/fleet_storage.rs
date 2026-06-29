@@ -5,9 +5,10 @@
 
 use rusqlite::{Connection as SqliteConnection, OptionalExtension, params};
 
-use crate::dashboard_storage::DashboardBackground;
+use super::inventory::normalize_metadata;
 use super::storage::ItopsStorageError;
 use super::types::{Rack, RackItem, RackItemKind, RackItemMetadata};
+use crate::dashboard_storage::DashboardBackground;
 
 type Result<T> = std::result::Result<T, ItopsStorageError>;
 
@@ -93,12 +94,14 @@ fn validate_height(height_u: u32) -> Result<u32> {
 }
 
 fn metadata_to_json(metadata: &RackItemMetadata) -> Result<String> {
-    serde_json::to_string(metadata)
+    serde_json::to_string(&normalize_metadata(metadata.clone()))
         .map_err(|error| ItopsStorageError::Validation(error.to_string()))
 }
 
 fn parse_metadata(raw: &str) -> RackItemMetadata {
-    serde_json::from_str(raw).unwrap_or_default()
+    serde_json::from_str(raw)
+        .map(normalize_metadata)
+        .unwrap_or_default()
 }
 
 // ── Item reads ──────────────────────────────────────────────────────────────
@@ -239,7 +242,16 @@ pub fn create_rack(
         "INSERT INTO itops_fleet_racks
             (id, fleet_id, name, server_room, rack_group, shell, height_u, sort_order)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        params![id, fleet_id, name, server_room.trim(), rack_group.trim(), shell, height_u, next_sort],
+        params![
+            id,
+            fleet_id,
+            name,
+            server_room.trim(),
+            rack_group.trim(),
+            shell,
+            height_u,
+            next_sort
+        ],
     )?;
     Ok(Rack {
         id: id.to_string(),
@@ -292,7 +304,14 @@ pub fn update_rack(
          SET name = ?, server_room = ?, rack_group = ?, shell = ?, height_u = ?,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = ?",
-        params![name, server_room.trim(), rack_group.trim(), shell, height_u, id],
+        params![
+            name,
+            server_room.trim(),
+            rack_group.trim(),
+            shell,
+            height_u,
+            id
+        ],
     )?;
     fetch_rack(conn, id)
 }
@@ -484,6 +503,10 @@ fn fetch_item(conn: &SqliteConnection, id: &str) -> Result<RackItem> {
     .ok_or(ItopsStorageError::NotFound)
 }
 
+pub fn get_rack_item(conn: &SqliteConnection, id: &str) -> Result<RackItem> {
+    fetch_item(conn, id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -555,8 +578,17 @@ mod tests {
     #[test]
     fn rack_create_list_update_delete_roundtrip() {
         let conn = open_test_db();
-        let rack =
-            create_rack(&conn, "r1", "f1", "  A12  ", " Room B ", " G1 ", Some("white"), 42).unwrap();
+        let rack = create_rack(
+            &conn,
+            "r1",
+            "f1",
+            "  A12  ",
+            " Room B ",
+            " G1 ",
+            Some("white"),
+            42,
+        )
+        .unwrap();
         assert_eq!(rack.name, "A12");
         assert_eq!(rack.server_room, "Room B");
         assert_eq!(rack.rack_group, "G1");

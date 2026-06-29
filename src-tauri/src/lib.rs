@@ -3971,6 +3971,7 @@ pub fn run() {
             itops::commands::itops_update_rack_item,
             itops::commands::itops_move_rack_item,
             itops::commands::itops_remove_rack_item,
+            itops::commands::itops_refresh_rack_item_snmp,
             itops::commands::itops_get_connection,
             itops::commands::itops_start_batch_run,
             itops::commands::itops_cancel_batch_run,

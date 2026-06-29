@@ -9,6 +9,7 @@ pub mod automation_storage;
 pub mod commands;
 pub mod fleet_storage;
 mod ids;
+pub mod inventory;
 pub mod run_storage;
 pub mod runner;
 pub mod storage;

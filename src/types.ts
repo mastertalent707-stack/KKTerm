@@ -200,6 +200,61 @@ export type RackItemKind =
 
 export type RackItemStatus = "online" | "warning" | "offline";
 
+export type RackAuditAction = "installed" | "removed" | "maintenance" | "cabling" | "note";
+
+export interface RackAuditRecord {
+  id: string;
+  action: RackAuditAction;
+  label: string;
+  occurredAt?: string | null;
+}
+
+export type RackPortSpeed = "gigabit" | "10g" | "25g" | "40g" | "100g" | "custom";
+
+export interface RackNetworkPort {
+  name: string;
+  speed: RackPortSpeed;
+  state?: "up" | "down" | "unknown" | null;
+  oid?: string | null;
+  note?: string | null;
+}
+
+export type RackRelationshipKind =
+  | "hostVm"
+  | "storageAp"
+  | "vsan"
+  | "san"
+  | "nas"
+  | "hyperConverged"
+  | "custom";
+
+export interface RackRelationship {
+  kind: RackRelationshipKind;
+  label: string;
+  relatedItemIds?: string[] | null;
+  relatedConnectionIds?: string[] | null;
+}
+
+export interface RackIpamAddress {
+  address: string;
+  family: "ipv4" | "ipv6";
+  role?: "management" | "storage" | "vm" | "service" | "custom" | null;
+  vlan?: string | null;
+  mac?: string | null;
+}
+
+export interface RackIpamMetadata {
+  addresses: RackIpamAddress[];
+}
+
+export interface RackSnmpHint {
+  target: string;
+  oid?: string | null;
+  communitySecretRef?: string | null;
+  lastRefreshedAt?: string | null;
+  lastError?: string | null;
+}
+
 export interface RackItemMetadata {
   accent?: string | null;
   icon?: string | null;
@@ -223,15 +278,19 @@ export interface RackItemMetadata {
   /** Freeform comma-separated tag labels for the rack device. */
   tags?: string[] | null;
   /** Rack audit trail such as 上架/下架/maintenance notes. */
-  auditRecords?: string[] | null;
+  auditRecords?: RackAuditRecord[] | string[] | null;
   /** Additional Connection ids bound to this rack device. */
   connectionIds?: string[] | null;
   /** Switch/router port speeds, e.g. gigabit/10g, optionally filled from SNMP polling. */
-  networkPorts?: string[] | null;
+  networkPorts?: RackNetworkPort[] | string[] | null;
   /** SNMP target or OID hint for polling this device. */
-  snmp?: string | null;
+  snmp?: RackSnmpHint | string | null;
   /** Relationship model: host/vm, storage/ap, VSAN, SAN, NAS, hyper-converged, etc. */
-  relationship?: string | null;
+  relationship?: RackRelationship | string | null;
+  /** Minimal per-device IPAM inventory. */
+  ipam?: RackIpamMetadata | null;
+  /** 乖乖 package size variant. */
+  kuaiguaiSize?: "small" | "regular" | "large" | null;
   /** Hardware shell preview vendor, e.g. Dell or HP. */
   vendor?: string | null;
 }

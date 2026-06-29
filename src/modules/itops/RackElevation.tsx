@@ -10,6 +10,7 @@
 import { useTranslation } from "react-i18next";
 import type { Rack, RackItem, RackItemStatus } from "../../types";
 import { ItIcon } from "./icons";
+import { normalizeRackItemMetadata, summarizeRackDeviceMetadata } from "./rackInventory";
 import { RackDevice } from "./RackDevice";
 
 // Pixel height of one rack unit (U) row. Kept in sync with `--rk-u` in CSS.
@@ -222,6 +223,7 @@ export function RackElevation({
                   expiry={item.metadata?.expiry ?? null}
                   rotation={item.metadata?.rotation ?? null}
                   yaw={item.metadata?.yaw ?? null}
+                  kuaiguaiSize={item.metadata?.kuaiguaiSize ?? null}
                   heightU={item.heightU}
                   accent={item.metadata?.accent ?? null}
                   shell={item.metadata?.shell ?? null}
@@ -290,6 +292,9 @@ export function RackElevation({
           ) : (
             placed.map((item) => {
               const status = itemStatus(item);
+              const metadata = normalizeRackItemMetadata(item.metadata ?? {});
+              const relationship = metadata.relationship;
+              const summary = summarizeRackDeviceMetadata(item.metadata ?? {});
               return (
                 <button
                   key={item.id}
@@ -305,6 +310,13 @@ export function RackElevation({
                     {`U${item.startU}`}
                     {item.heightU > 1 ? `–${item.startU + item.heightU - 1}` : ""}
                   </span>
+                  {relationship ? (
+                    <span className={`rack-relationship-badge ${relationship.kind}`}>
+                      {relationship.label}
+                    </span>
+                  ) : summary[0] ? (
+                    <span className="rk-detail-meta">{summary[0]}</span>
+                  ) : null}
                 </button>
               );
             })

@@ -1203,6 +1203,10 @@ type CommandMap = {
     args: { id: string };
     result: void;
   };
+  itops_refresh_rack_item_snmp: {
+    args: { id: string };
+    result: RackItem;
+  };
   itops_get_connection: {
     args: { id: string };
     result: Connection;
