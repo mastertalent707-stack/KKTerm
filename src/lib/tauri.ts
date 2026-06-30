@@ -43,6 +43,7 @@ import type {
   SiteFilter,
   ItopsTransport,
   Rack,
+  ServerRoom,
   RackItem,
   RackItemKind,
   RackItemMetadata,
@@ -1162,6 +1163,18 @@ type CommandMap = {
   itops_list_racks: {
     args: { siteId: string };
     result: Rack[];
+  };
+  itops_list_server_rooms: {
+    args: { siteId: string };
+    result: ServerRoom[];
+  };
+  itops_create_server_room: {
+    args: { siteId: string; name: string };
+    result: ServerRoom;
+  };
+  itops_delete_server_room: {
+    args: { id: string };
+    result: void;
   };
   itops_create_rack: {
     args: {

@@ -14,6 +14,7 @@ import type {
   SiteFilter,
   ItopsTransport,
   Rack,
+  ServerRoom,
   RackItemKind,
   RackItemMetadata,
   ResolvedHost,
@@ -195,6 +196,10 @@ interface ItOpsState {
   // ── Site topology / Rack View (docs/SITE.md Phase C) ──
   /** Racks per Site id, hydrated with their items. Loaded on demand. */
   racksBySite: Record<string, Rack[]>;
+  serverRoomsBySite: Record<string, ServerRoom[]>;
+  loadServerRooms: (siteId: string) => Promise<void>;
+  createServerRoom: (siteId: string, name: string) => Promise<ServerRoom>;
+  deleteServerRoom: (siteId: string, id: string) => Promise<void>;
   loadRacks: (siteId: string) => Promise<void>;
   createRack: (siteId: string, input: RackInput) => Promise<Rack>;
   updateRack: (siteId: string, id: string, input: RackInput) => Promise<void>;
@@ -331,6 +336,27 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
 
   // ── Site topology / Rack View ──
   racksBySite: {},
+  serverRoomsBySite: {},
+
+  async loadServerRooms(siteId) {
+    if (!isTauriRuntime()) {
+      set({ serverRoomsBySite: { ...get().serverRoomsBySite, [siteId]: [] } });
+      return;
+    }
+    const rooms = await invokeCommand("itops_list_server_rooms", { siteId });
+    set({ serverRoomsBySite: { ...get().serverRoomsBySite, [siteId]: rooms } });
+  },
+
+  async createServerRoom(siteId, name) {
+    const created = await invokeCommand("itops_create_server_room", { siteId, name });
+    await get().loadServerRooms(siteId);
+    return created;
+  },
+
+  async deleteServerRoom(siteId, id) {
+    await invokeCommand("itops_delete_server_room", { id });
+    await get().loadServerRooms(siteId);
+  },
 
   async loadRacks(siteId) {
     if (!isTauriRuntime()) {

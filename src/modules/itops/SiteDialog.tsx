@@ -1,19 +1,15 @@
 // Create / edit a Site. Built from the shared dialog primitives
-// (docs/DESIGN_LANGUAGE.md): a name field, an icon picker, the per-host
-// transport default (edit only), and a multi-select of the active Workspace's
-// Connections for static membership.
+// (docs/DESIGN_LANGUAGE.md): a name field, an icon picker, and the legacy
+// per-host transport default on edit. Connection binding belongs to Rack Devices.
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Actions, Btn, DialogShell, Field, Sheet, TextInput } from "../../app/ui/dialog";
 import { lucideIconRefForName } from "../../lib/iconCatalog";
-import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
-import { flattenConnections } from "../workspace/connections/treeUtils";
 import { ConnectionIconBackgroundPicker } from "../workspace/connections/ConnectionIconBackgroundPicker";
 import { ConnectionIconPicker } from "../workspace/connections/ConnectionIconPicker";
 import { useWorkspaceStore } from "../../store";
-import type { Connection, Site, ItopsTransport } from "../../types";
-import { ItIcon } from "./icons";
+import type { Site, ItopsTransport } from "../../types";
 import { useItOpsStore } from "./state";
 
 const TRANSPORTS: ItopsTransport[] = ["auto", "ssh", "winrm", "psexec"];
@@ -30,7 +26,6 @@ export function SiteDialog({
 }) {
   const { t } = useTranslation();
   const isEdit = !!group;
-  const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const createSite = useItOpsStore((state) => state.createSite);
   const updateSite = useItOpsStore((state) => state.updateSite);
@@ -42,48 +37,7 @@ export function SiteDialog({
   const [iconBackgroundColor, setIconBackgroundColor] = useState<string | null>(
     group?.iconBackgroundColor ?? null,
   );
-  const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(group?.memberIds ?? []),
-  );
-  const [connections, setConnections] = useState<Connection[]>([]);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let disposed = false;
-    if (!isTauriRuntime()) {
-      return;
-    }
-    void invokeCommand("list_connection_tree", { workspaceId: activeWorkspaceId })
-      .then((tree) => {
-        if (!disposed) {
-          setConnections(flattenConnections(tree));
-        }
-      })
-      .catch(() => {
-        if (!disposed) {
-          setConnections([]);
-        }
-      });
-    return () => {
-      disposed = true;
-    };
-  }, [activeWorkspaceId]);
-
-  // Keep any since-deleted member ids selected so editing a group never silently
-  // drops members whose Connection is missing from the current tree.
-  const orderedConnections = useMemo(() => connections, [connections]);
-
-  function toggle(connectionId: string) {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(connectionId)) {
-        next.delete(connectionId);
-      } else {
-        next.add(connectionId);
-      }
-      return next;
-    });
-  }
 
   const trimmedName = name.trim();
   const canSave = trimmedName.length > 0 && !busy;
@@ -95,8 +49,7 @@ export function SiteDialog({
     setBusy(true);
     const input = {
       name: trimmedName,
-      // Preserve stored member order for existing members; append newly added.
-      memberIds: orderedMemberIds(group?.memberIds ?? [], selected),
+      memberIds: group?.memberIds ?? [],
       filter: group?.filter ?? null,
       transport,
       iconColor,
@@ -183,51 +136,7 @@ export function SiteDialog({
           </Field>
         ) : null}
 
-        <Field
-          label={t("itops.sites.connectionsLabel")}
-          hint={t("itops.sites.selectedCount", { count: selected.size })}
-        >
-          <div className="hg-dlg-list">
-            {orderedConnections.length === 0 ? (
-              <div className="hg-dlg-empty">{t("itops.sites.noConnections")}</div>
-            ) : (
-              orderedConnections.map((connection) => {
-                const checked = selected.has(connection.id);
-                return (
-                  <button
-                    key={connection.id}
-                    type="button"
-                    className={`hg-dlg-row${checked ? " checked" : ""}`}
-                    aria-pressed={checked}
-                    onClick={() => toggle(connection.id)}
-                  >
-                    <span className="hg-dlg-check">
-                      {checked ? <ItIcon name="check" size={13} sw={2.4} /> : null}
-                    </span>
-                    <span className="hg-dlg-row-txt">
-                      <span className="nm">{connection.name}</span>
-                      <span className="host">
-                        {connection.user ? `${connection.user}@` : ""}
-                        {connection.host}
-                      </span>
-                    </span>
-                    <span className="hg-dlg-type">{connection.type}</span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </Field>
       </Sheet>
     </DialogShell>
   );
-}
-
-/// Keep the stored member order stable, then append newly selected ids so a
-/// resolved Batch Run preserves an operator's intended ordering.
-function orderedMemberIds(stored: string[], selected: Set<string>): string[] {
-  const kept = stored.filter((id) => selected.has(id));
-  const keptSet = new Set(kept);
-  const added = [...selected].filter((id) => !keptSet.has(id));
-  return [...kept, ...added];
 }

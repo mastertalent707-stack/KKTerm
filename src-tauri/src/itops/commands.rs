@@ -13,14 +13,15 @@ use crate::dashboard_storage::DashboardBackground;
 use crate::secrets;
 use crate::ssh;
 
-use super::site_storage as topo;
 use super::ids::new_itops_id;
-use super::runner::{self, SshTransport, DEFAULT_CONCURRENCY, DEFAULT_TIMEOUT_SECONDS};
 use super::run_storage;
+use super::runner::{self, DEFAULT_CONCURRENCY, DEFAULT_TIMEOUT_SECONDS, SshTransport};
+use super::site_storage as topo;
 use super::storage as ito;
 use super::types::{
-    BatchTask, Site, SiteFilter, Rack, RackItem, RackItemKind, RackItemMetadata, RackNetworkPort,
-    ResolvedHost, RoomIcon, RunEvent, RunEventHost, RunHistoryEntry, RunScope, Transport,
+    BatchTask, Rack, RackItem, RackItemKind, RackItemMetadata, RackNetworkPort, ResolvedHost,
+    RoomIcon, RunEvent, RunEventHost, RunHistoryEntry, RunScope, ServerRoom, Site, SiteFilter,
+    Transport,
 };
 
 fn storage(app: &AppHandle) -> State<'_, crate::storage::Storage> {
@@ -46,8 +47,18 @@ pub fn itops_create_site(
 ) -> Result<Site, String> {
     let id = new_itops_id("hg");
     storage(&app).with_connection_infallible(|conn| {
-        ito::create_site(conn, &id, &name, member_ids, filter, transport, icon_color.as_deref(), icon_data_url.as_deref(), icon_background_color.as_deref())
-            .map_err(|error| error.to_string())
+        ito::create_site(
+            conn,
+            &id,
+            &name,
+            member_ids,
+            filter,
+            transport,
+            icon_color.as_deref(),
+            icon_data_url.as_deref(),
+            icon_background_color.as_deref(),
+        )
+        .map_err(|error| error.to_string())
     })
 }
 
@@ -64,8 +75,18 @@ pub fn itops_update_site(
     icon_background_color: Option<String>,
 ) -> Result<Site, String> {
     storage(&app).with_connection_infallible(|conn| {
-        ito::update_site(conn, &id, &name, member_ids, filter, transport, icon_color.as_deref(), icon_data_url.as_deref(), icon_background_color.as_deref())
-            .map_err(|error| error.to_string())
+        ito::update_site(
+            conn,
+            &id,
+            &name,
+            member_ids,
+            filter,
+            transport,
+            icon_color.as_deref(),
+            icon_data_url.as_deref(),
+            icon_background_color.as_deref(),
+        )
+        .map_err(|error| error.to_string())
     })
 }
 
@@ -170,8 +191,9 @@ pub fn start_run(
             .find(|group| group.id == site_id)
             .ok_or_else(|| "site not found".to_string())?;
         let hosts = match &scoped {
-            Some(scope) => ito::resolve_site_scoped(conn, &group, scope)
-                .map_err(|error| error.to_string())?,
+            Some(scope) => {
+                ito::resolve_site_scoped(conn, &group, scope).map_err(|error| error.to_string())?
+            }
             None => ito::resolve_site(conn, &group).map_err(|error| error.to_string())?,
         };
         let specs = runner::resolve_ssh_specs(
@@ -266,7 +288,9 @@ pub fn start_run(
                 },
             );
         }
-        app_thread.state::<ItopsRunRegistry>().remove(&run_id_thread);
+        app_thread
+            .state::<ItopsRunRegistry>()
+            .remove(&run_id_thread);
     });
 
     Ok(run_id)
@@ -295,6 +319,32 @@ pub fn itops_list_run_history(
 pub fn itops_list_racks(app: AppHandle, site_id: String) -> Result<Vec<Rack>, String> {
     storage(&app).with_connection_infallible(|conn| {
         topo::list_racks(conn, &site_id).map_err(|error| error.to_string())
+    })
+}
+
+#[tauri::command]
+pub fn itops_list_server_rooms(app: AppHandle, site_id: String) -> Result<Vec<ServerRoom>, String> {
+    storage(&app).with_connection_infallible(|conn| {
+        topo::list_server_rooms(conn, &site_id).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+pub fn itops_create_server_room(
+    app: AppHandle,
+    site_id: String,
+    name: String,
+) -> Result<ServerRoom, String> {
+    let id = new_itops_id("room");
+    storage(&app).with_connection_infallible(|conn| {
+        topo::create_server_room(conn, &id, &site_id, &name).map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+pub fn itops_delete_server_room(app: AppHandle, id: String) -> Result<(), String> {
+    storage(&app).with_connection_infallible(|conn| {
+        topo::delete_server_room(conn, &id).map_err(|e| e.to_string())
     })
 }
 
@@ -383,8 +433,7 @@ pub fn itops_set_room_icon(
     icon: Option<RoomIcon>,
 ) -> Result<Site, String> {
     storage(&app).with_connection_infallible(|conn| {
-        ito::set_room_icon(conn, &site_id, &server_room, icon)
-            .map_err(|error| error.to_string())
+        ito::set_room_icon(conn, &site_id, &server_room, icon).map_err(|error| error.to_string())
     })
 }
 
@@ -457,8 +506,15 @@ pub fn itops_update_rack_item(
     metadata: Option<RackItemMetadata>,
 ) -> Result<RackItem, String> {
     storage(&app).with_connection_infallible(|conn| {
-        topo::update_rack_item(conn, &id, kind, connection_id, &label, metadata.unwrap_or_default())
-            .map_err(|error| error.to_string())
+        topo::update_rack_item(
+            conn,
+            &id,
+            kind,
+            connection_id,
+            &label,
+            metadata.unwrap_or_default(),
+        )
+        .map_err(|error| error.to_string())
     })
 }
 

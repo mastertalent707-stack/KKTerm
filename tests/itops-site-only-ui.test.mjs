@@ -69,7 +69,16 @@ test("Site tree add menu opens distinct Site, Server Room, and Rack dialogs", as
   assert.match(siteDialog, /\{isEdit \? \([\s\S]*itops\.sites\.perHostTransport/);
   assert.doesNotMatch(siteDialog, /\{isEdit \? \([\s\S]{0,120}<Field\s+label=\{t\("itops\.sites\.connectionsLabel"\)\}/);
   assert.match(serverRoomDialog, /itops\.racks\.serverRoomSiteLabel/);
-  assert.match(serverRoomDialog, /createRack\(/);
+  assert.match(serverRoomDialog, /createServerRoom\(/);
+  assert.doesNotMatch(serverRoomDialog, /firstRackLabel/);
   assert.match(rackDialog, /itops\.racks\.siteLabel/);
   assert.match(rackDialog, /itops\.racks\.serverRoomSelectLabel/);
+});
+
+test("Site dialog no longer loads or selects Connections", async () => {
+  const siteDialog = await read("src/modules/itops/SiteDialog.tsx");
+
+  assert.doesNotMatch(siteDialog, /list_connection_tree/);
+  assert.doesNotMatch(siteDialog, /connectionsLabel/);
+  assert.doesNotMatch(siteDialog, /hg-dlg-list/);
 });

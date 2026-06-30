@@ -14,7 +14,7 @@ import {
   TextInput,
 } from "../../app/ui/dialog";
 import { useWorkspaceStore } from "../../store";
-import type { Site, Rack, RackShell } from "../../types";
+import type { Site, Rack, RackShell, ServerRoom } from "../../types";
 import { useItOpsStore } from "./state";
 
 const MAX_RACK_U = 100;
@@ -23,7 +23,7 @@ const SHELL_OPTIONS: RackShell[] = ["black", "white", "grey"];
 export function RackDialog({
   defaultSiteId,
   sites,
-  racksBySite,
+  serverRoomsBySite,
   rack,
   defaultServerRoom,
   defaultGroup,
@@ -32,7 +32,7 @@ export function RackDialog({
 }: {
   defaultSiteId: string;
   sites: Site[];
-  racksBySite: Record<string, Rack[]>;
+  serverRoomsBySite: Record<string, ServerRoom[]>;
   rack?: Rack | null;
   /** Prefill the Server Room for a new rack (e.g. added within a room). */
   defaultServerRoom?: string;
@@ -56,20 +56,18 @@ export function RackDialog({
   const [busy, setBusy] = useState(false);
 
   const trimmedName = name.trim();
-  const canSave = trimmedName.length > 0 && siteId.length > 0 && !busy;
+  const canSave = trimmedName.length > 0 && siteId.length > 0 && serverRoom.length > 0 && !busy;
 
   const serverRoomOptions = useMemo(() => {
-    const names = new Set(
-      (racksBySite[siteId] ?? []).map((entry) => entry.serverRoom.trim()).filter(Boolean),
-    );
+    const names = new Set((serverRoomsBySite[siteId] ?? []).map((entry) => entry.name));
     if (serverRoom.trim()) {
       names.add(serverRoom.trim());
     }
     return [
-      { value: "", label: t("itops.racks.unassigned") },
+      { value: "", label: t("itops.racks.serverRoomRequiredOption") },
       ...[...names].sort((a, b) => a.localeCompare(b)).map((value) => ({ value, label: value })),
     ];
-  }, [siteId, racksBySite, serverRoom, t]);
+  }, [siteId, serverRoomsBySite, serverRoom, t]);
 
   useEffect(() => {
     if (siteId && sites.some((site) => site.id === siteId)) {
@@ -138,7 +136,7 @@ export function RackDialog({
           />
         </Field>
         <div style={{ display: "flex", gap: 12 }}>
-          <Field label={t("itops.racks.serverRoomSelectLabel")}>
+          <Field label={t("itops.racks.serverRoomSelectLabel")} req>
             <Select
               value={serverRoom}
               onChange={(event) => setServerRoom(event.currentTarget.value)}

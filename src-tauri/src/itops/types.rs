@@ -143,6 +143,15 @@ pub struct RoomIcon {
     pub icon_background_color: Option<String>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerRoom {
+    pub id: String,
+    pub site_id: String,
+    pub name: String,
+    pub sort_order: i64,
+}
+
 /// A durable, named selection of existing Connections used as a site target.
 /// References Connection ids; owns no Session and no secret.
 #[derive(Clone, Debug, Deserialize, Serialize)]

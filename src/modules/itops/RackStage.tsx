@@ -52,6 +52,7 @@ export function RackStage({
   onSlotClick,
   onOpenItem,
   onEditItem,
+  onBindItem,
   onEditRack,
   onDeleteRack,
   onRunRack,
@@ -65,6 +66,7 @@ export function RackStage({
   onSlotClick?: (startU: number) => void;
   onOpenItem?: (item: RackItem) => void;
   onEditItem?: (item: RackItem) => void;
+  onBindItem?: (item: RackItem) => void;
   onEditRack?: (rack: Rack) => void;
   onDeleteRack?: (rack: Rack) => void;
   onRunRack?: (rack: Rack) => void;
@@ -130,6 +132,7 @@ export function RackStage({
           onSlotClick={onSlotClick}
           onOpenItem={onOpenItem}
           onEditItem={onEditItem}
+          onBindItem={onBindItem}
           onEditRack={onEditRack}
           onDeleteRack={onDeleteRack}
           onRunRack={onRunRack}

@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 37;
+const SCHEMA_USER_VERSION: i32 = 38;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -306,6 +306,19 @@ CREATE TABLE IF NOT EXISTS itops_sites (
     created_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS itops_server_rooms (
+    id         TEXT PRIMARY KEY,
+    site_id    TEXT NOT NULL REFERENCES itops_sites(id) ON DELETE CASCADE,
+    name       TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(site_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_itops_server_rooms_site
+    ON itops_server_rooms(site_id, sort_order);
 
 -- One completed Batch Run (docs/ITOPS.md Phase 2). Append-only audit log; the
 -- site_id is a soft reference (no FK) so a run survives its group being
@@ -2004,6 +2017,13 @@ impl Storage {
         ensure_column(&connection, "itops_sites", "icon_data_url", "TEXT")?;
         ensure_column(&connection, "itops_sites", "icon_background_color", "TEXT")?;
         ensure_column(&connection, "itops_sites", "room_icons_json", "TEXT")?;
+        connection.execute_batch(
+            "INSERT OR IGNORE INTO itops_server_rooms (id, site_id, name, sort_order)
+             SELECT 'room-legacy-' || lower(hex(randomblob(12))), site_id, server_room, 0
+             FROM itops_site_racks
+             WHERE trim(server_room) <> ''
+             GROUP BY site_id, server_room;",
+        ).map_err(to_storage_error)?;
         ensure_column(&connection, "connections", "rdp_options", "TEXT")?;
         ensure_column(&connection, "connections", "vnc_options", "TEXT")?;
         ensure_column(&connection, "connections", "ftp_options", "TEXT")?;

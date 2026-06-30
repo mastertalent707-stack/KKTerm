@@ -13,14 +13,13 @@ test("Rack Device dialog has live graphical preview and 乖乖 size control", as
   assert.match(device, /data-kuaiguai-size/);
 });
 
-test("Rack Device dialog uses structured audit and Connection binding controls", async () => {
+test("Rack Device property dialog uses structured audit controls", async () => {
   const dialog = await readFile(new URL("../src/modules/itops/RackItemDialog.tsx", import.meta.url), "utf8");
   const stage = await readFile(new URL("../src/modules/itops/RackStage.tsx", import.meta.url), "utf8");
 
   assert.match(dialog, /auditRecordRows/);
   assert.match(dialog, /addAuditRecord/);
-  assert.match(dialog, /connection-binding-list/);
-  assert.match(dialog, /members\.map/);
+  assert.doesNotMatch(dialog, /connection-binding-list/);
   assert.match(stage, /connectionIds/);
 });
 

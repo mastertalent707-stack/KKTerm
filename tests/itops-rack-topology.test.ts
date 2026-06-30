@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { Rack } from "../src/types";
+import type { Rack, ServerRoom } from "../src/types";
 import { groupRackTopology, groupRacksByGroup } from "../src/modules/itops/rackTopology";
 
 function rack(id: string, serverRoom: string, rackGroup: string): Rack {
@@ -40,4 +40,16 @@ test("IT Ops rack topology groups server rooms and rack groups case-insensitivel
     groups[0].racks.map((entry) => entry.id),
     ["rack-1", "rack-2"],
   );
+});
+
+test("IT Ops topology keeps durable Server Rooms visible when they have no Racks", () => {
+  const rooms: ServerRoom[] = [
+    { id: "room-a", siteId: "site-1", name: "Room A", sortOrder: 0 },
+    { id: "room-b", siteId: "site-1", name: "Room B", sortOrder: 1 },
+  ];
+
+  const topology = groupRackTopology([rack("rack-1", "Room A", "")], rooms);
+
+  assert.deepEqual(topology.map((room) => room.key), ["Room A", "Room B"]);
+  assert.equal(topology[1].racks.length, 0);
 });

@@ -18,7 +18,7 @@ import { useTranslation } from "react-i18next";
 import { ConfirmSheet } from "../../app/ui/dialog";
 import { invokeCommand } from "../../lib/tauri";
 import { useWorkspaceStore } from "../../store";
-import type { Site, Rack, RackItem, ResolvedHost } from "../../types";
+import type { Site, Rack, RackItem, ResolvedHost, ServerRoom } from "../../types";
 import { ConnectionIcon } from "../workspace/connections/ConnectionIcon";
 import { ItIcon, IT_ACCENTS, type ItIconName } from "./icons";
 import { SiteDialog } from "./SiteDialog";
@@ -26,6 +26,7 @@ import { RackElevation } from "./RackElevation";
 import { RackDialog } from "./RackDialog";
 import { ServerRoomDialog } from "./ServerRoomDialog";
 import { RackItemDialog } from "./RackItemDialog";
+import { RackItemBindingsDialog } from "./RackItemBindingsDialog";
 import { useItOpsStore } from "./state";
 import {
   EMPTY_DRILL,
@@ -89,7 +90,7 @@ type ItOpsCustomIcon = {
 };
 
 type PendingDelete =
-  | { kind: "serverRoom"; siteId: string; serverRoom: string; racks: Rack[] }
+  | { kind: "serverRoom"; siteId: string; room: ServerRoom; racks: Rack[] }
   | { kind: "rack"; siteId: string; rack: Rack }
   | { kind: "item"; siteId: string; rack: Rack; item: RackItem };
 
@@ -137,6 +138,9 @@ export function SitesTab({
   const newGroupRequest = useItOpsStore((state) => state.newGroupRequest);
   const racksBySite = useItOpsStore((state) => state.racksBySite);
   const loadRacks = useItOpsStore((state) => state.loadRacks);
+  const serverRoomsBySite = useItOpsStore((state) => state.serverRoomsBySite);
+  const loadServerRooms = useItOpsStore((state) => state.loadServerRooms);
+  const deleteServerRoom = useItOpsStore((state) => state.deleteServerRoom);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [drill, setDrill] = useState<DrillPath>(EMPTY_DRILL);
@@ -154,6 +158,7 @@ export function SitesTab({
     item: RackItem | null;
     startU?: number;
   } | null>(null);
+  const [bindingsDialog, setBindingsDialog] = useState<RackItem | null>(null);
   const moveRackItem = useItOpsStore((state) => state.moveRackItem);
   const deleteRack = useItOpsStore((state) => state.deleteRack);
   const removeRackItem = useItOpsStore((state) => state.removeRackItem);
@@ -269,17 +274,19 @@ export function SitesTab({
   // Load racks for every expanded Site node so the tree can show its topology.
   useEffect(() => {
     for (const site of sites) {
-      if (isExpanded(nodeId.site(site.id)) && !racksBySite[site.id]) {
-        void loadRacks(site.id);
+      if (isExpanded(nodeId.site(site.id))) {
+        if (!racksBySite[site.id]) void loadRacks(site.id);
+        if (!serverRoomsBySite[site.id]) void loadServerRooms(site.id);
       }
     }
-  }, [sites, racksBySite, isExpanded, loadRacks]);
+  }, [sites, racksBySite, serverRoomsBySite, isExpanded, loadRacks, loadServerRooms]);
 
   const racks = useMemo(
     () => (activeGroup ? (racksBySite[activeGroup.id] ?? []) : []),
     [activeGroup, racksBySite],
   );
-  const topology = useMemo(() => groupRackTopology(racks), [racks]);
+  const serverRooms = activeGroup ? (serverRoomsBySite[activeGroup.id] ?? []) : [];
+  const topology = useMemo(() => groupRackTopology(racks, serverRooms), [racks, serverRooms]);
   const selectedSiteIdForDialog = activeGroup?.id ?? sites[0]?.id ?? "";
   const selectedServerRoomForDialog =
     drill.serverRoom ?? (drill.rackId ? racks.find((rack) => rack.id === drill.rackId)?.serverRoom : undefined);
@@ -345,6 +352,7 @@ export function SitesTab({
         for (const rack of pending.racks) {
           await deleteRack(pending.siteId, rack.id);
         }
+        await deleteServerRoom(pending.siteId, pending.room.id);
         setDrill(EMPTY_DRILL);
         return;
       }
@@ -500,7 +508,7 @@ export function SitesTab({
               {sites.map((site) => {
                 const fId = nodeId.site(site.id);
                 const siteRacks = racksBySite[site.id] ?? [];
-                const siteTopo = groupRackTopology(siteRacks);
+                const siteTopo = groupRackTopology(siteRacks, serverRoomsBySite[site.id] ?? []);
                 const open = isExpanded(fId);
                 return (
                   <div key={site.id}>
@@ -592,6 +600,7 @@ export function SitesTab({
             onSlotClick={(rack, startU) => setItemDialog({ rack, item: null, startU })}
             onOpenItem={(item) => void openRackItem(item)}
             onEditItem={(rack, item) => setItemDialog({ rack, item })}
+            onBindItem={setBindingsDialog}
             onMoveItem={(itemId, targetRackId, startU) => void moveItem(itemId, targetRackId, startU)}
             onAddServerRoom={() => setServerRoomDialogOpen(true)}
             onAddRack={(serverRoom) => {
@@ -602,14 +611,10 @@ export function SitesTab({
               });
             }}
             onAddRackItem={(rack, startU) => setItemDialog({ rack, item: null, startU })}
-            onDeleteServerRoom={(serverRoom, roomRacks) =>
-              setPendingDelete({
-                kind: "serverRoom",
-                siteId: activeGroup.id,
-                serverRoom,
-                racks: roomRacks,
-              })
-            }
+            onDeleteServerRoom={(serverRoom, roomRacks) => {
+              const room = serverRooms.find((entry) => topologyGroupKey(entry.name) === topologyGroupKey(serverRoom));
+              if (room) setPendingDelete({ kind: "serverRoom", siteId: activeGroup.id, room, racks: roomRacks });
+            }}
             onDeleteRack={(rack) =>
               setPendingDelete({ kind: "rack", siteId: activeGroup.id, rack })
             }
@@ -631,7 +636,7 @@ export function SitesTab({
         <RackDialog
           defaultSiteId={rackDialog.siteId}
           sites={sites}
-          racksBySite={racksBySite}
+          serverRoomsBySite={serverRoomsBySite}
           rack={rackDialog.rack}
           defaultServerRoom={rackDialog.defaultServerRoom}
           onClose={() => setRackDialog(null)}
@@ -648,7 +653,7 @@ export function SitesTab({
           onClose={() => setServerRoomDialogOpen(false)}
           onCreated={(saved) => {
             setActiveId(saved.siteId);
-            setDrill({ serverRoom: saved.serverRoom, rackId: null });
+            setDrill({ serverRoom: saved.name, rackId: null });
           }}
         />
       ) : null}
@@ -661,6 +666,9 @@ export function SitesTab({
           members={members}
           onClose={() => setItemDialog(null)}
         />
+      ) : null}
+      {bindingsDialog && activeGroup ? (
+        <RackItemBindingsDialog siteId={activeGroup.id} item={bindingsDialog} onClose={() => setBindingsDialog(null)} />
       ) : null}
       {pendingDelete ? (
         <ConfirmSheet
@@ -675,7 +683,7 @@ export function SitesTab({
           message={
             pendingDelete.kind === "serverRoom"
               ? t("itops.racks.deleteServerRoomBody", {
-                  name: pendingDelete.serverRoom || t("itops.racks.unassigned"),
+                  name: pendingDelete.room.name,
                   count: pendingDelete.racks.length,
                 })
               : pendingDelete.kind === "rack"
@@ -810,6 +818,7 @@ function RackDrill({
   onSlotClick,
   onOpenItem,
   onEditItem,
+  onBindItem,
   onMoveItem,
   onAddServerRoom,
   onAddRack,
@@ -830,6 +839,7 @@ function RackDrill({
   onSlotClick: (rack: Rack, startU: number) => void;
   onOpenItem: (item: RackItem) => void;
   onEditItem: (rack: Rack, item: RackItem) => void;
+  onBindItem: (item: RackItem) => void;
   onMoveItem: (itemId: string, targetRackId: string, startU: number) => void;
   onAddServerRoom: () => void;
   onAddRack: (serverRoom: string) => void;
@@ -901,6 +911,7 @@ function RackDrill({
         onSlotClick={editMode ? (startU) => onSlotClick(r, startU) : undefined}
         onOpenItem={onOpenItem}
         onEditItem={(item) => onEditItem(r, item)}
+        onBindItem={onBindItem}
         onMoveItem={editMode ? onMoveItem : undefined}
         onDeleteRack={editMode ? onDeleteRack : undefined}
         onDeleteItem={editMode ? (item) => onDeleteItem(r, item) : undefined}
@@ -1107,6 +1118,7 @@ function RackDrill({
             onSlotClick={editMode ? (startU) => onSlotClick(rack, startU) : undefined}
             onOpenItem={onOpenItem}
             onEditItem={(item) => onEditItem(rack, item)}
+            onBindItem={onBindItem}
             onMoveItem={editMode ? onMoveItem : undefined}
             onDeleteItem={editMode ? (item) => onDeleteItem(rack, item) : undefined}
           />

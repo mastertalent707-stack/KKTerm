@@ -71,12 +71,9 @@ Replaces the **Host Group** entry in `CONTEXT.md`; adds the rest. Follows the
 - **Site View** — the top-level right-side view for one selected Site. It
   shows the Site's Server Rooms as cards and is the entry point into the
   topology drill-down. _Avoid_: members view, list mode.
-- **Server Room** — a plain-text grouping tag on a Rack (e.g. "Room B"). It
-  nests the Sites tree and scopes a Batch Run; blank server rooms group under
-  "Unassigned". Plain text, not a first-class database entity. (Replaces the
-  retired Region/Datacenter/Area tags.) _Avoid_: zone, site object,
-  datacenter entity. Creating a Server Room in the UI creates its first Rack,
-  because the current durable model stores rooms through Rack records.
+- **Server Room** — a durable Site-owned row in `itops_server_rooms`. It nests
+  the Sites tree and scopes a Batch Run. A Server Room can be empty; each new
+  Rack must belong to a room owned by the same Site. _Avoid_: zone, site object.
 - **Server Room View** — the drill-down view for one Server Room. It has two
   layouts: rack elevations (default, optionally grouped by each Rack's
   `rack_group` tag) and a top-down 2D floor plan that paints each Rack as a
@@ -469,9 +466,9 @@ Phases A–C deliver the visible feature; D–E are independent and demand-order
   `ResolvedHost` summaries, not full `Connection`s; click-to-connect needs the
   full object. Resolve via a selector over the existing connections store
   rather than widening `ResolvedHost`.
-- **Server Room as text vs entity** — text is right for v1; promoting it to an
-  orderable first-class row (for fixed ordering and per-room defaults) is a
-  later additive change, not a rework.
+- **Server Room entity** — Server Rooms are first-class Site-owned rows so they
+  can exist without Racks and accept more relationships later. Rack rows retain
+  the room name for compatibility while storage validates same-Site ownership.
 - **Multi-Site placement** (chosen model) means a host can occupy slots in
   several Sites — intended, but the UI should make a host's other placements
   discoverable so users don't think a host is "missing."

@@ -5,7 +5,7 @@
 // strings so the tree's collapse state and the drill path survive reloads and
 // identify a node unambiguously.
 
-import type { Rack } from "../../types";
+import type { Rack, ServerRoom } from "../../types";
 
 export function topologyGroupKey(value: string | null | undefined): string {
   return (value ?? "").trim().toLocaleLowerCase();
@@ -17,8 +17,8 @@ export interface ServerRoomGroup {
   racks: Rack[];
 }
 
-export function groupRackTopology(racks: Rack[]): ServerRoomGroup[] {
-  const rooms: ServerRoomGroup[] = [];
+export function groupRackTopology(racks: Rack[], durableRooms: ServerRoom[] = []): ServerRoomGroup[] {
+  const rooms: ServerRoomGroup[] = durableRooms.map((room) => ({ key: room.name, racks: [] }));
   for (const rack of racks) {
     const roomKey = rack.serverRoom ?? "";
     const comparableKey = topologyGroupKey(roomKey);

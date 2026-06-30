@@ -7,7 +7,7 @@ use rusqlite::{Connection as SqliteConnection, OptionalExtension, params};
 
 use super::inventory::normalize_metadata;
 use super::storage::ItopsStorageError;
-use super::types::{Rack, RackItem, RackItemKind, RackItemMetadata};
+use super::types::{Rack, RackItem, RackItemKind, RackItemMetadata, ServerRoom};
 use crate::dashboard_storage::DashboardBackground;
 
 type Result<T> = std::result::Result<T, ItopsStorageError>;
@@ -91,6 +91,77 @@ fn validate_height(height_u: u32) -> Result<u32> {
         )));
     }
     Ok(height_u)
+}
+
+pub fn list_server_rooms(conn: &SqliteConnection, site_id: &str) -> Result<Vec<ServerRoom>> {
+    let mut statement = conn.prepare(
+        "SELECT id, site_id, name, sort_order FROM itops_server_rooms WHERE site_id = ? ORDER BY sort_order",
+    )?;
+    Ok(statement
+        .query_map(params![site_id], |row| {
+            Ok(ServerRoom {
+                id: row.get(0)?,
+                site_id: row.get(1)?,
+                name: row.get(2)?,
+                sort_order: row.get(3)?,
+            })
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+pub fn create_server_room(
+    conn: &SqliteConnection,
+    id: &str,
+    site_id: &str,
+    name: &str,
+) -> Result<ServerRoom> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(ItopsStorageError::Validation(
+            "server room name must not be empty".to_string(),
+        ));
+    }
+    let next_sort: i64 = conn.query_row(
+        "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM itops_server_rooms WHERE site_id = ?",
+        params![site_id],
+        |row| row.get(0),
+    )?;
+    conn.execute(
+        "INSERT INTO itops_server_rooms (id, site_id, name, sort_order) VALUES (?, ?, ?, ?)",
+        params![id, site_id, name, next_sort],
+    )?;
+    Ok(ServerRoom {
+        id: id.to_string(),
+        site_id: site_id.to_string(),
+        name: name.to_string(),
+        sort_order: next_sort,
+    })
+}
+
+pub fn delete_server_room(conn: &SqliteConnection, id: &str) -> Result<()> {
+    if conn.execute("DELETE FROM itops_server_rooms WHERE id = ?", params![id])? == 0 {
+        return Err(ItopsStorageError::NotFound);
+    }
+    Ok(())
+}
+
+fn validate_server_room(conn: &SqliteConnection, site_id: &str, name: &str) -> Result<String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(ItopsStorageError::Validation(
+            "rack must belong to a server room".to_string(),
+        ));
+    }
+    let exists: bool = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM itops_server_rooms WHERE site_id = ? AND name = ? COLLATE NOCASE)",
+        params![site_id, name], |row| row.get(0),
+    )?;
+    if !exists {
+        return Err(ItopsStorageError::Validation(
+            "server room does not belong to this site".to_string(),
+        ));
+    }
+    Ok(name.to_string())
 }
 
 fn metadata_to_json(metadata: &RackItemMetadata) -> Result<String> {
@@ -231,6 +302,7 @@ pub fn create_rack(
     height_u: u32,
 ) -> Result<Rack> {
     let name = validate_name(name)?;
+    let server_room = validate_server_room(conn, site_id, server_room)?;
     let height_u = validate_height(height_u)?;
     let shell = normalize_shell(shell);
     let next_sort: i64 = conn.query_row(
@@ -246,7 +318,7 @@ pub fn create_rack(
             id,
             site_id,
             name,
-            server_room.trim(),
+            server_room,
             rack_group.trim(),
             shell,
             height_u,
@@ -257,7 +329,7 @@ pub fn create_rack(
         id: id.to_string(),
         site_id: site_id.to_string(),
         name,
-        server_room: server_room.trim().to_string(),
+        server_room,
         rack_group: rack_group.trim().to_string(),
         shell,
         background: None,
@@ -283,14 +355,15 @@ pub fn update_rack(
     let height_u = validate_height(height_u)?;
     let shell = normalize_shell(shell);
     // Existence check (returns NotFound early before the height-shrink scan).
-    let _sort_order: i64 = conn
+    let (site_id, _sort_order): (String, i64) = conn
         .query_row(
-            "SELECT sort_order FROM itops_site_racks WHERE id = ?",
+            "SELECT site_id, sort_order FROM itops_site_racks WHERE id = ?",
             params![id],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .optional()?
         .ok_or(ItopsStorageError::NotFound)?;
+    let server_room = validate_server_room(conn, &site_id, server_room)?;
     for item in list_items_for_rack(conn, id)? {
         if item.start_u + item.height_u - 1 > height_u {
             return Err(ItopsStorageError::Validation(format!(
@@ -304,14 +377,7 @@ pub fn update_rack(
          SET name = ?, server_room = ?, rack_group = ?, shell = ?, height_u = ?,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = ?",
-        params![
-            name,
-            server_room.trim(),
-            rack_group.trim(),
-            shell,
-            height_u,
-            id
-        ],
+        params![name, server_room, rack_group.trim(), shell, height_u, id],
     )?;
     fetch_rack(conn, id)
 }
@@ -357,11 +423,7 @@ pub fn delete_rack(conn: &SqliteConnection, id: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn reorder_racks(
-    conn: &SqliteConnection,
-    site_id: &str,
-    ordered_ids: &[String],
-) -> Result<()> {
+pub fn reorder_racks(conn: &SqliteConnection, site_id: &str, ordered_ids: &[String]) -> Result<()> {
     for (index, id) in ordered_ids.iter().enumerate() {
         conn.execute(
             "UPDATE itops_site_racks SET sort_order = ? WHERE id = ? AND site_id = ?",
@@ -528,6 +590,17 @@ mod tests {
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE itops_server_rooms (
+                id TEXT PRIMARY KEY,
+                site_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                sort_order INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(site_id, name)
+            );
+            INSERT INTO itops_server_rooms (id, site_id, name, sort_order)
+            VALUES ('room-b', 'f1', 'Room B', 0), ('room-c', 'f1', 'Room C', 1);
             CREATE TABLE itops_site_rack_items (
                 id TEXT PRIMARY KEY,
                 rack_id TEXT NOT NULL,
@@ -618,7 +691,7 @@ mod tests {
     #[test]
     fn place_move_and_remove_items() {
         let conn = open_test_db();
-        create_rack(&conn, "r1", "f1", "A12", "", "", None, 42).unwrap();
+        create_rack(&conn, "r1", "f1", "A12", "Room B", "", None, 42).unwrap();
 
         let item = place_rack_item(
             &conn,
@@ -708,7 +781,7 @@ mod tests {
     #[test]
     fn updating_to_passive_item_clears_connection_id() {
         let conn = open_test_db();
-        create_rack(&conn, "r1", "f1", "A12", "", "", None, 42).unwrap();
+        create_rack(&conn, "r1", "f1", "A12", "Room B", "", None, 42).unwrap();
         place_rack_item(
             &conn,
             "i1",
@@ -743,7 +816,7 @@ mod tests {
     #[test]
     fn shrinking_rack_below_an_item_is_rejected() {
         let conn = open_test_db();
-        create_rack(&conn, "r1", "f1", "A12", "", "", None, 42).unwrap();
+        create_rack(&conn, "r1", "f1", "A12", "Room B", "", None, 42).unwrap();
         place_rack_item(
             &conn,
             "i1",
@@ -758,7 +831,7 @@ mod tests {
         .unwrap();
         // Item occupies U40-U41; shrinking to 24U must fail.
         assert!(matches!(
-            update_rack(&conn, "r1", "A12", "", "", None, 24),
+            update_rack(&conn, "r1", "A12", "Room B", "", None, 24),
             Err(ItopsStorageError::Validation(_))
         ));
     }
@@ -766,8 +839,8 @@ mod tests {
     #[test]
     fn reorder_scopes_to_site() {
         let conn = open_test_db();
-        create_rack(&conn, "a", "f1", "A", "", "", None, 42).unwrap();
-        create_rack(&conn, "b", "f1", "B", "", "", None, 42).unwrap();
+        create_rack(&conn, "a", "f1", "A", "Room B", "", None, 42).unwrap();
+        create_rack(&conn, "b", "f1", "B", "Room B", "", None, 42).unwrap();
         reorder_racks(&conn, "f1", &["b".to_string(), "a".to_string()]).unwrap();
         let order: Vec<String> = list_racks(&conn, "f1")
             .unwrap()
@@ -775,5 +848,33 @@ mod tests {
             .map(|rack| rack.id)
             .collect();
         assert_eq!(order, vec!["b", "a"]);
+    }
+
+    #[test]
+    fn server_room_persists_without_a_rack() {
+        let conn = open_test_db();
+        let created = create_server_room(&conn, "room-empty", "f1", " Empty Room ").unwrap();
+        assert_eq!(created.name, "Empty Room");
+        assert!(
+            list_server_rooms(&conn, "f1")
+                .unwrap()
+                .iter()
+                .any(|room| room.id == "room-empty")
+        );
+        assert!(list_racks(&conn, "f1").unwrap().is_empty());
+    }
+
+    #[test]
+    fn rack_requires_a_server_room_owned_by_its_site() {
+        let conn = open_test_db();
+        assert!(matches!(
+            create_rack(&conn, "r-empty", "f1", "A", "", "", None, 42),
+            Err(ItopsStorageError::Validation(_))
+        ));
+        assert!(matches!(
+            create_rack(&conn, "r-missing", "f1", "A", "Unknown", "", None, 42),
+            Err(ItopsStorageError::Validation(_))
+        ));
+        assert!(create_rack(&conn, "r-valid", "f1", "A", "Room B", "", None, 42).is_ok());
     }
 }

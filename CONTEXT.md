@@ -142,7 +142,7 @@ The top-level right-side view for one selected Site. It shows that Site's Server
 _Avoid_: overview, dashboard, host group details
 
 **Server Room**:
-A plain-text grouping tag on a Rack inside a Site. The topology path is **Site → Server Room → Rack**; blank values group under Unassigned. A Server Room is not a first-class database entity and owns no Connections or Sessions.
+A durable, Site-owned topology entity stored in `itops_server_rooms`. The topology path is **Site → Server Room → Rack**: a Server Room may remain empty, while every new Rack must belong to a Server Room in the same Site. It owns no Connections or Sessions and may gain additional relationships later.
 _Avoid_: region, datacenter, site object, zone
 
 **Server Room View**:
@@ -162,11 +162,11 @@ One visual device occupying a contiguous U span in a Rack. It may be Connection-
 _Avoid_: slot, node, host card
 
 **Rack Device Type**:
-The device kind used to render behavior and faceplate visuals, such as connection, server, storage, switch, router, firewall, PDU, UPS, KVM, patch panel, equipment, general, blank, or label. Type is presentation/inventory metadata, not a Connection type.
+The device kind used to render behavior and faceplate visuals, such as server, storage, switch, router, firewall, PDU, UPS, KVM, patch panel, equipment, general, blank, or label. Type is presentation/inventory metadata, not a Connection type. Connections are associated separately through Rack Device bindings.
 _Avoid_: connection type, transport, session kind
 
 **Rack Device Properties**:
-Non-secret presentation metadata for a Rack Device: label, U position, height, status, accent, icon, notes, shell/faceplate fields, and kind-specific values such as ports, disks, battery, or load. These properties do not store live Session state or credentials.
+Non-secret presentation metadata for a Rack Device: label, U position, height, status, accent, icon, notes, shell/faceplate fields, kind-specific values such as ports, disks, battery, or load, and optional Connection bindings. These properties do not store live Session state or credentials. The editor groups them into type, appearance, and metadata columns; bindings use a separate dialog.
 _Avoid_: secrets, runtime status, connection settings
 
 **Batch Run**:

@@ -17,10 +17,9 @@ import { lucideIconRefForName } from "../../lib/iconCatalog";
 import { ConnectionIconBackgroundPicker } from "../workspace/connections/ConnectionIconBackgroundPicker";
 import { ConnectionIconPicker } from "../workspace/connections/ConnectionIconPicker";
 import { useWorkspaceStore } from "../../store";
-import type { Site, Rack, RackShell } from "../../types";
+import type { Site, ServerRoom } from "../../types";
 import { useItOpsStore } from "./state";
 
-const DEFAULT_SHELL: RackShell = "black";
 const DEFAULT_SERVER_ROOM_ICON_REF = lucideIconRefForName("Server");
 
 export function ServerRoomDialog({
@@ -32,16 +31,15 @@ export function ServerRoomDialog({
   sites: Site[];
   defaultSiteId: string;
   onClose: () => void;
-  onCreated: (rack: Rack) => void;
+  onCreated: (room: ServerRoom) => void;
 }) {
   const { t } = useTranslation();
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
-  const createRack = useItOpsStore((state) => state.createRack);
+  const createServerRoom = useItOpsStore((state) => state.createServerRoom);
   const setRoomIcon = useItOpsStore((state) => state.setRoomIcon);
 
   const [siteId, setSiteId] = useState(defaultSiteId || sites[0]?.id || "");
   const [serverRoom, setServerRoom] = useState("");
-  const [rackName, setRackName] = useState("");
   const [iconColor, setIconColor] = useState<string | null>(null);
   const [iconDataUrl, setIconDataUrl] = useState<string | null>(null);
   const [iconBackgroundColor, setIconBackgroundColor] = useState<string | null>(null);
@@ -55,8 +53,7 @@ export function ServerRoomDialog({
   }, [defaultSiteId, siteId, sites]);
 
   const trimmedServerRoom = serverRoom.trim();
-  const trimmedRackName = rackName.trim();
-  const canSave = Boolean(siteId && trimmedServerRoom && trimmedRackName && !busy);
+  const canSave = Boolean(siteId && trimmedServerRoom && !busy);
 
   async function handleSave() {
     if (!canSave) {
@@ -64,18 +61,12 @@ export function ServerRoomDialog({
     }
     setBusy(true);
     try {
-      const rack = await createRack(siteId, {
-        name: trimmedRackName,
-        serverRoom: trimmedServerRoom,
-        rackGroup: "",
-        shell: DEFAULT_SHELL,
-        heightU: 42,
-      });
+      const room = await createServerRoom(siteId, trimmedServerRoom);
       // Persist the server room icon on the owning Site.
       if (iconColor || iconDataUrl || iconBackgroundColor) {
         await setRoomIcon(siteId, trimmedServerRoom, { iconColor, iconDataUrl, iconBackgroundColor });
       }
-      onCreated(rack);
+      onCreated(room);
       onClose();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -135,17 +126,6 @@ export function ServerRoomDialog({
             placeholder={t("itops.racks.serverRoomPlaceholder")}
             onChange={(event) => setServerRoom(event.currentTarget.value)}
             autoFocus
-          />
-        </Field>
-        <Field
-          label={t("itops.racks.firstRackLabel")}
-          hint={t("itops.racks.firstRackHint")}
-          req
-        >
-          <TextInput
-            value={rackName}
-            placeholder={t("itops.racks.namePlaceholder")}
-            onChange={(event) => setRackName(event.currentTarget.value)}
           />
         </Field>
       </Sheet>

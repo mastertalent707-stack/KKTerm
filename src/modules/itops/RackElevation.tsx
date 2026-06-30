@@ -33,6 +33,7 @@ export function RackElevation({
   onSlotClick,
   onOpenItem,
   onEditItem,
+  onBindItem,
   onEditRack,
   onDeleteRack,
   onRunRack,
@@ -48,6 +49,7 @@ export function RackElevation({
   onSlotClick?: (startU: number) => void;
   onOpenItem?: (item: RackItem) => void;
   onEditItem?: (item: RackItem) => void;
+  onBindItem?: (item: RackItem) => void;
   onEditRack?: (rack: Rack) => void;
   onDeleteRack?: (rack: Rack) => void;
   onRunRack?: (rack: Rack) => void;
@@ -282,6 +284,15 @@ export function RackElevation({
                       <ItIcon name="edit" size={11} />
                     </button>
                   ) : null}
+                  <button
+                    type="button"
+                    className="rk-item-bind"
+                    title={t("itops.racks.bindingsAction")}
+                    aria-label={t("itops.racks.bindingsAction")}
+                    onClick={(event) => { event.stopPropagation(); onBindItem?.(item); }}
+                  >
+                    <ItIcon name="link" size={11} />
+                  </button>
                   {editMode && onDeleteItem ? (
                     <button
                       type="button"

@@ -175,6 +175,13 @@ export interface RoomIconEntry {
   iconBackgroundColor?: string | null;
 }
 
+export interface ServerRoom {
+  id: string;
+  siteId: string;
+  name: string;
+  sortOrder: number;
+}
+
 export interface ResolvedHost {
   connectionId: string;
   name: string;
