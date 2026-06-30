@@ -82,7 +82,7 @@ Presets are CSS wrappers that read the Instance's `--w-accent` / `--w-accent-sof
 
 Dashboard Views and terminal Connection backgrounds use the same shared background picker datasource. New preset, media-mode, fit, dim, or dynamic background options must be added through the shared picker/registry path so both `dashboard.changeBackground` and `terminal.background` show the same list.
 
-While the `dashboard.changeBackground` picker is open, embedded URL Connection widgets on the active View are temporarily marked inactive. This hides their owned WebView2 overlay windows so the app-owned background picker stays visible above the Dashboard.
+While Dashboard app-owned overlays are open — including `dashboard.catalogTitle`, `dashboard.customize`, `dashboard.changeBackground`, tab-gradient popovers, and delete confirmation dialogs — embedded URL Connection widgets on the active View are temporarily marked inactive. This hides their owned WebView2 overlay windows so those Dashboard overlays stay visible above the Dashboard.
 
 Dynamic and video backgrounds keep playing on the active View while the Dashboard Module is selected and any portion of the background is on screen, even when another OS window has focus on top of KKTerm. Playback pauses when the app is minimized (the document becomes hidden), when the user switches to another Module (Workspace or Settings), when a different Dashboard View becomes active, or when the background host is fully off-screen.
 
