@@ -498,6 +498,7 @@
       "ram": "RAM",
       "gpu": "Grafis",
       "motherboard": "Papan induk",
+      "pcModel": "Model PC",
       "uptime": "Waktu aktif",
       "name": "Nama",
       "version": "Versi",

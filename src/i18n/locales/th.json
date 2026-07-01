@@ -498,6 +498,7 @@
       "ram": "RAM",
       "gpu": "กราฟิก",
       "motherboard": "เมนบอร์ด",
+      "pcModel": "รุ่น PC",
       "uptime": "เวลาทำงาน",
       "name": "ชื่อ",
       "version": "เวอร์ชัน",

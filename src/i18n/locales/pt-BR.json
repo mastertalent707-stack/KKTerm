@@ -498,6 +498,7 @@
       "ram": "RAM",
       "gpu": "Gráficos",
       "motherboard": "Placa-mãe",
+      "pcModel": "Modelo do PC",
       "uptime": "Tempo de atividade",
       "name": "Nome",
       "version": "Versão",

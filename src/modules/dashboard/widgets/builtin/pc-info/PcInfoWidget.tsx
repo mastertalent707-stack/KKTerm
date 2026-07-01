@@ -15,7 +15,7 @@ import {
   sparklinePoints,
 } from "./format";
 import { usePcInfoStore, usePcInfoSubscription } from "./store";
-import type { PcInfoSnapshot } from "./types";
+import type { PcInfoSnapshot, PcInfoSystem } from "./types";
 import { useHostUsageHistory, type HostUsageHistory } from "./useHostUsageHistory";
 
 const SECTIONS = [
@@ -72,6 +72,18 @@ function prefersReducedMotion(): boolean {
 }
 
 const ease = (p: number): number => 1 - Math.pow(1 - p, 3);
+
+function formatPcModel(system: PcInfoSystem | undefined): string | null {
+  const manufacturer = system?.manufacturer?.trim();
+  const model = system?.model?.trim();
+  if (!manufacturer) {
+    return model || null;
+  }
+  if (!model || model.toLocaleLowerCase().startsWith(manufacturer.toLocaleLowerCase())) {
+    return model || manufacturer;
+  }
+  return `${manufacturer} ${model}`;
+}
 
 /**
  * Eased 0→1 progress that replays whenever `key` changes (section switch or
@@ -415,6 +427,7 @@ function SummarySection({
   const gpu = snapshot.graphics[0];
   const memUsed = usage.live ? usage.ramPercent : snapshot.memory.usedPercent;
   const cpuLoad = usage.cpuPercent;
+  const pcModel = formatPcModel(snapshot.system);
   return (
     <div className="dw-pcinfo-section">
       <div className="dw-pcinfo-hero">
@@ -459,6 +472,7 @@ function SummarySection({
         </div>
       </div>
       <div className="dw-pcinfo-facts">
+        <Fact label={t("dashboard.pcInfoField.pcModel")} value={orDash(pcModel)} />
         <Fact label={t("dashboard.pcInfoField.os")} value={orDash(snapshot.os.name)} />
         <Fact label={t("dashboard.pcInfoField.cpu")} value={orDash(snapshot.cpu.name)} />
         <Fact label={t("dashboard.pcInfoField.gpu")} value={orDash(gpu?.name)} />
@@ -673,9 +687,11 @@ function MemorySection({
 
 function MotherboardSection({ snapshot }: { snapshot: PcInfoSnapshot }) {
   const { t } = useTranslation();
-  const { motherboard: mb } = snapshot;
+  const { motherboard: mb, system } = snapshot;
   const rows: Array<[string, ReactNode]> = [
-    [t("dashboard.pcInfoField.manufacturer"), orDash(mb.manufacturer)],
+    [t("dashboard.pcInfoField.pcModel"), orDash(formatPcModel(system))],
+    [t("dashboard.pcInfoField.manufacturer"), orDash(system.manufacturer ?? mb.manufacturer)],
+    [t("dashboard.pcInfoField.family"), orDash(system.family)],
     [t("dashboard.pcInfoField.product"), orDash(mb.product)],
     [t("dashboard.pcInfoField.version"), orDash(mb.version)],
     [
@@ -683,7 +699,11 @@ function MotherboardSection({ snapshot }: { snapshot: PcInfoSnapshot }) {
       mb.biosVendor || mb.biosVersion ? `${orDash(mb.biosVendor)} ${orDash(mb.biosVersion)}`.trim() : "—",
     ],
     [t("dashboard.pcInfoField.date"), orDash(mb.biosDate)],
-    [t("dashboard.pcInfoField.serialNumber"), orDash(mb.serialNumber)],
+    [t("dashboard.pcInfoField.serialNumber"), orDash(system.serialNumber ?? mb.serialNumber)],
+    [t("dashboard.pcInfoField.systemType"), orDash(system.systemType ?? mb.systemType)],
+    [t("dashboard.pcInfoField.chassis"), orDash(system.chassisType ?? mb.chassisType)],
+    [t("dashboard.pcInfoField.systemSku"), orDash(system.sku ?? mb.systemSku)],
+    [t("dashboard.pcInfoField.systemUuid"), orDash(system.uuid ?? mb.systemUuid)],
   ];
   return (
     <div className="dw-pcinfo-section dw-pcinfo-split">

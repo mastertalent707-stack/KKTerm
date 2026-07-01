@@ -498,6 +498,7 @@
       "ram": "RAM",
       "gpu": "그래픽",
       "motherboard": "마더보드",
+      "pcModel": "PC 모델",
       "uptime": "가동 시간",
       "name": "이름",
       "version": "버전",

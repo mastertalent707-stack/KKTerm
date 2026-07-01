@@ -498,6 +498,7 @@
       "ram": "RAM",
       "gpu": "Đồ họa",
       "motherboard": "Bo mạch chủ",
+      "pcModel": "Mẫu PC",
       "uptime": "Thời gian hoạt động",
       "name": "Tên",
       "version": "Phiên bản",

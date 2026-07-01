@@ -498,6 +498,7 @@
       "ram": "RAM",
       "gpu": "グラフィック",
       "motherboard": "マザーボード",
+      "pcModel": "PC モデル",
       "uptime": "稼働時間",
       "name": "名前",
       "version": "バージョン",

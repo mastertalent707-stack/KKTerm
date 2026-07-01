@@ -498,6 +498,7 @@
       "ram": "内存",
       "gpu": "显卡",
       "motherboard": "主板",
+      "pcModel": "PC 型号",
       "uptime": "运行时间",
       "name": "名称",
       "version": "版本",
