@@ -92,3 +92,29 @@ test("assistant renders in-chat tool approval controls", async () => {
     "typed Tauri wrappers should include the approval completion command.",
   );
 });
+
+test("stopping an assistant reply finalizes the in-flight streaming message", async () => {
+  const assistantSource = await readFile(
+    new URL("../src/ai/AssistantPanel.tsx", import.meta.url),
+    "utf8",
+  );
+
+  const stopFunctionMatch = assistantSource.match(
+    /function handleStopAssistantPrompt\(\)[\s\S]*?\n  }\n/,
+  );
+  assert.ok(stopFunctionMatch, "handleStopAssistantPrompt should exist.");
+  const stopFunctionSource = stopFunctionMatch[0];
+
+  assert.match(
+    stopFunctionSource,
+    /setMessages\(/,
+    "Stop should update chat messages, not just the isSendingPrompt flag.",
+  );
+  assert.match(
+    stopFunctionSource,
+    /isStreaming:\s*false/,
+    "Stop must clear isStreaming on the active message so its work panel stops " +
+      "showing a running 'thinking' indicator after the request id has been " +
+      "bumped (which makes the stream channel ignore any later done/error event).",
+  );
+});

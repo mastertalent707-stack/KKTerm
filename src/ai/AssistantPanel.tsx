@@ -662,6 +662,27 @@ export function AssistantPanel({
     activeAssistantRequestIdRef.current += 1;
     setIsSendingPrompt(false);
     setChatError("");
+    // Bumping the request id above makes the streaming channel's onmessage
+    // handler ignore any further events (including a final "done"/"error"),
+    // so the in-flight message would otherwise be stuck showing isStreaming:
+    // true forever — finalize it here instead.
+    const stoppedAt = new Date().toISOString();
+    setMessages((current) =>
+      current.map((message) =>
+        message.isStreaming
+          ? {
+              ...message,
+              isStreaming: false,
+              workCompletedAt: stoppedAt,
+              toolCalls: (message.toolCalls ?? []).map((toolCall) =>
+                toolCall.status === "running"
+                  ? { ...toolCall, status: "completed", endedAt: stoppedAt }
+                  : toolCall,
+              ),
+            }
+          : message,
+      ),
+    );
     if (isTauriRuntime()) {
       // Detaching the UI is not enough: without this the backend agent loop
       // keeps running — and keeps executing tools — after Stop.
