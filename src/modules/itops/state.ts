@@ -42,6 +42,7 @@ export interface RackInput {
   rackGroup: string;
   shell?: string | null;
   heightU: number;
+  depthMm: number;
 }
 
 export interface PlaceItemInput {

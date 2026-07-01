@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 38;
+const SCHEMA_USER_VERSION: i32 = 39;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -366,6 +366,7 @@ CREATE TABLE IF NOT EXISTS itops_site_racks (
     shell       TEXT,
     background_json TEXT,
     height_u    INTEGER NOT NULL DEFAULT 42,
+    depth_mm    INTEGER NOT NULL DEFAULT 1000,
     sort_order  INTEGER NOT NULL,
     created_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -2002,6 +2003,12 @@ impl Storage {
             "TEXT NOT NULL DEFAULT ''",
         )?;
         ensure_column(&connection, "itops_site_racks", "shell", "TEXT")?;
+        ensure_column(
+            &connection,
+            "itops_site_racks",
+            "depth_mm",
+            "INTEGER NOT NULL DEFAULT 1000",
+        )?;
         // Rack View customization: per-rack group tag + per-view Dashboard
         // backgrounds (site card grid, per server room, single rack stage).
         ensure_column(

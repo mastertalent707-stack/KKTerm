@@ -1098,6 +1098,8 @@
       "addServerRoom": "新規サーバールーム",
       "addRack": "新規ラック",
       "heightLabel": "高さ (U)",
+      "depthLabel": "奥行き",
+      "customOption": "カスタム…",
       "heightDecrease": "ラックユニットを減らす",
       "heightIncrease": "ラックユニットを増やす",
       "addItemTitle": "デバイスを追加",

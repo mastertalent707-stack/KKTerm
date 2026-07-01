@@ -143,6 +143,7 @@ CREATE TABLE IF NOT EXISTS itops_site_racks (
     server_room TEXT NOT NULL DEFAULT '',
     shell       TEXT,                    -- cabinet finish: black|white|grey
     height_u    INTEGER NOT NULL DEFAULT 42,
+    depth_mm    INTEGER NOT NULL DEFAULT 1000,
     sort_order  INTEGER NOT NULL,
     created_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -207,6 +208,7 @@ pub struct Rack {
     pub server_room: String,
     pub shell: Option<String>, // cabinet finish: black|white|grey
     pub height_u: u32,         // default 42
+    pub depth_mm: u32,         // physical depth; default 1000 mm
     pub sort_order: i64,
     pub items: Vec<RackItem>,  // hydrated on read
 }
@@ -333,7 +335,7 @@ management tab chrome is hidden while the Site-only UI is active.
 
 ### Editing affordances
 
-- "Add Rack" (name, server_room, shell, height_u) and "Add Item" (choose a Site
+- "Add Rack" (name, server_room, group, shell, height_u, depth_mm) and "Add Item" (choose a Site
   member Connection, or a passive device kind) via dialogs built from
   `src/app/ui/dialog` primitives, footer order per host platform
   (`docs/DESIGN_LANGUAGE.md`).

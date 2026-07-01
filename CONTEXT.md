@@ -150,7 +150,7 @@ The drill-down view for one Server Room. It offers two layouts: rack elevations 
 _Avoid_: area view, datacenter map
 
 **Rack**:
-A durable fixed-height cabinet, usually 42U, that belongs to one Site and one Server Room. Stored in `itops_site_racks`; it holds Rack Devices at U positions and may carry a cabinet shell finish.
+A durable fixed-height cabinet, usually 42U and 1000 mm deep, that belongs to one Site and one Server Room. Stored in `itops_site_racks`; it holds Rack Devices at U positions and carries physical depth plus an optional cabinet shell finish.
 _Avoid_: shelf, cabinet group, host group
 
 **Rack View**:

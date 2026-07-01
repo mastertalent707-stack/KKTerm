@@ -14,6 +14,7 @@ type Result<T> = std::result::Result<T, ItopsStorageError>;
 
 /// Hard ceiling on rack height so a single rack can't claim an absurd U count.
 const MAX_RACK_HEIGHT_U: u32 = 100;
+const MAX_RACK_DEPTH_MM: u32 = 5000;
 
 // ── Pure placement validation ───────────────────────────────────────────────
 
@@ -91,6 +92,15 @@ fn validate_height(height_u: u32) -> Result<u32> {
         )));
     }
     Ok(height_u)
+}
+
+fn validate_depth(depth_mm: u32) -> Result<u32> {
+    if !(1..=MAX_RACK_DEPTH_MM).contains(&depth_mm) {
+        return Err(ItopsStorageError::Validation(format!(
+            "rack depth must be between 1 and {MAX_RACK_DEPTH_MM} mm"
+        )));
+    }
+    Ok(depth_mm)
 }
 
 pub fn list_server_rooms(conn: &SqliteConnection, site_id: &str) -> Result<Vec<ServerRoom>> {
@@ -244,13 +254,14 @@ fn row_to_rack(row: &rusqlite::Row<'_>) -> rusqlite::Result<Rack> {
         shell: row.get(5)?,
         background: background.and_then(|json| serde_json::from_str(&json).ok()),
         height_u: row.get(7)?,
-        sort_order: row.get(8)?,
+        depth_mm: row.get(8)?,
+        sort_order: row.get(9)?,
         items: Vec::new(),
     })
 }
 
 const SELECT_RACK_COLUMNS: &str = "id, site_id, name, server_room, rack_group, shell, \
-     background_json, height_u, sort_order FROM itops_site_racks";
+     background_json, height_u, depth_mm, sort_order FROM itops_site_racks";
 
 /// Normalize a shell choice to a stored value: blank/"black"/None → NULL (the
 /// default), otherwise the trimmed colour name.
@@ -300,10 +311,12 @@ pub fn create_rack(
     rack_group: &str,
     shell: Option<&str>,
     height_u: u32,
+    depth_mm: u32,
 ) -> Result<Rack> {
     let name = validate_name(name)?;
     let server_room = validate_server_room(conn, site_id, server_room)?;
     let height_u = validate_height(height_u)?;
+    let depth_mm = validate_depth(depth_mm)?;
     let shell = normalize_shell(shell);
     let next_sort: i64 = conn.query_row(
         "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM itops_site_racks WHERE site_id = ?",
@@ -312,8 +325,8 @@ pub fn create_rack(
     )?;
     conn.execute(
         "INSERT INTO itops_site_racks
-            (id, site_id, name, server_room, rack_group, shell, height_u, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (id, site_id, name, server_room, rack_group, shell, height_u, depth_mm, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         params![
             id,
             site_id,
@@ -322,6 +335,7 @@ pub fn create_rack(
             rack_group.trim(),
             shell,
             height_u,
+            depth_mm,
             next_sort
         ],
     )?;
@@ -334,6 +348,7 @@ pub fn create_rack(
         shell,
         background: None,
         height_u,
+        depth_mm,
         sort_order: next_sort,
         items: Vec::new(),
     })
@@ -350,9 +365,11 @@ pub fn update_rack(
     rack_group: &str,
     shell: Option<&str>,
     height_u: u32,
+    depth_mm: u32,
 ) -> Result<Rack> {
     let name = validate_name(name)?;
     let height_u = validate_height(height_u)?;
+    let depth_mm = validate_depth(depth_mm)?;
     let shell = normalize_shell(shell);
     // Existence check (returns NotFound early before the height-shrink scan).
     let (site_id, _sort_order): (String, i64) = conn
@@ -374,10 +391,18 @@ pub fn update_rack(
     }
     conn.execute(
         "UPDATE itops_site_racks
-         SET name = ?, server_room = ?, rack_group = ?, shell = ?, height_u = ?,
+         SET name = ?, server_room = ?, rack_group = ?, shell = ?, height_u = ?, depth_mm = ?,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = ?",
-        params![name, server_room, rack_group.trim(), shell, height_u, id],
+        params![
+            name,
+            server_room,
+            rack_group.trim(),
+            shell,
+            height_u,
+            depth_mm,
+            id
+        ],
     )?;
     fetch_rack(conn, id)
 }
@@ -586,6 +611,7 @@ mod tests {
                 shell TEXT,
                 background_json TEXT,
                 height_u INTEGER NOT NULL DEFAULT 42,
+                depth_mm INTEGER NOT NULL DEFAULT 1000,
                 sort_order INTEGER NOT NULL,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -660,12 +686,14 @@ mod tests {
             " G1 ",
             Some("white"),
             42,
+            1000,
         )
         .unwrap();
         assert_eq!(rack.name, "A12");
         assert_eq!(rack.server_room, "Room B");
         assert_eq!(rack.rack_group, "G1");
         assert_eq!(rack.shell.as_deref(), Some("white"));
+        assert_eq!(rack.depth_mm, 1000);
         assert_eq!(rack.sort_order, 0);
 
         let listed = list_racks(&conn, "f1").unwrap();
@@ -674,10 +702,11 @@ mod tests {
         assert_eq!(listed[0].server_room, "Room B");
         assert_eq!(listed[0].rack_group, "G1");
 
-        let updated = update_rack(&conn, "r1", "A13", "Room C", "G2", None, 24).unwrap();
+        let updated = update_rack(&conn, "r1", "A13", "Room C", "G2", None, 24, 1200).unwrap();
         assert_eq!(updated.rack_group, "G2");
         assert_eq!(updated.name, "A13");
         assert_eq!(updated.height_u, 24);
+        assert_eq!(updated.depth_mm, 1200);
         assert_eq!(updated.sort_order, 0); // preserved
 
         delete_rack(&conn, "r1").unwrap();
@@ -689,9 +718,22 @@ mod tests {
     }
 
     #[test]
+    fn rack_depth_rejects_out_of_range_values() {
+        let conn = open_test_db();
+        assert!(matches!(
+            create_rack(&conn, "r1", "f1", "A12", "Room B", "", None, 42, 0),
+            Err(ItopsStorageError::Validation(_))
+        ));
+        assert!(matches!(
+            create_rack(&conn, "r2", "f1", "A13", "Room B", "", None, 42, 5001),
+            Err(ItopsStorageError::Validation(_))
+        ));
+    }
+
+    #[test]
     fn place_move_and_remove_items() {
         let conn = open_test_db();
-        create_rack(&conn, "r1", "f1", "A12", "Room B", "", None, 42).unwrap();
+        create_rack(&conn, "r1", "f1", "A12", "Room B", "", None, 42, 1000).unwrap();
 
         let item = place_rack_item(
             &conn,
@@ -781,7 +823,7 @@ mod tests {
     #[test]
     fn updating_to_passive_item_clears_connection_id() {
         let conn = open_test_db();
-        create_rack(&conn, "r1", "f1", "A12", "Room B", "", None, 42).unwrap();
+        create_rack(&conn, "r1", "f1", "A12", "Room B", "", None, 42, 1000).unwrap();
         place_rack_item(
             &conn,
             "i1",
@@ -816,7 +858,7 @@ mod tests {
     #[test]
     fn shrinking_rack_below_an_item_is_rejected() {
         let conn = open_test_db();
-        create_rack(&conn, "r1", "f1", "A12", "Room B", "", None, 42).unwrap();
+        create_rack(&conn, "r1", "f1", "A12", "Room B", "", None, 42, 1000).unwrap();
         place_rack_item(
             &conn,
             "i1",
@@ -831,7 +873,7 @@ mod tests {
         .unwrap();
         // Item occupies U40-U41; shrinking to 24U must fail.
         assert!(matches!(
-            update_rack(&conn, "r1", "A12", "Room B", "", None, 24),
+            update_rack(&conn, "r1", "A12", "Room B", "", None, 24, 1000),
             Err(ItopsStorageError::Validation(_))
         ));
     }
@@ -839,8 +881,8 @@ mod tests {
     #[test]
     fn reorder_scopes_to_site() {
         let conn = open_test_db();
-        create_rack(&conn, "a", "f1", "A", "Room B", "", None, 42).unwrap();
-        create_rack(&conn, "b", "f1", "B", "Room B", "", None, 42).unwrap();
+        create_rack(&conn, "a", "f1", "A", "Room B", "", None, 42, 1000).unwrap();
+        create_rack(&conn, "b", "f1", "B", "Room B", "", None, 42, 1000).unwrap();
         reorder_racks(&conn, "f1", &["b".to_string(), "a".to_string()]).unwrap();
         let order: Vec<String> = list_racks(&conn, "f1")
             .unwrap()
@@ -868,13 +910,13 @@ mod tests {
     fn rack_requires_a_server_room_owned_by_its_site() {
         let conn = open_test_db();
         assert!(matches!(
-            create_rack(&conn, "r-empty", "f1", "A", "", "", None, 42),
+            create_rack(&conn, "r-empty", "f1", "A", "", "", None, 42, 1000),
             Err(ItopsStorageError::Validation(_))
         ));
         assert!(matches!(
-            create_rack(&conn, "r-missing", "f1", "A", "Unknown", "", None, 42),
+            create_rack(&conn, "r-missing", "f1", "A", "Unknown", "", None, 42, 1000),
             Err(ItopsStorageError::Validation(_))
         ));
-        assert!(create_rack(&conn, "r-valid", "f1", "A", "Room B", "", None, 42).is_ok());
+        assert!(create_rack(&conn, "r-valid", "f1", "A", "Room B", "", None, 42, 1000).is_ok());
     }
 }

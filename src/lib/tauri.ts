@@ -1184,6 +1184,7 @@ type CommandMap = {
       rackGroup: string;
       shell?: string | null;
       heightU: number;
+      depthMm: number;
     };
     result: Rack;
   };
@@ -1195,6 +1196,7 @@ type CommandMap = {
       rackGroup: string;
       shell?: string | null;
       heightU: number;
+      depthMm: number;
     };
     result: Rack;
   };

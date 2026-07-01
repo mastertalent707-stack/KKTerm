@@ -1098,6 +1098,8 @@
       "addServerRoom": "새 서버실",
       "addRack": "새 랙",
       "heightLabel": "높이 (U)",
+      "depthLabel": "깊이",
+      "customOption": "사용자 지정…",
       "heightDecrease": "랙 유닛 줄이기",
       "heightIncrease": "랙 유닛 늘리기",
       "addItemTitle": "장치 추가",

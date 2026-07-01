@@ -1098,6 +1098,8 @@
       "addServerRoom": "ห้องเซิร์ฟเวอร์ใหม่",
       "addRack": "แร็คใหม่",
       "heightLabel": "ความสูง (U)",
+      "depthLabel": "ความลึก",
+      "customOption": "กำหนดเอง…",
       "heightDecrease": "ลดหน่วยแร็ค",
       "heightIncrease": "เพิ่มหน่วยแร็ค",
       "addItemTitle": "เพิ่มอุปกรณ์",

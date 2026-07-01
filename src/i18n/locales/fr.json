@@ -1098,6 +1098,8 @@
       "addServerRoom": "Nouvelle salle des serveurs",
       "addRack": "Nouveau rack",
       "heightLabel": "Hauteur (U)",
+      "depthLabel": "Profondeur",
+      "customOption": "Personnalisé…",
       "heightDecrease": "Moins d'unités de rack",
       "heightIncrease": "Plus d'unités de rack",
       "addItemTitle": "Ajouter un appareil",

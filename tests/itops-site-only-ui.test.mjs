@@ -82,3 +82,17 @@ test("Site dialog no longer loads or selects Connections", async () => {
   assert.doesNotMatch(siteDialog, /connectionsLabel/);
   assert.doesNotMatch(siteDialog, /hg-dlg-list/);
 });
+
+test("Add Rack dialog uses the rack graphic preview and persists physical depth", async () => {
+  const dialog = await read("src/modules/itops/RackDialog.tsx");
+  const state = await read("src/modules/itops/state.ts");
+  const tauri = await read("src/lib/tauri.ts");
+
+  assert.match(dialog, /width=\{700\}/);
+  assert.match(dialog, /<RackElevation rack=\{livePreview\}/);
+  assert.match(dialog, /rack-dialog-shell-grid/);
+  assert.match(dialog, /DEPTH_PRESETS = \[600, 800, 900, 1000, 1070, 1200\]/);
+  assert.match(dialog, /depthMm/);
+  assert.match(state, /interface RackInput[\s\S]*depthMm: number/);
+  assert.match(tauri, /itops_create_rack:[\s\S]*depthMm: number/);
+});

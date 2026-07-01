@@ -1098,6 +1098,8 @@
       "addServerRoom": "Ruang server baru",
       "addRack": "Rak baru",
       "heightLabel": "Tinggi (U)",
+      "depthLabel": "Kedalaman",
+      "customOption": "Kustom…",
       "heightDecrease": "Lebih sedikit unit rak",
       "heightIncrease": "Lebih banyak unit rak",
       "addItemTitle": "Tambah perangkat",

@@ -357,6 +357,7 @@ pub fn itops_create_rack(
     rack_group: String,
     shell: Option<String>,
     height_u: u32,
+    depth_mm: u32,
 ) -> Result<Rack, String> {
     let id = new_itops_id("rack");
     storage(&app).with_connection_infallible(|conn| {
@@ -369,6 +370,7 @@ pub fn itops_create_rack(
             &rack_group,
             shell.as_deref(),
             height_u,
+            depth_mm,
         )
         .map_err(|error| error.to_string())
     })
@@ -383,6 +385,7 @@ pub fn itops_update_rack(
     rack_group: String,
     shell: Option<String>,
     height_u: u32,
+    depth_mm: u32,
 ) -> Result<Rack, String> {
     storage(&app).with_connection_infallible(|conn| {
         topo::update_rack(
@@ -393,6 +396,7 @@ pub fn itops_update_rack(
             &rack_group,
             shell.as_deref(),
             height_u,
+            depth_mm,
         )
         .map_err(|error| error.to_string())
     })

@@ -1098,6 +1098,8 @@
       "addServerRoom": "新增伺服器機房",
       "addRack": "新增機架",
       "heightLabel": "高度 (U)",
+      "depthLabel": "深度",
+      "customOption": "自訂…",
       "heightDecrease": "減少機架單元",
       "heightIncrease": "增加機架單元",
       "addItemTitle": "新增裝置",

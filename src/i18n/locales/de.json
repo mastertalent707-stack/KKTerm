@@ -1098,6 +1098,8 @@
       "addServerRoom": "Neuer Serverraum",
       "addRack": "Neuer Rack",
       "heightLabel": "Höhe (U)",
+      "depthLabel": "Tiefe",
+      "customOption": "Benutzerdefiniert…",
       "heightDecrease": "Weniger Rack-Einheiten",
       "heightIncrease": "Mehr Rack-Einheiten",
       "addItemTitle": "Gerät hinzufügen",

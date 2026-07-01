@@ -485,6 +485,7 @@ mod tests {
             shell: None,
             background: None,
             height_u: 42,
+            depth_mm: 1000,
             sort_order: 0,
             items: Vec::new(),
         }

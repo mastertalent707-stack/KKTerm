@@ -295,6 +295,8 @@ export interface Rack {
   // Custom single-rack stage background; null/undefined = theme default.
   background?: DashboardBackground | null;
   heightU: number;
+  // Physical cabinet depth in millimetres (1000 mm is the default server rack).
+  depthMm: number;
   sortOrder: number;
   items: RackItem[];
 }

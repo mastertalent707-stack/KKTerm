@@ -12,6 +12,7 @@ function item(startU: number, heightU: number, status?: RackItemStatus): RackIte
     label: "",
     startU,
     heightU,
+    depthMm: 1000,
     metadata: status ? { status } : {},
   };
 }

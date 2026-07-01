@@ -424,7 +424,7 @@ function SummarySection({
 }) {
   const { t } = useTranslation();
   const ep = ease(progress);
-  const gpu = snapshot.graphics[0];
+  const gpu = orderGpus(snapshot.graphics)[0];
   const memUsed = usage.live ? usage.ramPercent : snapshot.memory.usedPercent;
   const cpuLoad = usage.cpuPercent;
   const pcModel = formatPcModel(snapshot.system);

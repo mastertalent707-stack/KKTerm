@@ -206,6 +206,8 @@ pub struct Rack {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub background: Option<DashboardBackground>,
     pub height_u: u32,
+    /// Physical cabinet depth in millimetres.
+    pub depth_mm: u32,
     pub sort_order: i64,
     #[serde(default)]
     pub items: Vec<RackItem>,

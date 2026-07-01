@@ -13,6 +13,7 @@ function rack(id: string, serverRoom: string, rackGroup: string): Rack {
     shell: null,
     background: null,
     heightU: 42,
+    depthMm: 1000,
     sortOrder: 0,
     items: [],
   };
