@@ -1099,6 +1099,10 @@
       "addRack": "新規ラック",
       "heightLabel": "高さ (U)",
       "depthLabel": "奥行き",
+      "powerCapacityLabel": "電力容量 (W)",
+      "powerCapacityPlaceholder": "任意",
+      "powerDrawLabel": "消費電力 (W)",
+      "powerDrawHint": "定格または一般的な消費電力。サーバールームの電力ヒートマップに合算されます。",
       "depthNetworkOption": "600 mm（ネットワーク）",
       "depthServerOption": "1000 mm（サーバー）",
       "customOption": "カスタム…",
@@ -1204,11 +1208,17 @@
       "viewLabel": "ルーム表示モード",
       "viewElevation": "正面図",
       "viewFloor": "フロアプラン",
+      "view25d": "2.5D",
       "metricLabel": "ラックの色分け基準",
       "metricHealth": "稼働状態",
       "metricUtilization": "使用率",
+      "metricPower": "電力",
       "utilizationValue": "{{percent}}% 使用",
+      "powerValue": "{{used}} W / {{capacity}} W",
+      "powerDrawOnly": "{{watts}} W",
       "tileTitle": "{{name}} — {{detail}}",
+      "isoEditHint": "ラックを床のタイルにドラッグして部屋を配置します。空のタイルをクリックするとラックを追加できます。",
+      "isoAddHere": "このタイルにラックを追加",
       "health": {
         "empty": "空き",
         "ok": "正常",
@@ -1221,6 +1231,9 @@
         "med": "中",
         "high": "高",
         "full": "満杯"
+      },
+      "power": {
+        "unknown": "容量未設定"
       }
     },
     "export": {

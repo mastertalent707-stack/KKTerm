@@ -1099,6 +1099,10 @@
       "addRack": "Nouveau rack",
       "heightLabel": "Hauteur (U)",
       "depthLabel": "Profondeur",
+      "powerCapacityLabel": "Capacité électrique (W)",
+      "powerCapacityPlaceholder": "Facultatif",
+      "powerDrawLabel": "Consommation électrique (W)",
+      "powerDrawHint": "Puissance nominale ou typique ; cumulée dans la carte thermique de puissance de la salle.",
       "depthNetworkOption": "600 mm (Réseau)",
       "depthServerOption": "1000 mm (Serveur)",
       "customOption": "Personnalisé…",
@@ -1204,11 +1208,17 @@
       "viewLabel": "Mode d'affichage de la salle",
       "viewElevation": "Élévations",
       "viewFloor": "Plan au sol",
+      "view25d": "2,5D",
       "metricLabel": "Colorer les racks par",
       "metricHealth": "État",
       "metricUtilization": "Utilisation",
+      "metricPower": "Puissance",
       "utilizationValue": "{{percent}} % occupé",
+      "powerValue": "{{used}} W / {{capacity}} W",
+      "powerDrawOnly": "{{watts}} W",
       "tileTitle": "{{name}} — {{detail}}",
+      "isoEditHint": "Faites glisser les racks sur les cases du sol pour organiser la salle. Cliquez sur une case vide pour ajouter un rack.",
+      "isoAddHere": "Ajouter un rack sur cette case",
       "health": {
         "empty": "Vide",
         "ok": "Sain",
@@ -1221,6 +1231,9 @@
         "med": "Modéré",
         "high": "Élevé",
         "full": "Plein"
+      },
+      "power": {
+        "unknown": "Aucune capacité"
       }
     },
     "export": {

@@ -1099,6 +1099,10 @@
       "addRack": "Neuer Rack",
       "heightLabel": "Höhe (U)",
       "depthLabel": "Tiefe",
+      "powerCapacityLabel": "Leistungskapazität (W)",
+      "powerCapacityPlaceholder": "Optional",
+      "powerDrawLabel": "Leistungsaufnahme (W)",
+      "powerDrawHint": "Nenn- oder typische Leistung; fließt in die Leistungs-Heatmap des Raums ein.",
       "depthNetworkOption": "600 mm (Netzwerk)",
       "depthServerOption": "1000 mm (Server)",
       "customOption": "Benutzerdefiniert…",
@@ -1204,11 +1208,17 @@
       "viewLabel": "Raumansichtsmodus",
       "viewElevation": "Frontansichten",
       "viewFloor": "Grundriss",
+      "view25d": "2,5D",
       "metricLabel": "Racks einfärben nach",
       "metricHealth": "Zustand",
       "metricUtilization": "Auslastung",
+      "metricPower": "Leistung",
       "utilizationValue": "{{percent}} % belegt",
+      "powerValue": "{{used}} W / {{capacity}} W",
+      "powerDrawOnly": "{{watts}} W",
       "tileTitle": "{{name}} — {{detail}}",
+      "isoEditHint": "Ziehen Sie Racks auf Bodenfelder, um den Raum anzuordnen. Klicken Sie auf ein leeres Feld, um ein Rack hinzuzufügen.",
+      "isoAddHere": "Rack auf diesem Feld hinzufügen",
       "health": {
         "empty": "Leer",
         "ok": "Intakt",
@@ -1221,6 +1231,9 @@
         "med": "Mittel",
         "high": "Hoch",
         "full": "Voll"
+      },
+      "power": {
+        "unknown": "Keine Kapazität"
       }
     },
     "export": {

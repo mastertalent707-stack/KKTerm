@@ -27,7 +27,7 @@ import { RackDialog } from "./RackDialog";
 import { ServerRoomDialog } from "./ServerRoomDialog";
 import { RackItemDialog } from "./RackItemDialog";
 import { RackItemBindingsDialog } from "./RackItemBindingsDialog";
-import { useItOpsStore } from "./state";
+import { useItOpsStore, type RackPlacementKind } from "./state";
 import {
   EMPTY_DRILL,
   groupRackTopology,
@@ -39,6 +39,7 @@ import {
 import { ItOpsBackground } from "./ItOpsBackground";
 import { RackStage } from "./RackStage";
 import { ServerRoomFloorPlan } from "./ServerRoomFloorPlan";
+import { ServerRoomIsoView } from "./ServerRoomIsoView";
 import { selectRandomRackCallouts } from "./rackInventory";
 import type { DashboardBackground } from "../dashboard/types";
 import {
@@ -65,6 +66,7 @@ import {
   pdfFilename,
   rackExcelBytes,
   rackPdfDocument,
+  roomIsoLayoutScope,
   roomLayoutScope,
   saveExportBytes,
   serverRoomPdfDocument,
@@ -885,13 +887,62 @@ function RackDrill({
     setSitePlacements(loadFreePlacement(sitePlacementScope));
   }, [sitePlacementScope]);
 
+  // Rack placements are durable rack fields (SQLite); the localStorage scopes
+  // remain as a legacy fallback for layouts saved before the durable columns
+  // existed. Merge order: legacy < durable < this session's live edits.
+  const roomRacks = serverRoom?.racks;
   const roomPlacementScope = serverRoom ? roomLayoutScope(site.id, serverRoom.key) : "";
-  const [roomPlacements, setRoomPlacements] = useState<FreePlacementMap>(() =>
-    roomPlacementScope ? loadFreePlacement(roomPlacementScope) : {},
+  const legacyRoomPlacements = useMemo(
+    () => (roomPlacementScope ? loadFreePlacement(roomPlacementScope) : {}),
+    [roomPlacementScope],
   );
-  useEffect(() => {
-    setRoomPlacements(roomPlacementScope ? loadFreePlacement(roomPlacementScope) : {});
-  }, [roomPlacementScope]);
+  const [roomEdits, setRoomEdits] = useState<FreePlacementMap>({});
+  useEffect(() => setRoomEdits({}), [roomPlacementScope]);
+  const roomPlacements = useMemo(
+    () => ({
+      ...legacyRoomPlacements,
+      ...durablePlacement(roomRacks, "floor"),
+      ...roomEdits,
+    }),
+    [legacyRoomPlacements, roomRacks, roomEdits],
+  );
+
+  // 2.5D iso view placement (grid cells, not pixels) — its own scope.
+  const isoPlacementScope = serverRoom ? roomIsoLayoutScope(site.id, serverRoom.key) : "";
+  const legacyIsoPlacements = useMemo(
+    () => (isoPlacementScope ? loadFreePlacement(isoPlacementScope) : {}),
+    [isoPlacementScope],
+  );
+  const [isoEdits, setIsoEdits] = useState<FreePlacementMap>({});
+  useEffect(() => setIsoEdits({}), [isoPlacementScope]);
+  const isoPlacements = useMemo(
+    () => ({
+      ...legacyIsoPlacements,
+      ...durablePlacement(roomRacks, "grid"),
+      ...isoEdits,
+    }),
+    [legacyIsoPlacements, roomRacks, isoEdits],
+  );
+
+  // Persist placements durably, debounced: the floor plan streams a position
+  // per pointermove, and even the iso view's one-per-drop saves batch cleanly.
+  const setRackPlacements = useItOpsStore((state) => state.setRackPlacements);
+  const durableSaveTimers = useRef<Partial<Record<RackPlacementKind, number>>>({});
+  const rackIds = useMemo(() => new Set(racks.map((entry) => entry.id)), [racks]);
+  function scheduleDurableSave(kind: RackPlacementKind, map: FreePlacementMap) {
+    const pending = durableSaveTimers.current[kind];
+    if (pending != null) window.clearTimeout(pending);
+    durableSaveTimers.current[kind] = window.setTimeout(() => {
+      durableSaveTimers.current[kind] = undefined;
+      const entries = Object.entries(map)
+        .filter(([id]) => rackIds.has(id))
+        .map(([id, point]) => ({ id, x: point.x, y: point.y }));
+      setRackPlacements(site.id, kind, entries).catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        showStatusBarNotice(t("itops.errorNotice", { message }), { tone: "error" });
+      });
+    }, 500);
+  }
 
   const roomCallouts = serverRoom
     ? selectRandomRackCallouts(
@@ -1032,8 +1083,15 @@ function RackDrill({
   }
 
   function saveRoomPlacements(next: FreePlacementMap) {
-    setRoomPlacements(next);
+    setRoomEdits(next);
     if (roomPlacementScope) saveFreePlacement(roomPlacementScope, next);
+    scheduleDurableSave("floor", next);
+  }
+
+  function saveIsoPlacements(next: FreePlacementMap) {
+    setIsoEdits(next);
+    if (isoPlacementScope) saveFreePlacement(isoPlacementScope, next);
+    scheduleDurableSave("grid", next);
   }
 
   return (
@@ -1144,8 +1202,15 @@ function RackDrill({
                 >
                   {t("itops.floorPlan.viewFloor")}
                 </button>
+                <button
+                  type="button"
+                  data-active={roomView === "iso"}
+                  onClick={() => setRoomView("iso")}
+                >
+                  {t("itops.floorPlan.view25d")}
+                </button>
               </div>
-              {roomView === "floor" ? (
+              {roomView !== "elevation" ? (
                 <div
                   className="rm-segmented"
                   role="group"
@@ -1164,6 +1229,13 @@ function RackDrill({
                     onClick={() => setFloorMetric("utilization")}
                   >
                     {t("itops.floorPlan.metricUtilization")}
+                  </button>
+                  <button
+                    type="button"
+                    data-active={floorMetric === "power"}
+                    onClick={() => setFloorMetric("power")}
+                  >
+                    {t("itops.floorPlan.metricPower")}
                   </button>
                 </div>
               ) : null}
@@ -1191,7 +1263,18 @@ function RackDrill({
                 })}
               </div>
             ) : null}
-            {roomView === "floor" ? (
+            {roomView === "iso" ? (
+              <ServerRoomIsoView
+                racks={serverRoom.racks}
+                metric={floorMetric}
+                editMode={editMode}
+                placement={isoPlacements}
+                onPlacementChange={saveIsoPlacements}
+                onDeleteRack={editMode ? onDeleteRack : undefined}
+                onSelectRack={(rackId) => setDrill({ serverRoom: serverRoom.key, rackId })}
+                onAddRack={editMode ? () => onAddRack(serverRoom.key) : undefined}
+              />
+            ) : roomView === "floor" ? (
               <ServerRoomFloorPlan
                 racks={serverRoom.racks}
                 metric={floorMetric}
@@ -1227,6 +1310,19 @@ function RackDrill({
       </ItOpsBackground>
     </div>
   );
+}
+
+// Fold the racks' durable placement columns into a FreePlacementMap.
+function durablePlacement(racks: Rack[] | undefined, kind: RackPlacementKind): FreePlacementMap {
+  const map: FreePlacementMap = {};
+  for (const rack of racks ?? []) {
+    const x = kind === "floor" ? rack.floorX : rack.gridX;
+    const y = kind === "floor" ? rack.floorY : rack.gridY;
+    if (x != null && y != null) {
+      map[rack.id] = { x, y };
+    }
+  }
+  return map;
 }
 
 function defaultFreePlacement(index: number, width: number, height: number) {
