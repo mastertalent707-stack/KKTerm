@@ -1942,7 +1942,7 @@ function TerminalPaneView({
       const selection = terminal.getSelection();
       setSelectedTerminalText(selection);
       if (selection && terminalSettings.copyOnSelect) {
-        void navigator.clipboard?.writeText(selection);
+        void writeToClipboard(selection);
       }
     });
     const searchResultsDisposable = terminal.onSearchResultsChange((result) => {

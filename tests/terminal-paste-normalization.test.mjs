@@ -20,3 +20,15 @@ test("terminal app-owned paste uses xterm paste transformations before writing t
   assert.match(pasteHandler, /terminalRendererRef\.current\?\.paste\(text\)/);
   assert.doesNotMatch(pasteHandler, /write_terminal_input/);
 });
+
+test("terminal copy-on-select uses the shared clipboard fallback", async () => {
+  const workspaceSource = await readFile(
+    new URL("../src/modules/workspace/connections/terminal/TerminalWorkspace.tsx", import.meta.url),
+    "utf8",
+  );
+
+  const selectionHandler =
+    workspaceSource.match(/terminal\.onSelectionChange\(\(\) => \{([\s\S]*?)\n    \}\)/)?.[1] ?? "";
+  assert.match(selectionHandler, /void writeToClipboard\(selection\)/);
+  assert.doesNotMatch(selectionHandler, /navigator\.clipboard/);
+});
