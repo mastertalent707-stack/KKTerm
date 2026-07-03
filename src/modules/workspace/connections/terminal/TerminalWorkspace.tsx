@@ -1728,6 +1728,12 @@ function TerminalPaneView({
     multilinePasteConfirmationResolverRef.current?.(confirmed);
     multilinePasteConfirmationResolverRef.current = null;
     setMultilinePasteConfirmationOpen(false);
+    // The confirm sheet's button holds DOM focus when it is clicked, so once
+    // the dialog unmounts focus falls to <body>. Return it to the terminal
+    // after the unmount commits, on both confirm and cancel.
+    const focus = () => terminalRendererRef.current?.focus();
+    queueMicrotask(focus);
+    window.requestAnimationFrame(focus);
   }
 
   async function writeWithPasteConfirmation(data: string, writeInput: (input: string) => void) {
@@ -1941,8 +1947,11 @@ function TerminalPaneView({
     const selectionDisposable = terminal.onSelectionChange(() => {
       const selection = terminal.getSelection();
       setSelectedTerminalText(selection);
-      if (selection && terminalSettings.copyOnSelect) {
-        void navigator.clipboard?.writeText(selection);
+      // Read the setting at selection time so toggling copy-on-select in
+      // Settings applies to already-open terminals without re-running this
+      // session effect.
+      if (selection && useWorkspaceStore.getState().terminalSettings.copyOnSelect) {
+        void writeToClipboard(selection);
       }
     });
     const searchResultsDisposable = terminal.onSearchResultsChange((result) => {
