@@ -26,6 +26,8 @@ Default placeholder `ai.composerPlaceholder`. Send `ai.sendMessage` / `ai.send`.
 
 Assistant responses wrap to the available panel width. Wide code blocks remain contained within the response and scroll horizontally inside the code block instead of clipping the surrounding response text.
 
+While a response streams, the chat follows new content only while the reader remains near the bottom. Scrolling upward pauses that automatic following so earlier response text can be read; returning to the bottom resumes it.
+
 The composer footer includes a small context-usage meter (`ai.contextUsage`) after the first streamed request reports an estimate. The circular meter fills from the backend's provider/model context estimate; click it to open the usage popover with model, estimated token count, history/current-character buckets, retained/omitted history message counts, and whether the model limit is approximate. The meter is informational and uses estimates because providers, CLIs, and OpenAI-compatible proxies do not share one tokenizer.
 
 ### Attachments
