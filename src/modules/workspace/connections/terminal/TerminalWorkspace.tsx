@@ -1941,8 +1941,11 @@ function TerminalPaneView({
     const selectionDisposable = terminal.onSelectionChange(() => {
       const selection = terminal.getSelection();
       setSelectedTerminalText(selection);
-      if (selection && terminalSettings.copyOnSelect) {
-        void navigator.clipboard?.writeText(selection);
+      // Read the setting at selection time so toggling copy-on-select in
+      // Settings applies to already-open terminals without re-running this
+      // session effect.
+      if (selection && useWorkspaceStore.getState().terminalSettings.copyOnSelect) {
+        void writeToClipboard(selection);
       }
     });
     const searchResultsDisposable = terminal.onSearchResultsChange((result) => {
