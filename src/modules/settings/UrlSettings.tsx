@@ -1,36 +1,13 @@
-import { Globe, Pencil, Save, Trash2, X } from "lucide-react";
+import { Globe, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
 import { technicalInputProps } from "../../lib/inputBehavior";
 import { useWorkspaceStore } from "../../store";
 import type { UrlCredentialSummary, UrlDataPartitionSummary } from "../../types";
-import { CredentialDeleteConfirmDialog } from "./CredentialDeleteConfirmDialog";
 import { SettingsSectionHeader, useSettingsSaveRegistration } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-}
-
-interface UrlCredentialEditDraft {
-  username: string;
-  password: string;
-  usernameSelector: string;
-  passwordSelector: string;
-  fieldValues: string;
-}
-
-function draftFromCredential(credential: UrlCredentialSummary): UrlCredentialEditDraft {
-  return {
-    username: credential.username,
-    password: "",
-    usernameSelector: credential.usernameSelector ?? "",
-    passwordSelector: credential.passwordSelector ?? "",
-    fieldValues: credential.fieldValues ?? "",
-  };
-}
+import { UrlCredentialManager } from "./UrlCredentialManager";
 
 export function UrlSettings() {
   const { t } = useTranslation();
@@ -40,9 +17,6 @@ export function UrlSettings() {
   const [draft, setDraft] = useState(urlSettings);
   const [credentials, setCredentials] = useState<UrlCredentialSummary[]>([]);
   const [partitions, setPartitions] = useState<UrlDataPartitionSummary[]>([]);
-  const [editingCredentialId, setEditingCredentialId] = useState<string | null>(null);
-  const [credentialDraft, setCredentialDraft] = useState<UrlCredentialEditDraft | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<UrlCredentialSummary | null>(null);
   const hasChanges =
     JSON.stringify({
       ...draft,
@@ -68,10 +42,6 @@ export function UrlSettings() {
       ]);
       setCredentials(credentialRows);
       setPartitions(partitionRows);
-      if (editingCredentialId && !credentialRows.some((credential) => credential.secretOwnerId === editingCredentialId)) {
-        setEditingCredentialId(null);
-        setCredentialDraft(null);
-      }
     } catch (loadError) {
       showStatusBarNotice(loadError instanceof Error ? loadError.message : String(loadError), { tone: "error" });
     }
@@ -93,70 +63,6 @@ export function UrlSettings() {
       setUrlSettings(saved);
       setDraft(saved);
       showStatusBarNotice(t("settings.urlSettingsSaved"), { tone: "success" });
-    } catch (saveError) {
-      showStatusBarNotice(saveError instanceof Error ? saveError.message : String(saveError), { tone: "error" });
-    }
-  }
-
-  async function deleteCredential(connectionId: string) {
-    try {
-      await invokeCommand("delete_url_credential", { connectionId });
-      showStatusBarNotice(t("settings.urlPasswordDeleted"), { tone: "success" });
-      if (editingCredentialId === connectionId) {
-        setEditingCredentialId(null);
-        setCredentialDraft(null);
-      }
-      window.dispatchEvent(new CustomEvent("kkterm:connection-tree-invalidated"));
-      await load();
-    } catch (deleteError) {
-      showStatusBarNotice(deleteError instanceof Error ? deleteError.message : String(deleteError), { tone: "error" });
-    }
-  }
-
-  function beginCredentialEdit(credential: UrlCredentialSummary) {
-    setEditingCredentialId(credential.secretOwnerId);
-    setCredentialDraft(draftFromCredential(credential));
-  }
-
-  function cancelCredentialEdit() {
-    setEditingCredentialId(null);
-    setCredentialDraft(null);
-  }
-
-  function updateCredentialDraft(field: keyof UrlCredentialEditDraft, value: string) {
-    setCredentialDraft((currentDraft) => (currentDraft ? { ...currentDraft, [field]: value } : currentDraft));
-  }
-
-  async function saveCredentialEdit(secretOwnerId: string) {
-    if (!credentialDraft) {
-      return;
-    }
-    const credential = credentials.find((candidate) => candidate.secretOwnerId === secretOwnerId);
-    try {
-      if (credentialDraft.password) {
-        await invokeCommand("store_secret", {
-          request: {
-            kind: "urlPassword",
-            ownerId: secretOwnerId,
-            secret: credentialDraft.password,
-          },
-        });
-      }
-      await invokeCommand("upsert_url_credential", {
-        request: {
-          connectionId: credential?.connectionId ?? secretOwnerId,
-          username: credentialDraft.username,
-          pageUrl: credential?.pageUrl,
-          usernameSelector: credentialDraft.usernameSelector || undefined,
-          passwordSelector: credentialDraft.passwordSelector || undefined,
-          fieldValues: credentialDraft.fieldValues || undefined,
-        },
-      });
-      showStatusBarNotice(t("settings.urlPasswordUpdated"), { tone: "success" });
-      setEditingCredentialId(null);
-      setCredentialDraft(null);
-      window.dispatchEvent(new CustomEvent("kkterm:connection-tree-invalidated"));
-      await load();
     } catch (saveError) {
       showStatusBarNotice(saveError instanceof Error ? saveError.message : String(saveError), { tone: "error" });
     }
@@ -212,112 +118,8 @@ export function UrlSettings() {
         <div>
           <p className="field-hint">{t("settings.savedWebsitePasswordsHint")}</p>
         </div>
-        {credentials.length === 0 ? (
-          <p className="settings-empty-state">{t("settings.noSavedWebsitePasswords")}</p>
-        ) : (
-          <div className="settings-list" aria-label={t("settings.savedWebsitePasswords")}>
-            {credentials.map((credential) => (
-              <div className="settings-list-row" key={credential.secretOwnerId}>
-                {editingCredentialId === credential.secretOwnerId && credentialDraft ? (
-                  <>
-                    <div className="settings-credential-edit">
-                      <div className="settings-list-row-heading">
-                        <strong>{credential.connectionName}</strong>
-                        <span>{credential.pageUrl ?? credential.url ?? t("settings.notSet")}</span>
-                      </div>
-                      <div className="form-grid two-columns">
-                        <label>
-                          <span>{t("settings.urlCredentialUsername")}</span>
-                          <input
-                            autoComplete="username"
-                            value={credentialDraft.username}
-                            onChange={(event) => updateCredentialDraft("username", event.currentTarget.value)}
-                          />
-                        </label>
-                        <label>
-                          <span>{t("settings.urlCredentialPassword")}</span>
-                          <input
-                            autoComplete="new-password"
-                            placeholder={t("settings.urlCredentialPasswordPlaceholder")}
-                            type="password"
-                            value={credentialDraft.password}
-                            onChange={(event) => updateCredentialDraft("password", event.currentTarget.value)}
-                          />
-                        </label>
-                        <label>
-                          <span>{t("settings.urlCredentialUsernameSelector")}</span>
-                          <input
-                            value={credentialDraft.usernameSelector}
-                            onChange={(event) => updateCredentialDraft("usernameSelector", event.currentTarget.value)}
-                          />
-                        </label>
-                        <label>
-                          <span>{t("settings.urlCredentialPasswordSelector")}</span>
-                          <input
-                            value={credentialDraft.passwordSelector}
-                            onChange={(event) => updateCredentialDraft("passwordSelector", event.currentTarget.value)}
-                          />
-                        </label>
-                      </div>
-                      <small>{t("settings.urlPasswordDetails", {
-                        username: credential.username,
-                        updatedAt: formatDate(credential.updatedAt),
-                      })}</small>
-                    </div>
-                    <div className="settings-list-actions">
-                      <button
-                        className="secondary-button"
-                        disabled={credentialDraft.username.trim().length === 0}
-                        type="button"
-                        onClick={() => void saveCredentialEdit(credential.secretOwnerId)}
-                      >
-                        <Save size={15} />
-                        {t("common.save")}
-                      </button>
-                      <button className="secondary-button" type="button" onClick={cancelCredentialEdit}>
-                        <X size={15} />
-                        {t("common.cancel")}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="settings-credential-summary">
-                      <strong>{credential.connectionName}</strong>
-                      <span>{credential.pageUrl ?? credential.url ?? t("settings.credentialSavedPassword")}</span>
-                    </div>
-                    <div className="settings-list-actions">
-                      <button className="secondary-button" type="button" onClick={() => beginCredentialEdit(credential)}>
-                        <Pencil size={15} />
-                        {t("common.edit")}
-                      </button>
-                      <button
-                        aria-label={t("settings.deleteCredential")}
-                        className="settings-icon-danger-button"
-                        type="button"
-                        onClick={() => setDeleteTarget(credential)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <UrlCredentialManager credentials={credentials} onChanged={load} />
       </fieldset>
-
-      {deleteTarget ? (
-        <CredentialDeleteConfirmDialog
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={() => {
-            const credential = deleteTarget;
-            setDeleteTarget(null);
-            void deleteCredential(credential.secretOwnerId);
-          }}
-        />
-      ) : null}
 
       <fieldset className="settings-subsection settings-fieldset">
         <legend data-tutorial-id="settings.urlDataShards">{t("settings.urlDataShards")}</legend>

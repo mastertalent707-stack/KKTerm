@@ -35,6 +35,23 @@ test("macOS installs certificate handling on Wry's live navigation delegate clas
   assert.doesNotMatch(backend, /AnyClass::get\(c"WryNavigationDelegate"\)/);
 });
 
+test("macOS reports certificate failures from WKWebView navigation errors", () => {
+  assert.match(backend, /fn certificate_navigation_failure_handler\(/);
+  assert.match(
+    backend,
+    /sel!\(webView:didFailProvisionalNavigation:withError:\)/,
+  );
+  assert.match(backend, /sel!\(webView:didFailNavigation:withError:\)/);
+  assert.match(
+    backend,
+    /NS_URL_ERROR_SERVER_CERTIFICATE_HAS_BAD_DATE[\s\S]*NS_URL_ERROR_SERVER_CERTIFICATE_NOT_YET_VALID/,
+  );
+  assert.match(
+    backend,
+    /if bypass_enabled\.is_null\(\)[\s\S]*"webview-certificate-error"/,
+  );
+});
+
 test("URL workspace turns certificate errors into a warning notice", () => {
   assert.match(
     workspace,

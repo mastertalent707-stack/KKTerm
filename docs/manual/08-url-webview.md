@@ -16,7 +16,7 @@ Each URL Connection can use `connections.inheritSettingsDefaults` (follow the gl
 
 When Settings -> URL enables `settings.ignoreCertificateErrors`, newly opened URL Sessions accept invalid HTTPS server certificates, including self-signed certificates. Windows handles this through WebView2's certificate error callback; macOS marks the WKWebView and answers its server-trust authentication challenge with a trust credential. WKWebView does not expose Safari's manual "continue to this website" certificate-warning page to embedded apps, so this delegate challenge path is the macOS equivalent. Keep this scoped to URL Sessions that opt into the setting; do not make the main app WebView trust invalid certificates globally.
 
-On macOS, when certificate validation remains enabled and WKWebView rejects an invalid HTTPS certificate, the URL Session emits a `webview.invalidCertificateWarning` warning through the Status Bar popup. The warning directs the user to Settings -> URL if they choose to disable certificate validation for newly opened URL Sessions.
+On macOS, when certificate validation remains enabled and WKWebView rejects an invalid HTTPS certificate, the URL Session emits a `webview.invalidCertificateWarning` warning through the Status Bar popup. The backend observes both the server-trust challenge and WKWebView's provisional/final navigation-failure callbacks so the warning still appears when WebKit leaves the URL Pane blank. The warning directs the user to Settings -> URL if they choose to disable certificate validation for newly opened URL Sessions.
 
 ## Surface
 
@@ -87,11 +87,15 @@ The automatic post-load restore is conservative: it only fills fields that are s
 empty and leaves checkbox/radio/`select` state untouched so it never clobbers what a
 page (or the user) has already set.
 
-The primary password is the only saved value kept in the OS keychain; each saved
-page step uses its own secret owner so password pages do not overwrite username
-pages. All other field values are stored alongside the URL Connection in SQLite
-and are never secrets.
-Manage saved entries from Settings → Credentials ([15-settings.md](15-settings.md)).
+The primary password is the only captured value kept in the selected secret
+store; each saved page step uses its own secret owner so password pages do not
+overwrite username pages. All other field values are stored alongside the URL
+Connection in SQLite and are never secrets.
+Manage saved entries from either Settings → URL or Settings → Credentials
+([15-settings.md](15-settings.md)). Both surfaces show the same single-row record
+controls. Edit opens a compact dialog for the username, optional replacement
+password, and captured non-secret input values; Delete removes both the page
+metadata and its secret-store password.
 
 ## Downloads
 
