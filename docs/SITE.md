@@ -86,8 +86,10 @@ Replaces the **Host Group** entry in `CONTEXT.md`; adds the rest. Follows the
   (security camera, air conditioner, fire extinguisher, cable tray, UPS,
   environment sensor, smoke detector, crash cart, 乖乖). A Room Object has a
   facing and a vertical position in rack units, so occupants can share a
-  floor cell while their vertical spans don't intersect (a 乖乖 pack sits on
-  a cabinet top). Footprints follow real-world size against the 1200 mm
+  floor cell while their vertical spans don't intersect. Resting objects
+  settle on the lowest fitting support surface (a 乖乖 pack sits on a cabinet
+  top), while top-hung fixtures such as cameras and detectors keep their
+  overhead placement. Footprints follow real-world size against the 1200 mm
   floor cell: small hand-sized fixtures (camera, fire extinguisher, sensor,
   smoke detector, 乖乖) occupy one cell quadrant chosen by a durable
   `corner` property (clockwise 0=NW..3=SW), while large fixtures may span

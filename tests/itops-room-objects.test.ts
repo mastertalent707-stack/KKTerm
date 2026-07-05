@@ -61,6 +61,21 @@ test("a 乖乖 pack dropped on an occupied cell stacks on the cabinet top", () =
   assert.equal(resolveDropZ(spans, "kuaikuai"), 42);
 });
 
+test("gravity objects land on the lowest fitting surface", () => {
+  const spans = cellSpans(
+    { x: 0, y: 0 },
+    [rack("a")],
+    { a: { x: 0, y: 0 } },
+    [obj("cam", "camera", 0, 0, 52)],
+  );
+  assert.equal(resolveDropZ(spans, "kuaikuai"), 42);
+  assert.equal(resolveDropZ(spans, "kuaikuai", 52), 42);
+});
+
+test("floor objects do not keep a stale raised level when moved", () => {
+  assert.equal(resolveDropZ([], "ups", 42), 0);
+});
+
 test("two objects share a cell only while their vertical spans do not intersect", () => {
   const existing = [obj("cam", "camera", 0, 0, 52)];
   const spans = cellSpans({ x: 0, y: 0 }, [], {}, existing);

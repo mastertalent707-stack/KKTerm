@@ -55,8 +55,8 @@ export interface RoomObject {
 export interface RoomObjectSpec {
   /** Vertical size in U. */
   heightU: number;
-  /** Where an unplaced object wants its bottom: a fixed U, the floor, or
-   *  stacked on top of whatever already occupies the cell. */
+  /** Where an unplaced object wants its bottom: a fixed/top-hung U, the floor,
+   *  or gravity-settled on the lowest available support surface. */
   defaultZ: number | "floor" | "stack";
   /** Footprint as fractions of a floor cell (1200 mm), before `rot`
    *  (wide = along x). Values above 1 span into neighbouring cells. */
@@ -190,11 +190,11 @@ function fits(spans: ZSpan[], z: number, heightU: number): boolean {
   return spans.every((span) => z + heightU <= span.z0 || z >= span.z1);
 }
 
-// Pick a bottom-U for an object dropped into a cell. Candidates in preference
-// order: the caller's preferred z (keep your level while dragging), the
-// kind's default, the top of each existing occupant from the lowest up (this
-// is what stacks a 乖乖 pack on a cabinet, and keeps a blocked ceiling mount
-// near the top instead of dumping it on the floor), then the floor. Returns
+// Pick a bottom-U for an object dropped into a cell. Resting objects use
+// gravity: try the floor, then each occupied top surface from the lowest up
+// (this is what places a 乖乖 pack on the cabinet top instead of a high camera).
+// Fixed/top-hung fixtures keep the caller's preferred level and their default
+// overhead level before falling back through other support surfaces. Returns
 // null when no candidate fits below the ceiling — the cell is vertically full.
 export function resolveDropZ(
   spans: ZSpan[],
@@ -203,18 +203,14 @@ export function resolveDropZ(
 ): number | null {
   const spec = objectSpec(kind);
   const candidates: number[] = [];
-  if (preferred != null) candidates.push(Math.round(preferred));
   const wanted = spec.defaultZ;
-  if (typeof wanted === "number") candidates.push(wanted);
-  else if (wanted === "stack" && spans.length > 0) {
-    candidates.push(Math.max(...spans.map((span) => span.z1)));
+  const supports = [...spans].map((span) => span.z1).sort((a, b) => a - b);
+  if (wanted === "floor" || wanted === "stack") {
+    candidates.push(0, ...supports);
   } else {
-    candidates.push(0);
+    if (preferred != null) candidates.push(Math.round(preferred));
+    candidates.push(wanted, ...supports, 0);
   }
-  for (const span of [...spans].sort((a, b) => a.z1 - b.z1)) {
-    candidates.push(span.z1);
-  }
-  candidates.push(0);
   for (const z of candidates) {
     if (fits(spans, z, spec.heightU)) return z;
   }
