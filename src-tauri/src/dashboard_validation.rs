@@ -417,7 +417,7 @@ pub fn validate_background_image(file: &str, fit: &str, dim: i64) -> Result<(), 
         file,
         fit,
         dim,
-        &["png", "jpg", "jpeg", "webp", "gif", "bmp"],
+        &["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"],
     )
 }
 
@@ -1640,6 +1640,7 @@ mod tests {
     #[test]
     fn background_image_ok() {
         assert!(validate_background_image("bg-abc123.jpg", "fill", 0).is_ok());
+        assert!(validate_background_image("bg-abc123.svg", "fit", 0).is_ok());
         assert!(validate_background_image("bg-abc123.jpg", "center", -100).is_ok());
         assert!(validate_background_image("bg-abc123.jpg", "tile", 100).is_ok());
     }

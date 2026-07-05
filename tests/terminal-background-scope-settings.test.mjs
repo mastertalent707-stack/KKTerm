@@ -105,6 +105,7 @@ test("split terminal pane backgrounds serialize with stored layouts", () => {
 test("terminal and Dashboard background pickers share the same component and datasource", () => {
   assert.match(terminalBackgroundPopover, /SharedBackgroundPopover/);
   assert.match(dashboardBackgroundPopover, /SharedBackgroundPopover/);
+  assert.match(sharedBackgroundPopover, /extensions:\s*\[[^\]]*"svg"/);
   assert.doesNotMatch(terminalBackgroundPopover, /BACKGROUND_PRESETS\.map/);
   assert.doesNotMatch(terminalBackgroundPopover, /DYNAMIC_BACKGROUNDS\.map/);
 });
