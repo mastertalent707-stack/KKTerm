@@ -998,6 +998,7 @@ function RackDrill({
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [backgroundOpen, setBackgroundOpen] = useState(false);
   const setServerRoomBackground = useItOpsStore((state) => state.setServerRoomBackground);
+  const setSiteBackground = useItOpsStore((state) => state.setSiteBackground);
 
   // Server Room View layout: rack elevations (default), the blueprint floor
   // plan, or the 2.5D room. Persists app-wide.
@@ -1137,14 +1138,32 @@ function RackDrill({
     showStatusBarNotice(t("itops.floorPlan.objectNoSpace"), { tone: "warning" });
   }
 
-  async function saveServerRoomViewBackground(background: DashboardBackground | null) {
-    if (!serverRoom) return;
+  // The background popover serves the Server Room 2.5D view and Site View;
+  // each persists to its own durable scope.
+  async function saveDrillViewBackground(background: DashboardBackground | null) {
     try {
-      await setServerRoomBackground(site.id, serverRoom.key, background);
+      if (serverRoom) {
+        await setServerRoomBackground(site.id, serverRoom.key, background);
+      } else {
+        await setSiteBackground(site.id, background);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       showStatusBarNotice(t("itops.errorNotice", { message }), { tone: "error" });
     }
+  }
+
+  // Snap every Server Room card back onto the default Site View grid.
+  function autoOrganizeSiteRooms() {
+    const next: FreePlacementMap = {};
+    topology.forEach((room, index) => {
+      next[topologyGroupKey(room.key)] = defaultFreePlacement(
+        index,
+        FREE_CARD_WIDTH,
+        FREE_CARD_HEIGHT,
+      );
+    });
+    saveSitePlacements(next);
   }
 
   // Persist placements durably, debounced: the floor plan streams a position
@@ -1341,6 +1360,17 @@ function RackDrill({
             </div>
           ) : null}
           <div className="it-drill-actions" aria-label={t("itops.actions.viewActions")}>
+            {!rack && !serverRoom && topology.length > 0 ? (
+              <button
+                type="button"
+                className="it-drill-action"
+                title={t("itops.sites.autoOrganize")}
+                aria-label={t("itops.sites.autoOrganize")}
+                onClick={autoOrganizeSiteRooms}
+              >
+                <ItIcon name="grid" size={15} />
+              </button>
+            ) : null}
             <button
               type="button"
               className={`it-drill-action${editMode ? " active" : ""}`}
@@ -1509,16 +1539,17 @@ function RackDrill({
             onPlacementChange={saveSitePlacements}
             onDeleteRoom={onDeleteServerRoom}
             onSelectRoom={(room) => setDrill({ serverRoom: room.key, rackId: null })}
+            onOpenBackground={() => setBackgroundOpen(true)}
           />
         )}
       </ItOpsBackground>
-      {backgroundOpen && serverRoom && roomView === "iso" ? (
+      {backgroundOpen && ((serverRoom && roomView === "iso") || (!serverRoom && !rack)) ? (
         <SharedBackgroundPopover
           className="itops-bg-popover"
           background={viewBackground ?? null}
           titleKey="itops.racks.changeBackground"
           defaultHintKey="itops.racks.backgroundDefaultHint"
-          onBackgroundChange={saveServerRoomViewBackground}
+          onBackgroundChange={saveDrillViewBackground}
           onLoadBackgroundImage={(file) => {
             void loadBackgroundImage(file);
           }}
@@ -1610,6 +1641,9 @@ function useFreeDrag(
   return { startDrag, moveDrag, endDrag };
 }
 
+// Site View is a free-form Server Room placement surface in both modes: cards
+// sit on a full-pane dot grid at their stored positions. Edit mode adds drag
+// and delete; right-clicking empty surface offers the Site background change.
 function SiteRoomCards({
   rooms,
   roomIcons,
@@ -1619,6 +1653,7 @@ function SiteRoomCards({
   onPlacementChange,
   onDeleteRoom,
   onSelectRoom,
+  onOpenBackground,
 }: {
   rooms: ReturnType<typeof groupRackTopology>;
   roomIcons?: Record<string, ItOpsCustomIcon>;
@@ -1628,24 +1663,25 @@ function SiteRoomCards({
   onPlacementChange: (next: FreePlacementMap) => void;
   onDeleteRoom: (serverRoom: string, racks: Rack[]) => void;
   onSelectRoom: (room: ReturnType<typeof groupRackTopology>[number]) => void;
+  onOpenBackground?: () => void;
 }) {
   const { t } = useTranslation();
   const drag = useFreeDrag(placement, onPlacementChange);
 
-  if (!editMode) {
-    return (
-      <div className="ft-cards">
-        {rooms.map((room) => (
-          <DrillCard
-            key={room.key}
-            icon="room"
-            customIcon={roomIcons?.[room.key]}
-            title={room.key || unassigned}
-            meta={t("itops.racks.rackCount", { count: room.racks.length })}
-            onClick={() => onSelectRoom(room)}
-          />
-        ))}
-      </div>
+  async function handleSurfaceContextMenu(event: ReactMouseEvent<HTMLDivElement>) {
+    if (!onOpenBackground) return;
+    const target = event.target as HTMLElement;
+    if (target.closest(".it-free-card")) return;
+    event.preventDefault();
+    await showNativeContextMenu(
+      [
+        {
+          kind: "item",
+          label: t("itops.racks.changeBackground"),
+          action: onOpenBackground,
+        },
+      ],
+      { x: event.clientX, y: event.clientY },
     );
   }
 
@@ -1653,6 +1689,7 @@ function SiteRoomCards({
     <div
       className="it-free-surface site"
       style={{ minHeight: freeSurfaceHeight(rooms.length, FREE_CARD_WIDTH, FREE_CARD_HEIGHT) }}
+      onContextMenu={onOpenBackground ? handleSurfaceContextMenu : undefined}
     >
       {rooms.map((room, index) => {
         const id = topologyGroupKey(room.key);
@@ -1661,12 +1698,12 @@ function SiteRoomCards({
         return (
           <div
             key={id}
-            className="it-free-card"
+            className={`it-free-card${editMode ? " editing" : ""}`}
             style={{ transform: `translate(${point.x}px, ${point.y}px)` }}
-            onPointerDown={(event) => drag.startDrag(event, id, fallback)}
-            onPointerMove={drag.moveDrag}
-            onPointerUp={drag.endDrag}
-            onPointerCancel={drag.endDrag}
+            onPointerDown={editMode ? (event) => drag.startDrag(event, id, fallback) : undefined}
+            onPointerMove={editMode ? drag.moveDrag : undefined}
+            onPointerUp={editMode ? drag.endDrag : undefined}
+            onPointerCancel={editMode ? drag.endDrag : undefined}
           >
             <DrillCard
               icon="room"
@@ -1675,18 +1712,20 @@ function SiteRoomCards({
               meta={t("itops.racks.rackCount", { count: room.racks.length })}
               onClick={() => onSelectRoom(room)}
             />
-            <button
-              type="button"
-              className="it-free-delete"
-              title={t("itops.racks.deleteServerRoomTitle")}
-              aria-label={t("itops.racks.deleteServerRoomTitle")}
-              onClick={(event) => {
-                event.stopPropagation();
-                onDeleteRoom(room.key, room.racks);
-              }}
-            >
-              <ItIcon name="xmark" size={11} />
-            </button>
+            {editMode ? (
+              <button
+                type="button"
+                className="it-free-delete"
+                title={t("itops.racks.deleteServerRoomTitle")}
+                aria-label={t("itops.racks.deleteServerRoomTitle")}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDeleteRoom(room.key, room.racks);
+                }}
+              >
+                <ItIcon name="xmark" size={11} />
+              </button>
+            ) : null}
           </div>
         );
       })}

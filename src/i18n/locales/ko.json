@@ -1048,7 +1048,8 @@
       "deleteBody": "“{{name}}”이(가) 제거됩니다. 해당 연결은 영향을 받지 않습니다.",
       "viewToggleLabel": "사이트 보기",
       "viewMembers": "멤버",
-      "viewRacks": "랙"
+      "viewRacks": "랙",
+      "autoOrganize": "자동 정렬"
     },
     "racks": {
       "heading": "랙",
