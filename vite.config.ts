@@ -68,8 +68,8 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      // 3. tell Vite to ignore non-frontend build and scratch trees
+      ignored: ["**/src-tauri/**", "**/.tmp/**"],
     },
   },
   build: {
