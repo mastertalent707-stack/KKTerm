@@ -85,9 +85,11 @@ test("Site tree add menu opens distinct Site, Server Room, and Rack dialogs", as
 
 test("Site topology rows open their existing dialogs from native Properties menus", async () => {
   const sites = await read("src/modules/itops/SitesTab.tsx");
+  const english = JSON.parse(await read("src/i18n/locales/en.json"));
 
   assert.match(sites, /showNativeContextMenu/);
   assert.match(sites, /label: t\("common\.properties"\)/);
+  assert.equal(english.common.properties, "Properties");
   assert.match(sites, /setDialog\(\{ group: site \}\)/);
   assert.match(sites, /setServerRoomDialog\(\{ siteId: site\.id, room: room\.room! \}\)/);
   assert.match(sites, /setRackDialog\(\{ siteId: site\.id, rack \}\)/);
