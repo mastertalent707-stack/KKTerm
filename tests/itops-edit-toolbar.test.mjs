@@ -71,6 +71,31 @@ test("Edit mode arms placement through the shared object picker column", async (
   }
 });
 
+test("Armed placement previews a cursor-snapped ghost and cancels on right-click", async () => {
+  const sites = await read("src/modules/itops/SitesTab.tsx");
+  const floorPlan = await read("src/modules/itops/ServerRoomFloorPlan.tsx");
+  const isoView = await read("src/modules/itops/ServerRoomIsoView.tsx");
+  const css = await read("src/modules/itops/itops.css");
+
+  // SitesTab disarms both the object tool and the pending rack on cancel.
+  assert.match(sites, /onCancelPlacement=\{\(\) => \{\s*setRoomTool\(null\);\s*setPlaceRackId\(null\);/);
+  for (const view of [floorPlan, isoView]) {
+    assert.match(view, /onCancelPlacement\?: \(\) => void/);
+    assert.match(view, /onContextMenu=\{/);
+    assert.match(view, /resolveDropZ\(\s*cellSpans\(hover/);
+  }
+  // The floor plan tracks the hovered cell and renders the plan-artwork ghost.
+  assert.match(floorPlan, /className=\{`rm-bp-ghost\$\{blocked \? " blocked" : ""\}`\}/);
+  assert.match(floorPlan, /onPointerMove=\{placing \? trackPlacement : undefined\}/);
+  // The 2.5D view snaps the ghost to hovered tiles and cabinets.
+  assert.match(isoView, /rm-iso-plane\$\{placing \? " placing" : ""\}/);
+  assert.match(isoView, /onHoverCell/);
+  assert.match(isoView, /className=\{`rm-iso-obj ghost/);
+  assert.match(isoView, /className="rm-iso-cab ghost"/);
+  assert.match(css, /\.rm-bp-ghost/);
+  assert.match(css, /\.rm-iso-drop\.blocked/);
+});
+
 test("Rack drag/drop and direct delete are gated behind edit mode", async () => {
   const rackElevation = await read("src/modules/itops/RackElevation.tsx");
   const sites = await read("src/modules/itops/SitesTab.tsx");

@@ -82,6 +82,7 @@ export function ServerRoomFloorPlan({
   onDeleteRack,
   onSelectRack,
   onObjectBlocked,
+  onCancelPlacement,
 }: {
   racks: Rack[];
   editMode?: boolean;
@@ -100,6 +101,8 @@ export function ServerRoomFloorPlan({
   onSelectRack: (rackId: string) => void;
   /** A placement click found no free vertical span in the cell. */
   onObjectBlocked?: () => void;
+  /** Right-click while a picker card is armed disarms it. */
+  onCancelPlacement?: () => void;
 }) {
   const { t } = useTranslation();
   const layout = resolveIsoLayout(racks, placement);
@@ -128,6 +131,13 @@ export function ServerRoomFloorPlan({
   const cellH = floorH > 0 ? Math.max(BP_MIN_CELL, floorH / rows) : BP_CELL;
   const grid = { cols, rows, cells: layout.cells };
   const armed = tool != null || placeRackId != null;
+  // Cursor-tracked placement preview: the armed object ghost snaps to the
+  // hovered cell so the grid shows the drop before the click commits.
+  const [hover, setHover] = useState<IsoCell | null>(null);
+  const placing = !!editMode && armed;
+  useEffect(() => {
+    if (!placing) setHover(null);
+  }, [placing]);
   const [drag, setDrag] = useState<DragState | null>(null);
   const dragRef = useRef<{
     kind: "rack" | "object";
@@ -213,19 +223,35 @@ export function ServerRoomFloorPlan({
     );
   }
 
+  // Pointer position → floor cell on the plan surface.
+  function cellFromEvent(event: React.MouseEvent<HTMLDivElement>): IsoCell {
+    const surface = event.currentTarget;
+    // The rect is the zoomed border box; clientLeft/Top are unzoomed CSS px.
+    const rect = surface.getBoundingClientRect();
+    // Children (and the grid background) sit inside the wall border.
+    return clampCell({
+      x: Math.floor(((event.clientX - rect.left) / zoom - surface.clientLeft) / cellW),
+      y: Math.floor(((event.clientY - rect.top) / zoom - surface.clientTop) / cellH),
+    });
+  }
+
+  function trackPlacement(event: ReactPointerEvent<HTMLDivElement>) {
+    const cell = cellFromEvent(event);
+    setHover((prev) => (prev && prev.x === cell.x && prev.y === cell.y ? prev : cell));
+  }
+
+  function cancelPlacement(event: React.MouseEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setHover(null);
+    onCancelPlacement?.();
+  }
+
   // An armed picker card places on any cell click: objects land on racks too
   // (that is how a 乖乖 pack lands on top of a cabinet), and a pending rack
   // moves to the clicked cell (swapping with any occupant).
   function placeAt(event: React.MouseEvent<HTMLDivElement>) {
     if (!editMode || !armed) return;
-    const surface = event.currentTarget;
-    // The rect is the zoomed border box; clientLeft/Top are unzoomed CSS px.
-    const rect = surface.getBoundingClientRect();
-    // Children (and the grid background) sit inside the wall border.
-    const cell = clampCell({
-      x: Math.floor(((event.clientX - rect.left) / zoom - surface.clientLeft) / cellW),
-      y: Math.floor(((event.clientY - rect.top) / zoom - surface.clientTop) / cellH),
-    });
+    const cell = cellFromEvent(event);
     if (placeRackId != null) {
       if (layout.cells[placeRackId]) {
         onPlacementChange?.(moveIsoRack(grid, placeRackId, cell));
@@ -288,7 +314,7 @@ export function ServerRoomFloorPlan({
             }}
           >
             <div
-              className={`rm-bp${armed && editMode ? " placing" : ""}`}
+              className={`rm-bp${placing ? " placing" : ""}`}
               style={{
                 width: cols * cellW,
                 height: rows * cellH,
@@ -296,6 +322,9 @@ export function ServerRoomFloorPlan({
                 backgroundSize: `${cellW}px ${cellH}px, ${cellW}px ${cellH}px, ${cellW / 4}px ${cellH / 4}px, ${cellW / 4}px ${cellH / 4}px, auto`,
               }}
               onClick={placeAt}
+              onPointerMove={placing ? trackPlacement : undefined}
+              onPointerLeave={placing ? () => setHover(null) : undefined}
+              onContextMenu={placing ? cancelPlacement : undefined}
             >
               {drag ? (
                 <div
@@ -351,6 +380,43 @@ export function ServerRoomFloorPlan({
                   }
                 />
               ))}
+              {placing && hover
+                ? (() => {
+                    // Realtime placement preview under the cursor: the armed
+                    // fixture's plan artwork (or the pending rack footprint)
+                    // on the hovered cell, red when no vertical span is free.
+                    const spec = tool != null ? objectSpec(tool) : null;
+                    const blocked =
+                      tool != null &&
+                      resolveDropZ(cellSpans(hover, racks, layout.cells, objects), tool) == null;
+                    const w = spec ? Math.round(spec.wide * cellW) : cellW;
+                    const h = spec
+                      ? Math.round(spec.deep * cellH)
+                      : Math.round(cellH * RACK_DEPTH_FRAC);
+                    return (
+                      <div
+                        className={`rm-bp-ghost${blocked ? " blocked" : ""}`}
+                        style={
+                          {
+                            left: hover.x * cellW,
+                            top: hover.y * cellH,
+                            width: cellW,
+                            height: cellH,
+                            "--obj": tool != null ? OBJECT_ACCENTS[tool] : undefined,
+                          } as React.CSSProperties
+                        }
+                      >
+                        {tool != null ? (
+                          <span className="rm-bp-ghost-item" style={{ width: w, height: h }}>
+                            <RoomObjectPlanArtwork kind={tool} />
+                          </span>
+                        ) : (
+                          <span className="rm-bp-ghost-rack" style={{ width: w, height: h }} />
+                        )}
+                      </div>
+                    );
+                  })()
+                : null}
             </div>
           </div>
         </div>

@@ -1331,6 +1331,10 @@ function RackDrill({
                   onSelectRack={(rackId) => setDrill({ serverRoom: serverRoom.key, rackId })}
                   onAddRack={editMode ? () => onAddRack(serverRoom.key) : undefined}
                   onObjectBlocked={notifyObjectBlocked}
+                  onCancelPlacement={() => {
+                    setRoomTool(null);
+                    setPlaceRackId(null);
+                  }}
                 />
               ) : (
                 <ServerRoomFloorPlan
@@ -1348,6 +1352,10 @@ function RackDrill({
                   onDeleteRack={editMode ? onDeleteRack : undefined}
                   onSelectRack={(rackId) => setDrill({ serverRoom: serverRoom.key, rackId })}
                   onObjectBlocked={notifyObjectBlocked}
+                  onCancelPlacement={() => {
+                    setRoomTool(null);
+                    setPlaceRackId(null);
+                  }}
                 />
               )}
               {editMode ? (

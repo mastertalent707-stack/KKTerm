@@ -3335,22 +3335,22 @@
 .itops-page .it-drill-actions {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 10px;
+  gap: 3px;
+  padding: 2px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   border: 0.5px solid var(--border);
   box-shadow: var(--shadow-control);
   pointer-events: auto;
 }
 .itops-page .it-drill-action {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 7px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -3820,13 +3820,14 @@
    (`data-shell`, fixed hardware palette like the 2D rack skin — no status
    colouring); object accents come from `data-kind`.
    ────────────────────────────────────────────────────────────────────────── */
-/* The room layout switcher lives centered in the sticky drill toolbar, on the
-   same row as the edit/add/export actions. */
+/* The room layout switcher lives centered in the sticky drill toolbar,
+   vertically middle-aligned with the edit/add/export action pill on the same
+   row (the +1px offsets the toolbar's top padding). */
 .itops-page .rm-segmented {
   position: absolute;
   left: 50%;
-  top: 2px;
-  transform: translateX(-50%);
+  top: calc(50% + 1px);
+  transform: translate(-50%, -50%);
   display: inline-flex;
   border: 0.5px solid var(--border);
   border-radius: 8px;
@@ -3845,7 +3846,8 @@
   font: inherit;
   font-size: 12px;
   font-weight: 560;
-  padding: 5px 12px;
+  padding: 0 12px;
+  height: 26px;
   cursor: pointer;
   transition: background 0.14s, color 0.14s;
 }
@@ -3911,6 +3913,38 @@
   border-radius: 4px;
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   pointer-events: none;
+}
+/* Armed-placement ghost: the picked fixture (or pending rack footprint) rides
+   the cursor snapped to the hovered cell, previewing the drop before the
+   click commits; blocked means the cell has no free vertical span. */
+.itops-page .rm-bp-ghost {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed var(--accent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  pointer-events: none;
+  z-index: 4;
+}
+.itops-page .rm-bp-ghost.blocked {
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+}
+.itops-page .rm-bp-ghost-item {
+  display: block;
+  color: var(--obj, var(--text-muted));
+  opacity: 0.75;
+}
+.itops-page .rm-bp-ghost.blocked .rm-bp-ghost-item {
+  opacity: 0.4;
+}
+.itops-page .rm-bp-ghost-rack {
+  border: 1.5px solid color-mix(in srgb, var(--accent) 65%, var(--border));
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+  opacity: 0.75;
 }
 
 /* One rack footprint standing on its cell, painted in the rack's shell
@@ -4671,6 +4705,31 @@
   border: 1.5px solid var(--accent);
   border-radius: 4px;
   background: color-mix(in srgb, var(--accent) 16%, transparent);
+  pointer-events: none;
+}
+.itops-page .rm-iso-drop.blocked {
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+}
+
+/* Armed placement over the 2.5D room: the picked fixture (or pending rack)
+   ghost rides the hovered tile so the grid previews the drop in realtime.
+   Objects let the pointer through so tiles under them stay hover/click
+   targets, and the tile's own plus glyph stays hidden while a ghost shows. */
+.itops-page .rm-iso-plane.placing,
+.itops-page .rm-iso-plane.placing .rm-iso-body,
+.itops-page .rm-iso-plane.placing .rm-iso-tile {
+  cursor: crosshair;
+}
+.itops-page .rm-iso-plane.placing .rm-iso-obj:not(.ghost) {
+  pointer-events: none;
+}
+.itops-page .rm-iso-plane.placing .rm-iso-tile:hover {
+  color: transparent;
+}
+.itops-page .rm-iso-cab.ghost,
+.itops-page .rm-iso-obj.ghost {
+  opacity: 0.65;
   pointer-events: none;
 }
 
