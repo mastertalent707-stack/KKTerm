@@ -15,6 +15,7 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { ConfirmSheet } from "../../app/ui/dialog";
 import { useWorkspaceStore } from "../../store";
 import type { Site, Rack, RackItem, ResolvedHost, ServerRoom } from "../../types";
@@ -133,7 +134,7 @@ export function SitesTab({
   treeCollapsed,
   onShowWorkspace,
 }: {
-  renderSidebarHeader?: (props: { collapsed: boolean }) => ReactNode;
+  renderSidebarHeader?: (props: { actions?: ReactNode; collapsed: boolean }) => ReactNode;
   treeCollapsed: boolean;
   /** Navigate the app shell to the Workspace Module (connect popover jumps). */
   onShowWorkspace: () => void;
@@ -196,6 +197,26 @@ export function SitesTab({
       return next;
     });
   }, []);
+  const expandAllNodes = useCallback(() => setCollapsed(new Set()), []);
+  const collapseAllNodes = useCallback(() => {
+    setCollapsed(() => {
+      const next = new Set<string>();
+      for (const site of sites) {
+        const siteId = nodeId.site(site.id);
+        const siteRacks = racksBySite[site.id] ?? [];
+        const siteTopo = groupRackTopology(siteRacks, serverRoomsBySite[site.id] ?? []);
+        if (siteRacks.length > 0) {
+          next.add(siteId);
+        }
+        for (const room of siteTopo) {
+          if (room.racks.length > 0) {
+            next.add(nodeId.serverRoom(site.id, room.key));
+          }
+        }
+      }
+      return next;
+    });
+  }, [racksBySite, serverRoomsBySite, sites]);
 
   // Drag the splitter to resize the tree. During the drag we set the width
   // directly on the DOM element so the cursor stays in sync with the bar —
@@ -435,6 +456,68 @@ export function SitesTab({
   const q = query.trim().toLowerCase();
   const matchQ = (s: string) => !q || (s || t("itops.racks.unassigned")).toLowerCase().includes(q);
   const effectiveTreeWidth = treeCollapsed ? SITE_TREE_COLLAPSED_WIDTH : treeWidth;
+  const hasExpandableTreeNodes = sites.some((site) => (racksBySite[site.id] ?? []).length > 0);
+  const addTopologyMenu = !treeCollapsed ? (
+    <div className="ft-add-wrap">
+      <button
+        type="button"
+        className="icon-button"
+        title={t("itops.racks.addNode")}
+        aria-label={t("itops.racks.addNode")}
+        aria-haspopup="menu"
+        aria-expanded={addMenuOpen}
+        onClick={() => setAddMenuOpen((open) => !open)}
+      >
+        <ItIcon name="plus" size={14} />
+      </button>
+      {addMenuOpen ? (
+        <>
+          <div className="ft-add-backdrop" onClick={() => setAddMenuOpen(false)} />
+          <div className="ft-add-menu" role="menu">
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setAddMenuOpen(false);
+                setDialog({ group: null });
+              }}
+            >
+              <ItIcon name="site" size={14} />
+              {t("itops.racks.addSite")}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              disabled={!activeGroup}
+              onClick={() => {
+                setAddMenuOpen(false);
+                setServerRoomDialogOpen(true);
+              }}
+            >
+              <ItIcon name="room" size={14} />
+              {t("itops.racks.addServerRoom")}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              disabled={!activeGroup}
+              onClick={() => {
+                setAddMenuOpen(false);
+                setRackDialog({
+                  siteId: selectedSiteIdForDialog,
+                  rack: null,
+                  defaultServerRoom: selectedServerRoomForDialog,
+                });
+              }}
+            >
+              <ItIcon name="rack" size={14} />
+              {t("itops.racks.addRack")}
+            </button>
+          </div>
+        </>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
     <div className={`hg ft${treeCollapsed ? " ft-collapsed" : ""}`}>
@@ -445,69 +528,33 @@ export function SitesTab({
         data-tutorial-id="itops.sitesTree"
         style={{ width: effectiveTreeWidth, flex: `0 0 ${effectiveTreeWidth}px` }}
       >
-        {renderSidebarHeader?.({ collapsed: treeCollapsed })}
+        {renderSidebarHeader?.({ actions: addTopologyMenu, collapsed: treeCollapsed })}
         {!treeCollapsed ? (
           <>
             <div className="ft-head">
               <span className="ft-head-title">{t("itops.sites.heading")}</span>
-              <div className="ft-add-wrap">
-                <button
-                  type="button"
-                  className="it-icon-btn sm"
-                  title={t("itops.racks.addNode")}
-                  aria-haspopup="menu"
-                  aria-expanded={addMenuOpen}
-                  onClick={() => setAddMenuOpen((open) => !open)}
-                >
-                  <ItIcon name="plus" size={14} />
-                </button>
-                {addMenuOpen ? (
-                  <>
-                    <div className="ft-add-backdrop" onClick={() => setAddMenuOpen(false)} />
-                    <div className="ft-add-menu" role="menu">
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setAddMenuOpen(false);
-                          setDialog({ group: null });
-                        }}
-                      >
-                        <ItIcon name="site" size={14} />
-                        {t("itops.racks.addSite")}
-                      </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        disabled={!activeGroup}
-                        onClick={() => {
-                          setAddMenuOpen(false);
-                          setServerRoomDialogOpen(true);
-                        }}
-                      >
-                        <ItIcon name="room" size={14} />
-                        {t("itops.racks.addServerRoom")}
-                      </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        disabled={!activeGroup}
-                        onClick={() => {
-                          setAddMenuOpen(false);
-                          setRackDialog({
-                            siteId: selectedSiteIdForDialog,
-                            rack: null,
-                            defaultServerRoom: selectedServerRoomForDialog,
-                          });
-                        }}
-                      >
-                        <ItIcon name="rack" size={14} />
-                        {t("itops.racks.addRack")}
-                      </button>
-                    </div>
-                  </>
-                ) : null}
-              </div>
+              {hasExpandableTreeNodes ? (
+                <div className="ft-tree-controls" aria-label={t("itops.sites.heading")}>
+                  <button
+                    aria-label={t("connections.collapseAll")}
+                    className="it-icon-btn sm ft-tree-control"
+                    onClick={collapseAllNodes}
+                    title={t("connections.collapseAll")}
+                    type="button"
+                  >
+                    <Minimize2 size={13} />
+                  </button>
+                  <button
+                    aria-label={t("connections.expandAll")}
+                    className="it-icon-btn sm ft-tree-control"
+                    onClick={expandAllNodes}
+                    title={t("connections.expandAll")}
+                    type="button"
+                  >
+                    <Maximize2 size={13} />
+                  </button>
+                </div>
+              ) : null}
             </div>
             <div className="ft-search">
               <ItIcon name="search" size={13} />

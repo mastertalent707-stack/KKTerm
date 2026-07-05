@@ -10,6 +10,8 @@ test("IT Ops visible shell is Site-only with the Module header in the Site sideb
   assert.match(module, /renderSidebarHeader=\{/);
   assert.match(module, /<ModuleHeader\b/);
   assert.match(module, /<ModuleIconTile\b/);
+  assert.match(module, /renderSidebarHeader=\{\(\{ actions, collapsed \}\)/);
+  assert.match(module, /<ModuleHeaderTitle>\{t\("itops\.title"\)\}<\/ModuleHeaderTitle>[\s\S]*it-head-actions/);
   assert.doesNotMatch(module, /it-side-collapse/);
   assert.doesNotMatch(module, /\bit-tabs\b/);
   assert.doesNotMatch(module, /TABS\.map/);
@@ -62,6 +64,10 @@ test("Site tree add menu opens distinct Site, Server Room, and Rack dialogs", as
   assert.match(sites, /selectedServerRoomForDialog/);
   assert.match(sites, /setServerRoomDialogOpen\(true\)/);
   assert.match(sites, /setRackDialog\(\{[\s\S]*siteId: selectedSiteIdForDialog[\s\S]*rack: null/);
+  assert.match(sites, /renderSidebarHeader\?\.\(\{ actions: addTopologyMenu, collapsed: treeCollapsed \}\)/);
+  assert.match(sites, /className="icon-button"[\s\S]*aria-label=\{t\("itops\.racks\.addNode"\)\}/);
+  assert.match(sites, /ft-head-title[\s\S]*itops\.sites\.heading[\s\S]*connections\.collapseAll[\s\S]*connections\.expandAll/);
+  assert.doesNotMatch(sites, /<span className="ft-head-title">\{t\("itops\.sites\.heading"\)\}<\/span>[\s\S]{0,120}ft-add-wrap/);
   assert.match(sites, /customIcon=\{site\}/);
   assert.match(sites, /customIcon=\{site\.roomIcons\?\.\[room\.key\]\}/);
   assert.match(sites, /<ConnectionIcon\b/);

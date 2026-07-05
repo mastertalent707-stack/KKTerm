@@ -108,7 +108,7 @@ export function ItOpsModule({
         <SitesTab
           treeCollapsed={siteTreeCollapsed}
           onShowWorkspace={onShowWorkspace}
-          renderSidebarHeader={({ collapsed }) => (
+          renderSidebarHeader={({ actions, collapsed }) => (
             <ModuleHeader className="it-head it-side-head">
               <ModuleIconTile className="it-head-tile" module="itops">
                 <ItIcon name="ops" size={20} sw={1.7} />
@@ -116,6 +116,7 @@ export function ItOpsModule({
               {collapsed ? null : (
                 <div className="it-head-txt">
                   <ModuleHeaderTitle>{t("itops.title")}</ModuleHeaderTitle>
+                  {actions ? <div className="it-head-actions">{actions}</div> : null}
                 </div>
               )}
             </ModuleHeader>
