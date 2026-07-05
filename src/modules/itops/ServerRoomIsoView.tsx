@@ -56,6 +56,7 @@ import { ItIcon } from "./icons";
 import {
   OBJECT_ACCENTS,
   ObjectGlyph,
+  RackTipContent,
   RoomZoomRuler,
   useRoomPan,
   useRoomViewportSize,
@@ -726,42 +727,7 @@ function IsoCabinet({
         {rack.name}
       </span>
       <span className="rm-iso-tip" style={{ transform: billboard(h + 10, "-50%, -112%") }}>
-        <span className="rm-iso-tip-name">{rack.name}</span>
-        <span className="rm-iso-tip-detail">
-          {health} · {t("itops.floorPlan.utilizationValue", { percent: Math.round(m.utilization * 100) })}
-          {m.powerW > 0
-            ? ` · ${
-                m.powerCapacityW != null
-                  ? t("itops.floorPlan.powerValue", { used: m.powerW, capacity: m.powerCapacityW })
-                  : t("itops.floorPlan.powerDrawOnly", { watts: m.powerW })
-              }`
-            : ""}
-        </span>
-        <span className="rm-iso-tip-cap">
-          {t("itops.racks.unitCount", { count: m.usedU })} /{" "}
-          {t("itops.racks.unitCount", { count: m.capacityU })} ·{" "}
-          {t("itops.racks.deviceCount", { count: m.deviceCount })}
-        </span>
-        {m.deviceCount > 0 ? (
-          <span className="rm-tile-dots">
-            <span className="rm-dot on">
-              <i />
-              {m.online}
-            </span>
-            {m.warning > 0 ? (
-              <span className="rm-dot warn">
-                <i />
-                {m.warning}
-              </span>
-            ) : null}
-            {m.offline > 0 ? (
-              <span className="rm-dot off">
-                <i />
-                {m.offline}
-              </span>
-            ) : null}
-          </span>
-        ) : null}
+        <RackTipContent rack={rack} />
       </span>
       {editMode && (onRotate || onDelete) ? (
         <span className="rm-iso-ctl-wrap" style={{ transform: billboard(h + 6, "40%, -170%") }}>
@@ -875,7 +841,6 @@ function IsoObject({
         style={{ transform: billboard(bottom + h + 5, "-50%, -100%") }}
       >
         <ObjectGlyph kind={object.kind} size={12} />
-        {object.z > 0 ? <em>{object.z}U</em> : null}
       </span>
       {editMode ? (
         <span
