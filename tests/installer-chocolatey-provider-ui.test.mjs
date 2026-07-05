@@ -14,6 +14,10 @@ const installSource = await readFile(
   new URL("../src-tauri/src/installer/install.rs", import.meta.url),
   "utf8",
 );
+const detectSource = await readFile(
+  new URL("../src-tauri/src/installer/detect.rs", import.meta.url),
+  "utf8",
+);
 const latestVersionSource = await readFile(
   new URL("../src-tauri/src/installer/latest_version.rs", import.meta.url),
   "utf8",
@@ -59,6 +63,11 @@ test("Chocolatey update is gated by an admin confirmation before elevating", () 
     /updateConfirm \?[\s\S]*installer\.confirm\.adminChocolateyFooter/,
     "The update confirmation should carry the Chocolatey admin footer.",
   );
+  assert.doesNotMatch(
+    dialogSource,
+    /updateConfirm \?[\s\S]*body=\{t\("installer\.dialog\.adminRequiredChocolatey"\)\}[\s\S]*footer=\{t\("installer\.confirm\.adminChocolateyFooter"\)\}/,
+    "The update confirmation should not render duplicate Chocolatey UAC descriptions in both body and footer.",
+  );
 });
 
 test("Chocolatey uninstall confirmation carries the admin footer", () => {
@@ -69,11 +78,29 @@ test("Chocolatey uninstall confirmation carries the admin footer", () => {
   );
 });
 
-test("Chocolatey provider predicate mirrors the Rust selection fallback", () => {
+test("Chocolatey provider predicate uses the detected provider for this tool", () => {
   assert.match(
     dialogSource,
-    /function recipeUsesChocolateyProvider\([\s\S]*chocolateyProvider\?\.kind === "chocolatey"[\s\S]*detected\["chocolatey"\]\?\.installed/,
-    "recipeUsesChocolateyProvider should fall back to choco once Chocolatey itself is installed.",
+    /function detectedProviderForRecipe\([\s\S]*detected\?\.installProvider === "chocolatey"[\s\S]*recipe\.chocolateyProvider/,
+    "Installed tool dialogs should resolve the displayed/managed provider from the tool's detected provider.",
+  );
+  assert.doesNotMatch(
+    dialogSource,
+    /function recipeUsesChocolateyProvider\([\s\S]*detected\["chocolatey"\]\?\.installed[\s\S]*function recipeSupportsScope/,
+    "A Chocolatey manager install alone must not make unrelated installed tools warn that their update uses Chocolatey.",
+  );
+});
+
+test("detected state includes the install provider used for this tool", () => {
+  assert.match(
+    detectSource,
+    /install_provider: None/,
+    "Rust DetectedState should carry an installProvider field with a default for older cache entries.",
+  );
+  assert.match(
+    detectSource,
+    /with_install_provider\(Some\("chocolatey"\)\)/,
+    "Chocolatey alternate-provider detection should mark that tool as Chocolatey-managed.",
   );
 });
 
