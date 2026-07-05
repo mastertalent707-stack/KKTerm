@@ -233,8 +233,9 @@ export function RoomZoomRuler({
 
 // ── Rack status tags ──
 
-/** Compact always-visible tags on a rack footprint: device count, occupied U,
- *  and power draw (only when any device declares one). */
+/** Compact always-visible tags on a rack footprint: device count and power
+ *  draw (only when any device declares one). Rack-unit figures stay off the
+ *  view — they live in the hover detail card (RackTipContent). */
 export function RackTagChips({ rack }: { rack: Rack }) {
   const { t } = useTranslation();
   const m = rackFloorMetrics(rack);
@@ -246,9 +247,6 @@ export function RackTagChips({ rack }: { rack: Rack }) {
       >
         <i />
         {m.deviceCount}
-      </span>
-      <span className="rm-tag" title={t("itops.floorPlan.utilizationValue", { percent: Math.round(m.utilization * 100) })}>
-        {m.usedU}/{m.capacityU}U
       </span>
       {m.powerW > 0 ? (
         <span
@@ -263,6 +261,56 @@ export function RackTagChips({ rack }: { rack: Rack }) {
         </span>
       ) : null}
     </span>
+  );
+}
+
+/** Inner content of the hover detail card shared by the floor plan and the
+ *  2.5D room: name, health · utilisation (· power), used/total rack units ·
+ *  device count, and status tallies. The wrapping element (billboarded
+ *  `.rm-iso-tip` / floating `.rm-bp-tip`) belongs to each view. */
+export function RackTipContent({ rack }: { rack: Rack }) {
+  const { t } = useTranslation();
+  const m = rackFloorMetrics(rack);
+  const health = t(`itops.floorPlan.health.${m.health}`);
+  return (
+    <>
+      <span className="rm-tip-name">{rack.name}</span>
+      <span className="rm-tip-detail">
+        {health} · {t("itops.floorPlan.utilizationValue", { percent: Math.round(m.utilization * 100) })}
+        {m.powerW > 0
+          ? ` · ${
+              m.powerCapacityW != null
+                ? t("itops.floorPlan.powerValue", { used: m.powerW, capacity: m.powerCapacityW })
+                : t("itops.floorPlan.powerDrawOnly", { watts: m.powerW })
+            }`
+          : ""}
+      </span>
+      <span className="rm-tip-cap">
+        {t("itops.racks.unitCount", { count: m.usedU })} /{" "}
+        {t("itops.racks.unitCount", { count: m.capacityU })} ·{" "}
+        {t("itops.racks.deviceCount", { count: m.deviceCount })}
+      </span>
+      {m.deviceCount > 0 ? (
+        <span className="rm-tile-dots">
+          <span className="rm-dot on">
+            <i />
+            {m.online}
+          </span>
+          {m.warning > 0 ? (
+            <span className="rm-dot warn">
+              <i />
+              {m.warning}
+            </span>
+          ) : null}
+          {m.offline > 0 ? (
+            <span className="rm-dot off">
+              <i />
+              {m.offline}
+            </span>
+          ) : null}
+        </span>
+      ) : null}
+    </>
   );
 }
 
