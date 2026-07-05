@@ -1048,7 +1048,8 @@
       "deleteBody": "“{{name}}” akan dihapus. Koneksinya tidak terpengaruh.",
       "viewToggleLabel": "Tampilan situs",
       "viewMembers": "Anggota",
-      "viewRacks": "Rak"
+      "viewRacks": "Rak",
+      "autoOrganize": "Atur Otomatis"
     },
     "racks": {
       "heading": "Rak",
