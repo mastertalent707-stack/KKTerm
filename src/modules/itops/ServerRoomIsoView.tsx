@@ -62,7 +62,6 @@ import {
 import { ItIcon } from "./icons";
 import {
   OBJECT_ACCENTS,
-  ObjectGlyph,
   RackTipContent,
   RoomZoomRuler,
   useRoomPan,
@@ -931,14 +930,6 @@ function IsoObject({
       >
         <RoomObjectIsoArtwork kind={object.kind} />
       </span>
-      {editMode ? (
-        <span
-          className="rm-iso-obj-badge"
-          style={{ transform: billboard(bottom + h + 5, "-50%, -100%") }}
-        >
-          <ObjectGlyph kind={object.kind} size={12} />
-        </span>
-      ) : null}
       {editMode && selected ? (
         <span
           className="rm-iso-ctl-wrap"

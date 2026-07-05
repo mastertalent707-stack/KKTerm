@@ -1048,7 +1048,8 @@
       "deleteBody": "“{{name}}” será removido. Suas conexões não são afetadas.",
       "viewToggleLabel": "Visão de site",
       "viewMembers": "Membros",
-      "viewRacks": "Racks"
+      "viewRacks": "Racks",
+      "autoOrganize": "Organizar automaticamente"
     },
     "racks": {
       "heading": "Racks",

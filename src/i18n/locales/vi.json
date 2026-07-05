@@ -1048,7 +1048,8 @@
       "deleteBody": "“{{name}}” sẽ bị xóa. Các kết nối của nó không bị ảnh hưởng.",
       "viewToggleLabel": "Xem site",
       "viewMembers": "Thành viên",
-      "viewRacks": "Rack"
+      "viewRacks": "Rack",
+      "autoOrganize": "Tự động sắp xếp"
     },
     "racks": {
       "heading": "Rack",

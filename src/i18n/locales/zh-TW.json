@@ -1048,7 +1048,8 @@
       "deleteBody": "「{{name}}」將被移除。其連線不受影響。",
       "viewToggleLabel": "站台檢視",
       "viewMembers": "成員",
-      "viewRacks": "機架"
+      "viewRacks": "機架",
+      "autoOrganize": "自動排列"
     },
     "racks": {
       "heading": "機架",

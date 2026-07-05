@@ -118,7 +118,8 @@ test("2.5D edit controls are selection-scoped and the room owns its appearance",
   assert.match(isoView, /selected=\{selectedItem\?\.kind === "rack"/);
   assert.match(isoView, /selected=\{selectedItem\?\.kind === "object"/);
   assert.match(isoView, /editMode && selected/);
-  assert.match(isoView, /\{editMode \? \([\s\S]*className="rm-iso-obj-badge"/);
+  // Object kind chips no longer float above the artwork — the view stays clean.
+  assert.doesNotMatch(isoView, /rm-iso-obj-badge/);
   assert.match(isoView, /className="rm-iso-nameplate"/);
   assert.match(isoView, /facing \* 90/);
   assert.doesNotMatch(isoView, /className="rm-iso-floors"/);
