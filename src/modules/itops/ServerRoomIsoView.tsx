@@ -44,10 +44,13 @@ import {
   resolveDropZ,
   type RoomObject,
 } from "./roomObjects";
-import type { FreePlacementMap, RackFacingMap } from "./siteTreeState";
+import type { FreePlacementMap, IsoFloorColor, RackFacingMap } from "./siteTreeState";
 import {
+  ISO_FLOOR_COLORS,
+  loadIsoFloor,
   loadIsoViewAngle,
   loadRoomZoom,
+  saveIsoFloor,
   saveIsoViewAngle,
   saveRoomZoom,
   stepRoomZoom,
@@ -56,6 +59,7 @@ import { ItIcon } from "./icons";
 import {
   OBJECT_ACCENTS,
   ObjectGlyph,
+  RackTipContent,
   RoomZoomRuler,
   useRoomPan,
   useRoomViewportSize,
@@ -146,6 +150,10 @@ export function ServerRoomIsoView({
   const [scrollRef, viewport] = useRoomViewportSize();
   const [angle, setAngle] = useState<IsoViewAngle>(loadIsoViewAngle);
   useEffect(() => saveIsoViewAngle(angle), [angle]);
+  // Solid floor finish; "default" tracks the app theme, the rest are fixed
+  // material palettes (itops.css [data-floor]).
+  const [floor, setFloor] = useState<IsoFloorColor>(loadIsoFloor);
+  useEffect(() => saveIsoFloor(floor), [floor]);
   // Zoom scales the rendered room; the coverage math below works in unzoomed
   // (logical) px, so zooming out shows more floor in the same window.
   const [zoom, setZoom] = useState(() => loadRoomZoom("iso"));
@@ -367,24 +375,6 @@ export function ServerRoomIsoView({
   return (
     <div className="rm-iso">
       <div className="rm-view-body">
-        <div className="rm-iso-angles" role="group" aria-label={t("itops.floorPlan.viewAngleLabel")}>
-          <button
-            type="button"
-            title={t("itops.floorPlan.rotateViewLeft")}
-            aria-label={t("itops.floorPlan.rotateViewLeft")}
-            onClick={() => setAngle(((angle + 3) % 4) as IsoViewAngle)}
-          >
-            <ItIcon name="chevL" size={13} />
-          </button>
-          <button
-            type="button"
-            title={t("itops.floorPlan.rotateViewRight")}
-            aria-label={t("itops.floorPlan.rotateViewRight")}
-            onClick={() => setAngle(((angle + 1) % 4) as IsoViewAngle)}
-          >
-            <ItIcon name="chevR" size={13} />
-          </button>
-        </div>
         {/* tabIndex: clicking the room focuses the viewport so arrow keys pan. */}
         <div
           className="rm-iso-scroll"
@@ -411,6 +401,7 @@ export function ServerRoomIsoView({
             >
               <div
                 className={`rm-iso-plane${placing ? " placing" : ""}`}
+                data-floor={floor !== "default" ? floor : undefined}
                 style={{
                   width: planeW,
                   height: planeH,
@@ -594,7 +585,53 @@ export function ServerRoomIsoView({
             </div>
           </div>
         </div>
-        <RoomZoomRuler zoom={zoom} onZoomChange={setZoom} />
+        {/* Floating control column over the room's top-right corner: the zoom
+            ruler with the view-angle stepper and floor-colour swatches under
+            it. */}
+        <div className="rm-iso-corner">
+          <RoomZoomRuler zoom={zoom} onZoomChange={setZoom} />
+          <div
+            className="rm-iso-angles"
+            role="group"
+            aria-label={t("itops.floorPlan.viewAngleLabel")}
+          >
+            <button
+              type="button"
+              title={t("itops.floorPlan.rotateViewLeft")}
+              aria-label={t("itops.floorPlan.rotateViewLeft")}
+              onClick={() => setAngle(((angle + 3) % 4) as IsoViewAngle)}
+            >
+              <ItIcon name="rotateL" size={13} />
+            </button>
+            <button
+              type="button"
+              title={t("itops.floorPlan.rotateViewRight")}
+              aria-label={t("itops.floorPlan.rotateViewRight")}
+              onClick={() => setAngle(((angle + 1) % 4) as IsoViewAngle)}
+            >
+              <ItIcon name="rotateR" size={13} />
+            </button>
+          </div>
+          <div
+            className="rm-iso-floors"
+            role="group"
+            aria-label={t("itops.floorPlan.floorColorLabel")}
+          >
+            {ISO_FLOOR_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className="rm-iso-floor-swatch"
+                data-floor={color}
+                data-active={color === floor}
+                title={t(`itops.floorPlan.floorColor.${color}`)}
+                aria-label={t(`itops.floorPlan.floorColor.${color}`)}
+                aria-pressed={color === floor}
+                onClick={() => setFloor(color)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
       {editMode ? <div className="rm-iso-hint">{t("itops.floorPlan.isoEditHint")}</div> : null}
     </div>
@@ -726,42 +763,7 @@ function IsoCabinet({
         {rack.name}
       </span>
       <span className="rm-iso-tip" style={{ transform: billboard(h + 10, "-50%, -112%") }}>
-        <span className="rm-iso-tip-name">{rack.name}</span>
-        <span className="rm-iso-tip-detail">
-          {health} · {t("itops.floorPlan.utilizationValue", { percent: Math.round(m.utilization * 100) })}
-          {m.powerW > 0
-            ? ` · ${
-                m.powerCapacityW != null
-                  ? t("itops.floorPlan.powerValue", { used: m.powerW, capacity: m.powerCapacityW })
-                  : t("itops.floorPlan.powerDrawOnly", { watts: m.powerW })
-              }`
-            : ""}
-        </span>
-        <span className="rm-iso-tip-cap">
-          {t("itops.racks.unitCount", { count: m.usedU })} /{" "}
-          {t("itops.racks.unitCount", { count: m.capacityU })} ·{" "}
-          {t("itops.racks.deviceCount", { count: m.deviceCount })}
-        </span>
-        {m.deviceCount > 0 ? (
-          <span className="rm-tile-dots">
-            <span className="rm-dot on">
-              <i />
-              {m.online}
-            </span>
-            {m.warning > 0 ? (
-              <span className="rm-dot warn">
-                <i />
-                {m.warning}
-              </span>
-            ) : null}
-            {m.offline > 0 ? (
-              <span className="rm-dot off">
-                <i />
-                {m.offline}
-              </span>
-            ) : null}
-          </span>
-        ) : null}
+        <RackTipContent rack={rack} />
       </span>
       {editMode && (onRotate || onDelete) ? (
         <span className="rm-iso-ctl-wrap" style={{ transform: billboard(h + 6, "40%, -170%") }}>
@@ -875,7 +877,6 @@ function IsoObject({
         style={{ transform: billboard(bottom + h + 5, "-50%, -100%") }}
       >
         <ObjectGlyph kind={object.kind} size={12} />
-        {object.z > 0 ? <em>{object.z}U</em> : null}
       </span>
       {editMode ? (
         <span

@@ -39,6 +39,7 @@ import { RoomObjectPlanArtwork } from "./RoomObjectArtwork";
 import {
   OBJECT_ACCENTS,
   RackTagChips,
+  RackTipContent,
   RoomZoomRuler,
   useRoomPan,
   useRoomViewportSize,
@@ -497,6 +498,9 @@ function BlueprintRack({
         <span className="rm-bp-rack-name">{rack.name}</span>
         <RackTagChips rack={rack} />
       </button>
+      <span className="rm-bp-tip">
+        <RackTipContent rack={rack} />
+      </span>
       {editMode && (onRotate || onDelete) ? (
         <span className="rm-bp-ctl">
           {onRotate ? (
@@ -593,7 +597,6 @@ function BlueprintObject({
       <span className="rm-bp-obj-glyph" style={{ transform: `rotate(${object.rot * 90}deg)` }}>
         <RoomObjectPlanArtwork kind={object.kind} />
       </span>
-      {object.z > 0 ? <span className="rm-bp-obj-z">{object.z}U</span> : null}
       {editMode ? (
         <span className="rm-bp-ctl">
           <button
