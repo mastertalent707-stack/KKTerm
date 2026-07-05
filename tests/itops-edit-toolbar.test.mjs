@@ -109,6 +109,26 @@ test("Rack drag/drop and direct delete are gated behind edit mode", async () => 
   assert.match(sites, /onDeleteRack=\{editMode \? onDeleteRack : undefined\}/);
 });
 
+test("2.5D edit controls are selection-scoped and the room owns its appearance", async () => {
+  const sites = await read("src/modules/itops/SitesTab.tsx");
+  const isoView = await read("src/modules/itops/ServerRoomIsoView.tsx");
+  const css = await read("src/modules/itops/itops.css");
+
+  assert.match(isoView, /selectedItem/);
+  assert.match(isoView, /selected=\{selectedItem\?\.kind === "rack"/);
+  assert.match(isoView, /selected=\{selectedItem\?\.kind === "object"/);
+  assert.match(isoView, /editMode && selected/);
+  assert.match(isoView, /\{editMode \? \([\s\S]*className="rm-iso-obj-badge"/);
+  assert.match(isoView, /className="rm-iso-nameplate"/);
+  assert.match(isoView, /facing \* 90/);
+  assert.doesNotMatch(isoView, /className="rm-iso-floors"/);
+  assert.match(isoView, /showNativeContextMenu/);
+  assert.match(isoView, /onOpenBackground/);
+  assert.match(sites, /<SharedBackgroundPopover/);
+  assert.match(sites, /setServerRoomBackground/);
+  assert.match(css, /\.rm-iso-nameplate/);
+});
+
 test("IT Ops free placement is local UI state for Site cards and floor tiles", async () => {
   const sites = await read("src/modules/itops/SitesTab.tsx");
   const floorPlan = await read("src/modules/itops/ServerRoomFloorPlan.tsx");
@@ -134,4 +154,3 @@ test("Rack device dialog includes a preview picker for every device type", async
   assert.match(dialog, /<RackDevice[\s\S]*kind=\{value\}/);
   assert.match(dialog, /aria-label=\{t\("itops\.racks\.kindPreviewLabel"\)\}/);
 });
-

@@ -14,7 +14,6 @@ const FREE_LAYOUT_KEY = "kkterm.itopsFreePlacement";
 const RACK_FACING_KEY = "kkterm.itopsRackFacing";
 const ROOM_OBJECTS_KEY = "kkterm.itopsRoomObjects";
 const ISO_ANGLE_KEY = "kkterm.itopsIsoViewAngle";
-const ISO_FLOOR_KEY = "kkterm.itopsIsoFloorColor";
 const ROOM_ZOOM_KEY = "kkterm.itopsRoomZoom";
 
 export const SITE_TREE_MIN_WIDTH = 200;
@@ -178,7 +177,7 @@ export function saveIsoViewAngle(angle: IsoViewAngle): void {
   localStorage.setItem(ISO_ANGLE_KEY, String(angle));
 }
 
-// ── 2.5D floor colour (app-wide, like the view angle) ──
+// ── 2.5D floor colour ──
 
 /** Solid floor finishes for the 2.5D room; "default" follows the app theme,
  *  the rest are fixed material palettes defined in itops.css. */
@@ -190,16 +189,6 @@ export function sanitizeIsoFloor(value: unknown): IsoFloorColor {
   return (ISO_FLOOR_COLORS as readonly unknown[]).includes(value)
     ? (value as IsoFloorColor)
     : "default";
-}
-
-export function loadIsoFloor(): IsoFloorColor {
-  if (typeof localStorage === "undefined") return "default";
-  return sanitizeIsoFloor(localStorage.getItem(ISO_FLOOR_KEY));
-}
-
-export function saveIsoFloor(color: IsoFloorColor): void {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(ISO_FLOOR_KEY, color);
 }
 
 // ── Room view zoom (app-wide like the view mode, one level per spatial view) ──

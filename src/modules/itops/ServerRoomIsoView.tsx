@@ -14,8 +14,15 @@
 // armed by the shared picker column (owned by SitesTab). Placement persists
 // through the shared "grid" store.
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { useTranslation } from "react-i18next";
+import { showNativeContextMenu } from "../../lib/nativeContextMenu";
 import type { Rack, RackItem, RackItemStatus } from "../../types";
 import { rackFloorMetrics } from "./roomFloorPlan";
 import { RoomObjectIsoArtwork } from "./RoomObjectArtwork";
@@ -46,11 +53,8 @@ import {
 } from "./roomObjects";
 import type { FreePlacementMap, IsoFloorColor, RackFacingMap } from "./siteTreeState";
 import {
-  ISO_FLOOR_COLORS,
-  loadIsoFloor,
   loadIsoViewAngle,
   loadRoomZoom,
-  saveIsoFloor,
   saveIsoViewAngle,
   saveRoomZoom,
   stepRoomZoom,
@@ -109,6 +113,7 @@ interface DragState {
 export function ServerRoomIsoView({
   racks,
   editMode,
+  floorColor = "default",
   tool = null,
   placeRackId = null,
   onRackPlaced,
@@ -123,9 +128,11 @@ export function ServerRoomIsoView({
   onAddRack,
   onObjectBlocked,
   onCancelPlacement,
+  onOpenBackground,
 }: {
   racks: Rack[];
   editMode?: boolean;
+  floorColor?: IsoFloorColor;
   /** Armed object kind from the shared picker column (SitesTab owns it). */
   tool?: RoomTool;
   /** A just-created rack awaiting its placement click. */
@@ -144,16 +151,14 @@ export function ServerRoomIsoView({
   onObjectBlocked?: () => void;
   /** Right-click while a picker card is armed disarms it. */
   onCancelPlacement?: () => void;
+  /** Empty-space context-menu action owned by the Server Room view. */
+  onOpenBackground?: () => void;
 }) {
   const { t } = useTranslation();
   const layout = resolveIsoLayout(racks, placement);
   const [scrollRef, viewport] = useRoomViewportSize();
   const [angle, setAngle] = useState<IsoViewAngle>(loadIsoViewAngle);
   useEffect(() => saveIsoViewAngle(angle), [angle]);
-  // Solid floor finish; "default" tracks the app theme, the rest are fixed
-  // material palettes (itops.css [data-floor]).
-  const [floor, setFloor] = useState<IsoFloorColor>(loadIsoFloor);
-  useEffect(() => saveIsoFloor(floor), [floor]);
   // Zoom scales the rendered room; the coverage math below works in unzoomed
   // (logical) px, so zooming out shows more floor in the same window.
   const [zoom, setZoom] = useState(() => loadRoomZoom("iso"));
@@ -171,6 +176,20 @@ export function ServerRoomIsoView({
   const setHoverCell = (cell: IsoCell) =>
     setHover((prev) => (prev && prev.x === cell.x && prev.y === cell.y ? prev : cell));
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [selectedItem, setSelectedItem] = useState<{
+    kind: "rack" | "object";
+    id: string;
+  } | null>(null);
+  useEffect(() => {
+    if (!editMode) setSelectedItem(null);
+  }, [editMode]);
+  useEffect(() => {
+    if (!selectedItem) return;
+    const exists = selectedItem.kind === "rack"
+      ? racks.some((rack) => rack.id === selectedItem.id)
+      : objects.some((object) => object.id === selectedItem.id);
+    if (!exists) setSelectedItem(null);
+  }, [objects, racks, selectedItem]);
   // Mutable drag bookkeeping: the live target must not lag behind React's
   // batched `drag` state when the pointer is released.
   const dragRef = useRef<{
@@ -242,6 +261,7 @@ export function ServerRoomIsoView({
     if (kind === "object" && !onObjectsChange) return;
     const target = event.target as HTMLElement;
     if (target.closest(".rm-iso-ctl")) return;
+    setSelectedItem({ kind, id });
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { kind, id, startX: event.clientX, startY: event.clientY, origin, target: origin, moved: false };
@@ -335,7 +355,49 @@ export function ServerRoomIsoView({
       placeObjectAt(layout.cells[rack.id]);
       return;
     }
+    if (editMode) {
+      setSelectedItem({ kind: "rack", id: rack.id });
+      return;
+    }
     onSelectRack(rack.id);
+  }
+
+  function selectObject(id: string) {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    if (editMode && !armed) setSelectedItem({ kind: "object", id });
+  }
+
+  function handleRoomPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!editMode || event.button !== 0) return;
+    const target = event.target as HTMLElement;
+    if (target.closest(".rm-iso-cab, .rm-iso-obj, .rm-iso-corner")) return;
+    setSelectedItem(null);
+  }
+
+  async function handleRoomContextMenu(event: ReactMouseEvent<HTMLDivElement>) {
+    if (placing) {
+      event.preventDefault();
+      setHover(null);
+      onCancelPlacement?.();
+      return;
+    }
+    if (!onOpenBackground) return;
+    const target = event.target as HTMLElement;
+    if (target.closest(".rm-iso-cab, .rm-iso-obj, .rm-iso-corner")) return;
+    event.preventDefault();
+    await showNativeContextMenu(
+      [
+        {
+          kind: "item",
+          label: t("itops.racks.changeBackground"),
+          action: onOpenBackground,
+        },
+      ],
+      { x: event.clientX, y: event.clientY },
+    );
   }
 
   function rotateRack(rack: Rack) {
@@ -380,15 +442,8 @@ export function ServerRoomIsoView({
           className="rm-iso-scroll"
           ref={scrollRef}
           tabIndex={0}
-          onContextMenu={
-            placing
-              ? (event) => {
-                  event.preventDefault();
-                  setHover(null);
-                  onCancelPlacement?.();
-                }
-              : undefined
-          }
+          onPointerDown={handleRoomPointerDown}
+          onContextMenu={placing || onOpenBackground ? handleRoomContextMenu : undefined}
         >
           <div className="rm-iso-zoom" style={{ width: viewW * zoom, height: viewH * zoom }}>
             <div
@@ -401,7 +456,7 @@ export function ServerRoomIsoView({
             >
               <div
                 className={`rm-iso-plane${placing ? " placing" : ""}`}
-                data-floor={floor !== "default" ? floor : undefined}
+                data-floor={floorColor !== "default" ? floorColor : undefined}
                 style={{
                   width: planeW,
                   height: planeH,
@@ -457,6 +512,7 @@ export function ServerRoomIsoView({
                     facing={rotateFacingForView(sanitizeFacing(facing[rack.id]), angle)}
                     drag={drag?.kind === "rack" && drag.id === rack.id ? drag : null}
                     editMode={!!editMode}
+                    selected={selectedItem?.kind === "rack" && selectedItem.id === rack.id}
                     onPointerDown={(event) => startDrag(event, "rack", rack.id, layout.cells[rack.id])}
                     onPointerMove={moveDrag}
                     onPointerUp={endDrag}
@@ -464,7 +520,14 @@ export function ServerRoomIsoView({
                     onHoverCell={placing ? () => setHoverCell(layout.cells[rack.id]) : undefined}
                     onSelect={() => selectRack(rack)}
                     onRotate={editMode && onFacingChange ? () => rotateRack(rack) : undefined}
-                    onDelete={editMode && onDeleteRack ? () => onDeleteRack(rack) : undefined}
+                    onDelete={
+                      editMode && onDeleteRack
+                        ? () => {
+                            setSelectedItem(null);
+                            onDeleteRack(rack);
+                          }
+                        : undefined
+                    }
                   />
                 ))}
                 {objects.map((object) => (
@@ -475,18 +538,23 @@ export function ServerRoomIsoView({
                     rot={rotateFacingForView(object.rot, angle)}
                     drag={drag?.kind === "object" && drag.id === object.id ? drag : null}
                     editMode={!!editMode}
+                    selected={selectedItem?.kind === "object" && selectedItem.id === object.id}
                     onPointerDown={(event) =>
                       startDrag(event, "object", object.id, { x: object.x, y: object.y })
                     }
                     onPointerMove={moveDrag}
                     onPointerUp={endDrag}
                     onPointerCancel={endDrag}
+                    onSelect={() => selectObject(object.id)}
                     onRotate={() => rotateObject(object)}
                     onRaise={() => nudgeObject(object, 1)}
                     onLower={() => nudgeObject(object, -1)}
                     onDelete={
                       onObjectsChange
-                        ? () => onObjectsChange(objects.filter((entry) => entry.id !== object.id))
+                        ? () => {
+                            setSelectedItem(null);
+                            onObjectsChange(objects.filter((entry) => entry.id !== object.id));
+                          }
                         : undefined
                     }
                   />
@@ -585,9 +653,8 @@ export function ServerRoomIsoView({
             </div>
           </div>
         </div>
-        {/* Floating control column over the room's top-right corner: the zoom
-            ruler with the view-angle stepper and floor-colour swatches under
-            it. */}
+        {/* Floating control column over the room's top-right corner. Floor
+            finish now belongs to Server Room Properties. */}
         <div className="rm-iso-corner">
           <RoomZoomRuler zoom={zoom} onZoomChange={setZoom} />
           <div
@@ -611,25 +678,6 @@ export function ServerRoomIsoView({
             >
               <ItIcon name="rotateR" size={13} />
             </button>
-          </div>
-          <div
-            className="rm-iso-floors"
-            role="group"
-            aria-label={t("itops.floorPlan.floorColorLabel")}
-          >
-            {ISO_FLOOR_COLORS.map((color) => (
-              <button
-                key={color}
-                type="button"
-                className="rm-iso-floor-swatch"
-                data-floor={color}
-                data-active={color === floor}
-                title={t(`itops.floorPlan.floorColor.${color}`)}
-                aria-label={t(`itops.floorPlan.floorColor.${color}`)}
-                aria-pressed={color === floor}
-                onClick={() => setFloor(color)}
-              />
-            ))}
           </div>
         </div>
       </div>
@@ -679,6 +727,7 @@ function IsoCabinet({
   facing,
   drag,
   editMode,
+  selected,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -695,6 +744,7 @@ function IsoCabinet({
   facing: Facing;
   drag: DragState | null;
   editMode: boolean;
+  selected: boolean;
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerUp: (event: ReactPointerEvent<HTMLDivElement>) => void;
@@ -724,7 +774,7 @@ function IsoCabinet({
 
   return (
     <div
-      className={`rm-iso-cab${drag ? " dragging" : ""}${editMode ? " editing" : ""}`}
+      className={`rm-iso-cab${drag ? " dragging" : ""}${editMode ? " editing" : ""}${selected ? " selected" : ""}`}
       data-shell={rack.shell && rack.shell !== "black" ? rack.shell : undefined}
       style={{
         left,
@@ -745,7 +795,14 @@ function IsoCabinet({
         title={t("itops.floorPlan.tileTitle", { name: rack.name, detail: health })}
         onClick={onSelect}
       >
-        <span className="rm-iso-face rm-iso-top" style={{ transform: `translateZ(${h}px)` }} />
+        <span className="rm-iso-face rm-iso-top" style={{ transform: `translateZ(${h}px)` }}>
+          <span
+            className="rm-iso-nameplate"
+            style={{ transform: `translate(-50%, -50%) rotate(${facing * 90}deg)` }}
+          >
+            {rack.name}
+          </span>
+        </span>
         <span
           className={`rm-iso-face rm-iso-front ${southRole}`}
           style={{ width: w, height: h, top: d - h }}
@@ -759,13 +816,10 @@ function IsoCabinet({
           {eastRole === "front" ? <IsoRackSkin rack={rack} axis="x" /> : null}
         </span>
       </button>
-      <span className="rm-iso-badge" style={{ transform: billboard(h + 6, "-50%, -100%") }}>
-        {rack.name}
-      </span>
       <span className="rm-iso-tip" style={{ transform: billboard(h + 10, "-50%, -112%") }}>
         <RackTipContent rack={rack} />
       </span>
-      {editMode && (onRotate || onDelete) ? (
+      {editMode && selected && (onRotate || onDelete) ? (
         <span className="rm-iso-ctl-wrap" style={{ transform: billboard(h + 6, "40%, -170%") }}>
           <span className="rm-iso-ctl">
             {onRotate ? (
@@ -808,10 +862,12 @@ function IsoObject({
   rot,
   drag,
   editMode,
+  selected,
   onPointerDown,
   onPointerMove,
   onPointerUp,
   onPointerCancel,
+  onSelect,
   onRotate,
   onRaise,
   onLower,
@@ -824,10 +880,12 @@ function IsoObject({
   rot: Facing;
   drag: DragState | null;
   editMode: boolean;
+  selected: boolean;
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerUp: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerCancel: (event: ReactPointerEvent<HTMLDivElement>) => void;
+  onSelect: () => void;
   onRotate: () => void;
   onRaise: () => void;
   onLower: () => void;
@@ -846,7 +904,7 @@ function IsoObject({
 
   return (
     <div
-      className={`rm-iso-obj${drag ? " dragging" : ""}${editMode ? " editing" : ""}${object.z === 0 ? " grounded" : ""}`}
+      className={`rm-iso-obj${drag ? " dragging" : ""}${editMode ? " editing" : ""}${selected ? " selected" : ""}${object.z === 0 ? " grounded" : ""}`}
       data-kind={object.kind}
       style={
         {
@@ -864,6 +922,7 @@ function IsoObject({
       onPointerMove={editMode ? onPointerMove : undefined}
       onPointerUp={editMode ? onPointerUp : undefined}
       onPointerCancel={editMode ? onPointerCancel : undefined}
+      onClick={editMode ? onSelect : undefined}
     >
       <span
         className="rm-iso-obj-model"
@@ -872,13 +931,15 @@ function IsoObject({
       >
         <RoomObjectIsoArtwork kind={object.kind} />
       </span>
-      <span
-        className="rm-iso-obj-badge"
-        style={{ transform: billboard(bottom + h + 5, "-50%, -100%") }}
-      >
-        <ObjectGlyph kind={object.kind} size={12} />
-      </span>
       {editMode ? (
+        <span
+          className="rm-iso-obj-badge"
+          style={{ transform: billboard(bottom + h + 5, "-50%, -100%") }}
+        >
+          <ObjectGlyph kind={object.kind} size={12} />
+        </span>
+      ) : null}
+      {editMode && selected ? (
         <span
           className="rm-iso-ctl-wrap"
           style={{ transform: billboard(bottom + h + 5, "-50%, -240%") }}

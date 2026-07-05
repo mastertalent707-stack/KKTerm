@@ -62,7 +62,7 @@ test("Site tree add menu opens distinct Site, Server Room, and Rack dialogs", as
   assert.match(sites, /<ServerRoomDialog\b/);
   assert.match(sites, /selectedSiteIdForDialog/);
   assert.match(sites, /selectedServerRoomForDialog/);
-  assert.match(sites, /setServerRoomDialogOpen\(true\)/);
+  assert.match(sites, /setServerRoomDialog\(\{[\s\S]*room: null/);
   assert.match(sites, /setRackDialog\(\{[\s\S]*siteId: selectedSiteIdForDialog[\s\S]*rack: null/);
   assert.match(sites, /renderSidebarHeader\?\.\(\{ actions: addTopologyMenu, collapsed: treeCollapsed \}\)/);
   assert.match(sites, /className="icon-button"[\s\S]*aria-label=\{t\("itops\.racks\.addNode"\)\}/);
@@ -76,9 +76,22 @@ test("Site tree add menu opens distinct Site, Server Room, and Rack dialogs", as
   assert.doesNotMatch(siteDialog, /\{isEdit \? \([\s\S]{0,120}<Field\s+label=\{t\("itops\.sites\.connectionsLabel"\)\}/);
   assert.match(serverRoomDialog, /itops\.racks\.serverRoomSiteLabel/);
   assert.match(serverRoomDialog, /createServerRoom\(/);
+  assert.match(serverRoomDialog, /updateServerRoom\(/);
+  assert.match(serverRoomDialog, /ISO_FLOOR_COLORS\.map/);
   assert.doesNotMatch(serverRoomDialog, /firstRackLabel/);
   assert.match(rackDialog, /itops\.racks\.siteLabel/);
   assert.match(rackDialog, /itops\.racks\.serverRoomSelectLabel/);
+});
+
+test("Site topology rows open their existing dialogs from native Properties menus", async () => {
+  const sites = await read("src/modules/itops/SitesTab.tsx");
+
+  assert.match(sites, /showNativeContextMenu/);
+  assert.match(sites, /label: t\("common\.properties"\)/);
+  assert.match(sites, /setDialog\(\{ group: site \}\)/);
+  assert.match(sites, /setServerRoomDialog\(\{ siteId: site\.id, room: room\.room! \}\)/);
+  assert.match(sites, /setRackDialog\(\{ siteId: site\.id, rack \}\)/);
+  assert.match(sites, /<TreeRow[\s\S]*onContextMenu=/);
 });
 
 test("Site dialog no longer loads or selects Connections", async () => {

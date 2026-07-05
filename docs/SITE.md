@@ -73,7 +73,8 @@ Replaces the **Host Group** entry in `CONTEXT.md`; adds the rest. Follows the
   topology drill-down. _Avoid_: members view, list mode.
 - **Server Room** — a durable Site-owned row in `itops_server_rooms`. It nests
   the Sites tree and scopes a Batch Run. A Server Room can be empty; each new
-  Rack must belong to a room owned by the same Site. _Avoid_: zone, site object.
+  Rack must belong to a room owned by the same Site. It also owns the durable
+  2.5D floor finish edited through Server Room Properties. _Avoid_: zone, site object.
 - **Server Room View** — the drill-down view for one Server Room. It has
   three layouts: rack elevations (default, optionally grouped by each Rack's
   `rack_group` tag), a blueprint-style top-down floor plan, and a 2.5D
@@ -308,7 +309,8 @@ The visible IT Ops Module opens directly into the Site topology surface:
 - **Sites tree** — the left column contains the Module title/icon and the
   searchable Site → Server Room → Rack navigator. The whole column is
   resizable, and the IT Ops title-bar Sites button hides or shows it. Width
-  and hidden state persist.
+  and hidden state persist. A native right-click Properties command reopens
+  the existing add dialog in edit mode for each Site, Server Room, or Rack.
 - **Site View** — selecting a Site shows Server Room cards.
 - **Server Room View** — selecting a Server Room shows its Racks in one of
   three layouts: rack elevations (default, optionally grouped by each Rack's
@@ -321,7 +323,11 @@ The visible IT Ops Module opens directly into the Site topology surface:
   non-rack room objects with vertical stacking (`roomObjects.ts`). Both grow
   their floor grid to cover the whole view, carry a zoom stepper (50%–200%,
   also Ctrl+scroll; the level persists locally per layout), and pan with a
-  middle-mouse drag or the arrow keys.
+  middle-mouse drag or the arrow keys. In 2.5D, Rack names are top-face
+  stickers aligned to facing, object type badges are edit-only, and item
+  controls render only for the clicked selection. Empty-space right-click
+  opens the shared Dashboard background picker; the room floor finish is a
+  durable Server Room property rather than an always-visible canvas palette.
 - **Rack View** — selecting a Rack centers its front elevation and Rack Device
   properties/placement interactions.
 

@@ -149,6 +149,7 @@ pub struct ServerRoom {
     pub id: String,
     pub site_id: String,
     pub name: String,
+    pub floor_color: String,
     pub sort_order: i64,
 }
 

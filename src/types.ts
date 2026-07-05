@@ -179,6 +179,8 @@ export interface ServerRoom {
   id: string;
   siteId: string;
   name: string;
+  /** Durable 2.5D floor finish; validated against the room floor palette. */
+  floorColor?: string;
   sortOrder: number;
 }
 

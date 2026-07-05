@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 41;
+const SCHEMA_USER_VERSION: i32 = 42;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -311,6 +311,7 @@ CREATE TABLE IF NOT EXISTS itops_server_rooms (
     id         TEXT PRIMARY KEY,
     site_id    TEXT NOT NULL REFERENCES itops_sites(id) ON DELETE CASCADE,
     name       TEXT NOT NULL,
+    floor_color TEXT NOT NULL DEFAULT 'default',
     sort_order INTEGER NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2060,6 +2061,14 @@ impl Storage {
         // v41: durable rack facing (the itops_room_objects table itself comes
         // from CURRENT_SCHEMA's CREATE TABLE IF NOT EXISTS).
         ensure_column(&connection, "itops_site_racks", "facing", "INTEGER")?;
+        // v42: the 2.5D floor finish belongs to the durable Server Room rather
+        // than app-wide local UI state.
+        ensure_column(
+            &connection,
+            "itops_server_rooms",
+            "floor_color",
+            "TEXT NOT NULL DEFAULT 'default'",
+        )?;
         ensure_column(&connection, "itops_sites", "background_json", "TEXT")?;
         ensure_column(&connection, "itops_sites", "room_backgrounds_json", "TEXT")?;
         ensure_column(&connection, "itops_sites", "icon_color", "TEXT")?;

@@ -11,12 +11,15 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { ConfirmSheet } from "../../app/ui/dialog";
+import { showNativeContextMenu } from "../../lib/nativeContextMenu";
+import { nativeMenuIcons } from "../../lib/nativeMenuIcons";
 import { useWorkspaceStore } from "../../store";
 import type { Site, Rack, RackItem, ResolvedHost, ServerRoom } from "../../types";
 import { ConnectionIcon } from "../workspace/connections/ConnectionIcon";
@@ -45,6 +48,8 @@ import { ServerRoomIsoView } from "./ServerRoomIsoView";
 import { RoomObjectPicker, type RoomTool } from "./roomViewParts";
 import { collectBoundConnectionIds } from "./rackInventory";
 import type { DashboardBackground } from "../dashboard/types";
+import { SharedBackgroundPopover } from "../dashboard/edit/SharedBackgroundPopover";
+import { loadBackgroundImage } from "../dashboard/state/persistence";
 import {
   SITE_TREE_COLLAPSED_WIDTH,
   SITE_TREE_MAX_WIDTH,
@@ -61,6 +66,7 @@ import {
   saveRoomObjects,
   saveRoomViewMode,
   saveSiteTreeWidth,
+  sanitizeIsoFloor,
   type FreePlacementMap,
   type RackFacingMap,
   type RoomViewMode,
@@ -162,7 +168,10 @@ export function SitesTab({
     /** Picker placement flow: consume the saved rack instead of drilling in. */
     onSaved?: (saved: Rack) => void;
   } | null>(null);
-  const [serverRoomDialogOpen, setServerRoomDialogOpen] = useState(false);
+  const [serverRoomDialog, setServerRoomDialog] = useState<{
+    siteId: string;
+    room: ServerRoom | null;
+  } | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [itemDialog, setItemDialog] = useState<{
     rack: Rack;
@@ -352,6 +361,22 @@ export function SitesTab({
     setDrill(next);
   }
 
+  function showPropertiesMenu(event: ReactMouseEvent<HTMLElement>, action: () => void) {
+    event.preventDefault();
+    event.stopPropagation();
+    void showNativeContextMenu(
+      [
+        {
+          kind: "item",
+          label: t("common.properties"),
+          iconSvg: nativeMenuIcons.pencil,
+          action,
+        },
+      ],
+      { x: event.clientX, y: event.clientY },
+    );
+  }
+
   async function moveItem(itemId: string, targetRackId: string, startU: number) {
     if (!activeGroup) return;
     const item = racks.flatMap((rack) => rack.items).find((entry) => entry.id === itemId);
@@ -494,7 +519,7 @@ export function SitesTab({
               disabled={!activeGroup}
               onClick={() => {
                 setAddMenuOpen(false);
-                setServerRoomDialogOpen(true);
+                setServerRoomDialog({ siteId: selectedSiteIdForDialog, room: null });
               }}
             >
               <ItIcon name="room" size={14} />
@@ -595,6 +620,9 @@ export function SitesTab({
                         setActiveId(site.id);
                         setDrill(EMPTY_DRILL);
                       }}
+                      onContextMenu={(event) =>
+                        showPropertiesMenu(event, () => setDialog({ group: site }))
+                      }
                     />
                     {open
                       ? siteTopo
@@ -617,6 +645,14 @@ export function SitesTab({
                                   onSelect={() =>
                                     selectNode(site.id, { serverRoom: room.key, rackId: null })
                                   }
+                                  onContextMenu={
+                                    room.room
+                                      ? (event) =>
+                                          showPropertiesMenu(event, () =>
+                                            setServerRoomDialog({ siteId: site.id, room: room.room! }),
+                                          )
+                                      : undefined
+                                  }
                                 />
                                 {mOpen
                                   ? room.racks.map((rack) => (
@@ -633,6 +669,11 @@ export function SitesTab({
                                             serverRoom: room.key,
                                             rackId: rack.id,
                                           })
+                                        }
+                                        onContextMenu={(event) =>
+                                          showPropertiesMenu(event, () =>
+                                            setRackDialog({ siteId: site.id, rack }),
+                                          )
                                         }
                                       />
                                     ))
@@ -671,7 +712,9 @@ export function SitesTab({
             onEditItem={(rack, item) => setItemDialog({ rack, item })}
             onBindItem={setBindingsDialog}
             onMoveItem={(itemId, targetRackId, startU) => void moveItem(itemId, targetRackId, startU)}
-            onAddServerRoom={() => setServerRoomDialogOpen(true)}
+            onAddServerRoom={() =>
+              setServerRoomDialog({ siteId: activeGroup.id, room: null })
+            }
             onAddRack={(serverRoom) => {
               setRackDialog({
                 siteId: activeGroup.id,
@@ -729,12 +772,13 @@ export function SitesTab({
           }}
         />
       ) : null}
-      {serverRoomDialogOpen ? (
+      {serverRoomDialog ? (
         <ServerRoomDialog
           sites={sites}
-          defaultSiteId={selectedSiteIdForDialog}
-          onClose={() => setServerRoomDialogOpen(false)}
-          onCreated={(saved) => {
+          defaultSiteId={serverRoomDialog.siteId}
+          room={serverRoomDialog.room}
+          onClose={() => setServerRoomDialog(null)}
+          onSaved={(saved) => {
             setActiveId(saved.siteId);
             setDrill({ serverRoom: saved.name, rackId: null });
           }}
@@ -855,6 +899,7 @@ function TreeRow({
   selected,
   onToggle,
   onSelect,
+  onContextMenu,
 }: {
   depth: number;
   icon: ItIconName;
@@ -867,12 +912,14 @@ function TreeRow({
   selected: boolean;
   onToggle?: () => void;
   onSelect: () => void;
+  onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
 }) {
   return (
     <div
       className={`ft-row${selected ? " sel" : ""}`}
       style={{ paddingLeft: 8 + depth * 14 }}
       onClick={onSelect}
+      onContextMenu={onContextMenu}
     >
       <button
         type="button"
@@ -949,6 +996,8 @@ function RackDrill({
   const ungrouped = t("itops.racks.ungrouped");
   const [editMode, setEditMode] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const setServerRoomBackground = useItOpsStore((state) => state.setServerRoomBackground);
 
   // Server Room View layout: rack elevations (default), the blueprint floor
   // plan, or the 2.5D room. Persists app-wide.
@@ -973,6 +1022,7 @@ function RackDrill({
   useEffect(() => {
     setEditMode(false);
     setExportMenuOpen(false);
+    setBackgroundOpen(false);
   }, [viewKey]);
   useEffect(() => {
     setRoomTool(null);
@@ -1085,6 +1135,16 @@ function RackDrill({
 
   function notifyObjectBlocked() {
     showStatusBarNotice(t("itops.floorPlan.objectNoSpace"), { tone: "warning" });
+  }
+
+  async function saveServerRoomViewBackground(background: DashboardBackground | null) {
+    if (!serverRoom) return;
+    try {
+      await setServerRoomBackground(site.id, serverRoom.key, background);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      showStatusBarNotice(t("itops.errorNotice", { message }), { tone: "error" });
+    }
   }
 
   // Persist placements durably, debounced: the floor plan streams a position
@@ -1368,6 +1428,7 @@ function RackDrill({
                 <ServerRoomIsoView
                   racks={serverRoom.racks}
                   editMode={editMode}
+                  floorColor={sanitizeIsoFloor(serverRoom.room?.floorColor)}
                   tool={roomTool}
                   placeRackId={placeRackId}
                   onRackPlaced={() => setPlaceRackId(null)}
@@ -1381,6 +1442,7 @@ function RackDrill({
                   onSelectRack={(rackId) => setDrill({ serverRoom: serverRoom.key, rackId })}
                   onAddRack={editMode ? () => onAddRack(serverRoom.key) : undefined}
                   onObjectBlocked={notifyObjectBlocked}
+                  onOpenBackground={() => setBackgroundOpen(true)}
                   onCancelPlacement={() => {
                     setRoomTool(null);
                     setPlaceRackId(null);
@@ -1450,6 +1512,19 @@ function RackDrill({
           />
         )}
       </ItOpsBackground>
+      {backgroundOpen && serverRoom && roomView === "iso" ? (
+        <SharedBackgroundPopover
+          className="itops-bg-popover"
+          background={viewBackground ?? null}
+          titleKey="itops.racks.changeBackground"
+          defaultHintKey="itops.racks.backgroundDefaultHint"
+          onBackgroundChange={saveServerRoomViewBackground}
+          onLoadBackgroundImage={(file) => {
+            void loadBackgroundImage(file);
+          }}
+          onClose={() => setBackgroundOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

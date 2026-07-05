@@ -4003,6 +4003,7 @@ pub fn run() {
             itops::commands::itops_list_racks,
             itops::commands::itops_list_server_rooms,
             itops::commands::itops_create_server_room,
+            itops::commands::itops_update_server_room,
             itops::commands::itops_delete_server_room,
             itops::commands::itops_create_rack,
             itops::commands::itops_update_rack,

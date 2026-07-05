@@ -4674,35 +4674,6 @@
   background: var(--hover);
   color: var(--text);
 }
-/* Floor-colour swatches: one solid finish per option, painted with the same
-   `--floor-a/--floor-b` pair the plane uses (palettes below). */
-.itops-page .rm-iso-floors {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 5px;
-  border: 0.5px solid var(--border);
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  box-shadow: var(--shadow-control);
-}
-.itops-page .rm-iso-floor-swatch {
-  width: 14px;
-  height: 14px;
-  padding: 0;
-  border: 1px solid var(--border-strong);
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--floor-a), var(--floor-b));
-  cursor: pointer;
-  transition: transform 0.14s, box-shadow 0.14s;
-}
-.itops-page .rm-iso-floor-swatch:hover {
-  transform: scale(1.12);
-}
-.itops-page .rm-iso-floor-swatch[data-active="true"] {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
-}
 /* The scroll area takes the drill's leftover height; its content-box size is
    the canvas the room's floor plane must cover. */
 .itops-page .rm-iso-scroll {
@@ -4729,31 +4700,31 @@
    follows the app theme; `data-floor` picks a fixed material palette (hex like
    the cabinet shell hardware palette). `--floor-line` draws the tile grid. */
 .itops-page .rm-iso-plane,
-.itops-page .rm-iso-floor-swatch {
+.server-room-floor-swatch {
   --floor-a: color-mix(in srgb, var(--surface-muted) 94%, var(--surface));
   --floor-b: color-mix(in srgb, var(--surface-muted) 66%, var(--surface));
   --floor-line: color-mix(in srgb, var(--border) 52%, transparent);
 }
 .itops-page .rm-iso-plane[data-floor="concrete"],
-.itops-page .rm-iso-floor-swatch[data-floor="concrete"] {
+.server-room-floor-swatch[data-floor="concrete"] {
   --floor-a: #cfcfd4;
   --floor-b: #b7b7bd;
   --floor-line: rgb(40 40 46 / 22%);
 }
 .itops-page .rm-iso-plane[data-floor="graphite"],
-.itops-page .rm-iso-floor-swatch[data-floor="graphite"] {
+.server-room-floor-swatch[data-floor="graphite"] {
   --floor-a: #3b3b41;
   --floor-b: #2c2c31;
   --floor-line: rgb(255 255 255 / 14%);
 }
 .itops-page .rm-iso-plane[data-floor="green"],
-.itops-page .rm-iso-floor-swatch[data-floor="green"] {
+.server-room-floor-swatch[data-floor="green"] {
   --floor-a: #4c7d67;
   --floor-b: #3b634f;
   --floor-line: rgb(12 34 25 / 30%);
 }
 .itops-page .rm-iso-plane[data-floor="blue"],
-.itops-page .rm-iso-floor-swatch[data-floor="blue"] {
+.server-room-floor-swatch[data-floor="blue"] {
   --floor-a: #4d6a99;
   --floor-b: #3c527a;
   --floor-line: rgb(13 22 40 / 32%);
@@ -4850,6 +4821,9 @@
 .itops-page .rm-iso-cab.dragging {
   cursor: grabbing;
 }
+.itops-page .rm-iso-cab.selected .rm-iso-top {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
 /* Soft floor shadow, lifted 1px above the plane to avoid z-fighting. */
 .itops-page .rm-iso-cab::before {
   content: "";
@@ -4923,6 +4897,26 @@
   background:
     linear-gradient(135deg, rgb(255 255 255 / 16%), rgb(255 255 255 / 0%) 62%),
     linear-gradient(180deg, var(--cab-a), var(--cab-b));
+}
+.itops-page .rm-iso-nameplate {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  max-width: calc(100% - 8px);
+  padding: 1px 4px;
+  overflow: hidden;
+  border: 0.5px solid var(--border-strong);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--text);
+  font-size: 8px;
+  font-weight: 680;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform-origin: center;
+  pointer-events: none;
 }
 .itops-page .rm-iso-cab .rm-iso-front {
   border: 1px solid var(--cab-edge);
@@ -5046,25 +5040,6 @@
 .itops-page .rm-iso-skin-item[data-kind="label"]::after {
   content: none;
 }
-/* Billboarded name badge; hides while the detail card shows. */
-.itops-page .rm-iso-badge {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  padding: 1px 6px;
-  border: 0.5px solid var(--border);
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--surface) 84%, transparent);
-  font-size: 10.5px;
-  font-weight: 640;
-  color: var(--text);
-  white-space: nowrap;
-  pointer-events: none;
-  transition: opacity 0.14s;
-}
-.itops-page .rm-iso-cab:hover .rm-iso-badge {
-  opacity: 0;
-}
 /* Hover detail card shared by both spatial views (RackTipContent): billboarded
    above a 2.5D cabinet, floating above a floor-plan footprint. */
 .itops-page .rm-iso-tip,
@@ -5149,6 +5124,11 @@
 .itops-page .rm-iso-obj.dragging {
   cursor: grabbing;
 }
+.itops-page .rm-iso-obj.selected .rm-iso-obj-model {
+  filter:
+    drop-shadow(0 0 4px var(--accent))
+    drop-shadow(0 5px 5px color-mix(in srgb, var(--text) 24%, transparent));
+}
 /* Floor shadow only for objects actually standing on the floor. */
 .itops-page .rm-iso-obj.grounded::before {
   content: "";
@@ -5178,6 +5158,42 @@
 
 .rack-item-dialog {
   max-width: calc(100vw - 64px);
+}
+
+.server-room-floor-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.server-room-floor-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 8px 4px;
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+.server-room-floor-option:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.server-room-floor-option[data-active="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.server-room-floor-swatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--floor-a), var(--floor-b));
 }
 .rack-item-dialog .kk-dlg-body {
   padding: 18px 22px;
