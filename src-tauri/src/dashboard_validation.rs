@@ -16,7 +16,7 @@ pub const ACCENTS: &[&str] = &[
 
 pub const ICONS: &[&str] = &[
     "Activity2", "AlertTriangle", "Archive", "Bell", "BookOpen", "Bookmark", "Box", "Building",
-    "Calendar", "Camera", "ChartLine", "Check", "CheckCircle", "ChevronDown", "ChevronLeft", "ChevronRight",
+    "Cabinet", "Calendar", "Camera", "ChartLine", "Check", "CheckCircle", "ChevronDown", "ChevronLeft", "ChevronRight",
     "ChevronUp", "Clipboard", "Cloud", "Code", "Code2", "Command", "Copy", "Cpu",
     "Database", "Document2", "DocumentCode2", "DocumentText2", "Download", "Edit2", "Eye", "EyeOff",
     "File", "FileText", "FileUp", "Folder", "FolderOpen", "FolderFiles", "Gauge3", "Gear",
@@ -26,7 +26,7 @@ pub const ICONS: &[&str] = &[
     "Microchip", "Minimize", "Monitor", "Mouse", "Nodes", "Package", "Palette", "Paintbrush",
     "PasswordCheck2", "Pin", "PinOff", "Play", "Plus", "Printer", "Refresh", "Route",
     "Router", "Save22", "Scan2", "Scroll2", "Search", "SearchZoomIn2", "SearchZoomOut2", "Server",
-    "Settings", "Settings2", "Shield", "ShieldCheck", "Sliders", "Sidebar", "SidebarLeft2", "SidebarRight2",
+    "ServerSquare", "Settings", "Settings2", "Shield", "ShieldCheck", "Sliders", "Sidebar", "SidebarLeft2", "SidebarRight2",
     "TerminalCircle", "TerminalSquare", "Trash2", "Unlock", "Upload", "Usb", "User", "Users",
     "Video", "Volume", "Warehouse", "Wifi", "Window", "X", "Alert", "AlertCircle",
     "AlertCircle2", "AlertSquare", "AlertTriangle2", "BellAlert", "BellOff", "BellOff2", "BellRing", "Help",

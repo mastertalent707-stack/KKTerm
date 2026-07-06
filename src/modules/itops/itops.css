@@ -116,7 +116,6 @@
 }
 .itops-page .it-side-head {
   min-height: 44px;
-  padding: 0 8px 0 10px;
   border-bottom: 1px solid var(--hairline);
   flex: 0 0 auto;
 }

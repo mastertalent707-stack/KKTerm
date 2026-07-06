@@ -23,7 +23,7 @@ import {
 } from "./siteTreeState";
 import { useItOpsStore } from "./state";
 
-const DEFAULT_SERVER_ROOM_ICON_REF = reiconIconRefForName("Server");
+const DEFAULT_SERVER_ROOM_ICON_REF = reiconIconRefForName("ServerSquare");
 
 export function ServerRoomDialog({
   sites,
