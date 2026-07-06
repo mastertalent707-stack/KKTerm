@@ -1,6 +1,6 @@
 export const REICON_PICKER_ICON_NAMES = [
   "Activity2", "AlertTriangle", "Archive", "Bell", "BookOpen", "Bookmark",
-  "Box", "Building", "Calendar", "Camera", "ChartLine", "Check",
+  "Box", "Building", "Cabinet", "Calendar", "Camera", "ChartLine", "Check",
   "CheckCircle", "ChevronDown", "ChevronLeft", "ChevronRight", "ChevronUp", "Clipboard",
   "Cloud", "Code", "Code2", "Command", "Copy", "Cpu",
   "Database", "Document2", "DocumentCode2", "DocumentText2", "Download", "Edit2",
@@ -13,7 +13,7 @@ export const REICON_PICKER_ICON_NAMES = [
   "Monitor", "Mouse", "Nodes", "Package", "Palette", "Paintbrush",
   "PasswordCheck2", "Pin", "PinOff", "Play", "Plus", "Printer",
   "Refresh", "Route", "Router", "Save22", "Scan2", "Scroll2",
-  "Search", "SearchZoomIn2", "SearchZoomOut2", "Server", "Settings", "Settings2",
+  "Search", "SearchZoomIn2", "SearchZoomOut2", "Server", "ServerSquare", "Settings", "Settings2",
   "Shield", "ShieldCheck", "Sliders", "Sidebar", "SidebarLeft2", "SidebarRight2", "TerminalCircle",
   "TerminalSquare", "Trash2", "Unlock", "Upload", "Usb", "User",
   "Users", "Video", "Volume", "Warehouse", "Wifi", "Window",
@@ -82,7 +82,7 @@ export const LUCIDE_FALLBACK_PICKER_ICON_NAMES = [
   "Bot", "Braces", "Brain", "Cable", "Circle", "CircleDashed",
   "CircleDot", "Columns2", "Container", "ExternalLink", "Factory", "FileType",
   "FolderInput", "GitCommit", "GitFork", "GripVertical", "MemoryStick",
-  "Rows3", "Scaling", "Shell", "ShelvingUnit", "SplitSquareHorizontal",
+  "Rows3", "Scaling", "Shell", "SplitSquareHorizontal",
   "Square", "Webhook", "Workflow", "WrapText", "Wrench"
 ] as const;
 

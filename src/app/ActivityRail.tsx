@@ -27,7 +27,7 @@ import type { Connection, Workspace } from "../types";
 import { NewWorkspaceDialog } from "../modules/workspace/NewWorkspaceDialog";
 import { DeleteWorkspaceDialog } from "../modules/workspace/WorkspaceRailDialogs";
 import { WorkspaceIcon } from "../modules/workspace/workspaceIcons";
-import { ItIcon } from "../modules/itops/icons";
+import { ItOpsModuleIcon } from "../modules/itops/icons";
 import { RailTooltip } from "./RailTooltip";
 
 export type ActivePage =
@@ -737,7 +737,7 @@ export function ActivityRail({
           onClick={() => onNavigate("itops")}
           style={activityRailItemStyle("itops")}
         >
-          <ItIcon name="ops" size={18} />
+          <ItOpsModuleIcon size={18} />
           <RailTooltip label={t("itops.railLabel")} />
         </button>
       ) : null}

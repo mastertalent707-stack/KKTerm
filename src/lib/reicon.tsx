@@ -5,7 +5,7 @@ import {
   ArrowSwapHorizontal2 as ReArrowSwapHorizontal2, ArrowUp as ReArrowUp, Bed as ReBed, Bell as ReBell,
   Bolt as ReBolt, BookOpen as ReBookOpen, Bookmark as ReBookmark, Box as ReBox,
   Box3 as ReBox3, BoxTick2 as ReBoxTick2, BranchUp as ReBranchUp, Briefcase as ReBriefcase,
-  Bug as ReBug, Building as ReBuilding, Calendar as ReCalendar, Camera as ReCamera,
+  Bug as ReBug, Building as ReBuilding, Cabinet as ReCabinet, Calendar as ReCalendar, Camera as ReCamera,
   Cart as ReCart, ChartBar as ReChartBar, ChartLine as ReChartLine, Check as ReCheck,
   CheckCircle as ReCheckCircle, CheckSquare as ReCheckSquare, ChevronDown as ReChevronDown, ChevronExpandY as ReChevronExpandY,
   ChevronLeft as ReChevronLeft, ChevronRight as ReChevronRight, ChevronUp as ReChevronUp, CircleArrowUp as ReCircleArrowUp,
@@ -33,7 +33,8 @@ import {
   Printer as RePrinter, Radio as ReRadio, Refresh as ReRefresh, Rocket as ReRocket,
   RotateLeft2 as ReRotateLeft2, RotateRight2 as ReRotateRight2, Route as ReRoute, Save22 as ReSave22,
   Scan2 as ReScan2, Scroll2 as ReScroll2, Search as ReSearch, SearchZoomIn2 as ReSearchZoomIn2,
-  SearchZoomOut2 as ReSearchZoomOut2, Send as ReSend, Server as ReServer, Settings as ReSettings,
+  SearchZoomOut2 as ReSearchZoomOut2, Send as ReSend, Server as ReServer, ServerSquare as ReServerSquare,
+  Settings as ReSettings,
   Settings2 as ReSettings2, Shield as ReShield, ShieldOff as ReShieldOff, SidebarBottom2 as ReSidebarBottom2,
   SidebarLeft2 as ReSidebarLeft2, SidebarRight2 as ReSidebarRight2, SidebarTop2 as ReSidebarTop2, Sledgehammer as ReSledgehammer,
   Sliders as ReSliders, SquarePlus as ReSquarePlus, Star as ReStar, Sun as ReSun,
@@ -64,7 +65,7 @@ const reiconIconComponents = {
   "BedSingle": ReBed, "Bell": ReBell, "Binary": ReCode, "Bolt": ReBolt,
   "BookOpen": ReBookOpen, "Bookmark": ReBookmark, "Box": ReBox, "Boxes": ReBox3,
   "Briefcase": ReBriefcase, "Brush": RePaintbrush, "Bug": ReBug, "Building2": ReBuilding,
-  "Calendar": ReCalendar, "Camera": ReCamera, "ChartBar": ReChartBar, "ChartLine": ReChartLine,
+  "Cabinet": ReCabinet, "Calendar": ReCalendar, "Camera": ReCamera, "ChartBar": ReChartBar, "ChartLine": ReChartLine,
   "Check": ReCheck, "CheckCircle": ReCheckCircle, "CheckCircle2": ReCheckCircle, "ChevronDown": ReChevronDown,
   "ChevronLeft": ReChevronLeft, "ChevronRight": ReChevronRight, "ChevronUp": ReChevronUp, "ChevronsDownUp": ReChevronExpandY,
   "ChevronsUpDown": ReChevronExpandY, "CircleArrowUp": ReCircleArrowUp, "CircleCheck": ReCheckCircle, "CircleGauge": ReGauge3,
@@ -96,7 +97,7 @@ const reiconIconComponents = {
   "Power": RePower, "Printer": RePrinter, "Radio": ReRadio, "RefreshCw": ReRefresh,
   "Rocket": ReRocket, "RotateCcw": ReRotateLeft2, "RotateCw": ReRotateRight2, "Route": ReRoute,
   "Save": ReSave22, "Scan": ReScan2, "ScrollText": ReScroll2, "Search": ReSearch,
-  "Send": ReSend, "SendHorizontal": ReSend, "Server": ReServer, "Settings": ReSettings,
+  "Send": ReSend, "SendHorizontal": ReSend, "Server": ReServer, "ServerSquare": ReServerSquare, "Settings": ReSettings,
   "Settings2": ReSettings2, "Shield": ReShield, "ShieldAlert": ReAlertTriangle, "ShieldOff": ReShieldOff,
   "ShoppingCart": ReCart, "SlidersHorizontal": ReSliders, "Sparkles": ReMagicStar2, "SquareCheck": ReCheckSquare,
   "SquarePlus": ReSquarePlus, "SquareStack": ReLayers, "SquareTerminal": ReTerminalSquare, "SquareX": ReCloseSquare2,
@@ -157,6 +158,7 @@ export const Briefcase = ReBriefcase;
 export const Brush = RePaintbrush;
 export const Bug = ReBug;
 export const Building2 = ReBuilding;
+export const Cabinet = ReCabinet;
 export const Calendar = ReCalendar;
 export const Camera = ReCamera;
 export const ChartBar = ReChartBar;
@@ -288,6 +290,7 @@ export const Search = ReSearch;
 export const Send = ReSend;
 export const SendHorizontal = ReSend;
 export const Server = ReServer;
+export const ServerSquare = ReServerSquare;
 export const Settings = ReSettings;
 export const Settings2 = ReSettings2;
 export const Shield = ReShield;

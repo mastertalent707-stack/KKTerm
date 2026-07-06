@@ -4,7 +4,16 @@
 // entity icons use the product's default line-icon set.
 
 import type { ReactNode } from "react";
-import { Box, Building2, Grid2x2, Rows3, Server, ShelvingUnit, type IconComponent } from "../../lib/reicon";
+import {
+  Box,
+  Building2,
+  Cabinet,
+  Grid2x2,
+  Rows3,
+  ServerSquare,
+  type IconComponent,
+  type IconWeight,
+} from "../../lib/reicon";
 
 export type ItIconName =
   | "ops"
@@ -66,8 +75,12 @@ export type ItIconName =
 
 type GlyphProps = { size: number; sw: number };
 
-function LineIconGlyph(Icon: IconComponent, { size, sw }: GlyphProps) {
-  return <Icon size={size} strokeWidth={sw} />;
+function LineIconGlyph(Icon: IconComponent, { size, sw }: GlyphProps, weight?: IconWeight) {
+  return <Icon size={size} strokeWidth={sw} weight={weight} />;
+}
+
+export function ItOpsModuleIcon({ size = 16, sw }: { size?: number; sw?: number }) {
+  return <ServerSquare size={size} strokeWidth={sw ?? 1.7} weight="Filled" />;
 }
 
 function Svg({
@@ -95,14 +108,7 @@ function Svg({
 
 const GLYPHS: Record<ItIconName, (p: GlyphProps) => ReactNode> = {
   site: (p) => LineIconGlyph(Building2, p),
-  ops: (p) => (
-    <Svg {...p}>
-      <path d="M4 5.5h16a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" />
-      <path d="M4 14h16a1 1 0 0 1 1 1v2.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V15a1 1 0 0 1 1-1Z" />
-      <path d="M6.5 7.6h0" />
-      <path d="M6.5 16.4h0" />
-    </Svg>
-  ),
+  ops: (p) => <ItOpsModuleIcon size={p.size} sw={p.sw} />,
   group: (p) => (
     <Svg {...p}>
       <path d="M7 8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
@@ -121,8 +127,8 @@ const GLYPHS: Record<ItIconName, (p: GlyphProps) => ReactNode> = {
       <path d="M12 11l5 6" />
     </Svg>
   ),
-  room: (p) => LineIconGlyph(Server, p),
-  rack: (p) => LineIconGlyph(ShelvingUnit, p),
+  room: (p) => LineIconGlyph(ServerSquare, p, "Filled"),
+  rack: (p) => LineIconGlyph(Cabinet, p, "Filled"),
   rows: (p) => LineIconGlyph(Rows3, p),
   grid: (p) => LineIconGlyph(Grid2x2, p),
   cube: (p) => LineIconGlyph(Box, p),
