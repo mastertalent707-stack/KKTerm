@@ -99,8 +99,18 @@ export function RoomObjectPlanArtwork({ kind }: { kind: RoomObjectKind }) {
 }
 
 export function RoomObjectIsoArtwork({ kind }: { kind: RoomObjectKind }) {
+  // The 2.5D sprite box is bottom-anchored on the object's surface point, but
+  // the square viewBox letterboxes inside the per-kind portrait boxes; keep
+  // the artwork flush with the box bottom so bags/cabinets stand on their
+  // anchor instead of hovering above it.
   return (
-    <svg className="rm-object-art rm-object-art-iso" data-kind={kind} viewBox="0 0 100 100" aria-hidden="true">
+    <svg
+      className="rm-object-art rm-object-art-iso"
+      data-kind={kind}
+      viewBox="0 0 100 100"
+      preserveAspectRatio="xMidYMax meet"
+      aria-hidden="true"
+    >
       {kind === "aircon" ? (
         <>
           <path className="rm-art-iso-top" d="m25 20 39-12 17 12-39 13Z" />
