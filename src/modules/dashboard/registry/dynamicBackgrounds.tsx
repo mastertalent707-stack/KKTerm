@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ComponentType } from "react";
 import { dynamicBackgroundDevicePixelRatio } from "./dynamicBackgroundCanvas";
+import { BalloonsBg, DunesBg, JellyfishBg, LighthouseBg, SavannaBg } from "./extraDynamicBackgrounds";
 import { FujiBg } from "./fujiBackground";
 import {
   DashboardAnimationGate,
@@ -3816,12 +3817,17 @@ const DYNAMIC_BACKGROUND_COMPONENTS = {
   fireflies: FirefliesBg,
   bubbles: BubblesBg,
   aquarium: AquariumBg,
+  jellyfish: JellyfishBg,
+  lighthouse: LighthouseBg,
+  balloons: BalloonsBg,
   ricefield: RicefieldBg,
   lanterns: LanternsBg,
   starfield: StarfieldBg,
   nebula: NebulaBg,
   embers: EmbersBg,
   lava: LavaBg,
+  dunes: DunesBg,
+  savanna: SavannaBg,
   matrix: MatrixBg,
   topo: TopoBg,
   synthwave: SynthwaveBg,
@@ -3852,12 +3858,17 @@ export const DYNAMIC_BACKGROUNDS: readonly {
   { id: "fireflies", labelKey: "dashboard.dynamicBackgrounds.fireflies", mood: "calm" },
   { id: "bubbles", labelKey: "dashboard.dynamicBackgrounds.bubbles", mood: "calm" },
   { id: "aquarium", labelKey: "dashboard.dynamicBackgrounds.aquarium", mood: "calm" },
+  { id: "jellyfish", labelKey: "dashboard.dynamicBackgrounds.jellyfish", mood: "calm" },
+  { id: "lighthouse", labelKey: "dashboard.dynamicBackgrounds.lighthouse", mood: "calm" },
+  { id: "balloons", labelKey: "dashboard.dynamicBackgrounds.balloons", mood: "calm" },
   { id: "ricefield", labelKey: "dashboard.dynamicBackgrounds.ricefield", mood: "calm" },
   { id: "lanterns", labelKey: "dashboard.dynamicBackgrounds.lanterns", mood: "calm" },
   { id: "starfield", labelKey: "dashboard.dynamicBackgrounds.starfield", mood: "spacey" },
   { id: "nebula", labelKey: "dashboard.dynamicBackgrounds.nebula", mood: "spacey" },
   { id: "embers", labelKey: "dashboard.dynamicBackgrounds.embers", mood: "warm" },
   { id: "lava", labelKey: "dashboard.dynamicBackgrounds.lava", mood: "warm" },
+  { id: "dunes", labelKey: "dashboard.dynamicBackgrounds.dunes", mood: "warm" },
+  { id: "savanna", labelKey: "dashboard.dynamicBackgrounds.savanna", mood: "warm" },
   { id: "matrix", labelKey: "dashboard.dynamicBackgrounds.matrix", mood: "geeky" },
   { id: "topo", labelKey: "dashboard.dynamicBackgrounds.topo", mood: "geeky" },
   { id: "synthwave", labelKey: "dashboard.dynamicBackgrounds.synthwave", mood: "geeky" },

@@ -3694,6 +3694,10 @@ button.dashboard-pill-dot:focus-visible {
   to { transform: rotate(360deg); }
 }
 
+@keyframes sweep {
+  to { transform: rotate(360deg); }
+}
+
 @keyframes dwbg_shoot {
   0% { transform: translate(20px, 8px); opacity: 0; }
   6% { opacity: 1; }

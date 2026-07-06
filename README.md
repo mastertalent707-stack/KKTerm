@@ -82,7 +82,7 @@ Plus a few things you didn't know you wanted:
 - **SSH panes that reattach to your remote `claude` / `codex` session** after every Wi-Fi tantrum, so a six-hour job survives a dropped connection.
 - **Workspaces** that keep your home lab, the day job, and that one client's servers in separate, switchable containers.
 - An **Install Helper** that finds, installs, updates, and launches the Windows dev tools you usually chase through ten browser tabs.
-- **Twenty-six animated backgrounds** for the dashboard *and your terminals* (yes, including `matrix`), because we are not above it.
+- **31 animated backgrounds** for the dashboard *and your terminals* (yes, including `matrix`), because we are not above it.
 
 And the best part: the AI assistant can turn a single sentence into a tiny dashboard tool you actually keep using.
 
@@ -220,13 +220,13 @@ Some are simple display panels (markdown, checklists, a single big stat); others
 
 #### Animated dashboard/terminal backgrounds (because we wanted to)
 
-Pick a mood — per dashboard view, *or behind any terminal* — from **twenty-six** canvas-animated backgrounds:
+Pick a mood — per dashboard view, *or behind any terminal* — from **31** canvas-animated backgrounds:
 
 | Mood | Backgrounds |
 | --- | --- |
-| Calm | `fuji`, `aurora`, `clouds`, `ocean`, `raindrops`, `rainywindow`, `frostedWindow`, `snow`, `sakura`, `fireflies`, `bubbles`, `aquarium`, `ricefield`, `lanterns` |
+| Calm | `fuji`, `aurora`, `clouds`, `ocean`, `raindrops`, `rainywindow`, `frostedWindow`, `snow`, `sakura`, `fireflies`, `bubbles`, `aquarium`, `jellyfish`, `lighthouse`, `balloons`, `ricefield`, `lanterns` |
 | Spacey | `starfield`, `nebula` |
-| Warm | `embers`, `lava` |
+| Warm | `embers`, `lava`, `dunes`, `savanna` |
 | Geeky | `matrix`, `topo`, `synthwave` |
 | Erratic | `cyberpunk`, `taipei101`, `thunderstorm`, `confetti`, `particleCursor` |
 

@@ -82,7 +82,7 @@ Ditambah beberapa hal yang kamu tak tahu kamu inginkan:
 - **Panel SSH yang menyambung kembali ke sesi remote `claude` / `codex`-mu** setelah setiap amukan Wi-Fi, agar kerja enam jam selamat dari putusnya koneksi.
 - **Workspaces** yang menjaga homelab, pekerjaan kantor, dan server klien itu dalam wadah-wadah terpisah yang bisa kamu tukar dengan sekali klik.
 - Sebuah **Install Helper** yang menemukan, memasang, memperbarui, dan menjalankan alat dev Windows yang biasanya kamu kejar lewat sepuluh tab browser.
-- **Dua puluh enam latar animasi** untuk dashboard *dan terminalmu* (ya, termasuk `matrix`), karena kami tak terlalu jaim untuk itu.
+- **31 latar animasi** untuk dashboard *dan terminalmu* (ya, termasuk `matrix`), karena kami tak terlalu jaim untuk itu.
 
 Dan bagian terbaiknya: asisten AI bisa mengubah satu kalimat menjadi alat dashboard kecil yang benar-benar terus kamu pakai.
 
@@ -220,13 +220,13 @@ Sebagian adalah panel tampilan sederhana (markdown, checklist, satu angka besar)
 
 #### Latar animasi dashboard/terminal (karena kami mau saja)
 
-Pilih satu suasana — per tampilan dashboard, *atau di belakang terminal mana pun* — dari **dua puluh enam** latar animasi canvas:
+Pilih satu suasana — per tampilan dashboard, *atau di belakang terminal mana pun* — dari **31** latar animasi canvas:
 
 | Suasana | Latar |
 | --- | --- |
-| Tenang | `aurora`, `clouds`, `ocean`, `raindrops`, `rainywindow`, `frostedWindow`, `snow`, `sakura`, `fireflies`, `bubbles`, `aquarium`, `ricefield`, `lanterns` |
+| Tenang | `fuji`, `aurora`, `clouds`, `ocean`, `raindrops`, `rainywindow`, `frostedWindow`, `snow`, `sakura`, `fireflies`, `bubbles`, `aquarium`, `jellyfish`, `lighthouse`, `balloons`, `ricefield`, `lanterns` |
 | Antariksa | `starfield`, `nebula` |
-| Hangat | `embers`, `lava` |
+| Hangat | `embers`, `lava`, `dunes`, `savanna` |
 | Geek | `matrix`, `topo`, `synthwave` |
 | Gelisah | `cyberpunk`, `taipei101`, `thunderstorm`, `confetti`, `particleCursor` |
 

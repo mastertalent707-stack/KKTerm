@@ -82,7 +82,7 @@
 - **원격 `claude` / `codex` 세션에 자동으로 다시 붙는 SSH Pane**. Wi-Fi가 아무리 떼를 써도 6시간짜리 작업이 살아남는다.
 - **워크스페이스(Workspaces)**. 홈랩, 본업, 그리고 그 고객사 서버를 한 번의 클릭으로 전환하는 별도의 격리된 컨테이너로 나눠 둔다.
 - **Install Helper**. 평소엔 브라우저 탭 열 개를 헤매며 찾던 Windows 개발 도구를 찾고·설치하고·업데이트하고·실행한다.
-- Dashboard *와 터미널*용 **애니메이션 배경 26종**(그래, `matrix`도 있다). 좀 과하긴 한데, 후회는 없다.
+- Dashboard *와 터미널*용 **애니메이션 배경 31종**(그래, `matrix`도 있다). 좀 과하긴 한데, 후회는 없다.
 
 그리고 가장 좋은 부분：AI 어시스턴트는 한 문장을, 당신이 실제로 계속 쓰게 될 작은 Dashboard 도구로 바꿔 준다.
 
@@ -220,13 +220,13 @@ Dashboard는 드래그·리사이즈 가능한 위젯 그리드다. 페타바이
 
 #### Dashboard／터미널 애니메이션 배경 (그냥 하고 싶어서)
 
-Dashboard 뷰마다, *또는 아무 터미널 뒤에*, **26종**의 캔버스 애니메이션 배경에서 기분을 고를 수 있다：
+Dashboard 뷰마다, *또는 아무 터미널 뒤에*, **31종**의 캔버스 애니메이션 배경에서 기분을 고를 수 있다：
 
 | 기분 | 배경 |
 | --- | --- |
-| 잔잔 | `aurora`, `clouds`, `ocean`, `raindrops`, `rainywindow`, `frostedWindow`, `snow`, `sakura`, `fireflies`, `bubbles`, `aquarium`, `ricefield`, `lanterns` |
+| 잔잔 | `fuji`, `aurora`, `clouds`, `ocean`, `raindrops`, `rainywindow`, `frostedWindow`, `snow`, `sakura`, `fireflies`, `bubbles`, `aquarium`, `jellyfish`, `lighthouse`, `balloons`, `ricefield`, `lanterns` |
 | 우주 | `starfield`, `nebula` |
-| 따뜻 | `embers`, `lava` |
+| 따뜻 | `embers`, `lava`, `dunes`, `savanna` |
 | 긱 | `matrix`, `topo`, `synthwave` |
 | 들썩 | `cyberpunk`, `taipei101`, `thunderstorm`, `confetti`, `particleCursor` |
 
