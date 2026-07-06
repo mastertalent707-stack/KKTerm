@@ -151,6 +151,7 @@ pub const DASHBOARD_TAB_COLOR_IDS: &[&str] = &[
 pub const DYNAMIC_BACKGROUND_IDS: &[&str] = &[
     "fuji",
     "aurora",
+    "halftone",
     "clouds",
     "ocean",
     "raindrops",
@@ -168,13 +169,17 @@ pub const DYNAMIC_BACKGROUND_IDS: &[&str] = &[
     "lanterns",
     "starfield",
     "nebula",
+    "orbitals",
     "embers",
     "lava",
+    "ink",
     "dunes",
     "savanna",
     "matrix",
     "topo",
     "synthwave",
+    "circuit",
+    "crystals",
     "cyberpunk",
     "taipei101",
     "thunderstorm",
@@ -1588,6 +1593,15 @@ mod tests {
     #[test]
     fn dynamic_background_accepts_fuji() {
         assert!(validate_dynamic_background("fuji").is_ok());
+    }
+
+    #[test]
+    fn dynamic_background_accepts_abstracts() {
+        assert!(validate_dynamic_background("circuit").is_ok());
+        assert!(validate_dynamic_background("halftone").is_ok());
+        assert!(validate_dynamic_background("orbitals").is_ok());
+        assert!(validate_dynamic_background("ink").is_ok());
+        assert!(validate_dynamic_background("crystals").is_ok());
     }
 
     #[test]

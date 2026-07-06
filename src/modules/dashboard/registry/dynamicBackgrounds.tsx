@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ComponentType } from "react";
+import { CircuitBg, CrystalsBg, HalftoneBg, InkBg, OrbitalsBg } from "./abstractDynamicBackgrounds";
 import { dynamicBackgroundDevicePixelRatio } from "./dynamicBackgroundCanvas";
 import { BalloonsBg, DunesBg, JellyfishBg, LighthouseBg, SavannaBg } from "./extraDynamicBackgrounds";
 import { FujiBg } from "./fujiBackground";
@@ -3807,6 +3808,7 @@ function ParticleCursorBg() {
 const DYNAMIC_BACKGROUND_COMPONENTS = {
   fuji: FujiBg,
   aurora: AuroraBg,
+  halftone: HalftoneBg,
   clouds: CloudsBg,
   ocean: OceanBg,
   raindrops: RaindropsBg,
@@ -3824,13 +3826,17 @@ const DYNAMIC_BACKGROUND_COMPONENTS = {
   lanterns: LanternsBg,
   starfield: StarfieldBg,
   nebula: NebulaBg,
+  orbitals: OrbitalsBg,
   embers: EmbersBg,
   lava: LavaBg,
+  ink: InkBg,
   dunes: DunesBg,
   savanna: SavannaBg,
   matrix: MatrixBg,
   topo: TopoBg,
   synthwave: SynthwaveBg,
+  circuit: CircuitBg,
+  crystals: CrystalsBg,
   cyberpunk: CyberpunkBg,
   taipei101: Taipei101Bg,
   thunderstorm: ThunderstormBg,
@@ -3848,6 +3854,7 @@ export const DYNAMIC_BACKGROUNDS: readonly {
 }[] = [
   { id: "fuji", labelKey: "dashboard.dynamicBackgrounds.fuji", mood: "calm" },
   { id: "aurora", labelKey: "dashboard.dynamicBackgrounds.aurora", mood: "calm" },
+  { id: "halftone", labelKey: "dashboard.dynamicBackgrounds.halftone", mood: "calm" },
   { id: "clouds", labelKey: "dashboard.dynamicBackgrounds.clouds", mood: "calm" },
   { id: "ocean", labelKey: "dashboard.dynamicBackgrounds.ocean", mood: "calm" },
   { id: "raindrops", labelKey: "dashboard.dynamicBackgrounds.raindrops", mood: "calm" },
@@ -3865,13 +3872,17 @@ export const DYNAMIC_BACKGROUNDS: readonly {
   { id: "lanterns", labelKey: "dashboard.dynamicBackgrounds.lanterns", mood: "calm" },
   { id: "starfield", labelKey: "dashboard.dynamicBackgrounds.starfield", mood: "spacey" },
   { id: "nebula", labelKey: "dashboard.dynamicBackgrounds.nebula", mood: "spacey" },
+  { id: "orbitals", labelKey: "dashboard.dynamicBackgrounds.orbitals", mood: "spacey" },
   { id: "embers", labelKey: "dashboard.dynamicBackgrounds.embers", mood: "warm" },
   { id: "lava", labelKey: "dashboard.dynamicBackgrounds.lava", mood: "warm" },
+  { id: "ink", labelKey: "dashboard.dynamicBackgrounds.ink", mood: "warm" },
   { id: "dunes", labelKey: "dashboard.dynamicBackgrounds.dunes", mood: "warm" },
   { id: "savanna", labelKey: "dashboard.dynamicBackgrounds.savanna", mood: "warm" },
   { id: "matrix", labelKey: "dashboard.dynamicBackgrounds.matrix", mood: "geeky" },
   { id: "topo", labelKey: "dashboard.dynamicBackgrounds.topo", mood: "geeky" },
   { id: "synthwave", labelKey: "dashboard.dynamicBackgrounds.synthwave", mood: "geeky" },
+  { id: "circuit", labelKey: "dashboard.dynamicBackgrounds.circuit", mood: "geeky" },
+  { id: "crystals", labelKey: "dashboard.dynamicBackgrounds.crystals", mood: "geeky" },
   { id: "cyberpunk", labelKey: "dashboard.dynamicBackgrounds.cyberpunk", mood: "erratic" },
   { id: "taipei101", labelKey: "dashboard.dynamicBackgrounds.taipei101", mood: "erratic" },
   { id: "thunderstorm", labelKey: "dashboard.dynamicBackgrounds.thunderstorm", mood: "erratic" },

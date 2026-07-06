@@ -574,6 +574,98 @@ BUILDERS.particleCursor = (id) => {
   return svgWrap(id, inner, d);
 };
 
+/* 32. Circuit — dark PCB traces with cyan signal pulses */
+BUILDERS.circuit = (id) => {
+  const r = rng(id);
+  let traces = '';
+  let pads = '';
+  let pulses = '';
+  for (let i = 0; i < 20; i++) {
+    const sx = Math.floor(r() * 8) * 22 - 8;
+    const sy = Math.floor(r() * 6) * 20;
+    const midX = sx + (r() > .5 ? 22 : 44);
+    const midY = sy + (r() > .5 ? 20 : -20);
+    const ex = midX + (r() > .5 ? 44 : -22);
+    const ey = midY + (r() > .5 ? 20 : -20);
+    traces += `<path d="M${sx},${sy} L${midX},${sy} L${midX},${midY} L${ex},${midY} L${ex},${ey}" fill="none" stroke="rgba(38,74,78,.58)" stroke-width="1.2" stroke-linejoin="round"/>`;
+    pads += `<circle cx="${sx}" cy="${sy}" r="2.4" fill="rgba(60,110,112,.72)"/><circle cx="${ex}" cy="${ey}" r="2.4" fill="rgba(60,110,112,.72)"/>`;
+    if (i % 4 === 0) {
+      pulses += `<circle class="anim tw" style="--d:${f2(1.2 + r() * 1.4)}s; animation-delay:${f2(-r() * 2)}s" cx="${midX}" cy="${midY}" r="6" fill="hsl(${r() > .25 ? 160 : 205},95%,65%)" opacity=".8"/>`;
+    }
+  }
+  const inner = `<rect width="160" height="100" fill="#080d12"/>${traces}${pads}<g style="mix-blend-mode:screen">${pulses}</g>`;
+  return svgWrap(id, inner, '');
+};
+
+/* 33. Halftone — warm paper with pulsing interference dots */
+BUILDERS.halftone = (id) => {
+  let dots = '';
+  for (let y = 10; y < 100; y += 13) {
+    for (let x = 10; x < 160; x += 13) {
+      const d = Math.hypot(x - 80, y - 50);
+      const k = .5 + .5 * Math.sin(x * .11 + y * .07 + d * .08);
+      const rr = f2(.9 + k * 4.1);
+      const hi = k > .94 ? '#0a84ff' : '#2b3340';
+      dots += `<circle class="anim br" style="--d:${f2(2.4 + k)}s; animation-delay:${f2(-k)}s" cx="${x}" cy="${y}" r="${rr}" fill="${hi}" opacity="${f2(hi === '#0a84ff' ? .85 : .22 + k * .5)}"/>`;
+    }
+  }
+  const inner = `<rect width="160" height="100" fill="#efeeea"/>${dots}`;
+  return svgWrap(id, inner, '');
+};
+
+/* 34. Orbitals — concentric tilted rings with glowing particles */
+BUILDERS.orbitals = (id) => {
+  const d = rg(id+'bg',[[0,'#0d1122',1],[1,'#04060c',1]],80,50,96)
+    + rg(id+'core',[[0,'#d2e1ff',.85],[.42,'#8caaff',.25],[1,'#8caaff',0]],80,50,24);
+  let rings = '';
+  for (let i = 0; i < 7; i++) {
+    const rx = 15 + i * 9;
+    const ry = rx * (.34 + (i % 3) * .05);
+    const rot = -24 + i * 8;
+    const hue = 198 + i * 9;
+    rings += `<g transform="rotate(${rot} 80 50)">
+      <ellipse cx="80" cy="50" rx="${rx}" ry="${f2(ry)}" fill="none" stroke="rgba(150,180,255,.1)" stroke-width="1"/>
+      <ellipse class="anim" style="animation:dwbg_spin ${f2(10 + i * 1.5)}s linear infinite; transform-box:view-box; transform-origin:80px 50px" cx="80" cy="50" rx="${rx}" ry="${f2(ry)}" fill="none" stroke="hsla(${hue},80%,70%,.35)" stroke-width="1.3" stroke-dasharray="10 58"/>
+      <circle class="anim tw" style="--d:${f2(2 + i * .2)}s" cx="${f2(80 + rx)}" cy="50" r="3" fill="hsl(${hue},90%,78%)"/></g>`;
+  }
+  const inner = `<rect width="160" height="100" fill="url(#${id}bg)"/><g style="mix-blend-mode:screen">${rings}<circle cx="80" cy="50" r="24" fill="url(#${id}core)"/></g>`;
+  return svgWrap(id, inner, d);
+};
+
+/* 35. Ink — soft warm pigment blobs on paper */
+BUILDERS.ink = (id) => {
+  const cfg = [
+    [50,44,38,'#e8a85c'], [76,60,34,'#d87654'], [105,42,32,'#c9943c'],
+    [112,70,42,'#e05e4a'], [40,72,30,'#ba7a60'], [76,30,28,'#e9c480'],
+  ];
+  let defs = blurFilter(id+'b',5);
+  let blobs = '';
+  cfg.forEach((c, i) => {
+    const gid = id+'ink'+i;
+    defs += rg(gid,[[0,c[3],.52],[.65,c[3],.28],[1,c[3],0]],c[0],c[1],c[2]);
+    blobs += `<circle class="anim blob" style="--d:${11 + i * 1.3}s; animation-delay:${-i}s" cx="${c[0]}" cy="${c[1]}" r="${c[2]}" fill="url(#${gid})"/>`;
+  });
+  const inner = `<rect width="160" height="100" fill="#f6efe6"/><g filter="url(#${id}b)" style="mix-blend-mode:multiply">${blobs}</g>`;
+  return svgWrap(id, inner, defs);
+};
+
+/* 36. Crystals — dark faceted lattice with glowing seams */
+BUILDERS.crystals = (id) => {
+  const d = lg(id+'c1',[[0,'#0d2f31'],[1,'#031013']],0,0,1,1)
+    + lg(id+'c2',[[0,'#123d3e'],[1,'#061616']],1,0,0,1)
+    + lg(id+'c3',[[0,'#17464b'],[1,'#071c1f']],0,1,1,0);
+  const polys = [
+    'M0,0 L52,0 L38,36 L0,54 Z', 'M52,0 L105,0 L94,42 L38,36 Z',
+    'M105,0 L160,0 L160,48 L94,42 Z', 'M0,54 L38,36 L58,86 L0,100 Z',
+    'M38,36 L94,42 L88,100 L58,86 Z', 'M94,42 L160,48 L160,100 L88,100 Z',
+  ];
+  const fills = [`url(#${id}c1)`, `url(#${id}c2)`, `url(#${id}c3)`];
+  const cells = polys.map((p, i) => `<path class="anim br" style="--d:${4.6 + i * .25}s; animation-delay:${-i * .2}s" d="${p}" fill="${fills[i % fills.length]}" stroke="hsl(${176 + i * 7},90%,64%)" stroke-width="1.15" stroke-opacity=".72"/>`).join('');
+  const sparks = `<circle cx="38" cy="36" r="2" fill="#e1fffa"/><circle cx="94" cy="42" r="2.2" fill="#e1fffa"/><circle cx="88" cy="100" r="1.6" fill="#e1fffa"/>`;
+  const inner = `<rect width="160" height="100" fill="#060b0d"/><g>${cells}</g><g class="anim tw" style="mix-blend-mode:screen; --d:2.4s">${sparks}</g>`;
+  return svgWrap(id, inner, d);
+};
+
 
 
 export function dynamicBackgroundPreviewSvg(id: DynamicBackgroundId): string {
