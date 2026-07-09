@@ -2263,6 +2263,19 @@ async fn capture_tmux_pane(
 }
 
 #[tauri::command]
+async fn tmux_current_path(
+    app: tauri::AppHandle,
+    request: sessions::TmuxCurrentPathRequest,
+) -> Result<String, String> {
+    run_blocking_command("tmux current path", move || {
+        let sessions = app.state::<sessions::SessionManager>();
+        let secrets = app.state::<secrets::Secrets>();
+        sessions.tmux_current_path(app.clone(), &secrets, request)
+    })
+    .await
+}
+
+#[tauri::command]
 async fn list_psmux_sessions() -> Result<Vec<sessions::TmuxSession>, String> {
     run_blocking_command("psmux list sessions", sessions::list_psmux_sessions).await
 }
@@ -3865,6 +3878,7 @@ pub fn run() {
             set_psmux_mouse,
             scroll_tmux_pane,
             capture_tmux_pane,
+            tmux_current_path,
             // ── SSH system context, port forwarding & elevation
             inspect_ssh_system_context,
             detect_ssh_remote_os,

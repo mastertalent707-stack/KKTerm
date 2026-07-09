@@ -2192,6 +2192,27 @@ type CommandMap = {
     };
     result: string;
   };
+  tmux_current_path: {
+    args: {
+      request: {
+        host: string;
+        user: string;
+        port?: number;
+        keyPath?: string;
+        proxyJump?: string;
+  sshSocksProxy?: string;
+  sshSocksProxyUsername?: string;
+  sshSocksProxySecretOwnerId?: string;
+  sshSocksProxyInheritDefaults?: boolean;
+        sshCompression?: boolean;
+        authMethod?: "keyFile" | "password" | "agent";
+        secretOwnerId?: string;
+        passphraseOwnerId?: string;
+        tmuxSessionId: string;
+      };
+    };
+    result: string;
+  };
   list_psmux_sessions: {
     args: Record<string, never>;
     result: TmuxSession[];

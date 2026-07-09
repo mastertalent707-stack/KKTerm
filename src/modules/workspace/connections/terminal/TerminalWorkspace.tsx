@@ -154,6 +154,7 @@ export function TerminalWorkspace({
   const [sshPortForwardingDialogPaneId, setSshPortForwardingDialogPaneId] = useState<string | null>(null);
   const setOpenTerminalPaneSshForwardFailures = useWorkspaceStore((state) => state.setOpenTerminalPaneSshForwardFailures);
   const sftpFocusRestorePaneIdRef = useRef<string | null>(null);
+  const sftpOpenRequestIdRef = useRef(0);
   const sshPortForwardingFocusRestorePaneIdRef = useRef<string | null>(null);
   const { t } = useTranslation();
   const defaultFontSize = defaultTerminalSettings.fontSize;
@@ -222,21 +223,23 @@ export function TerminalWorkspace({
   function closeSftpDialog() {
     const restorePaneId = sftpFocusRestorePaneIdRef.current;
     sftpFocusRestorePaneIdRef.current = null;
+    sftpOpenRequestIdRef.current += 1;
     setSftpDialogConnection(null);
     if (restorePaneId) {
       focusTerminalPaneAfterDialogClose(restorePaneId);
     }
   }
 
-  function openSftpDialog(connection: Connection, paneId: string) {
+  async function openSftpDialog(connection: Connection, paneId: string) {
+    const requestId = sftpOpenRequestIdRef.current + 1;
+    sftpOpenRequestIdRef.current = requestId;
     sftpFocusRestorePaneIdRef.current = paneId === focusedPaneId ? paneId : null;
-    // Open the remote pane at the SSH session's OSC 7-reported cwd when the
-    // shell publishes one; otherwise the browser starts at the remote home.
     const pane = tab.panes.find((candidate) => candidate.id === paneId);
-    const paneCwd = pane && isTerminalPane(pane) ? pane.cwd : "";
-    setSftpDialogInitialRemotePath(
-      connection.type === "ssh" && isRemoteInitialDirectory(paneCwd) ? paneCwd.trim() : undefined,
-    );
+    const initialRemotePath = await resolveSftpDialogInitialRemotePath(connection, pane);
+    if (sftpOpenRequestIdRef.current !== requestId) {
+      return;
+    }
+    setSftpDialogInitialRemotePath(initialRemotePath);
     setSftpDialogConnection(connection);
   }
 
@@ -2611,7 +2614,7 @@ function TerminalPaneView({
     if (pane.connection?.type !== "ssh") {
       return;
     }
-    onOpenSftp(pane.connection, pane.id);
+    void onOpenSftp(pane.connection, pane.id);
   }
 
   function handleOpenSshPortForwarding() {
@@ -3400,6 +3403,30 @@ async function terminalBufferForAssistant(
   }
 
   return renderer?.getBufferText() ?? "";
+}
+
+async function resolveSftpDialogInitialRemotePath(connection: Connection, pane: WorkspacePane | undefined) {
+  if (!pane || !isTerminalPane(pane) || connection.type !== "ssh") {
+    return undefined;
+  }
+
+  if (pane.tmuxSessionId && isTauriRuntime()) {
+    try {
+      const tmuxPath = await invokeCommand("tmux_current_path", {
+        request: {
+          ...tmuxConnectionRequest(connection),
+          tmuxSessionId: pane.tmuxSessionId,
+        },
+      });
+      if (isRemoteInitialDirectory(tmuxPath)) {
+        return tmuxPath.trim();
+      }
+    } catch (error) {
+      console.debug("Falling back to terminal cwd after tmux current-path probe failed.", error);
+    }
+  }
+
+  return isRemoteInitialDirectory(pane.cwd) ? pane.cwd.trim() : undefined;
 }
 
 function isRemoteInitialDirectory(cwd: string) {
