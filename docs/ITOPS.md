@@ -16,6 +16,9 @@ The IT Ops Module owns:
 
 - **Sites** — durable named selections of existing Connections used as site
   targets, plus the optional Site → Server Room → Rack topology.
+- **Hosts** — a per-Site durable inventory of devices and their VM/container
+  guests, imported from hostname lists and scanned for remote-access
+  endpoints (see "Hosts" below).
 - **Batch Runs** — fan-out task execution across a Site with
   per-host live output and a consolidated, saved run report.
 - **Automations** — durable trigger → condition → action rules (the
@@ -82,6 +85,23 @@ rendering and properties; it is not a Connection type.
 
 **Rack Device Properties** — non-secret presentation metadata for a Rack
 Device. Never store credentials or live Session state here.
+
+**Host** — a durable inventory entry for one device or guest in a Site,
+addressed by hostname and stored in `itops_hosts`. The device itself can be a
+Host; a Host may carry **child Hosts** (its VMs or containers) via a soft
+`parent_host_id` self reference — deleting a Host re-parents its children one
+level up rather than dropping them. A Host binds any number of Connections at
+once (`connection_ids_json`, ordered soft refs) — e.g. an SSH terminal plus an
+HTTPS URL Connection to its management interface. Hosts are imported from a
+pasted hostname list (blank/duplicate lines skipped) and then scanned with
+bounded-concurrency TCP probes for SSH (22), WinRM (5985/5986), and HTTPS
+(443); the scan snapshot is stored on the Host (`scan_json`) as data, never
+live Session state and never a secret, and per-host results stream on the
+`itops://host-scan` event channel. A Rack Device may reference a Host through
+`metadata.hostId` so the Rack View balloon callout lists the Host and its
+child Hosts. Storage lives in `src-tauri/src/itops/host_storage.rs`; the panel
+UI is Site View's Hosts segment (`src/modules/itops/HostsPanel.tsx`).
+_Avoid_: node, agent, connection host field
 
 **Transport** — how a Batch Run reaches one host. Per host (derived from
 the Connection, overridable per Site/run):
@@ -155,6 +175,10 @@ Three SQLite tables (new schema version):
   transport defaults.
 - `itops_site_racks` / `itops_site_rack_items` — Site topology and Rack
   Devices. Pure metadata; Connection ids are soft references.
+- `itops_hosts` — per-Site Host inventory: hostname, label, kind
+  (physical/vm/container/other), soft `parent_host_id` self reference for
+  child Hosts, ordered soft Connection references, and the last
+  connectivity-scan snapshot. No secret, no live state.
 - `itops_automations` — id, name, enabled flag, trigger config, optional
   condition, ordered actions, poll/stop/suppression settings (the durable
   superset of `WatchdogConfig`), plus an optional Site binding (`site_id`,

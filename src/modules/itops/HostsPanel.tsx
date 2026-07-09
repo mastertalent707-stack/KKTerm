@@ -1,0 +1,263 @@
+// Hosts segment (docs/ITOPS.md Hosts) — one Site's Host inventory. A flat
+// toolbar plus the parent/child Host tree: each row shows the Host's kind,
+// name, detected remote-access chips from the last connectivity scan, bound
+// Connection count, and per-row actions (rescan, add child, bindings, edit,
+// delete). Import accepts a pasted hostname list and auto-scans the new rows.
+
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { listen } from "@tauri-apps/api/event";
+import { ConfirmSheet } from "../../app/ui/dialog";
+import { isTauriRuntime } from "../../lib/tauri";
+import { useWorkspaceStore } from "../../store";
+import type { HostScanEvent, SiteHost } from "../../types";
+import { ItIcon, type ItIconName } from "./icons";
+import { HostDialog } from "./HostDialog";
+import { HostImportDialog } from "./HostImportDialog";
+import { HostBindingsDialog } from "./HostBindingsDialog";
+import { buildHostTreeRows, childHostsOf, hostDisplayName } from "./hostTree";
+import { useItOpsStore } from "./state";
+
+const KIND_ICON: Record<SiteHost["kind"], ItIconName> = {
+  physical: "server",
+  vm: "cube",
+  container: "grid",
+  other: "network",
+};
+
+/** Detected remote-access chips for one Host's last scan. */
+export function HostScanChips({ host, scanning }: { host: SiteHost; scanning: boolean }) {
+  const { t } = useTranslation();
+  if (scanning) {
+    return (
+      <span className="it-host-chip scanning">
+        <ItIcon name="spinner" size={12} />
+        {t("itops.hosts.scanning")}
+      </span>
+    );
+  }
+  if (!host.scan) {
+    return <span className="it-host-chip muted">{t("itops.hosts.scanPending")}</span>;
+  }
+  const chips: { key: string; icon: ItIconName; label: string }[] = [];
+  // The endpoint names are technical tokens rendered verbatim, like the
+  // TransportChip's transport ids.
+  if (host.scan.ssh) chips.push({ key: "ssh", icon: "ssh", label: "ssh" });
+  if (host.scan.winrm) chips.push({ key: "winrm", icon: "windows", label: "winrm" });
+  if (host.scan.https) chips.push({ key: "https", icon: "globe", label: "https" });
+  if (chips.length === 0) {
+    return <span className="it-host-chip muted">{t("itops.hosts.scanNone")}</span>;
+  }
+  return (
+    <>
+      {chips.map((chip) => (
+        <span key={chip.key} className={`it-host-chip ${chip.key}`}>
+          <ItIcon name={chip.icon} size={12} />
+          {chip.label}
+        </span>
+      ))}
+    </>
+  );
+}
+
+export function HostsPanel({ siteId }: { siteId: string }) {
+  const { t } = useTranslation();
+  const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
+  const hosts = useItOpsStore((state) => state.hostsBySite[siteId]);
+  const scanningHostIds = useItOpsStore((state) => state.scanningHostIds);
+  const loadHosts = useItOpsStore((state) => state.loadHosts);
+  const scanHosts = useItOpsStore((state) => state.scanHosts);
+  const deleteHost = useItOpsStore((state) => state.deleteHost);
+  const applyHostScanEvent = useItOpsStore((state) => state.applyHostScanEvent);
+  const hostImportRequest = useItOpsStore((state) => state.hostImportRequest);
+
+  const [importOpen, setImportOpen] = useState(false);
+  const [editorHost, setEditorHost] = useState<SiteHost | null>(null);
+  const [editorParentId, setEditorParentId] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [bindingsHost, setBindingsHost] = useState<SiteHost | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<SiteHost | null>(null);
+
+  useEffect(() => {
+    void loadHosts(siteId).catch(() => undefined);
+  }, [siteId, loadHosts]);
+
+  // Stream per-host scan results into the store so chips update as they land.
+  useEffect(() => {
+    if (!isTauriRuntime()) return;
+    const unlisten = listen<HostScanEvent>("itops://host-scan", (event) =>
+      applyHostScanEvent(event.payload),
+    );
+    return () => {
+      void unlisten.then((dispose) => dispose());
+    };
+  }, [applyHostScanEvent]);
+
+  // The drill toolbar's "+" on the Hosts segment requests the import dialog.
+  const seenImportRequest = useRef(hostImportRequest);
+  useEffect(() => {
+    if (hostImportRequest !== seenImportRequest.current) {
+      seenImportRequest.current = hostImportRequest;
+      setImportOpen(true);
+    }
+  }, [hostImportRequest]);
+
+  function notifyError(error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    showStatusBarNotice(t("itops.errorNotice", { message }), { tone: "error" });
+  }
+
+  function openEditor(host: SiteHost | null, parentId: string | null = null) {
+    setEditorHost(host);
+    setEditorParentId(parentId);
+    setEditorOpen(true);
+  }
+
+  async function rescan(hostIds: string[]) {
+    try {
+      await scanHosts(siteId, hostIds);
+    } catch (error) {
+      notifyError(error);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    try {
+      await deleteHost(siteId, pendingDelete.id);
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      setPendingDelete(null);
+    }
+  }
+
+  const rows = buildHostTreeRows(hosts ?? []);
+
+  return (
+    <div className="card it-hosts">
+      <div className="it-hosts-toolbar">
+        <span className="it-hosts-count">
+          {t("itops.hosts.hostCount", { count: hosts?.length ?? 0 })}
+        </span>
+        <span className="it-hosts-sp" />
+        <button type="button" className="it-hosts-action" onClick={() => void rescan([])} disabled={!hosts?.length}>
+          <ItIcon name="rerun" size={13} />
+          {t("itops.hosts.rescanAllAction")}
+        </button>
+        <button type="button" className="it-hosts-action" onClick={() => openEditor(null)}>
+          <ItIcon name="plus" size={13} />
+          {t("itops.hosts.addAction")}
+        </button>
+        <button type="button" className="it-hosts-action primary" onClick={() => setImportOpen(true)}>
+          <ItIcon name="download" size={13} />
+          {t("itops.hosts.importAction")}
+        </button>
+      </div>
+      {rows.length === 0 ? (
+        <div className="hg-dlg-empty">{t("itops.hosts.empty")}</div>
+      ) : (
+        <div className="it-hosts-list" role="tree" aria-label={t("itops.tabs.hosts")}>
+          {rows.map(({ host, depth }) => {
+            const scanning = !!scanningHostIds[host.id];
+            const childCount = childHostsOf(hosts ?? [], host.id).length;
+            return (
+              <div
+                key={host.id}
+                className="it-host-row"
+                role="treeitem"
+                aria-level={depth + 1}
+                style={{ paddingLeft: 10 + depth * 22 }}
+              >
+                <span className={`it-host-kind ${host.kind}`} title={t(`itops.hosts.kind.${host.kind}`)}>
+                  <ItIcon name={KIND_ICON[host.kind]} size={14} />
+                </span>
+                <span className="it-host-name">
+                  <span className="nm">{hostDisplayName(host)}</span>
+                  {host.label.trim() ? <span className="addr">{host.hostname}</span> : null}
+                  {childCount > 0 ? (
+                    <span className="kids">{t("itops.hosts.childCount", { count: childCount })}</span>
+                  ) : null}
+                </span>
+                <span className="it-host-chips">
+                  <HostScanChips host={host} scanning={scanning} />
+                </span>
+                <button
+                  type="button"
+                  className={`it-host-bind${host.connectionIds.length > 0 ? " bound" : ""}`}
+                  title={t("itops.hosts.bindingsAction")}
+                  onClick={() => setBindingsHost(host)}
+                >
+                  <ItIcon name="link" size={13} />
+                  {host.connectionIds.length > 0 ? host.connectionIds.length : ""}
+                </button>
+                <span className="it-host-actions">
+                  <button
+                    type="button"
+                    title={t("itops.hosts.rescanAction")}
+                    aria-label={t("itops.hosts.rescanAction")}
+                    onClick={() => void rescan([host.id])}
+                  >
+                    <ItIcon name="rerun" size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    title={t("itops.hosts.addChildAction")}
+                    aria-label={t("itops.hosts.addChildAction")}
+                    onClick={() => openEditor(null, host.id)}
+                  >
+                    <ItIcon name="plus" size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    title={t("itops.hosts.editAction")}
+                    aria-label={t("itops.hosts.editAction")}
+                    onClick={() => openEditor(host)}
+                  >
+                    <ItIcon name="edit" size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    title={t("itops.hosts.deleteAction")}
+                    aria-label={t("itops.hosts.deleteAction")}
+                    onClick={() => setPendingDelete(host)}
+                  >
+                    <ItIcon name="trash" size={13} />
+                  </button>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {importOpen ? <HostImportDialog siteId={siteId} onClose={() => setImportOpen(false)} /> : null}
+      {editorOpen ? (
+        <HostDialog
+          siteId={siteId}
+          host={editorHost}
+          defaultParentId={editorParentId}
+          onClose={() => setEditorOpen(false)}
+        />
+      ) : null}
+      {bindingsHost ? (
+        <HostBindingsDialog
+          siteId={siteId}
+          host={bindingsHost}
+          onClose={() => setBindingsHost(null)}
+        />
+      ) : null}
+      {pendingDelete ? (
+        <ConfirmSheet
+          tone="danger"
+          title={t("itops.hosts.deleteConfirmTitle", { name: hostDisplayName(pendingDelete) })}
+          message={t("itops.hosts.deleteConfirmBody")}
+          confirmLabel={t("itops.hosts.deleteAction")}
+          cancelLabel={t("itops.actions.cancel")}
+          onConfirm={() => void confirmDelete()}
+          onCancel={() => setPendingDelete(null)}
+        />
+      ) : null}
+    </div>
+  );
+}

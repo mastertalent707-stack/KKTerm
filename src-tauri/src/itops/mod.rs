@@ -7,6 +7,7 @@ pub mod actions;
 pub mod automation_commands;
 pub mod automation_storage;
 pub mod commands;
+pub mod host_storage;
 pub mod site_storage;
 mod ids;
 pub mod inventory;

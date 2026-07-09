@@ -27,6 +27,7 @@ import { ItIcon, IT_ACCENTS, type ItIconName } from "./icons";
 import { SiteDialog } from "./SiteDialog";
 import { BatchRunsTab } from "./BatchRunsTab";
 import { AutomationsTab } from "./AutomationsTab";
+import { HostsPanel } from "./HostsPanel";
 import { RackElevation } from "./RackElevation";
 import { RackDialog } from "./RackDialog";
 import { ServerRoomDialog } from "./ServerRoomDialog";
@@ -112,9 +113,9 @@ type PendingDelete =
 const FREE_CARD_WIDTH = 240;
 const FREE_CARD_HEIGHT = 74;
 
-// Site View segments: the Server Room card overview, or the Batch Runs /
-// Automations surfaces scoped to the selected Site's Connections.
-type SiteViewMode = "overview" | "batchRuns" | "automations";
+// Site View segments: the Server Room card overview, or the Hosts / Batch
+// Runs / Automations surfaces scoped to the selected Site.
+type SiteViewMode = "overview" | "hosts" | "batchRuns" | "automations";
 
 // A stable per-group tile colour (Sites don't store one); hashing the id
 // keeps a group's colour steady across reloads without a durable field.
@@ -1012,6 +1013,14 @@ function RackDrill({
   const [siteView, setSiteView] = useState<SiteViewMode>("overview");
   const requestNewBatchRun = useItOpsStore((state) => state.requestNewBatchRun);
   const requestNewAutomation = useItOpsStore((state) => state.requestNewAutomation);
+  const requestHostImport = useItOpsStore((state) => state.requestHostImport);
+
+  // Host inventory for the Hosts segment and the Rack View callouts.
+  const siteHosts = useItOpsStore((state) => state.hostsBySite[site.id]);
+  const loadHosts = useItOpsStore((state) => state.loadHosts);
+  useEffect(() => {
+    void loadHosts(site.id).catch(() => undefined);
+  }, [site.id, loadHosts]);
 
   // Picker column state shared by the two spatial layouts: the armed room
   // object kind, and a just-created rack awaiting its placement click.
@@ -1226,6 +1235,10 @@ function RackDrill({
   }
 
   function handleSegmentAdd() {
+    if (siteView === "hosts") {
+      requestHostImport();
+      return;
+    }
     if (siteView === "batchRuns") {
       requestNewBatchRun(site.id);
       return;
@@ -1331,7 +1344,11 @@ function RackDrill({
   // topology-only toolbar actions (edit / export / auto-organize) hide with it.
   const siteSegmentActive = !serverRoom && !rack && siteView !== "overview";
   const segmentAddLabel =
-    siteView === "batchRuns" ? t("itops.actions.newBatchRun") : t("itops.actions.newAutomation");
+    siteView === "hosts"
+      ? t("itops.hosts.importAction")
+      : siteView === "batchRuns"
+        ? t("itops.actions.newBatchRun")
+        : t("itops.actions.newAutomation");
 
   return (
     <div className="ft-drill">
@@ -1351,6 +1368,14 @@ function RackDrill({
               >
                 <ItIcon name="room" size={13} />
                 {t("itops.sites.viewOverview")}
+              </button>
+              <button
+                type="button"
+                data-active={siteView === "hosts"}
+                onClick={() => setSiteView("hosts")}
+              >
+                <ItIcon name="server" size={13} />
+                {t("itops.tabs.hosts")}
               </button>
               <button
                 type="button"
@@ -1471,7 +1496,9 @@ function RackDrill({
             ) : null}
           </div>
         </div>
-        {siteSegmentActive && siteView === "batchRuns" ? (
+        {siteSegmentActive && siteView === "hosts" ? (
+          <HostsPanel siteId={site.id} />
+        ) : siteSegmentActive && siteView === "batchRuns" ? (
           <BatchRunsTab siteId={site.id} onNewBatchRun={() => requestNewBatchRun(site.id)} />
         ) : siteSegmentActive && siteView === "automations" ? (
           <AutomationsTab siteId={site.id} siteHosts={members.map((member) => member.host)} />
@@ -1482,6 +1509,7 @@ function RackDrill({
         ) : rack ? (
           <RackStage
             rack={rack}
+            hosts={siteHosts}
             hostFor={hostForItem}
             isGhost={isGhostItem}
             editMode={editMode}
