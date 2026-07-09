@@ -629,6 +629,32 @@ mod tests {
     }
 
     #[test]
+    fn site_background_roundtrips_through_list_sites() {
+        let conn = open_test_db();
+        create_site(
+            &conn,
+            "hg-bg",
+            "Background Site",
+            vec![],
+            None,
+            Transport::Auto,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+
+        let background = DashboardBackground::Preset {
+            preset: "mist".into(),
+        };
+        let updated = set_site_background(&conn, "hg-bg", Some(background.clone())).unwrap();
+        assert_eq!(updated.background, Some(background.clone()));
+
+        let listed = list_sites(&conn).unwrap();
+        assert_eq!(listed[0].background, Some(background));
+    }
+
+    #[test]
     fn empty_name_is_rejected() {
         let conn = open_test_db();
         assert!(matches!(
