@@ -1059,6 +1059,8 @@
       "viewToggleLabel": "Site view",
       "viewMembers": "Members",
       "viewRacks": "Racks",
+      "viewLabel": "Site view mode",
+      "viewOverview": "Overview",
       "autoOrganize": "Auto Organize"
     },
     "racks": {
@@ -1406,6 +1408,8 @@
       "testResult": "Test result",
       "unset": "not set",
       "hostLabel": "Host",
+      "siteLabel": "Site",
+      "siteNone": "No Site",
       "sessionIdLabel": "Session ID",
       "silenceSecondsLabel": "Silence duration (seconds)",
       "portLabel": "Port",

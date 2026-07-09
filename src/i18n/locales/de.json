@@ -1059,6 +1059,8 @@
       "viewToggleLabel": "Site-Ansicht",
       "viewMembers": "Mitglieder",
       "viewRacks": "Racks",
+      "viewLabel": "Site-Ansichtsmodus",
+      "viewOverview": "Übersicht",
       "autoOrganize": "Automatisch anordnen"
     },
     "racks": {
@@ -1406,6 +1408,8 @@
       "testResult": "Testergebnis",
       "unset": "nicht festgelegt",
       "hostLabel": "Host",
+      "siteLabel": "Site",
+      "siteNone": "Keine Site",
       "sessionIdLabel": "Sitzungs-ID",
       "silenceSecondsLabel": "Stummschaltdauer (Sekunden)",
       "portLabel": "Port",

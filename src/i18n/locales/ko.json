@@ -1059,6 +1059,8 @@
       "viewToggleLabel": "사이트 보기",
       "viewMembers": "멤버",
       "viewRacks": "랙",
+      "viewLabel": "사이트 보기 모드",
+      "viewOverview": "개요",
       "autoOrganize": "자동 정렬"
     },
     "racks": {
@@ -1406,6 +1408,8 @@
       "testResult": "테스트 결과",
       "unset": "설정되지 않음",
       "hostLabel": "호스트",
+      "siteLabel": "사이트",
+      "siteNone": "사이트 없음",
       "sessionIdLabel": "세션 ID",
       "silenceSecondsLabel": "무음 기간 (초)",
       "portLabel": "포트",

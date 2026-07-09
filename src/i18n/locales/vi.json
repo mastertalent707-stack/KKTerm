@@ -1059,6 +1059,8 @@
       "viewToggleLabel": "Xem site",
       "viewMembers": "Thành viên",
       "viewRacks": "Rack",
+      "viewLabel": "Chế độ xem site",
+      "viewOverview": "Tổng quan",
       "autoOrganize": "Tự động sắp xếp"
     },
     "racks": {
@@ -1406,6 +1408,8 @@
       "testResult": "Kết quả kiểm tra",
       "unset": "chưa đặt",
       "hostLabel": "Máy chủ",
+      "siteLabel": "Site",
+      "siteNone": "Không có site",
       "sessionIdLabel": "ID phiên",
       "silenceSecondsLabel": "Thời lượng im lặng (giây)",
       "portLabel": "Cổng",

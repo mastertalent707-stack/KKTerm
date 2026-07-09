@@ -1059,6 +1059,8 @@
       "viewToggleLabel": "サイト表示",
       "viewMembers": "メンバー",
       "viewRacks": "ラック",
+      "viewLabel": "サイト表示モード",
+      "viewOverview": "概要",
       "autoOrganize": "自動整列"
     },
     "racks": {
@@ -1406,6 +1408,8 @@
       "testResult": "テスト結果",
       "unset": "未設定",
       "hostLabel": "ホスト",
+      "siteLabel": "サイト",
+      "siteNone": "サイトなし",
       "sessionIdLabel": "セッション ID",
       "silenceSecondsLabel": "サイレント期間 (秒)",
       "portLabel": "ポート",
