@@ -4,17 +4,31 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("IT Ops drill views expose icon-only edit add export actions", async () => {
+test("IT Ops drill views expose icon-only edit and share-export actions", async () => {
   const sites = await read("src/modules/itops/SitesTab.tsx");
 
   assert.match(sites, /className="it-drill-toolbar"/);
   assert.match(sites, /aria-label=\{t\("itops\.actions\.viewActions"\)\}/);
   assert.match(sites, /title=\{editMode \? t\("itops\.actions\.editDone"\) : t\("itops\.actions\.edit"\)\}/);
   assert.match(sites, /<ItIcon name=\{editMode \? "check" : "edit"\}/);
-  assert.match(sites, /<ItIcon name="plus"/);
-  assert.match(sites, /<ItIcon name="download"/);
+  assert.match(sites, /siteSegmentActive \? \(/);
+  assert.doesNotMatch(sites, /rack\s*\?\s*t\("itops\.racks\.addItemTitle"\)/);
+  assert.match(sites, /<ItIcon name="share"/);
   assert.match(sites, /handleExport\("pdf"\)/);
   assert.match(sites, /rack \? \([\s\S]*handleExport\("excel"\)/);
+});
+
+test("Rack edit mode empty slots show an Add Device callout and open the item dialog", async () => {
+  const rackElevation = await read("src/modules/itops/RackElevation.tsx");
+  const css = await read("src/modules/itops/itops.css");
+
+  assert.match(rackElevation, /editMode && onSlotClick/);
+  assert.match(rackElevation, /aria-label=\{t\("itops\.racks\.addAtUnit"/);
+  assert.match(rackElevation, /className="rk-slot-callout"/);
+  assert.match(rackElevation, /t\("itops\.racks\.addDeviceCallout"\)/);
+  assert.match(rackElevation, /onClick=\{\(\) => onSlotClick\(u\)\}/);
+  assert.match(css, /\.rk-slot-callout/);
+  assert.match(css, /\.rk-slot-btn:hover \.rk-slot-callout/);
 });
 
 test("Server Room view switcher sits in the drill toolbar with line icons", async () => {

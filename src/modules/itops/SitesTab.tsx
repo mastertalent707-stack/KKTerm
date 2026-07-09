@@ -719,9 +719,6 @@ export function SitesTab({
             onEditItem={(rack, item) => setItemDialog({ rack, item })}
             onBindItem={setBindingsDialog}
             onMoveItem={(itemId, targetRackId, startU) => void moveItem(itemId, targetRackId, startU)}
-            onAddServerRoom={() =>
-              setServerRoomDialog({ siteId: activeGroup.id, room: null })
-            }
             onAddRack={(serverRoom) => {
               setRackDialog({
                 siteId: activeGroup.id,
@@ -737,7 +734,6 @@ export function SitesTab({
                 onSaved,
               });
             }}
-            onAddRackItem={(rack, startU) => setItemDialog({ rack, item: null, startU })}
             onDeleteServerRoom={(serverRoom, roomRacks) => {
               const room = serverRooms.find((entry) => topologyGroupKey(entry.name) === topologyGroupKey(serverRoom));
               if (room) setPendingDelete({ kind: "serverRoom", siteId: activeGroup.id, room, racks: roomRacks });
@@ -966,10 +962,8 @@ function RackDrill({
   onEditItem,
   onBindItem,
   onMoveItem,
-  onAddServerRoom,
   onAddRack,
   onAddRackForPlacement,
-  onAddRackItem,
   onDeleteServerRoom,
   onDeleteRack,
   onDeleteItem,
@@ -990,12 +984,10 @@ function RackDrill({
   onEditItem: (rack: Rack, item: RackItem) => void;
   onBindItem: (item: RackItem) => void;
   onMoveItem: (itemId: string, targetRackId: string, startU: number) => void;
-  onAddServerRoom: () => void;
   onAddRack: (serverRoom: string) => void;
   /** Picker flow: open the New Rack dialog, hand the saved rack back for a
    *  placement click instead of drilling into it. */
   onAddRackForPlacement: (serverRoom: string, onSaved: (saved: Rack) => void) => void;
-  onAddRackItem: (rack: Rack, startU?: number) => void;
   onDeleteServerRoom: (serverRoom: string, racks: Rack[]) => void;
   onDeleteRack: (rack: Rack) => void;
   onDeleteItem: (rack: Rack, item: RackItem) => void;
@@ -1233,37 +1225,14 @@ function RackDrill({
     );
   }
 
-  function firstAvailableStartU(targetRack: Rack) {
-    const occupied = new Set<number>();
-    for (const item of targetRack.items) {
-      for (let u = item.startU; u < item.startU + item.heightU; u += 1) {
-        occupied.add(u);
-      }
-    }
-    for (let u = 1; u <= targetRack.heightU; u += 1) {
-      if (!occupied.has(u)) return u;
-    }
-    return 1;
-  }
-
-  function handleAdd() {
-    if (rack) {
-      onAddRackItem(rack, firstAvailableStartU(rack));
-      return;
-    }
-    if (serverRoom) {
-      onAddRack(serverRoom.key);
-      return;
-    }
+  function handleSegmentAdd() {
     if (siteView === "batchRuns") {
       requestNewBatchRun(site.id);
       return;
     }
     if (siteView === "automations") {
       requestNewAutomation();
-      return;
     }
-    onAddServerRoom();
   }
 
   function kindLabel(kind: RackItem["kind"]) {
@@ -1361,15 +1330,8 @@ function RackDrill({
   // A non-overview Site View segment replaces the topology surface, so the
   // topology-only toolbar actions (edit / export / auto-organize) hide with it.
   const siteSegmentActive = !serverRoom && !rack && siteView !== "overview";
-  const addLabel = rack
-    ? t("itops.racks.addItemTitle")
-    : serverRoom
-      ? t("itops.racks.addRack")
-      : siteView === "batchRuns"
-        ? t("itops.actions.newBatchRun")
-        : siteView === "automations"
-          ? t("itops.actions.newAutomation")
-          : t("itops.racks.addServerRoom");
+  const segmentAddLabel =
+    siteView === "batchRuns" ? t("itops.actions.newBatchRun") : t("itops.actions.newAutomation");
 
   return (
     <div className="ft-drill">
@@ -1464,15 +1426,17 @@ function RackDrill({
                 <ItIcon name={editMode ? "check" : "edit"} size={15} />
               </button>
             ) : null}
-            <button
-              type="button"
-              className="it-drill-action"
-              title={addLabel}
-              aria-label={addLabel}
-              onClick={handleAdd}
-            >
-              <ItIcon name="plus" size={15} />
-            </button>
+            {siteSegmentActive ? (
+              <button
+                type="button"
+                className="it-drill-action"
+                title={segmentAddLabel}
+                aria-label={segmentAddLabel}
+                onClick={handleSegmentAdd}
+              >
+                <ItIcon name="plus" size={15} />
+              </button>
+            ) : null}
             {!siteSegmentActive ? (
               <div className="it-drill-export">
                 <button
@@ -1484,7 +1448,7 @@ function RackDrill({
                   aria-expanded={exportMenuOpen}
                   onClick={() => setExportMenuOpen((open) => !open)}
                 >
-                  <ItIcon name="download" size={15} />
+                  <ItIcon name="share" size={15} />
                 </button>
                 {exportMenuOpen ? (
                   <>

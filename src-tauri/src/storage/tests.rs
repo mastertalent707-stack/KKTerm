@@ -1093,6 +1093,19 @@ fn connection_brand_icon_ref_updates_for_any_connection_type() {
 }
 
 #[test]
+fn connection_reicon_ref_updates_for_any_connection_type() {
+    let storage = Storage::open(temp_db_path("connection-reicon-ref")).expect("storage opens");
+    let created = create_test_ssh_connection(&storage, "Bastion", "bastion.internal", None);
+
+    let updated = storage
+        .update_connection_icon_data_url(created.id.clone(), Some("reicon:Server".to_string()))
+        .expect("reicon ref is updated")
+        .expect("changed icon returns the updated connection");
+
+    assert_eq!(updated.icon_data_url.as_deref(), Some("reicon:Server"));
+}
+
+#[test]
 fn connection_icon_color_updates_for_any_connection_type() {
     let storage = Storage::open(temp_db_path("connection-icon-color")).expect("storage opens");
     let created = create_test_ssh_connection(&storage, "Bastion", "bastion.internal", None);
@@ -1939,6 +1952,14 @@ fn create_rename_and_delete_connection_folder() {
         Some("material:folder-open")
     );
 
+    let reicon_changed = storage
+        .update_connection_folder_icon_data_url(created.id.clone(), Some("reicon:Server".to_string()))
+        .expect("folder reicon ref is changed");
+    assert_eq!(
+        reicon_changed.icon_data_url.as_deref(),
+        Some("reicon:Server")
+    );
+
     storage
         .delete_connection_folder(created.id.clone())
         .expect("folder is deleted");
@@ -1968,6 +1989,9 @@ fn folders_can_contain_subfolders() {
             icon_data_url: None,
         })
         .expect("child folder is created");
+    storage
+        .update_connection_folder_icon_data_url(child.id.clone(), Some("reicon:Server".to_string()))
+        .expect("child folder reicon ref is updated");
 
     let tree = storage
         .list_connection_tree()
@@ -1976,6 +2000,7 @@ fn folders_can_contain_subfolders() {
 
     assert_eq!(parent.folders[0].id, child.id);
     assert_eq!(parent.folders[0].name, "Production");
+    assert_eq!(parent.folders[0].icon_data_url.as_deref(), Some("reicon:Server"));
 }
 
 #[test]

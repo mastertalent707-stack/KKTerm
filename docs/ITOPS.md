@@ -217,10 +217,11 @@ header Site select and defaulted from the segment that opened it; legacy
 rows without a binding fall back to inference — a runBatch action targeting
 the Site, or a host-addressed trigger watching one of its resolved member
 hosts). The
-drill-down views own an icon-only Edit / New / Export toolbar: edit mode gates free
-placement, Rack Device drag/drop, and destructive controls; normal mode remains
-an inspect/open surface. Site and Server Room exports save PDF, while Rack View
-also saves an Excel-readable inventory table. The live
+drill-down views own an icon-only Edit / Export toolbar: edit mode gates free
+placement, Rack Device drag/drop, empty-slot add affordances, and destructive
+controls; normal mode remains an inspect/open surface. Site and Server Room
+exports save PDF, while Rack View also saves an Excel-readable inventory table.
+The live
 Batch Run view renders a per-host grid
 with status chips and **live streamed output** (each host auto-reveals its
 output as it arrives over the `itops://run` `HostOutput` frames; the SSH

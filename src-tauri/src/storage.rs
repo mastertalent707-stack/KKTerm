@@ -4560,17 +4560,18 @@ fn normalize_connection_icon_data_url(value: Option<String>) -> Result<Option<St
             return Err("connection icon data URL is too large".to_string());
         }
         // Accept an inline image data URL or one of the app's icon-catalog refs
-        // ("lucide:Name" / "material:id" / "os:id" / "brand:id"), which the icon picker offers
+        // ("reicon:Name" / "lucide:Name" / "material:id" / "os:id" / "brand:id"), which the icon picker offers
         // and the ConnectionIcon renderer resolves. Catalog refs are short
         // identifiers; "os:id" is the bundled OS/distro logo set used by SSH
         // remote-OS auto-detection.
         let is_image_data_url = value.starts_with("data:image/");
-        let is_icon_ref = value.starts_with("lucide:")
+        let is_icon_ref = value.starts_with("reicon:")
+            || value.starts_with("lucide:")
             || value.starts_with("material:")
             || value.starts_with("os:")
             || value.starts_with("brand:");
         if !is_image_data_url && !is_icon_ref {
-            return Err("connection icon must be an image data URL".to_string());
+            return Err("connection icon must be an image data URL or icon ref".to_string());
         }
     }
     Ok(value)

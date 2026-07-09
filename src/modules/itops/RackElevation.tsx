@@ -179,7 +179,7 @@ export function RackElevation({
                   className="rk-slot rk-slot-btn"
                   key={`s-${u}`}
                   style={{ gridColumn: 2, gridRow: rack.heightU - u + 1 }}
-                  title={t("itops.racks.addAtUnit", { unit: u })}
+                  aria-label={t("itops.racks.addAtUnit", { unit: u })}
                   onClick={() => onSlotClick(u)}
                   onDragOver={
                     canMove
@@ -198,7 +198,11 @@ export function RackElevation({
                         }
                       : undefined
                   }
-                />
+                >
+                  <span className="rk-slot-callout" aria-hidden="true">
+                    {t("itops.racks.addDeviceCallout")}
+                  </span>
+                </button>
               ) : (
                 <div
                   className="rk-slot"
