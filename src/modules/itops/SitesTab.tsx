@@ -1875,7 +1875,11 @@ function RackObjectPicker({
   );
 
   return (
-    <div className="rm-picker" role="group" aria-label={t("itops.floorPlan.pickerTitle")}>
+    <div
+      className="rm-picker rm-picker-devices"
+      role="group"
+      aria-label={t("itops.floorPlan.pickerTitle")}
+    >
       <div className="rm-picker-h">{t("itops.floorPlan.pickerTitle")}</div>
       <div className="rm-picker-search">
         <ItIcon name="search" size={13} />

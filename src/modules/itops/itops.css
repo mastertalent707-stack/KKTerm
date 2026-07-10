@@ -4678,6 +4678,24 @@
 .itops-page .rm-picker-thumb.device {
   width: 82px;
   height: 28px;
+  flex: 0 0 auto;
+}
+/* Rack View device picker: a single-column list, one device type per row,
+   with the faceplate thumb beside a left-aligned name. */
+.itops-page .rm-picker-devices .rm-picker-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.itops-page .rm-picker-devices .rm-picker-card {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+}
+.itops-page .rm-picker-devices .rm-picker-name {
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .itops-page .rm-picker-name {
   max-width: 100%;
