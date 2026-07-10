@@ -21,7 +21,7 @@ import { ConfirmSheet } from "../../app/ui/dialog";
 import { showNativeContextMenu } from "../../lib/nativeContextMenu";
 import { nativeMenuIcons } from "../../lib/nativeMenuIcons";
 import { useWorkspaceStore } from "../../store";
-import type { Site, Rack, RackItem, ResolvedHost, ServerRoom } from "../../types";
+import type { Site, Rack, RackItem, RackItemKind, ResolvedHost, ServerRoom } from "../../types";
 import { ConnectionIcon } from "../workspace/connections/ConnectionIcon";
 import { ItIcon, IT_ACCENTS, type ItIconName } from "./icons";
 import { SiteDialog } from "./SiteDialog";
@@ -31,7 +31,8 @@ import { HostsPanel } from "./HostsPanel";
 import { RackElevation } from "./RackElevation";
 import { RackDialog } from "./RackDialog";
 import { ServerRoomDialog } from "./ServerRoomDialog";
-import { RackItemDialog } from "./RackItemDialog";
+import { RackItemDialog, RACK_ITEM_KINDS } from "./RackItemDialog";
+import { RackDevice } from "./RackDevice";
 import { RackItemBindingsDialog } from "./RackItemBindingsDialog";
 import { RackItemConnectPopover, type ConnectPopoverAnchor } from "./RackItemConnectPopover";
 import { useItOpsStore, type RackPlacementKind } from "./state";
@@ -183,6 +184,7 @@ export function SitesTab({
   const [itemDialog, setItemDialog] = useState<{
     rack: Rack;
     item: RackItem | null;
+    kind?: RackItemKind;
     startU?: number;
   } | null>(null);
   const [bindingsDialog, setBindingsDialog] = useState<RackItem | null>(null);
@@ -722,7 +724,7 @@ export function SitesTab({
             roomIcons={activeGroup.roomIcons}
             hostForItem={hostForItem}
             isGhostItem={isGhostItem}
-            onSlotClick={(rack, startU) => setItemDialog({ rack, item: null, startU })}
+            onSlotClick={(rack, startU, kind) => setItemDialog({ rack, item: null, kind, startU })}
             onOpenItem={openRackItem}
             onEditItem={(rack, item) => setItemDialog({ rack, item })}
             onBindItem={setBindingsDialog}
@@ -803,6 +805,7 @@ export function SitesTab({
           siteId={activeGroup.id}
           rack={itemDialog.rack}
           item={itemDialog.item}
+          defaultKind={itemDialog.kind}
           defaultStartU={itemDialog.startU}
           members={members}
           onClose={() => setItemDialog(null)}
@@ -993,7 +996,7 @@ function RackDrill({
   roomIcons?: Record<string, ItOpsCustomIcon>;
   hostForItem: (item: RackItem) => string | null;
   isGhostItem: (item: RackItem) => boolean;
-  onSlotClick: (rack: Rack, startU: number) => void;
+  onSlotClick: (rack: Rack, startU: number, kind?: RackItemKind) => void;
   onOpenItem: (item: RackItem, anchor: HTMLElement) => void;
   onEditItem: (rack: Rack, item: RackItem) => void;
   onBindItem: (item: RackItem) => void;
@@ -1517,19 +1520,27 @@ function RackDrill({
         ) : siteSegmentActive && siteView === "automations" ? (
           <AutomationsTab siteId={site.id} siteHosts={members.map((member) => member.host)} />
         ) : !topologyLoaded ? null : rack ? (
-          <RackStage
-            rack={rack}
-            hosts={siteHosts}
-            hostFor={hostForItem}
-            isGhost={isGhostItem}
-            editMode={editMode}
-            onSlotClick={editMode ? (startU) => onSlotClick(rack, startU) : undefined}
-            onOpenItem={onOpenItem}
-            onEditItem={(item) => onEditItem(rack, item)}
-            onBindItem={onBindItem}
-            onMoveItem={editMode ? onMoveItem : undefined}
-            onDeleteItem={editMode ? (item) => onDeleteItem(rack, item) : undefined}
-          />
+          <div className="it-rack-layout">
+            <RackStage
+              rack={rack}
+              hosts={siteHosts}
+              hostFor={hostForItem}
+              isGhost={isGhostItem}
+              editMode={editMode}
+              onSlotClick={editMode ? (startU) => onSlotClick(rack, startU) : undefined}
+              onOpenItem={onOpenItem}
+              onEditItem={(item) => onEditItem(rack, item)}
+              onBindItem={onBindItem}
+              onMoveItem={editMode ? onMoveItem : undefined}
+              onDeleteItem={editMode ? (item) => onDeleteItem(rack, item) : undefined}
+            />
+            {editMode ? (
+              <RackObjectPicker
+                rack={rack}
+                onPickDevice={(kind, startU) => onSlotClick(rack, startU, kind)}
+              />
+            ) : null}
+          </div>
         ) : serverRoom ? (
           serverRoom.racks.length === 0 ? (
             <div className="it-topology-empty">
@@ -1617,7 +1628,7 @@ function RackDrill({
               </div>
             ))
           )
-        ) : topology.length === 0 ? (
+        ) : topology.length === 0 && !editMode ? (
           <div className="it-topology-empty">
             <button type="button" className="it-btn primary" onClick={onAddServerRoom}>
               <span className="it-btn-ic">
@@ -1627,17 +1638,20 @@ function RackDrill({
             </button>
           </div>
         ) : (
-          <SiteRoomCards
-            rooms={topology}
-            roomIcons={roomIcons}
-            unassigned={unassigned}
-            editMode={editMode}
-            placement={sitePlacements}
-            onPlacementChange={saveSitePlacements}
-            onDeleteRoom={onDeleteServerRoom}
-            onSelectRoom={(room) => setDrill({ serverRoom: room.key, rackId: null })}
-            onOpenBackground={() => setBackgroundOpen(true)}
-          />
+          <div className="it-site-layout">
+            <SiteRoomCards
+              rooms={topology}
+              roomIcons={roomIcons}
+              unassigned={unassigned}
+              editMode={editMode}
+              placement={sitePlacements}
+              onPlacementChange={saveSitePlacements}
+              onDeleteRoom={onDeleteServerRoom}
+              onSelectRoom={(room) => setDrill({ serverRoom: room.key, rackId: null })}
+              onOpenBackground={() => setBackgroundOpen(true)}
+            />
+            {editMode ? <SiteObjectPicker onPickServerRoom={onAddServerRoom} /> : null}
+          </div>
         )}
       </ItOpsBackground>
       {backgroundOpen && ((serverRoom && roomView === "iso") || (!serverRoom && !rack)) ? (
@@ -1752,6 +1766,103 @@ function useFreeDrag(
   }
 
   return { startDrag, moveDrag, endDrag };
+}
+
+function SiteObjectPicker({ onPickServerRoom }: { onPickServerRoom: () => void }) {
+  const { t } = useTranslation();
+  const label = t("itops.racks.serverRoomLabel");
+
+  return (
+    <div className="rm-picker" role="group" aria-label={t("itops.floorPlan.pickerTitle")}>
+      <div className="rm-picker-h">{t("itops.floorPlan.pickerTitle")}</div>
+      <div className="rm-picker-grid">
+        <button
+          type="button"
+          className="rm-picker-card"
+          title={label}
+          onClick={onPickServerRoom}
+        >
+          <span className="rm-picker-thumb">
+            <ItIcon name="room" size={30} sw={1.3} />
+          </span>
+          <span className="rm-picker-name">{label}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function firstAvailableRackUnit(rack: Rack): number | null {
+  for (let unit = 1; unit <= rack.heightU; unit += 1) {
+    const occupied = rack.items.some(
+      (item) => unit >= item.startU && unit < item.startU + item.heightU,
+    );
+    if (!occupied) return unit;
+  }
+  return null;
+}
+
+function RackObjectPicker({
+  rack,
+  onPickDevice,
+}: {
+  rack: Rack;
+  onPickDevice: (kind: RackItemKind, startU: number) => void;
+}) {
+  const { t } = useTranslation();
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const startU = firstAvailableRackUnit(rack);
+  const kinds = RACK_ITEM_KINDS.filter(
+    (kind) => !q || t(`itops.racks.kind.${kind}`).toLowerCase().includes(q),
+  );
+
+  return (
+    <div className="rm-picker" role="group" aria-label={t("itops.floorPlan.pickerTitle")}>
+      <div className="rm-picker-h">{t("itops.floorPlan.pickerTitle")}</div>
+      <div className="rm-picker-search">
+        <ItIcon name="search" size={13} />
+        <input
+          type="text"
+          value={query}
+          placeholder={t("itops.floorPlan.pickerSearchPlaceholder")}
+          onChange={(event) => setQuery(event.currentTarget.value)}
+        />
+        {query ? (
+          <button type="button" className="rm-picker-search-x" onClick={() => setQuery("")}>
+            <ItIcon name="xmark" size={12} />
+          </button>
+        ) : null}
+      </div>
+      <div className="rm-picker-grid">
+        {kinds.map((kind) => {
+          const label = t(`itops.racks.kind.${kind}`);
+          return (
+            <button
+              key={kind}
+              type="button"
+              className="rm-picker-card"
+              title={label}
+              disabled={startU == null}
+              onClick={() => startU != null && onPickDevice(kind, startU)}
+            >
+              <span className="rm-picker-thumb device">
+                <RackDevice
+                  kind={kind}
+                  label={label}
+                  status="online"
+                  heightU={1}
+                  shell="black"
+                  seed={`picker-${kind}`}
+                />
+              </span>
+              <span className="rm-picker-name">{label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // Site View is a free-form Server Room placement surface in both modes. Edit

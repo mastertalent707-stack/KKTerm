@@ -85,6 +85,36 @@ test("Edit mode arms placement through the shared object picker column", async (
   }
 });
 
+test("Site edit mode uses the same object-picker column for creating Server Rooms", async () => {
+  const sites = await read("src/modules/itops/SitesTab.tsx");
+  const css = await read("src/modules/itops/itops.css");
+
+  assert.match(sites, /function SiteObjectPicker/);
+  assert.match(sites, /className="rm-picker"/);
+  assert.match(sites, /itops\.racks\.serverRoomLabel/);
+  assert.match(sites, /<ItIcon name="room"/);
+  assert.match(sites, /editMode \? <SiteObjectPicker onPickServerRoom=\{onAddServerRoom\} \/> : null/);
+  assert.match(sites, /className="it-site-layout"/);
+  assert.match(css, /\.itops-page \.it-site-layout \{/);
+});
+
+test("Rack edit mode uses the object-picker column for Rack Device types", async () => {
+  const sites = await read("src/modules/itops/SitesTab.tsx");
+  const dialog = await read("src/modules/itops/RackItemDialog.tsx");
+  const css = await read("src/modules/itops/itops.css");
+
+  assert.match(dialog, /export const RACK_ITEM_KINDS/);
+  assert.match(dialog, /defaultKind\?: RackItemKind/);
+  assert.match(dialog, /item\?\.kind \?\? defaultKind \?\? "server"/);
+  assert.match(sites, /function RackObjectPicker/);
+  assert.match(sites, /RACK_ITEM_KINDS\.filter/);
+  assert.match(sites, /<RackDevice/);
+  assert.match(sites, /firstAvailableRackUnit\(rack\)/);
+  assert.match(sites, /defaultKind=\{itemDialog\.kind\}/);
+  assert.match(sites, /className="it-rack-layout"/);
+  assert.match(css, /\.itops-page \.it-rack-layout \{/);
+});
+
 test("Armed placement previews a cursor-snapped ghost and cancels on right-click", async () => {
   const sites = await read("src/modules/itops/SitesTab.tsx");
   const floorPlan = await read("src/modules/itops/ServerRoomFloorPlan.tsx");
@@ -171,7 +201,7 @@ test("Rack device dialog includes a preview picker for every device type", async
   const dialog = await read("src/modules/itops/RackItemDialog.tsx");
 
   assert.match(dialog, /className="rack-kind-preview-grid"/);
-  assert.match(dialog, /ALL_KINDS\.map/);
+  assert.match(dialog, /RACK_ITEM_KINDS\.map/);
   assert.match(dialog, /<RackDevice[\s\S]*kind=\{value\}/);
   assert.match(dialog, /aria-label=\{t\("itops\.racks\.kindPreviewLabel"\)\}/);
 });

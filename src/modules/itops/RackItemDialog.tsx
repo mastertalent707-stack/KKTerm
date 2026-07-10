@@ -35,7 +35,7 @@ import { useItOpsStore } from "./state";
 const SHELL_OPTIONS: RackShell[] = ["black", "white", "grey"];
 const PORT_SPEEDS: RackPortSpeed[] = ["gigabit", "10g", "25g", "40g", "100g", "custom"];
 
-const PASSIVE_KINDS: RackItemKind[] = [
+export const RACK_ITEM_KINDS: RackItemKind[] = [
   "server",
   "storage",
   "switch",
@@ -51,7 +51,6 @@ const PASSIVE_KINDS: RackItemKind[] = [
   "blank",
   "label",
 ];
-const ALL_KINDS: RackItemKind[] = PASSIVE_KINDS;
 const STATUS_OPTIONS: RackItemStatus[] = ["online", "warning", "offline"];
 
 function showsPorts(kind: RackItemKind): boolean {
@@ -86,6 +85,7 @@ export function RackItemDialog({
   siteId,
   rack,
   item,
+  defaultKind,
   defaultStartU,
   members,
   onClose,
@@ -93,6 +93,7 @@ export function RackItemDialog({
   siteId: string;
   rack: Rack;
   item?: RackItem | null;
+  defaultKind?: RackItemKind;
   defaultStartU?: number;
   members: ResolvedHost[];
   onClose: () => void;
@@ -107,7 +108,7 @@ export function RackItemDialog({
   const removeRackItem = useItOpsStore((state) => state.removeRackItem);
   const refreshRackItemSnmp = useItOpsStore((state) => state.refreshRackItemSnmp);
 
-  const [kind, setKind] = useState<RackItemKind>(item?.kind ?? "server");
+  const [kind, setKind] = useState<RackItemKind>(item?.kind ?? defaultKind ?? "server");
   const [connectionId, setConnectionId] = useState<string>(
     item?.connectionId ?? members[0]?.connectionId ?? "",
   );
@@ -329,7 +330,7 @@ export function RackItemDialog({
               role="group"
               aria-label={t("itops.racks.kindPreviewLabel")}
             >
-              {ALL_KINDS.map((value) => (
+              {RACK_ITEM_KINDS.map((value) => (
                 <button
                   key={value}
                   type="button"

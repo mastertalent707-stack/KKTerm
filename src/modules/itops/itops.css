@@ -3545,6 +3545,27 @@
 }
 
 /* Free placement surface (Site View server-room cards). */
+.itops-page .it-site-layout {
+  display: flex;
+  align-items: stretch;
+  flex: 1 0 auto;
+  gap: 10px;
+  min-height: 0;
+}
+.itops-page .it-site-layout > .it-free-surface.site {
+  flex: 1 1 auto;
+}
+.itops-page .it-rack-layout {
+  display: flex;
+  align-items: stretch;
+  flex: 1 0 auto;
+  gap: 10px;
+  min-height: 0;
+}
+.itops-page .it-rack-layout > .rk-stage {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .itops-page .it-free-surface {
   position: relative;
   min-width: 0;
@@ -4584,6 +4605,10 @@
   border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
   color: var(--accent);
 }
+.itops-page .rm-picker-card:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
 .itops-page .rm-picker-thumb {
   display: inline-flex;
   align-items: center;
@@ -4594,6 +4619,10 @@
 .itops-page .rm-picker-thumb .rm-object-art {
   width: 100%;
   height: 100%;
+}
+.itops-page .rm-picker-thumb.device {
+  width: 82px;
+  height: 28px;
 }
 .itops-page .rm-picker-name {
   max-width: 100%;
