@@ -10,6 +10,7 @@ import type { Rack, RackItem, RackItemStatus, SiteHost } from "../../types";
 import { childHostsOf, hostDisplayName } from "./hostTree";
 import { selectRandomRackCallouts, summarizeRackDeviceMetadata } from "./rackInventory";
 import { RackElevation } from "./RackElevation";
+import type { RackItemDraft } from "./RackItemDialog";
 
 /** Child-host names for a device balloon: first two, then a "+N" overflow. */
 const BALLOON_CHILD_HOSTS = 2;
@@ -64,6 +65,9 @@ export function RackStage({
   onMoveItem,
   onDeleteItem,
   editMode = false,
+  placeSpec,
+  onPlaceAt,
+  onCancelPlacement,
 }: {
   rack: Rack;
   /** The Site's Host inventory; devices with a bound `metadata.hostId` list
@@ -81,6 +85,10 @@ export function RackStage({
   onMoveItem?: (itemId: string, targetRackId: string, startU: number) => void;
   onDeleteItem?: (item: RackItem) => void;
   editMode?: boolean;
+  /** Armed picker placement pass-through (see RackElevation). */
+  placeSpec?: RackItemDraft | null;
+  onPlaceAt?: (startU: number) => void;
+  onCancelPlacement?: () => void;
 }) {
   const { t } = useTranslation();
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -146,6 +154,9 @@ export function RackStage({
           onRunRack={onRunRack}
           onMoveItem={onMoveItem}
           onDeleteItem={onDeleteItem}
+          placeSpec={placeSpec}
+          onPlaceAt={onPlaceAt}
+          onCancelPlacement={onCancelPlacement}
         />
       </div>
       {geom

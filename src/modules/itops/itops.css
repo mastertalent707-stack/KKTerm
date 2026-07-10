@@ -10,8 +10,12 @@
   box-sizing: border-box;
 }
 
-/* fills the workspace content area, mirroring the Installer/Dashboard modules */
-.itops-page {
+/* fills the workspace content area, mirroring the Installer/Dashboard modules.
+   `.itops-page` also rides on portaled dialog backdrops (Sheet `zClassName`)
+   so the module tokens below reach IT Ops dialogs — the page-root layout half
+   must not apply there or it demotes the backdrop's fixed overlay positioning
+   and pushes the dialog below the viewport. */
+.itops-page:not(.kk-dlg-backdrop) {
   position: relative;
   grid-column: 2 / 5;
   grid-row: 1;
@@ -21,6 +25,9 @@
   min-width: 0;
   overflow: hidden;
   background: var(--app-bg);
+}
+
+.itops-page {
   color: var(--text);
   font-size: 13px;
   line-height: 1.4;
@@ -2440,6 +2447,33 @@
   border-color: var(--border-strong);
 }
 
+/* ── Armed device placement (Rack View picker) ──
+   The configured faceplate ghosts under the cursor snapped to the hovered U;
+   placed items stop intercepting the pointer so the whole column stays a
+   live drop surface, and the span turns red where it would overlap. */
+.itops-page .rk-grid.placing .rk-item-row {
+  pointer-events: none;
+}
+.itops-page .rk-grid.placing .rk-slot-btn {
+  cursor: copy;
+}
+.itops-page .rk-grid.placing .rk-slot-callout {
+  display: none;
+}
+.itops-page .rk-place-ghost {
+  pointer-events: none;
+  position: relative;
+  z-index: 21;
+  opacity: 0.8;
+  border-radius: 4px;
+  outline: 1.5px dashed var(--accent);
+  outline-offset: 1px;
+}
+.itops-page .rk-place-ghost.blocked {
+  opacity: 0.4;
+  outline-color: var(--red);
+}
+
 /* ── Rack item open/edit affordances + ghost ─────────────────────────────── */
 .itops-page .rk-item-main {
   display: block;
@@ -3590,6 +3624,13 @@
 }
 .itops-page .it-free-surface.site:not(.editing) {
   background-image: none;
+}
+/* The dot grid is an edit-mode affordance only; outside edit mode a custom
+   background shows through a fully transparent surface. Must outrank the
+   `.has-bg` rule above (it is one class more specific than the generic
+   `:not(.editing)` reset). */
+.itops-page .ft-drill-bg.has-bg .it-free-surface.site:not(.editing) {
+  background: none;
 }
 .itops-page .it-free-card {
   position: absolute;

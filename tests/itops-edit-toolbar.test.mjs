@@ -26,7 +26,7 @@ test("Rack edit mode empty slots show an Add Device callout and open the item di
   assert.match(rackElevation, /aria-label=\{t\("itops\.racks\.addAtUnit"/);
   assert.match(rackElevation, /className="rk-slot-callout"/);
   assert.match(rackElevation, /t\("itops\.racks\.addDeviceCallout"\)/);
-  assert.match(rackElevation, /onClick=\{\(\) => onSlotClick\(u\)\}/);
+  assert.match(rackElevation, /onSlotClick\(u\);/);
   assert.match(css, /\.rk-slot-callout/);
   assert.match(css, /\.rk-slot-btn:hover \.rk-slot-callout/);
 });
@@ -113,6 +113,49 @@ test("Rack edit mode uses the object-picker column for Rack Device types", async
   assert.match(sites, /defaultKind=\{itemDialog\.kind\}/);
   assert.match(sites, /className="it-rack-layout"/);
   assert.match(css, /\.itops-page \.it-rack-layout \{/);
+});
+
+test("Rack device picker arms a configure-then-place flow with a cursor-snapped ghost", async () => {
+  const sites = await read("src/modules/itops/SitesTab.tsx");
+  const dialog = await read("src/modules/itops/RackItemDialog.tsx");
+  const stage = await read("src/modules/itops/RackStage.tsx");
+  const rackElevation = await read("src/modules/itops/RackElevation.tsx");
+  const css = await read("src/modules/itops/itops.css");
+
+  // The dialog configures a draft (no position field) instead of placing.
+  assert.match(dialog, /export interface RackItemDraft/);
+  assert.match(dialog, /onConfigured\?: \(draft: RackItemDraft\) => void/);
+  assert.match(dialog, /const placementMode = !isEdit && !!onConfigured/);
+  assert.match(dialog, /\{placementMode \? null : \(/);
+  // SitesTab arms the configured draft and places it on the elevation click.
+  assert.match(sites, /useState<RackItemDraft \| null>\(null\)/);
+  assert.match(sites, /onConfigureDevice/);
+  assert.match(sites, /onPlaceDevice\(rack, placeDevice, startU\)/);
+  assert.match(sites, /placeConfiguredDevice/);
+  assert.match(sites, /armedKind=\{placeDevice\?\.kind \?\? null\}/);
+  // The elevation snaps the ghost to the hovered U, blocks overlaps, and
+  // cancels on right-click.
+  assert.match(stage, /placeSpec=\{placeSpec\}/);
+  assert.match(rackElevation, /function snapPlacement/);
+  assert.match(rackElevation, /rk-place-ghost/);
+  assert.match(rackElevation, /onCancelPlacement/);
+  assert.match(css, /\.rk-place-ghost/);
+  assert.match(css, /\.rk-grid\.placing \.rk-item-row/);
+});
+
+test("IT Ops page-root layout stays off dialog backdrops and edit-mode dot grids", async () => {
+  const css = await read("src/modules/itops/itops.css");
+
+  // `.itops-page` rides on Sheet backdrops (zClassName) for module tokens;
+  // the page-root positioning must not demote the fixed overlay or the
+  // dialog renders below the viewport.
+  assert.match(css, /\.itops-page:not\(\.kk-dlg-backdrop\) \{/);
+  // The Site View dot grid is an edit-mode affordance even over a custom
+  // background (the `.has-bg` rule is more specific than the generic reset).
+  assert.match(
+    css,
+    /\.ft-drill-bg\.has-bg \.it-free-surface\.site:not\(\.editing\) \{\s*background: none;/,
+  );
 });
 
 test("Armed placement previews a cursor-snapped ghost and cancels on right-click", async () => {
