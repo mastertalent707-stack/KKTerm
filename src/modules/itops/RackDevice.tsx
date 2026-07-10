@@ -138,6 +138,8 @@ export function RackDevice({
   const isUps = kind === "ups";
   const isKvm = kind === "kvm";
   const panelStyle = kind === "server" ? serverPanelStyle ?? "default" : "default";
+  const serverHeightBand = heightU >= 5 ? "chassis" : heightU >= 3 ? "dense" : "compact";
+  const serverTopRatio = Math.min(40, 200 / Math.max(1, heightU));
 
   if (isKuaiguai) {
     return (
@@ -223,11 +225,14 @@ export function RackDevice({
       data-compact={compact || undefined}
       data-form-factor={isServer ? formFactor ?? "rack" : undefined}
       data-server-panel-style={kind === "server" ? panelStyle : undefined}
+      data-server-height-band={kind === "server" ? serverHeightBand : undefined}
       data-kuaiguai-size={isKuaiguai ? kuaiguaiSize ?? "regular" : undefined}
       style={{
         ["--rkd-accent" as string]: devAccent,
         ["--rkd-rotate" as string]: `${rotation ?? -2}deg`,
         ["--rkd-yaw" as string]: `${yaw ?? 0}deg`,
+        ["--rkd-server-top" as string]: `${serverTopRatio}%`,
+        ["--rkd-server-top-mid" as string]: `${serverTopRatio / 2}%`,
       }}
     >
       {/* left rack ear */}
@@ -237,6 +242,73 @@ export function RackDevice({
       </div>
 
       <div className="rkd-body">
+        {kind === "server" && panelStyle === "style1" ? (
+          <div className="rkd-server-style1" data-height-band={serverHeightBand} aria-hidden="true">
+            <span className="rkd-server-style1-control" />
+            <div className="rkd-server-style1-center">
+              <div className="rkd-server-style1-bays">
+                {Array.from({ length: Math.max(8, Math.min(12, diskList.length)) }, (_, i) => (
+                  <span className="rkd-server-style1-bay" key={i}>
+                    <i className={i % 3 === 0 ? `blk-${(i % 5) + 1}` : undefined} />
+                  </span>
+                ))}
+              </div>
+              <svg
+                className="rkd-server-style1-lattice"
+                viewBox={serverHeightBand === "compact" ? "0 0 180 40" : "0 0 180 84"}
+                preserveAspectRatio="none"
+              >
+                <g fill="none" stroke="currentColor" strokeWidth="4">
+                  <path d="M-8 20 2 2h22l10 18-10 18H2Z" />
+                  <path d="M32 20 42 2h22l10 18-10 18H42Z" />
+                  <path d="M72 20 82 2h22l10 18-10 18H82Z" />
+                  <path d="M112 20 122 2h22l10 18-10 18h-22Z" />
+                  <path d="M152 20 162 2h22l10 18-10 18h-22Z" />
+                  {serverHeightBand === "compact" ? null : (
+                    <>
+                      <path d="M12 62 22 44h22l10 18-10 18H22Z" />
+                      <path d="M52 62 62 44h22l10 18-10 18H62Z" />
+                      <path d="M92 62 102 44h22l10 18-10 18h-22Z" />
+                      <path d="M132 62 142 44h22l10 18-10 18h-22Z" />
+                      <path d="M172 62 182 44h22l10 18-10 18h-22Z" />
+                    </>
+                  )}
+                </g>
+                <path
+                  className="rkd-server-style1-mark"
+                  d={serverHeightBand === "compact" ? "m81 20 6-6h6l6 6-6 6h-6Z" : "m81 42 6-6h6l6 6-6 6h-6Z"}
+                />
+              </svg>
+              {serverHeightBand === "chassis" ? (
+                <div className="rkd-server-style1-lower">
+                  {Array.from({ length: 6 }, (_, i) => (
+                    <span className={i % 3 === 1 ? "short" : "tall"} key={i}><i /></span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <span className="rkd-server-style1-io"><i /><i /><i /></span>
+          </div>
+        ) : kind === "server" && panelStyle === "style2" ? (
+          <div className="rkd-server-style2" aria-hidden="true">
+            <span className="rkd-server-style2-bezel left" />
+            <div className="rkd-server-style2-core">
+              <div className="rkd-server-style2-bays top">
+                {Array.from({ length: 12 }, (_, i) => <i key={i} />)}
+              </div>
+              <span className="rkd-server-style2-rail upper" />
+              <span className="rkd-server-style2-badge" />
+              <span className="rkd-server-style2-rail lower" />
+              <div className="rkd-server-style2-bays bottom">
+                {Array.from({ length: Math.max(8, Math.min(12, diskList.length)) }, (_, i) => (
+                  <i key={i} />
+                ))}
+              </div>
+            </div>
+            <span className="rkd-server-style2-bezel right" />
+          </div>
+        ) : null}
+
         {showLeds ? (
           <div className="rkd-leds">
             <span
@@ -318,64 +390,20 @@ export function RackDevice({
           ) : null}
 
           {/* SERVER / CONNECTION */}
-          {isServer ? (
+          {isServer && panelStyle === "default" ? (
             <div className="rkd-server" data-panel-style={panelStyle}>
-              {panelStyle === "style1" ? (
-                <div className="rkd-server-style1" aria-hidden="true">
-                  <span className="rkd-server-style1-control" />
-                  <div className="rkd-server-style1-bays">
-                    {Array.from({ length: Math.max(8, Math.min(12, diskList.length)) }, (_, i) => (
-                      <span className="rkd-server-style1-bay" key={i}>
-                        <i className={i % 3 === 0 ? `blk-${(i % 5) + 1}` : undefined} />
-                      </span>
-                    ))}
-                  </div>
-                  <svg className="rkd-server-style1-lattice" viewBox="0 0 180 40" preserveAspectRatio="none">
-                    <g fill="none" stroke="currentColor" strokeWidth="4">
-                      <path d="M-8 20 2 2h22l10 18-10 18H2Z" />
-                      <path d="M32 20 42 2h22l10 18-10 18H42Z" />
-                      <path d="M72 20 82 2h22l10 18-10 18H82Z" />
-                      <path d="M112 20 122 2h22l10 18-10 18h-22Z" />
-                      <path d="M152 20 162 2h22l10 18-10 18h-22Z" />
-                    </g>
-                    <text x="90" y="25" textAnchor="middle">DELL</text>
-                  </svg>
-                  <span className="rkd-server-style1-io"><i /><i /><i /></span>
-                </div>
-              ) : panelStyle === "style2" ? (
-                <div className="rkd-server-style2" aria-hidden="true">
-                  <span className="rkd-server-style2-bezel left" />
-                  <div className="rkd-server-style2-core">
-                    <div className="rkd-server-style2-bays top">
-                      {Array.from({ length: 12 }, (_, i) => <i key={i} />)}
-                    </div>
-                    <span className="rkd-server-style2-rail upper" />
-                    <span className="rkd-server-style2-badge" />
-                    <span className="rkd-server-style2-rail lower" />
-                    <div className="rkd-server-style2-bays bottom">
-                      {Array.from({ length: Math.max(8, Math.min(12, diskList.length)) }, (_, i) => (
-                        <i key={i} />
-                      ))}
-                    </div>
-                  </div>
-                  <span className="rkd-server-style2-bezel right"><i /><i /><i /></span>
-                </div>
-              ) : (
-                <>
-                  <div className="rkd-disks-row">
-                    {diskList.map((disk, i) => (
-                      <span className="rkd-disk-bay" key={i}>
-                        <span className={`rkd-disk-led ${disk.blk}`} style={{ background: disk.color }} />
-                      </span>
-                    ))}
-                  </div>
-                  <div className="rkd-vent" />
-                  <div className="rkd-fans">
-                    <span className="fan rkd-fan" />
-                    <span className="fan rkd-fan alt" />
-                  </div>
-                </>
-              )}
+              <div className="rkd-disks-row">
+                {diskList.map((disk, i) => (
+                  <span className="rkd-disk-bay" key={i}>
+                    <span className={`rkd-disk-led ${disk.blk}`} style={{ background: disk.color }} />
+                  </span>
+                ))}
+              </div>
+              <div className="rkd-vent" />
+              <div className="rkd-fans">
+                <span className="fan rkd-fan" />
+                <span className="fan rkd-fan alt" />
+              </div>
             </div>
           ) : null}
 

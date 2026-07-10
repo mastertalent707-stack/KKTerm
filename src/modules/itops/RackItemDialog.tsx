@@ -356,7 +356,7 @@ export function RackItemDialog({
                     <div
                       className="rack-item-preview-device"
                       style={{
-                        ["--rack-item-preview-height" as string]: `${Math.min(4, Math.max(1, heightU)) * 22}px`,
+                        ["--rack-item-preview-height" as string]: `${Math.min(5, Math.max(1, heightU)) * 22}px`,
                       }}
                     >
                       <RackDevice

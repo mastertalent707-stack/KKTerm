@@ -88,7 +88,10 @@ Device. Never store credentials or live Session state here.
 Server Rack Devices may use a rack or tower form factor; tower is a half-width
 faceplate presentation and does not change vertical U occupancy. A Server may
 also select Default, Style 1, or Style 2 front-panel artwork independently of
-its form factor and shell finish.
+its form factor and shell finish. Style 1 uses height-specific chassis artwork:
+3–4U has a two-row lattice over a deep drive wall, while 5U and taller keeps
+the lattice in the upper faceplate and exposes a separate lower expansion-card
+and grille section instead of vertically stretching the 1U design.
 
 **Host** — a durable inventory entry for one device or guest in a Site,
 addressed by hostname and stored in `itops_hosts`. The device itself can be a

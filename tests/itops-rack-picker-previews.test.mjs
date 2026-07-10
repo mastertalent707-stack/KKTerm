@@ -48,18 +48,29 @@ test("Rack Device faceplates use one left status LED and no right LED", async ()
   assert.doesNotMatch(styles, /\.rkd-meta|\.rkd-status-dot/);
 });
 
-test("Server faceplates render the default, Dell-like, and HP-like artwork", async () => {
+test("Server faceplates render default and two unbranded full-panel styles", async () => {
   const device = await read("src/modules/itops/RackDevice.tsx");
   const elevation = await read("src/modules/itops/RackElevation.tsx");
   const styles = await read("src/modules/itops/itops.css");
 
   assert.match(device, /panelStyle === "style1"/);
   assert.match(device, /rkd-server-style1-lattice/);
-  assert.match(device, />DELL<\/text>/);
+  assert.match(device, /rkd-server-style1-mark/);
+  assert.match(device, /heightU >= 5 \? "chassis" : heightU >= 3 \? "dense" : "compact"/);
+  assert.match(device, /serverTopRatio = Math\.min\(40, 200 \/ Math\.max\(1, heightU\)\)/);
+  assert.match(device, /serverHeightBand === "compact" \? null : \(/);
+  assert.match(device, /serverHeightBand === "chassis" \? \(/);
+  assert.match(device, /rkd-server-style1-lower/);
   assert.match(device, /panelStyle === "style2"/);
   assert.match(device, /rkd-server-style2-rail upper/);
   assert.match(device, /rkd-server-style2-badge/);
+  assert.ok(device.indexOf("rkd-server-style1") < device.indexOf("{showLeds ? ("));
+  assert.doesNotMatch(device, /<text|rkd-server-style2-bezel right"><i/);
   assert.match(elevation, /serverPanelStyle=\{item\.metadata\?\.serverPanelStyle \?\? null\}/);
-  assert.match(styles, /rkd-server-style1[\s\S]*silver hexagonal security bezel/);
+  assert.match(styles, /rkd-server-style1,[\s\S]*position: absolute;[\s\S]*inset: 0/);
+  assert.match(styles, /data-server-panel-style="style1"[\s\S]*rkd-id[\s\S]*text-align: center/);
+  assert.match(styles, /data-height-band="dense"[\s\S]*grid-template-rows: repeat\(2/);
+  assert.match(styles, /data-height-band="chassis"[\s\S]*bottom: calc\(100% - var\(--rkd-server-top, 40%\)\)/);
+  assert.match(styles, /rkd-server-style1-lower[\s\S]*grid-template-columns: repeat\(6/);
   assert.match(styles, /rkd-server-style2[\s\S]*converging grille rails/);
 });

@@ -7,6 +7,5 @@
 - **User flow**: Selects the dark drive-wall and silver hex-lattice server faceplate.
 - **Tone**: concise/neutral
 - **Placeholders**: none
-- **Context/meaning**: Numbered visual server front-panel option inspired by Dell PowerEdge hardware.
+- **Context/meaning**: Numbered unbranded visual server front-panel option with a dark drive wall and silver hexagonal lattice.
 - **Domain notes**: Keep the neutral numbered label; it is presentation metadata only.
-

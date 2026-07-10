@@ -28,6 +28,9 @@ test("Rack Device editor follows the compact redesign layout", async () => {
 
   assert.match(dialog, /width=\{760\}/);
   assert.match(styles, /rack-item-dialog-grid[\s\S]*grid-template-columns: minmax\(0, 310px\) minmax\(0, 1fr\)/);
+  assert.match(styles, /rack-item-preview-rack[\s\S]*width: calc\(100% - 24px\)/);
+  assert.match(dialog, /Math\.min\(5, Math\.max\(1, heightU\)\) \* 22/);
+  assert.match(styles, /rack-item-preview-device[\s\S]*max-height: 110px/);
   assert.match(styles, /rack-kind-preview-grid[\s\S]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
   assert.doesNotMatch(styles, /rack-item-dialog-column[\s\S]{0,180}border-right/);
 });
