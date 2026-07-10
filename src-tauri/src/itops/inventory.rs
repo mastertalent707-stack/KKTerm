@@ -29,6 +29,7 @@ pub fn normalize_metadata(mut metadata: RackItemMetadata) -> RackItemMetadata {
     trim_string(&mut metadata.expiry);
     trim_string(&mut metadata.vendor);
     trim_string(&mut metadata.kuaiguai_size);
+    trim_string(&mut metadata.host_id);
 
     if let Some(tags) = metadata.tags.take() {
         let tags = tags

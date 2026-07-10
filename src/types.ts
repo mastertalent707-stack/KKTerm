@@ -198,6 +198,47 @@ export interface ResolvedHost {
   transport: ItopsTransport;
 }
 
+// IT Ops Hosts (docs/ITOPS.md Hosts). A Host is a durable inventory entry for
+// one device or guest in a Site, addressed by hostname; a VM/container Host
+// points at its carrying device via parentHostId (a soft self reference).
+export type HostKind = "physical" | "vm" | "container" | "other";
+
+// The last connectivity-scan snapshot: which remote-orchestration endpoints
+// answered a TCP probe. Stored result, not live Session state; a Host without
+// one was never scanned.
+export interface HostScan {
+  ssh: boolean;
+  winrm: boolean;
+  https: boolean;
+  scannedAt?: string | null;
+}
+
+export interface SiteHost {
+  id: string;
+  siteId: string;
+  parentHostId?: string | null;
+  hostname: string;
+  // Optional display name; blank = show the hostname.
+  label: string;
+  kind: HostKind;
+  // Ordered soft references to Connection ids — one Host may bind several
+  // Connections (an SSH terminal plus an HTTPS management URL).
+  connectionIds: string[];
+  scan?: HostScan | null;
+  notes: string;
+  sortOrder: number;
+}
+
+export interface HostImportResult {
+  hosts: SiteHost[];
+  skipped: number;
+}
+
+// Live Host connectivity-scan progress streamed on `itops://host-scan`.
+export type HostScanEvent =
+  | { kind: "host"; siteId: string; host: SiteHost }
+  | { kind: "finished"; siteId: string };
+
 // Site topology (docs/SITE.md Phase B). A Rack belongs to one Site, grouped
 // grouped by server room, and holds Rack Devices at U positions.
 export type RackItemKind =
@@ -263,6 +304,9 @@ export interface RackItemMetadata {
   tags?: string[] | null;
   /** Additional Connection ids bound to this rack device. */
   connectionIds?: string[] | null;
+  /** Soft reference to the IT Ops Host this device is; the Rack View callout
+   *  lists the Host and its child Hosts (VMs/containers). */
+  hostId?: string | null;
   /** Switch/router port speeds, e.g. gigabit/10g, optionally filled from SNMP polling. */
   networkPorts?: RackNetworkPort[] | string[] | null;
   /** SNMP target or OID hint for polling this device. */

@@ -27,6 +27,7 @@ import type {
   RackShell,
   ResolvedHost,
 } from "../../types";
+import { hostDisplayName } from "./hostTree";
 import { normalizeRackItemMetadata } from "./rackInventory";
 import { RackDevice } from "./RackDevice";
 import { useItOpsStore } from "./state";
@@ -128,6 +129,10 @@ export function RackItemDialog({
   );
   const [notes, setNotes] = useState(item?.metadata?.notes ?? "");
   const [tags, setTags] = useState(joinValues(item?.metadata?.tags));
+  // The IT Ops Host this device is (docs/ITOPS.md Hosts); its child Hosts show
+  // in the Rack View callout.
+  const siteHosts = useItOpsStore((state) => state.hostsBySite[siteId] ?? []);
+  const [hostId, setHostId] = useState(item?.metadata?.hostId ?? "");
   const [networkPortRows, setNetworkPortRows] = useState<RackNetworkPort[]>(
     initialMetadata.networkPorts ?? [],
   );
@@ -152,6 +157,7 @@ export function RackItemDialog({
     notes: notes.trim() || null,
     tags: splitLines(tags),
     connectionIds: initialMetadata.connectionIds,
+    hostId: hostId || null,
     networkPorts: networkPortRows
       .map((port) => ({
         ...port,
@@ -386,6 +392,22 @@ export function RackItemDialog({
             {kind === "server" || kind === "storage" || kind === "connection" ? (
               <Field label={t("itops.racks.vendorLabel")} hint={t("itops.racks.vendorHint")}>
                 <TextInput value={vendor} onChange={(event) => setVendor(event.currentTarget.value)} />
+              </Field>
+            ) : null}
+
+            {siteHosts.length > 0 ? (
+              <Field label={t("itops.racks.hostLabel")} hint={t("itops.racks.hostHint")}>
+                <Select
+                  value={hostId}
+                  onChange={(event) => setHostId(event.currentTarget.value)}
+                  options={[
+                    { value: "", label: t("itops.racks.hostNone") },
+                    ...siteHosts.map((siteHost) => ({
+                      value: siteHost.id,
+                      label: hostDisplayName(siteHost),
+                    })),
+                  ]}
+                />
               </Field>
             ) : null}
 

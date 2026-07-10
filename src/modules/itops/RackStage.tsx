@@ -6,9 +6,13 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Rack, RackItem, RackItemStatus } from "../../types";
+import type { Rack, RackItem, RackItemStatus, SiteHost } from "../../types";
+import { childHostsOf, hostDisplayName } from "./hostTree";
 import { selectRandomRackCallouts, summarizeRackDeviceMetadata } from "./rackInventory";
 import { RackElevation } from "./RackElevation";
+
+/** Child-host names for a device balloon: first two, then a "+N" overflow. */
+const BALLOON_CHILD_HOSTS = 2;
 
 const BALLOON_MIN_GAP = 44; // px between same-side balloon centers
 
@@ -47,6 +51,7 @@ interface Balloon {
 
 export function RackStage({
   rack,
+  hosts,
   hostFor,
   isGhost,
   onSlotClick,
@@ -61,6 +66,9 @@ export function RackStage({
   editMode = false,
 }: {
   rack: Rack;
+  /** The Site's Host inventory; devices with a bound `metadata.hostId` list
+   *  their Host and its child Hosts (VMs/containers) in the balloon callout. */
+  hosts?: SiteHost[];
   hostFor?: (item: RackItem) => string | null;
   isGhost?: (item: RackItem) => boolean;
   onSlotClick?: (startU: number) => void;
@@ -145,6 +153,12 @@ export function RackStage({
             const status = isGhost?.(b.item) ? "offline" : itemStatus(b.item);
             const spec = specOf(b.item, t);
             const sub = hostFor?.(b.item);
+            const boundHost = b.item.metadata?.hostId
+              ? hosts?.find((entry) => entry.id === b.item.metadata?.hostId)
+              : undefined;
+            const childHosts = boundHost ? childHostsOf(hosts ?? [], boundHost.id) : [];
+            const shownChildren = childHosts.slice(0, BALLOON_CHILD_HOSTS);
+            const overflow = childHosts.length - shownChildren.length;
             // Left balloons fill from the stage's left edge to the rack's left
             // edge; right balloons from the rack's right edge to the stage's end.
             const style =
@@ -162,6 +176,21 @@ export function RackStage({
                     <span className="rk-balloon-meta">
                       {sub ? <span className="host">{sub}</span> : null}
                       {spec ? <span className="spec">{spec}</span> : null}
+                    </span>
+                  ) : null}
+                  {boundHost ? (
+                    <span className="rk-balloon-hosts">
+                      <span className="hostname">{boundHost.hostname}</span>
+                      {shownChildren.map((child) => (
+                        <span key={child.id} className="child">
+                          {hostDisplayName(child)}
+                        </span>
+                      ))}
+                      {overflow > 0 ? (
+                        <span className="more">
+                          {t("itops.hosts.childOverflow", { count: overflow })}
+                        </span>
+                      ) : null}
                     </span>
                   ) : null}
                 </span>

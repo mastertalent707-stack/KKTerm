@@ -122,7 +122,7 @@ The live runtime that executes an armed **Automation** (or an ad-hoc live monito
 _Avoid_: monitor profile, durable watcher (the Automation is the durable part)
 
 **IT Ops Module**:
-A built-in Activity Rail Module for site operations: **Sites**, **Batch Runs**, and **Automations**. Its current primary UI is the Site topology surface: a left **Sites** tree and a right drill-down through **Site View**, **Server Room View**, and **Rack View**. Batch Run and Automation functionality remains part of the Module even when those management surfaces are hidden. Lives with Dashboard and Install Helper above Settings. Not a Connection, Session, or Dashboard widget. See `docs/ITOPS.md` and `docs/ADR/0011-it-ops-module.md`.
+A built-in Activity Rail Module for site operations: **Sites**, **Hosts**, **Batch Runs**, and **Automations**. Its current primary UI is the Site topology surface: a left **Sites** tree and a right drill-down through **Site View**, **Server Room View**, and **Rack View**. Batch Run and Automation functionality remains part of the Module even when those management surfaces are hidden. Lives with Dashboard and Install Helper above Settings. Not a Connection, Session, or Dashboard widget. See `docs/ITOPS.md` and `docs/ADR/0011-it-ops-module.md`.
 _Avoid_: operations center, site manager, orchestrator
 
 **Sites**:
@@ -168,6 +168,10 @@ _Avoid_: connection type, transport, session kind
 **Rack Device Properties**:
 Non-secret presentation metadata for a Rack Device: label, U position, height, status, accent, icon, notes, shell/faceplate fields, kind-specific values such as ports, disks, battery, or load, and optional Connection bindings. These properties do not store live Session state or credentials. The editor groups them into type, appearance, and metadata columns; bindings use a separate dialog.
 _Avoid_: secrets, runtime status, connection settings
+
+**Host**:
+A durable IT Ops inventory entry for one device or guest in a Site, addressed by hostname and stored in `itops_hosts`. The device itself can be a Host, and a Host may carry **child Hosts** — its VMs or containers — via a soft self reference (`parent_host_id`). A Host may bind multiple **Connections** at once (ordered soft references), e.g. an SSH terminal plus an HTTPS URL Connection to its management interface, and stores the last **connectivity scan** snapshot (SSH / WinRM / HTTPS reachability probes) as data, never live Session state and never a secret. Hosts import from a pasted hostname list in Site View's Hosts segment and can be linked to a **Rack Device** (`metadata.hostId`) so the Rack View callout lists the Host and its child Hosts. A Host is not a Connection, not a Session, and not the `host` address field of a Connection.
+_Avoid_: server entry (as a durable term), connection host field, node, agent
 
 **Batch Run**:
 One execution of a Batch Task (a one-shot script or an interactive, expect-style playbook) across a resolved Site, fanned out with bounded concurrency over a per-host transport (SSH, WinRM, or PsExec). Live per-host progress streams to the run grid as it happens; on completion a consolidated report — including each host's captured output — is written to `itops_run_history`, where it can be reopened as a read-only Run Report. The run is live runtime, not a durable definition.

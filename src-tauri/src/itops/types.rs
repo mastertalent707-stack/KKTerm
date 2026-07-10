@@ -277,6 +277,93 @@ pub struct RoomObject {
     pub corner: Option<i64>,
 }
 
+/// What a Host is: the device itself, or a guest carried by a parent Host.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum HostKind {
+    #[default]
+    Physical,
+    Vm,
+    Container,
+    Other,
+}
+
+impl HostKind {
+    pub fn as_db_str(self) -> &'static str {
+        match self {
+            HostKind::Physical => "physical",
+            HostKind::Vm => "vm",
+            HostKind::Container => "container",
+            HostKind::Other => "other",
+        }
+    }
+
+    pub fn from_db_str(value: &str) -> Option<Self> {
+        match value {
+            "physical" => Some(HostKind::Physical),
+            "vm" => Some(HostKind::Vm),
+            "container" => Some(HostKind::Container),
+            "other" => Some(HostKind::Other),
+            _ => None,
+        }
+    }
+}
+
+/// The last connectivity-scan snapshot for a Host: which remote-orchestration
+/// endpoints answered a TCP probe. A stored result (like the SNMP hint), not
+/// live Session state; `None` on the Host means it was never scanned.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostScan {
+    /// SSH (port 22) answered.
+    #[serde(default)]
+    pub ssh: bool,
+    /// WinRM (port 5985/5986) answered.
+    #[serde(default)]
+    pub winrm: bool,
+    /// HTTPS (port 443) answered — a management-interface hint.
+    #[serde(default)]
+    pub https: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scanned_at: Option<String>,
+}
+
+/// A durable IT Ops Host (docs/ITOPS.md Hosts): one device or guest in a Site's
+/// inventory, addressed by hostname. `parent_host_id` is a soft self reference —
+/// a VM/container Host points at the device Host that carries it. A Host may
+/// bind several Connections at once (`connection_ids`, ordered soft refs), e.g.
+/// an SSH terminal plus an HTTPS management URL. Owns no Session and no secret.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SiteHost {
+    pub id: String,
+    pub site_id: String,
+    #[serde(default)]
+    pub parent_host_id: Option<String>,
+    pub hostname: String,
+    /// Optional display name; blank = show the hostname.
+    #[serde(default)]
+    pub label: String,
+    pub kind: HostKind,
+    #[serde(default)]
+    pub connection_ids: Vec<String>,
+    #[serde(default)]
+    pub scan: Option<HostScan>,
+    #[serde(default)]
+    pub notes: String,
+    pub sort_order: i64,
+}
+
+/// Live Host connectivity-scan progress streamed on the `itops://host-scan`
+/// channel. Each finished probe re-sends the updated Host so the panel's chips
+/// update as results land.
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum HostScanEvent {
+    Host { site_id: String, host: SiteHost },
+    Finished { site_id: String },
+}
+
 /// What a Rack Device represents. `Connection` items are openable (carry a
 /// `connection_id`); the rest are passive inventory/visual devices.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -500,6 +587,10 @@ pub struct RackItemMetadata {
     pub tags: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connection_ids: Option<Vec<String>>,
+    /// Soft reference to an `itops_hosts` row: the Host this device *is*. The
+    /// Rack View callout lists the Host and its child Hosts (VMs/containers).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub host_id: Option<String>,
     #[serde(
         default,
         deserialize_with = "deserialize_network_ports",

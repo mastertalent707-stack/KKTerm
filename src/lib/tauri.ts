@@ -49,6 +49,9 @@ import type {
   RackItemMetadata,
   RunScope,
   ResolvedHost,
+  HostKind,
+  HostImportResult,
+  SiteHost,
   RoomIconEntry,
   BatchTask,
   RunHistoryEntry,
@@ -1284,6 +1287,46 @@ type CommandMap = {
   itops_refresh_rack_item_snmp: {
     args: { id: string };
     result: RackItem;
+  };
+  // IT Ops Hosts (docs/ITOPS.md Hosts).
+  itops_list_hosts: {
+    args: { siteId: string };
+    result: SiteHost[];
+  };
+  itops_create_host: {
+    args: {
+      siteId: string;
+      hostname: string;
+      label: string;
+      kind: HostKind;
+      parentHostId: string | null;
+      notes: string;
+    };
+    result: SiteHost;
+  };
+  itops_update_host: {
+    args: {
+      id: string;
+      hostname: string;
+      label: string;
+      kind: HostKind;
+      parentHostId: string | null;
+      connectionIds: string[];
+      notes: string;
+    };
+    result: SiteHost;
+  };
+  itops_delete_host: {
+    args: { id: string };
+    result: void;
+  };
+  itops_import_hosts: {
+    args: { siteId: string; hostnames: string[] };
+    result: HostImportResult;
+  };
+  itops_scan_hosts: {
+    args: { siteId: string; hostIds: string[] };
+    result: SiteHost[];
   };
   itops_get_connection: {
     args: { id: string };

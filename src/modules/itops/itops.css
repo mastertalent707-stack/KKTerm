@@ -5988,3 +5988,208 @@
   background: var(--green);
   box-shadow: 0 0 5px var(--green);
 }
+
+/* ── Hosts segment (docs/ITOPS.md Hosts) ─────────────────────────────────── */
+.itops-page .it-hosts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 14px 14px;
+}
+.itops-page .it-hosts-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.itops-page .it-hosts-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.itops-page .it-hosts-sp {
+  flex: 1;
+}
+.itops-page .it-hosts-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.itops-page .it-hosts-action:hover:not(:disabled) {
+  background: var(--hover);
+}
+.itops-page .it-hosts-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.itops-page .it-hosts-action.primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.itops-page .it-hosts-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.itops-page .it-host-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+.itops-page .it-host-row:last-child {
+  border-bottom: none;
+}
+.itops-page .it-host-kind {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+.itops-page .it-host-kind.physical {
+  color: var(--accent);
+}
+.itops-page .it-host-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.itops-page .it-host-name .nm {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itops-page .it-host-name .addr {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--app-mono-font-family, monospace);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itops-page .it-host-name .kids {
+  font-size: 10px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.itops-page .it-host-chips {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+.itops-page .it-host-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--app-mono-font-family, monospace);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.itops-page .it-host-chip.ssh,
+.itops-page .it-host-chip.winrm,
+.itops-page .it-host-chip.https {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+}
+.itops-page .it-host-chip.scanning {
+  color: var(--text);
+}
+.itops-page .it-host-chip.muted {
+  color: var(--text-faint);
+}
+.itops-page .it-host-bind {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.itops-page .it-host-bind.bound {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.itops-page .it-host-bind:hover {
+  background: var(--hover);
+}
+.itops-page .it-host-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.itops-page .it-host-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.itops-page .it-host-actions button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+/* Balloon callout host list: the bound Host plus its child VMs/containers. */
+.itops-page .rk-balloon-hosts {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itops-page .rk-balloon-hosts .hostname {
+  color: var(--text-muted);
+  font-family: var(--app-mono-font-family, monospace);
+}
+.itops-page .rk-balloon-hosts .child {
+  color: var(--text-faint);
+}
+.itops-page .rk-balloon-hosts .child::before {
+  content: "▸ ";
+}
+.itops-page .rk-balloon-hosts .more {
+  color: var(--text-faint);
+}

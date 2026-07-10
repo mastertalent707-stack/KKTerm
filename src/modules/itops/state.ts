@@ -10,8 +10,12 @@ import type {
   AutomationAction,
   AutomationTestResult,
   BatchTask,
+  HostImportResult,
+  HostKind,
+  HostScanEvent,
   Site,
   SiteFilter,
+  SiteHost,
   ItopsTransport,
   Rack,
   ServerRoom,
@@ -78,6 +82,14 @@ export interface UpdateItemInput {
   connectionId: string | null;
   label: string;
   metadata?: RackItemMetadata;
+}
+
+export interface HostInput {
+  hostname: string;
+  label: string;
+  kind: HostKind;
+  parentHostId: string | null;
+  notes: string;
 }
 
 export type LiveRunHostStatus = "pending" | "running" | "ok" | "failed";
@@ -264,6 +276,31 @@ interface ItOpsState {
   ) => Promise<void>;
   removeRackItem: (siteId: string, id: string) => Promise<void>;
   refreshRackItemSnmp: (siteId: string, id: string) => Promise<void>;
+
+  // ── Hosts (docs/ITOPS.md Hosts) ──
+  /** Host inventory per Site id, flat rows in stored order. Loaded on demand. */
+  hostsBySite: Record<string, SiteHost[]>;
+  /** Host ids with a connectivity scan in flight (drives the "scanning" chip). */
+  scanningHostIds: Record<string, true>;
+  loadHosts: (siteId: string) => Promise<void>;
+  createHost: (siteId: string, input: HostInput) => Promise<SiteHost>;
+  updateHost: (
+    siteId: string,
+    id: string,
+    input: HostInput & { connectionIds: string[] },
+  ) => Promise<SiteHost>;
+  deleteHost: (siteId: string, id: string) => Promise<void>;
+  /** Import a parsed hostname list, then start a connectivity scan over the
+   *  created rows. Returns the import outcome (created + skipped counts). */
+  importHosts: (siteId: string, hostnames: string[]) => Promise<HostImportResult>;
+  /** Scan the given Hosts (all of the Site's Hosts when empty) for SSH/WinRM/
+   *  HTTPS endpoints. Per-host results stream in via applyHostScanEvent. */
+  scanHosts: (siteId: string, hostIds: string[]) => Promise<void>;
+  /** Fold one streamed `itops://host-scan` event into the Host cache. */
+  applyHostScanEvent: (event: HostScanEvent) => void;
+  /** Bumped when the Hosts segment's toolbar "+" requests the import dialog. */
+  hostImportRequest: number;
+  requestHostImport: () => void;
 
   // ── Batch Runs (Phase 2) ──
   activeRun: LiveRun | null;
@@ -507,6 +544,84 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
   async refreshRackItemSnmp(siteId, id) {
     await invokeCommand("itops_refresh_rack_item_snmp", { id });
     await get().loadRacks(siteId);
+  },
+
+  // ── Hosts ──
+  hostsBySite: {},
+  scanningHostIds: {},
+  hostImportRequest: 0,
+
+  requestHostImport() {
+    set({ hostImportRequest: get().hostImportRequest + 1 });
+  },
+
+  async loadHosts(siteId) {
+    if (!isTauriRuntime()) {
+      set({ hostsBySite: { ...get().hostsBySite, [siteId]: [] } });
+      return;
+    }
+    const hosts = await invokeCommand("itops_list_hosts", { siteId });
+    set({ hostsBySite: { ...get().hostsBySite, [siteId]: hosts } });
+  },
+
+  async createHost(siteId, input) {
+    const created = await invokeCommand("itops_create_host", { siteId, ...input });
+    await get().loadHosts(siteId);
+    return created;
+  },
+
+  async updateHost(siteId, id, input) {
+    const updated = await invokeCommand("itops_update_host", { id, ...input });
+    await get().loadHosts(siteId);
+    return updated;
+  },
+
+  async deleteHost(siteId, id) {
+    await invokeCommand("itops_delete_host", { id });
+    await get().loadHosts(siteId);
+  },
+
+  async importHosts(siteId, hostnames) {
+    const result = await invokeCommand("itops_import_hosts", { siteId, hostnames });
+    await get().loadHosts(siteId);
+    if (result.hosts.length > 0) {
+      void get().scanHosts(siteId, result.hosts.map((host) => host.id));
+    }
+    return result;
+  },
+
+  async scanHosts(siteId, hostIds) {
+    if (!isTauriRuntime()) return;
+    const targets =
+      hostIds.length > 0
+        ? hostIds
+        : (get().hostsBySite[siteId] ?? []).map((host) => host.id);
+    const scanning = { ...get().scanningHostIds };
+    for (const id of targets) scanning[id] = true;
+    set({ scanningHostIds: scanning });
+    try {
+      const hosts = await invokeCommand("itops_scan_hosts", { siteId, hostIds });
+      set({ hostsBySite: { ...get().hostsBySite, [siteId]: hosts } });
+    } finally {
+      const cleared = { ...get().scanningHostIds };
+      for (const id of targets) delete cleared[id];
+      set({ scanningHostIds: cleared });
+    }
+  },
+
+  applyHostScanEvent(event) {
+    if (event.kind !== "host") return;
+    const hosts = get().hostsBySite[event.siteId];
+    if (!hosts) return;
+    const scanning = { ...get().scanningHostIds };
+    delete scanning[event.host.id];
+    set({
+      hostsBySite: {
+        ...get().hostsBySite,
+        [event.siteId]: hosts.map((host) => (host.id === event.host.id ? event.host : host)),
+      },
+      scanningHostIds: scanning,
+    });
   },
 
   async setSiteBackground(siteId, background) {

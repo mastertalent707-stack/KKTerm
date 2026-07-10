@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 43;
+const SCHEMA_USER_VERSION: i32 = 44;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -436,6 +436,33 @@ CREATE TABLE IF NOT EXISTS itops_site_rack_items (
 
 CREATE INDEX IF NOT EXISTS idx_itops_site_rack_items_rack
     ON itops_site_rack_items(rack_id, start_u);
+
+-- IT Ops Hosts (docs/ITOPS.md Hosts). A Host is a durable inventory entry for
+-- one device or guest in a Site, addressed by hostname. parent_host_id is a
+-- SOFT self reference: a VM/container Host points at the device Host carrying
+-- it (children are re-parented on delete, never dropped). connection_ids_json
+-- holds ordered SOFT references to connections.id — one Host may bind several
+-- Connections (an SSH terminal plus an HTTPS management URL). scan_json is the
+-- last connectivity-scan snapshot (ssh/winrm/https reachability + timestamp);
+-- a stored probe result, never live Session state and never a secret. v44.
+CREATE TABLE IF NOT EXISTS itops_hosts (
+    id                  TEXT PRIMARY KEY,
+    site_id             TEXT NOT NULL REFERENCES itops_sites(id) ON DELETE CASCADE,
+    parent_host_id      TEXT,
+    hostname            TEXT NOT NULL,
+    label               TEXT NOT NULL DEFAULT '',
+    -- 'physical' | 'vm' | 'container' | 'other'
+    kind                TEXT NOT NULL DEFAULT 'physical',
+    connection_ids_json TEXT NOT NULL DEFAULT '[]',
+    scan_json           TEXT,
+    notes               TEXT NOT NULL DEFAULT '',
+    sort_order          INTEGER NOT NULL,
+    created_at          TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_itops_hosts_site
+    ON itops_hosts(site_id, sort_order);
 "#;
 
 pub struct Storage {
