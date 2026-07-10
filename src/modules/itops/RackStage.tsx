@@ -55,7 +55,6 @@ export function RackStage({
   hosts,
   hostFor,
   isGhost,
-  onSlotClick,
   onOpenItem,
   onEditItem,
   onBindItem,
@@ -75,7 +74,6 @@ export function RackStage({
   hosts?: SiteHost[];
   hostFor?: (item: RackItem) => string | null;
   isGhost?: (item: RackItem) => boolean;
-  onSlotClick?: (startU: number) => void;
   onOpenItem?: (item: RackItem, anchor: HTMLElement) => void;
   onEditItem?: (item: RackItem) => void;
   onBindItem?: (item: RackItem) => void;
@@ -145,7 +143,6 @@ export function RackStage({
           hostFor={hostFor}
           isGhost={isGhost}
           editMode={editMode}
-          onSlotClick={onSlotClick}
           onOpenItem={onOpenItem}
           onEditItem={onEditItem}
           onBindItem={onBindItem}

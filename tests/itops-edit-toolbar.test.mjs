@@ -18,17 +18,22 @@ test("IT Ops drill views expose icon-only edit and share-export actions", async 
   assert.match(sites, /rack \? \([\s\S]*handleExport\("excel"\)/);
 });
 
-test("Rack edit mode empty slots show an Add Device callout and open the item dialog", async () => {
+test("Room elevation empty slots show an Add Device callout and open the item dialog", async () => {
   const rackElevation = await read("src/modules/itops/RackElevation.tsx");
+  const stage = await read("src/modules/itops/RackStage.tsx");
   const css = await read("src/modules/itops/itops.css");
 
-  assert.match(rackElevation, /editMode && onSlotClick/);
+  assert.match(rackElevation, /editMode && \(placing \|\| onSlotClick \|\| canMove\)/);
   assert.match(rackElevation, /aria-label=\{t\("itops\.racks\.addAtUnit"/);
-  assert.match(rackElevation, /className="rk-slot-callout"/);
+  // The callout add flow only exists where the view wires onSlotClick (the
+  // Server Room elevation); Rack View slots are placement/drop targets only.
+  assert.match(rackElevation, /onSlotClick && !placing \? \(\s*<span className="rk-slot-callout"/);
   assert.match(rackElevation, /t\("itops\.racks\.addDeviceCallout"\)/);
-  assert.match(rackElevation, /onSlotClick\(u\);/);
+  assert.match(rackElevation, /onSlotClick\?\.\(u\);/);
+  assert.doesNotMatch(stage, /onSlotClick/);
   assert.match(css, /\.rk-slot-callout/);
   assert.match(css, /\.rk-slot-btn:hover \.rk-slot-callout/);
+  assert.match(css, /\.rk-slot-btn\.passive/);
 });
 
 test("Server Room view switcher sits in the drill toolbar with line icons", async () => {
@@ -122,11 +127,13 @@ test("Rack device picker arms a configure-then-place flow with a cursor-snapped 
   const rackElevation = await read("src/modules/itops/RackElevation.tsx");
   const css = await read("src/modules/itops/itops.css");
 
-  // The dialog configures a draft (no position field) instead of placing.
+  // The dialog configures a draft (no position field, no type switcher —
+  // the picker already chose the type) instead of placing.
   assert.match(dialog, /export interface RackItemDraft/);
   assert.match(dialog, /onConfigured\?: \(draft: RackItemDraft\) => void/);
   assert.match(dialog, /const placementMode = !isEdit && !!onConfigured/);
   assert.match(dialog, /\{placementMode \? null : \(/);
+  assert.match(dialog, /placementMode \? null : \(\s*<div\s*className="rack-kind-preview-grid"/);
   // SitesTab arms the configured draft and places it on the elevation click.
   assert.match(sites, /useState<RackItemDraft \| null>\(null\)/);
   assert.match(sites, /onConfigureDevice/);
@@ -188,7 +195,7 @@ test("Rack drag/drop and direct delete are gated behind edit mode", async () => 
   const sites = await read("src/modules/itops/SitesTab.tsx");
 
   assert.match(rackElevation, /const canMove = editMode && !!onMoveItem/);
-  assert.match(rackElevation, /editMode && onSlotClick/);
+  assert.match(rackElevation, /editMode && \(placing \|\| onSlotClick \|\| canMove\)/);
   assert.match(rackElevation, /draggable=\{canMove\}/);
   assert.match(rackElevation, /editMode && onDeleteItem/);
   assert.match(rackElevation, /className="rk-item-delete"/);

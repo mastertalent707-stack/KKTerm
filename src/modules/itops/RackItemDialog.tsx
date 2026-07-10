@@ -353,43 +353,47 @@ export function RackItemDialog({
               </div>
             </div>
 
-            <div
-              className="rack-kind-preview-grid"
-              role="group"
-              aria-label={t("itops.racks.kindPreviewLabel")}
-            >
-              {RACK_ITEM_KINDS.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`rack-kind-preview${kind === value ? " selected" : ""}`}
-                  aria-pressed={kind === value}
-                  onClick={() => setKind(value)}
-                >
-                  <span className="rack-kind-preview-face">
-                    <RackDevice
-                      kind={value}
-                      label={t(`itops.racks.kind.${value}`)}
-                      subLabel={null}
-                      status={status}
-                      ports={showsPorts(value) ? ports : null}
-                      disks={showsDisks(value) ? disks : null}
-                      battery={value === "ups" ? battery : null}
-                      load={value === "pdu" ? load : null}
-                      expiry={value === "kuaiguai" ? expiry : null}
-                      rotation={value === "kuaiguai" ? rotation : null}
-                      yaw={value === "kuaiguai" ? yaw : null}
-                      kuaiguaiSize={value === "kuaiguai" ? kuaiguaiSize : null}
-                      heightU={1}
-                      accent={accent === "none" ? null : accent}
-                      shell={shell}
-                      seed={`preview-${value}`}
-                    />
-                  </span>
-                  <span className="rack-kind-preview-label">{t(`itops.racks.kind.${value}`)}</span>
-                </button>
-              ))}
-            </div>
+            {/* Picker placement flow already chose the type: show only the
+                chosen device's properties, no type switcher. */}
+            {placementMode ? null : (
+              <div
+                className="rack-kind-preview-grid"
+                role="group"
+                aria-label={t("itops.racks.kindPreviewLabel")}
+              >
+                {RACK_ITEM_KINDS.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`rack-kind-preview${kind === value ? " selected" : ""}`}
+                    aria-pressed={kind === value}
+                    onClick={() => setKind(value)}
+                  >
+                    <span className="rack-kind-preview-face">
+                      <RackDevice
+                        kind={value}
+                        label={t(`itops.racks.kind.${value}`)}
+                        subLabel={null}
+                        status={status}
+                        ports={showsPorts(value) ? ports : null}
+                        disks={showsDisks(value) ? disks : null}
+                        battery={value === "ups" ? battery : null}
+                        load={value === "pdu" ? load : null}
+                        expiry={value === "kuaiguai" ? expiry : null}
+                        rotation={value === "kuaiguai" ? rotation : null}
+                        yaw={value === "kuaiguai" ? yaw : null}
+                        kuaiguaiSize={value === "kuaiguai" ? kuaiguaiSize : null}
+                        heightU={1}
+                        accent={accent === "none" ? null : accent}
+                        shell={shell}
+                        seed={`preview-${value}`}
+                      />
+                    </span>
+                    <span className="rack-kind-preview-label">{t(`itops.racks.kind.${value}`)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             {needsConnection ? (
               <Field label={t("itops.racks.connectionLabel")} req>

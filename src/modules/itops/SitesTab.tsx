@@ -746,7 +746,7 @@ export function SitesTab({
             roomIcons={activeGroup.roomIcons}
             hostForItem={hostForItem}
             isGhostItem={isGhostItem}
-            onSlotClick={(rack, startU, kind) => setItemDialog({ rack, item: null, kind, startU })}
+            onSlotClick={(rack, startU) => setItemDialog({ rack, item: null, startU })}
             onConfigureDevice={(rack, kind, arm) =>
               setItemDialog({ rack, item: null, kind, onConfigured: arm })
             }
@@ -1025,7 +1025,9 @@ function RackDrill({
   roomIcons?: Record<string, ItOpsCustomIcon>;
   hostForItem: (item: RackItem) => string | null;
   isGhostItem: (item: RackItem) => boolean;
-  onSlotClick: (rack: Rack, startU: number, kind?: RackItemKind) => void;
+  /** Server Room elevation only: an empty-slot click opens the add dialog at
+   *  that U. Rack View adds devices through the picker's armed flow instead. */
+  onSlotClick: (rack: Rack, startU: number) => void;
   /** Picker flow: open the device dialog in configure mode; `arm` receives the
    *  configured draft so the drill can start the cursor-tracked placement. */
   onConfigureDevice: (rack: Rack, kind: RackItemKind, arm: (draft: RackItemDraft) => void) => void;
@@ -1564,7 +1566,6 @@ function RackDrill({
               hostFor={hostForItem}
               isGhost={isGhostItem}
               editMode={editMode}
-              onSlotClick={editMode ? (startU) => onSlotClick(rack, startU) : undefined}
               onOpenItem={onOpenItem}
               onEditItem={(item) => onEditItem(rack, item)}
               onBindItem={onBindItem}

@@ -206,18 +206,19 @@ export function RackElevation({
                 {u}
               </div>
             ))}
-            {/* Empty slots — clickable to add a device when editing; drop targets. */}
+            {/* Empty slots — armed-placement targets, add-dialog openers (only
+                when the view wires onSlotClick), and drag/drop targets. */}
             {unitNumbers.map((u) =>
-              editMode && onSlotClick ? (
+              editMode && (placing || onSlotClick || canMove) ? (
                 <button
                   type="button"
-                  className="rk-slot rk-slot-btn"
+                  className={`rk-slot rk-slot-btn${placing || onSlotClick ? "" : " passive"}`}
                   key={`s-${u}`}
                   style={{ gridColumn: 2, gridRow: rack.heightU - u + 1 }}
                   aria-label={t("itops.racks.addAtUnit", { unit: u })}
                   onClick={() => {
                     if (!placing) {
-                      onSlotClick(u);
+                      onSlotClick?.(u);
                       return;
                     }
                     const snap = snapPlacement(u);
@@ -242,9 +243,11 @@ export function RackElevation({
                       : undefined
                   }
                 >
-                  <span className="rk-slot-callout" aria-hidden="true">
-                    {t("itops.racks.addDeviceCallout")}
-                  </span>
+                  {onSlotClick && !placing ? (
+                    <span className="rk-slot-callout" aria-hidden="true">
+                      {t("itops.racks.addDeviceCallout")}
+                    </span>
+                  ) : null}
                 </button>
               ) : (
                 <div

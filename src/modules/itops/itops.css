@@ -2405,6 +2405,20 @@
   border-color: color-mix(in srgb, var(--accent) 70%, transparent);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
+/* Rack View slots outside an armed placement: drop targets only — no add
+   affordance (adding goes through the picker column), so hover keeps the
+   resting slot look. */
+.itops-page .rk-slot-btn.passive {
+  cursor: default;
+}
+.itops-page .rk-slot-btn.passive:hover {
+  border-color: rgba(255, 255, 255, 0.07);
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0 5px,
+    rgba(255, 255, 255, 0.03) 5px 6px
+  );
+}
 .itops-page .rk-slot-callout {
   position: absolute;
   left: calc(100% + 10px);
