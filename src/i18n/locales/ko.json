@@ -1226,6 +1226,12 @@
         "rack": "랙",
         "tower": "타워"
       },
+      "serverPanelStyleLabel": "전면 패널 스타일",
+      "serverPanelStyle": {
+        "default": "기본값",
+        "style1": "스타일 1",
+        "style2": "스타일 2"
+      },
       "vendorLabel": "모델",
       "vendorHint": "그래픽 미리보기에 Dell 740XD, HP DL380 또는 다른 섀시 모델을 사용하세요.",
       "expiryLabel": "만료",

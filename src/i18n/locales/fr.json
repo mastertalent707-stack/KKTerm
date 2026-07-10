@@ -1226,6 +1226,12 @@
         "rack": "Rack",
         "tower": "Tour"
       },
+      "serverPanelStyleLabel": "Style de façade",
+      "serverPanelStyle": {
+        "default": "Par défaut",
+        "style1": "Style 1",
+        "style2": "Style 2"
+      },
       "vendorLabel": "Modèle",
       "vendorHint": "Utilisez Dell 740XD, HP DL380 ou un autre modèle de châssis pour l'aperçu graphique.",
       "expiryLabel": "Expiration",

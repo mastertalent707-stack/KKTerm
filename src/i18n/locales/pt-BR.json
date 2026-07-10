@@ -1226,6 +1226,12 @@
         "rack": "Rack",
         "tower": "Torre"
       },
+      "serverPanelStyleLabel": "Estilo do painel frontal",
+      "serverPanelStyle": {
+        "default": "Padrão",
+        "style1": "Estilo 1",
+        "style2": "Estilo 2"
+      },
       "vendorLabel": "Modelo",
       "vendorHint": "Use Dell 740XD, HP DL380 ou outro modelo de chassi para a visualização gráfica.",
       "expiryLabel": "Validade",

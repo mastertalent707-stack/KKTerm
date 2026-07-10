@@ -29,12 +29,16 @@ pub fn normalize_metadata(mut metadata: RackItemMetadata) -> RackItemMetadata {
     trim_string(&mut metadata.expiry);
     trim_string(&mut metadata.vendor);
     trim_string(&mut metadata.form_factor);
+    trim_string(&mut metadata.server_panel_style);
     trim_string(&mut metadata.kuaiguai_size);
     trim_string(&mut metadata.host_id);
 
     metadata.form_factor = metadata
         .form_factor
         .filter(|value| matches!(value.as_str(), "rack" | "tower"));
+    metadata.server_panel_style = metadata
+        .server_panel_style
+        .filter(|value| matches!(value.as_str(), "default" | "style1" | "style2"));
 
     if let Some(tags) = metadata.tags.take() {
         let tags = tags
@@ -101,7 +105,8 @@ mod inventory_tests {
             "networkPorts": ["1:gigabit", "2:10g"],
             "snmp": "public@192.0.2.10:1.3.6.1.2.1.2",
             "vendor": "Dell",
-            "formFactor": "tower"
+            "formFactor": "tower",
+            "serverPanelStyle": "style1"
         }))
         .expect("legacy metadata should deserialize");
 
@@ -113,5 +118,6 @@ mod inventory_tests {
         assert_eq!(normalized.snmp.unwrap().target, "192.0.2.10");
         assert_eq!(normalized.vendor.unwrap(), "Dell");
         assert_eq!(normalized.form_factor.as_deref(), Some("tower"));
+        assert_eq!(normalized.server_panel_style.as_deref(), Some("style1"));
     }
 }

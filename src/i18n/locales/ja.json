@@ -1226,6 +1226,12 @@
         "rack": "ラック",
         "tower": "タワー"
       },
+      "serverPanelStyleLabel": "フロントパネルスタイル",
+      "serverPanelStyle": {
+        "default": "デフォルト",
+        "style1": "スタイル 1",
+        "style2": "スタイル 2"
+      },
       "vendorLabel": "モデル",
       "vendorHint": "グラフィカルプレビューには Dell 740XD、HP DL380、または別のシャーシモデルを使用します。",
       "expiryLabel": "有効期限",

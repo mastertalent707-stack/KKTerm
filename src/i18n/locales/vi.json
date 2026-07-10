@@ -1226,6 +1226,12 @@
         "rack": "Rack",
         "tower": "Dạng tháp"
       },
+      "serverPanelStyleLabel": "Kiểu mặt trước",
+      "serverPanelStyle": {
+        "default": "Mặc định",
+        "style1": "Kiểu 1",
+        "style2": "Kiểu 2"
+      },
       "vendorLabel": "Mẫu",
       "vendorHint": "Dùng Dell 740XD, HP DL380 hoặc mẫu khung máy khác cho bản xem trước đồ họa.",
       "expiryLabel": "Hết hạn",

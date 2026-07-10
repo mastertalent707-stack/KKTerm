@@ -32,6 +32,36 @@ test("Rack Device editor follows the compact redesign layout", async () => {
   assert.doesNotMatch(styles, /rack-item-dialog-column[\s\S]{0,180}border-right/);
 });
 
+test("Rack Device editor keeps notes and tags in the model column and pairs capacity with height", async () => {
+  const dialog = await read("src/modules/itops/RackItemDialog.tsx");
+
+  const typeColumnStart = dialog.indexOf('className="rack-item-dialog-column type-column"');
+  const formColumnStart = dialog.indexOf('className="rack-item-dialog-column form-column"');
+  const typeColumn = dialog.slice(typeColumnStart, formColumnStart);
+  const formColumn = dialog.slice(formColumnStart);
+
+  assert.match(typeColumn, /vendorLabel[\s\S]*notesLabel[\s\S]*tagsLabel/);
+  assert.doesNotMatch(typeColumn, /labelHint|vendorHint|notesHint|listHint/);
+  assert.doesNotMatch(formColumn, /notesLabel|tagsLabel/);
+  assert.match(formColumn, /className="rack-form-grid two rack-device-dimensions"[\s\S]*disksLabel[\s\S]*itemHeightLabel/);
+});
+
+test("Rack Device capacity and height steppers center all three controls", async () => {
+  const styles = await read("src/modules/itops/itops.css");
+
+  assert.match(styles, /rack-device-dimensions \.kk-stepper[\s\S]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)[\s\S]*border: 0\.5px solid var\(--border-strong\)[\s\S]*box-shadow: none/);
+  assert.match(styles, /rack-device-dimensions \.kk-stepper input,[\s\S]*rack-device-dimensions \.kk-stepper button[\s\S]*width: 100%/);
+});
+
+test("Server editor exposes all three persisted front-panel styles", async () => {
+  const dialog = await read("src/modules/itops/RackItemDialog.tsx");
+
+  assert.match(dialog, /useState<RackServerPanelStyle>[\s\S]*serverPanelStyle \?\? "default"/);
+  assert.match(dialog, /serverPanelStyle: kind === "server" \? serverPanelStyle : null/);
+  assert.match(dialog, /serverPanelStyleLabel/);
+  assert.match(dialog, /\["default", "style1", "style2"\]/);
+});
+
 test("Kuai Kuai properties stay package-only with one combined style choice", async () => {
   const dialog = await read("src/modules/itops/RackItemDialog.tsx");
 

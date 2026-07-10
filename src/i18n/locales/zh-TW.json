@@ -1226,6 +1226,12 @@
         "rack": "機架式",
         "tower": "直立式"
       },
+      "serverPanelStyleLabel": "前面板樣式",
+      "serverPanelStyle": {
+        "default": "預設",
+        "style1": "樣式 1",
+        "style2": "樣式 2"
+      },
       "vendorLabel": "型號",
       "vendorHint": "使用 Dell 740XD、HP DL380 或其他機箱型號進行圖形預覽。",
       "expiryLabel": "到期",

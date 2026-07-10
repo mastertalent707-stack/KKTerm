@@ -25,6 +25,7 @@ import type {
   RackNetworkPort,
   RackPortSpeed,
   RackServerFormFactor,
+  RackServerPanelStyle,
   RackShell,
   ResolvedHost,
 } from "../../types";
@@ -50,8 +51,6 @@ export const RACK_ITEM_KINDS: RackItemKind[] = [
   "equipment",
   "general",
   "kuaiguai",
-  "blank",
-  "label",
 ];
 const STATUS_OPTIONS: RackItemStatus[] = ["online", "warning", "offline"];
 
@@ -164,6 +163,9 @@ export function RackItemDialog({
   const [formFactor, setFormFactor] = useState<RackServerFormFactor>(
     initialMetadata.formFactor ?? "rack",
   );
+  const [serverPanelStyle, setServerPanelStyle] = useState<RackServerPanelStyle>(
+    initialMetadata.serverPanelStyle ?? "default",
+  );
   // Kept as text so the field can be blank (= draw unknown).
   const [powerDraw, setPowerDraw] = useState(
     item?.metadata?.powerW ? String(item.metadata.powerW) : "",
@@ -201,6 +203,7 @@ export function RackItemDialog({
       : null,
     vendor: vendor.trim() || null,
     formFactor: kind === "server" ? formFactor : null,
+    serverPanelStyle: kind === "server" ? serverPanelStyle : null,
     powerW: isKuaiguai ? null : parsedPowerDraw,
     ...(isKuaiguai
       ? { expiry: expiry.trim() || null, rotation, kuaiguaiSize, kuaiguaiStyle }
@@ -370,6 +373,7 @@ export function RackItemDialog({
                         kuaiguaiSize={kind === "kuaiguai" ? kuaiguaiSize : null}
                         kuaiguaiStyle={kind === "kuaiguai" ? kuaiguaiStyle : null}
                         formFactor={kind === "server" ? formFactor : null}
+                        serverPanelStyle={kind === "server" ? serverPanelStyle : null}
                         heightU={heightU}
                         accent={accent === "none" ? null : accent}
                         shell={shell}
@@ -423,6 +427,7 @@ export function RackItemDialog({
                         kuaiguaiSize={value === "kuaiguai" ? kuaiguaiSize : null}
                         kuaiguaiStyle={value === "kuaiguai" ? kuaiguaiStyle : null}
                         formFactor={value === "server" ? formFactor : null}
+                        serverPanelStyle={value === "server" ? serverPanelStyle : null}
                         heightU={1}
                         accent={accent === "none" ? null : accent}
                         shell={shell}
@@ -435,7 +440,7 @@ export function RackItemDialog({
               </div>
             )}
 
-            <Field label={t("itops.racks.labelLabel")} hint={t("itops.racks.labelHint")}>
+            <Field label={t("itops.racks.labelLabel")}>
               <TextInput
                 value={label}
                 placeholder={t("itops.racks.labelPlaceholder")}
@@ -444,10 +449,18 @@ export function RackItemDialog({
             </Field>
 
             {kind === "server" || kind === "storage" || kind === "connection" ? (
-              <Field label={t("itops.racks.vendorLabel")} hint={t("itops.racks.vendorHint")}>
+              <Field label={t("itops.racks.vendorLabel")}>
                 <TextInput value={vendor} onChange={(event) => setVendor(event.currentTarget.value)} />
               </Field>
             ) : null}
+
+            <Field label={t("itops.racks.notesLabel")}>
+              <TextArea rows={8} value={notes} onChange={(event) => setNotes(event.currentTarget.value)} />
+            </Field>
+
+            <Field label={t("itops.racks.tagsLabel")}>
+              <TextArea rows={2} value={tags} onChange={(event) => setTags(event.currentTarget.value)} />
+            </Field>
 
             {siteHosts.length > 0 ? (
               <Field label={t("itops.racks.hostLabel")} hint={t("itops.racks.hostHint")}>
@@ -485,18 +498,32 @@ export function RackItemDialog({
 
           <section className="rack-item-dialog-column form-column">
             {kind === "server" ? (
-              <Field label={t("itops.racks.formFactorLabel")}>
-                <Select
-                  value={formFactor}
-                  onChange={(event) =>
-                    setFormFactor(event.currentTarget.value as RackServerFormFactor)
-                  }
-                  options={(["rack", "tower"] as const).map((value) => ({
-                    value,
-                    label: t(`itops.racks.formFactor.${value}`),
-                  }))}
-                />
-              </Field>
+              <div className="rack-form-grid two">
+                <Field label={t("itops.racks.formFactorLabel")}>
+                  <Select
+                    value={formFactor}
+                    onChange={(event) =>
+                      setFormFactor(event.currentTarget.value as RackServerFormFactor)
+                    }
+                    options={(["rack", "tower"] as const).map((value) => ({
+                      value,
+                      label: t(`itops.racks.formFactor.${value}`),
+                    }))}
+                  />
+                </Field>
+                <Field label={t("itops.racks.serverPanelStyleLabel")}>
+                  <Select
+                    value={serverPanelStyle}
+                    onChange={(event) =>
+                      setServerPanelStyle(event.currentTarget.value as RackServerPanelStyle)
+                    }
+                    options={(["default", "style1", "style2"] as const).map((value) => ({
+                      value,
+                      label: t(`itops.racks.serverPanelStyle.${value}`),
+                    }))}
+                  />
+                </Field>
+              </div>
             ) : null}
             {isKuaiguai ? null : (
               <>
@@ -532,6 +559,7 @@ export function RackItemDialog({
                             battery={kind === "ups" ? battery : null}
                             load={kind === "pdu" ? load : null}
                             formFactor={kind === "server" ? formFactor : null}
+                            serverPanelStyle={kind === "server" ? serverPanelStyle : null}
                             heightU={1}
                             accent={accent === "none" ? null : accent}
                             shell={value}
@@ -550,40 +578,35 @@ export function RackItemDialog({
               </>
             )}
 
-            {showsPorts(kind) || showsDisks(kind) || kind === "ups" || kind === "pdu" ? (
-              <div className="rack-form-grid two">
-                {showsPorts(kind) ? (
-                  <Field label={t("itops.racks.portsLabel")}>
-                    <Stepper value={ports} min={0} onChange={(next) => setPorts(Math.max(0, Math.min(48, next)))} ariaDecrease={t("itops.racks.portsDecrease")} ariaIncrease={t("itops.racks.portsIncrease")} />
-                  </Field>
-                ) : null}
-                {showsDisks(kind) ? (
-                  <Field label={t("itops.racks.disksLabel")}>
-                    <Stepper value={disks} min={0} onChange={(next) => setDisks(Math.max(0, Math.min(maxDisks, next)))} ariaDecrease={t("itops.racks.disksDecrease")} ariaIncrease={t("itops.racks.disksIncrease")} />
-                  </Field>
-                ) : null}
-                {kind === "ups" ? (
-                  <Field label={t("itops.racks.batteryLabel")}>
-                    <Stepper value={battery} min={0} onChange={(next) => setBattery(Math.max(0, Math.min(100, next)))} ariaDecrease={t("itops.racks.batteryDecrease")} ariaIncrease={t("itops.racks.batteryIncrease")} />
-                  </Field>
-                ) : null}
-                {kind === "pdu" ? (
-                  <Field label={t("itops.racks.loadLabel")}>
-                    <Stepper value={load} min={0} onChange={(next) => setLoad(Math.max(0, Math.min(100, next)))} ariaDecrease={t("itops.racks.loadDecrease")} ariaIncrease={t("itops.racks.loadIncrease")} />
-                  </Field>
-                ) : null}
-              </div>
-            ) : null}
-
-            <div className="rack-form-grid two">
-              {placementMode ? null : (
-                <Field label={t("itops.racks.startULabel")} req>
-                  <Stepper value={startU} min={1} onChange={(next) => setStartU(clampStartUForHeight(next, heightU, rack.heightU))} ariaDecrease={t("itops.racks.startUDecrease")} ariaIncrease={t("itops.racks.startUIncrease")} />
+            <div className="rack-form-grid two rack-device-dimensions">
+              {showsPorts(kind) ? (
+                <Field label={t("itops.racks.portsLabel")}>
+                  <Stepper value={ports} min={0} onChange={(next) => setPorts(Math.max(0, Math.min(48, next)))} ariaDecrease={t("itops.racks.portsDecrease")} ariaIncrease={t("itops.racks.portsIncrease")} />
                 </Field>
-              )}
+              ) : null}
+              {showsDisks(kind) ? (
+                <Field label={t("itops.racks.disksLabel")}>
+                  <Stepper value={disks} min={0} onChange={(next) => setDisks(Math.max(0, Math.min(maxDisks, next)))} ariaDecrease={t("itops.racks.disksDecrease")} ariaIncrease={t("itops.racks.disksIncrease")} />
+                </Field>
+              ) : null}
+              {kind === "ups" ? (
+                <Field label={t("itops.racks.batteryLabel")}>
+                  <Stepper value={battery} min={0} onChange={(next) => setBattery(Math.max(0, Math.min(100, next)))} ariaDecrease={t("itops.racks.batteryDecrease")} ariaIncrease={t("itops.racks.batteryIncrease")} />
+                </Field>
+              ) : null}
+              {kind === "pdu" ? (
+                <Field label={t("itops.racks.loadLabel")}>
+                  <Stepper value={load} min={0} onChange={(next) => setLoad(Math.max(0, Math.min(100, next)))} ariaDecrease={t("itops.racks.loadDecrease")} ariaIncrease={t("itops.racks.loadIncrease")} />
+                </Field>
+              ) : null}
               {kind === "kuaiguai" ? null : (
                 <Field label={t("itops.racks.itemHeightLabel")} req>
                   <Stepper value={heightU} min={1} onChange={(next) => { const clampedHeight = Math.max(1, Math.min(rack.heightU, next)); setHeightU(clampedHeight); setStartU((current) => clampStartUForHeight(current, clampedHeight, rack.heightU)); setDisks((current) => Math.min(current, clampedHeight * DISKS_PER_U)); }} ariaDecrease={t("itops.racks.itemHeightDecrease")} ariaIncrease={t("itops.racks.itemHeightIncrease")} />
+                </Field>
+              )}
+              {placementMode ? null : (
+                <Field label={t("itops.racks.startULabel")} req>
+                  <Stepper value={startU} min={1} onChange={(next) => setStartU(clampStartUForHeight(next, heightU, rack.heightU))} ariaDecrease={t("itops.racks.startUDecrease")} ariaIncrease={t("itops.racks.startUIncrease")} />
                 </Field>
               )}
             </div>
@@ -629,14 +652,6 @@ export function RackItemDialog({
                 </Field>
               </div>
             ) : null}
-
-            <Field label={t("itops.racks.notesLabel")} hint={t("itops.racks.notesHint")}>
-              <TextArea rows={8} value={notes} onChange={(event) => setNotes(event.currentTarget.value)} />
-            </Field>
-
-            <Field label={t("itops.racks.tagsLabel")} hint={t("itops.racks.listHint")}>
-              <TextArea rows={2} value={tags} onChange={(event) => setTags(event.currentTarget.value)} />
-            </Field>
 
         {kind === "switch" || kind === "router" ? (
           <>

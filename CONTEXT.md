@@ -158,15 +158,15 @@ The single-Rack drill-down stage. It centers one Rack elevation and can show per
 _Avoid_: terminal rack, device session view
 
 **Rack Device**:
-One visual device occupying a contiguous U span in a Rack. It may be Connection-backed (opens the referenced Connection's Session on click) or passive (switch, PDU, patch panel, blank, label, or other visual/inventory item). Stored in `itops_site_rack_items`; older code and schema names may still say `RackItem`.
+One visual device occupying a contiguous U span in a Rack. It may be Connection-backed (opens the referenced Connection's Session on click) or passive (switch, PDU, patch panel, or another visual/inventory item). Stored in `itops_site_rack_items`; older code and schema names may still say `RackItem`.
 _Avoid_: slot, node, host card
 
 **Rack Device Type**:
-The device kind used to render behavior and faceplate visuals, such as server, storage, switch, router, firewall, PDU, UPS, KVM, patch panel, equipment, general, blank, or label. Type is presentation/inventory metadata, not a Connection type. Connections are associated separately through Rack Device bindings.
+The device kind used to render behavior and faceplate visuals, such as server, storage, switch, router, firewall, PDU, UPS, KVM, patch panel, equipment, or general. Type is presentation/inventory metadata, not a Connection type. Connections are associated separately through Rack Device bindings.
 _Avoid_: connection type, transport, session kind
 
 **Rack Device Properties**:
-Non-secret presentation metadata for a Rack Device: label, U position, height, status, accent, icon, notes, shell/faceplate fields, kind-specific values such as ports, disks, battery, load, or a Server's rack/tower form factor, and optional Connection bindings. Tower is a half-width faceplate presentation and does not change vertical U occupancy. These properties do not store live Session state or credentials. The editor groups them into type, appearance, and metadata columns; bindings use a separate dialog.
+Non-secret presentation metadata for a Rack Device: label, U position, height, status, accent, icon, notes, shell/faceplate fields, kind-specific values such as ports, disks, battery, load, or a Server's rack/tower form factor and front-panel style, and optional Connection bindings. Tower is a half-width faceplate presentation and does not change vertical U occupancy. Server front-panel style selects scalable artwork only. These properties do not store live Session state or credentials. The editor groups them into type, appearance, and metadata columns; bindings use a separate dialog.
 _Avoid_: secrets, runtime status, connection settings
 
 **Host**:

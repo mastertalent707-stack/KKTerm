@@ -15,12 +15,14 @@ test("Rack View picker uses compact faceplates without duplicate captions", asyn
   assert.doesNotMatch(picker, /rm-picker-name/);
 });
 
-test("Blank stays blank while Label exposes its faceplate text", async () => {
-  const device = await read("src/modules/itops/RackDevice.tsx");
+test("Rack Device pickers no longer offer Blank or Label", async () => {
+  const dialog = await read("src/modules/itops/RackItemDialog.tsx");
+  const catalogStart = dialog.indexOf("export const RACK_ITEM_KINDS");
+  const catalogEnd = dialog.indexOf("const STATUS_OPTIONS", catalogStart);
+  const catalog = dialog.slice(catalogStart, catalogEnd);
 
-  assert.match(device, /const isBlankPlate = kind === "blank"/);
-  assert.match(device, /const isLabel = kind === "label"/);
-  assert.match(device, /const hasName = !!label && !isBlankPlate/);
+  assert.doesNotMatch(catalog, /"blank"/);
+  assert.doesNotMatch(catalog, /"label"/);
 });
 
 test("Server Tower form factor is stored and rendered at half width", async () => {
@@ -32,6 +34,32 @@ test("Server Tower form factor is stored and rendered at half width", async () =
   assert.match(dialog, /\["rack", "tower"\]/);
   assert.match(dialog, /formFactor: kind === "server" \? formFactor : null/);
   assert.match(device, /data-form-factor=\{isServer \? formFactor \?\? "rack" : undefined\}/);
-  assert.match(styles, /\.rkd\[data-form-factor="tower"\][\s\S]*width: 50%/);
+  assert.match(styles, /\.rkd\[data-form-factor="tower"\][\s\S]*width: 50%;[\s\S]*margin-inline: auto/);
 });
 
+test("Rack Device faceplates use one left status LED and no right LED", async () => {
+  const device = await read("src/modules/itops/RackDevice.tsx");
+  const styles = await read("src/modules/itops/itops.css");
+
+  const ledColumn = device.slice(device.indexOf("{showLeds ? ("), device.indexOf("{hasName ? ("));
+  assert.equal((ledColumn.match(/<span/g) ?? []).length, 1);
+  assert.match(ledColumn, /background: statusLed/);
+  assert.doesNotMatch(device, /rkd-meta|rkd-status-dot|ledPowerClass|powerColor/);
+  assert.doesNotMatch(styles, /\.rkd-meta|\.rkd-status-dot/);
+});
+
+test("Server faceplates render the default, Dell-like, and HP-like artwork", async () => {
+  const device = await read("src/modules/itops/RackDevice.tsx");
+  const elevation = await read("src/modules/itops/RackElevation.tsx");
+  const styles = await read("src/modules/itops/itops.css");
+
+  assert.match(device, /panelStyle === "style1"/);
+  assert.match(device, /rkd-server-style1-lattice/);
+  assert.match(device, />DELL<\/text>/);
+  assert.match(device, /panelStyle === "style2"/);
+  assert.match(device, /rkd-server-style2-rail upper/);
+  assert.match(device, /rkd-server-style2-badge/);
+  assert.match(elevation, /serverPanelStyle=\{item\.metadata\?\.serverPanelStyle \?\? null\}/);
+  assert.match(styles, /rkd-server-style1[\s\S]*silver hexagonal security bezel/);
+  assert.match(styles, /rkd-server-style2[\s\S]*converging grille rails/);
+});
