@@ -1221,6 +1221,11 @@
       "portSpeedsHint": "gigabit 또는 10g 같은 값을 사용하세요. SNMP 폴링으로 나중에 새로 고칠 수 있습니다.",
       "snmpLabel": "SNMP 폴링",
       "snmpHint": "데이터 검색을 위한 SNMP 대상 또는 OID 힌트를 저장합니다.",
+      "formFactorLabel": "폼 팩터",
+      "formFactor": {
+        "rack": "랙",
+        "tower": "타워"
+      },
       "vendorLabel": "모델",
       "vendorHint": "그래픽 미리보기에 Dell 740XD, HP DL380 또는 다른 섀시 모델을 사용하세요.",
       "expiryLabel": "만료",

@@ -24,6 +24,7 @@ import type {
   RackItemStatus,
   RackNetworkPort,
   RackPortSpeed,
+  RackServerFormFactor,
   RackShell,
   ResolvedHost,
 } from "../../types";
@@ -160,6 +161,9 @@ export function RackItemDialog({
   const [snmpTarget, setSnmpTarget] = useState(initialMetadata.snmp?.target ?? "");
   const [snmpOid, setSnmpOid] = useState(initialMetadata.snmp?.oid ?? "");
   const [vendor, setVendor] = useState(item?.metadata?.vendor ?? "");
+  const [formFactor, setFormFactor] = useState<RackServerFormFactor>(
+    initialMetadata.formFactor ?? "rack",
+  );
   // Kept as text so the field can be blank (= draw unknown).
   const [powerDraw, setPowerDraw] = useState(
     item?.metadata?.powerW ? String(item.metadata.powerW) : "",
@@ -196,6 +200,7 @@ export function RackItemDialog({
       ? { target: snmpTarget.trim(), oid: snmpOid.trim() || null }
       : null,
     vendor: vendor.trim() || null,
+    formFactor: kind === "server" ? formFactor : null,
     powerW: isKuaiguai ? null : parsedPowerDraw,
     ...(isKuaiguai
       ? { expiry: expiry.trim() || null, rotation, kuaiguaiSize, kuaiguaiStyle }
@@ -364,6 +369,7 @@ export function RackItemDialog({
                         rotation={kind === "kuaiguai" ? rotation : null}
                         kuaiguaiSize={kind === "kuaiguai" ? kuaiguaiSize : null}
                         kuaiguaiStyle={kind === "kuaiguai" ? kuaiguaiStyle : null}
+                        formFactor={kind === "server" ? formFactor : null}
                         heightU={heightU}
                         accent={accent === "none" ? null : accent}
                         shell={shell}
@@ -416,6 +422,7 @@ export function RackItemDialog({
                         rotation={value === "kuaiguai" ? rotation : null}
                         kuaiguaiSize={value === "kuaiguai" ? kuaiguaiSize : null}
                         kuaiguaiStyle={value === "kuaiguai" ? kuaiguaiStyle : null}
+                        formFactor={value === "server" ? formFactor : null}
                         heightU={1}
                         accent={accent === "none" ? null : accent}
                         shell={shell}
@@ -477,6 +484,20 @@ export function RackItemDialog({
           </section>
 
           <section className="rack-item-dialog-column form-column">
+            {kind === "server" ? (
+              <Field label={t("itops.racks.formFactorLabel")}>
+                <Select
+                  value={formFactor}
+                  onChange={(event) =>
+                    setFormFactor(event.currentTarget.value as RackServerFormFactor)
+                  }
+                  options={(["rack", "tower"] as const).map((value) => ({
+                    value,
+                    label: t(`itops.racks.formFactor.${value}`),
+                  }))}
+                />
+              </Field>
+            ) : null}
             {isKuaiguai ? null : (
               <>
                 <Field label={t("itops.racks.statusLabel")}>
@@ -510,6 +531,7 @@ export function RackItemDialog({
                             disks={showsDisks(kind) ? disks : null}
                             battery={kind === "ups" ? battery : null}
                             load={kind === "pdu" ? load : null}
+                            formFactor={kind === "server" ? formFactor : null}
                             heightU={1}
                             accent={accent === "none" ? null : accent}
                             shell={value}

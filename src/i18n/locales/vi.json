@@ -1221,6 +1221,11 @@
       "portSpeedsHint": "Dùng các giá trị như gigabit hoặc 10g; việc thăm dò SNMP có thể làm mới chúng sau.",
       "snmpLabel": "Thăm dò SNMP",
       "snmpHint": "Lưu một đích SNMP hoặc gợi ý OID để truy xuất dữ liệu.",
+      "formFactorLabel": "Kiểu dáng",
+      "formFactor": {
+        "rack": "Rack",
+        "tower": "Dạng tháp"
+      },
       "vendorLabel": "Mẫu",
       "vendorHint": "Dùng Dell 740XD, HP DL380 hoặc mẫu khung máy khác cho bản xem trước đồ họa.",
       "expiryLabel": "Hết hạn",

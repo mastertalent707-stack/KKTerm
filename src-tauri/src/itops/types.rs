@@ -610,6 +610,9 @@ pub struct RackItemMetadata {
     pub kuaiguai_style: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub vendor: Option<String>,
+    /// Server chassis presentation ("rack" | "tower").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub form_factor: Option<String>,
 }
 
 /// One device occupying a contiguous `start_u..start_u + height_u` span in a

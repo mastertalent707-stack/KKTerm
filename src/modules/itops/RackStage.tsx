@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 import type { Rack, RackItem, RackItemStatus, SiteHost } from "../../types";
 import { childHostsOf, hostDisplayName } from "./hostTree";
 import { selectRandomRackCallouts, summarizeRackDeviceMetadata } from "./rackInventory";
-import { RackElevation } from "./RackElevation";
+import { RackElevation, U_PX } from "./RackElevation";
 import { KUAIGUAI_TOP_CLEARANCE_U } from "./rackPlacement";
 import type { RackItemDraft } from "./RackItemDialog";
 
@@ -17,6 +17,22 @@ import type { RackItemDraft } from "./RackItemDialog";
 const BALLOON_CHILD_HOSTS = 2;
 
 const BALLOON_MIN_GAP = 44; // px between same-side balloon centers
+
+const MIN_RACK_U_PX = 12;
+const RACK_VERTICAL_CHROME_PX = 48;
+
+/** Fit the cabinet to the visible Rack View height without enlarging its
+ *  normal 26 px rack units. Very short windows retain a legible 12 px floor
+ *  and let the drill pane scroll only when it is genuinely unavoidable. */
+export function fittedRackUnitPx(
+  availableHeight: number,
+  rackHeightU: number,
+  topClearanceU: number,
+): number {
+  const totalU = Math.max(1, rackHeightU + topClearanceU);
+  const fitted = Math.floor((Math.max(0, availableHeight) - RACK_VERTICAL_CHROME_PX) / totalU);
+  return Math.max(MIN_RACK_U_PX, Math.min(U_PX, fitted));
+}
 
 function itemStatus(item: RackItem): RackItemStatus {
   return item.metadata?.status ?? "online";
@@ -91,10 +107,34 @@ export function RackStage({
 }) {
   const { t } = useTranslation();
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const [unitPx, setUnitPx] = useState(U_PX);
   const [geom, setGeom] = useState<{ top: number; height: number; left: number; right: number } | null>(
     null,
   );
   const randomCallouts = selectRandomRackCallouts(rack.items, rack.id, 2);
+
+  // Rack View is the only elevation that adapts its U height to the current
+  // drill viewport. Other rack previews keep their normal fixed-size skin.
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const drill = stage.closest(".ft-drill") as HTMLElement | null;
+    const measure = () => {
+      const stageTop = stage.getBoundingClientRect().top;
+      const drillBottom = drill?.getBoundingClientRect().bottom ?? window.innerHeight;
+      const visibleBottom = Math.min(window.innerHeight, drillBottom);
+      const availableHeight = Math.max(0, visibleBottom - stageTop - 4);
+      setUnitPx(fittedRackUnitPx(availableHeight, rack.heightU, KUAIGUAI_TOP_CLEARANCE_U));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(drill ?? stage);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [rack.heightU]);
 
   // Measure the device grid relative to the stage so balloons anchor to the
   // right U rows regardless of the rack header's height.
@@ -141,6 +181,7 @@ export function RackStage({
       <div className="rk-stage-rack">
         <RackElevation
           rack={rack}
+          unitPx={unitPx}
           hideHeader
           reserveTopU={KUAIGUAI_TOP_CLEARANCE_U}
           hostFor={hostFor}

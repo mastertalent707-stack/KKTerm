@@ -2706,7 +2706,7 @@
   position: relative;
   height: 100%;
   width: 100%;
-  min-height: 22px;
+  min-height: min(22px, calc(var(--rk-u, 26px) - 3px));
   box-sizing: border-box;
   border-radius: 6px;
   border: 0.5px solid var(--rkd-line);
@@ -2727,6 +2727,35 @@
      physical finish (dark metal = light text; white/grey metal = black text). */
   color: var(--rkd-text);
   transition: transform 0.16s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.16s;
+}
+.itops-page .rkd[data-form-factor="tower"] {
+  width: 50%;
+}
+.itops-page .rkd[data-form-factor="tower"] .rkd-id {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.itops-page .rkd[data-form-factor="tower"] .rkd-visual {
+  flex: 0 1 44px;
+}
+.itops-page .rkd[data-form-factor="tower"] .rkd-disks-row {
+  flex-basis: 44px;
+  min-width: 0;
+}
+.itops-page .rkd[data-form-factor="tower"] .rkd-vent,
+.itops-page .rkd[data-form-factor="tower"] .rkd-fans {
+  display: none;
+}
+.itops-page .rkd[data-compact="true"] .rkd-id {
+  flex: 1 1 auto;
+}
+.itops-page .rkd[data-compact="true"] .rkd-visual {
+  flex: 0 1 52px;
+}
+.itops-page .rkd[data-compact="true"] .rkd-vent,
+.itops-page .rkd[data-compact="true"] .rkd-fans,
+.itops-page .rkd[data-compact="true"] .rkd-equip-label {
+  display: none;
 }
 .itops-page .rk-item-row:hover .rkd {
   transform: translateY(-1px);
@@ -4786,20 +4815,15 @@
   height: 40px;
   flex: 0 0 auto;
 }
-/* Rack View device picker: a single-column list of preview cards — the
-   faceplate thumb spans the card's full width with the name underneath. */
+/* Rack View device picker: a single-column list of compact faceplate previews.
+   The faceplate itself carries the type name; there is no duplicate caption. */
 .itops-page .rm-picker-devices .rm-picker-grid {
   grid-template-columns: minmax(0, 1fr);
 }
 .itops-page .rm-picker-devices .rm-picker-card {
   align-items: stretch;
-  gap: 6px;
-  padding: 8px 8px 6px;
-}
-.itops-page .rm-picker-devices .rm-picker-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  gap: 0;
+  padding: 8px;
 }
 .itops-page .rm-picker-name {
   max-width: 100%;

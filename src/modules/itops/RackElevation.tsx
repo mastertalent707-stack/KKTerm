@@ -46,6 +46,7 @@ export function RackElevation({
   onDeleteItem,
   isGhost,
   detailed,
+  unitPx = U_PX,
   hideHeader = false,
   editMode = false,
   reserveTopU = 0,
@@ -71,6 +72,8 @@ export function RackElevation({
   isGhost?: (item: RackItem) => boolean;
   /** Single-rack detail view: wider cabinet + a placed-device summary list. */
   detailed?: boolean;
+  /** Rack View may shrink one U to fit the visible drill viewport. */
+  unitPx?: number;
   /** Rack View moves this identity/spec line into the drill toolbar. */
   hideHeader?: boolean;
   editMode?: boolean;
@@ -223,7 +226,10 @@ export function RackElevation({
       className={`rk${detailed ? " rk-detailed" : ""}${topClearanceU > 0 ? " has-top-item" : ""}`}
       data-shell={cabShell}
       ref={rackRef}
-      style={{ ["--rk-top-clearance" as string]: `${topClearanceU * U_PX}px` }}
+      style={{
+        ["--rk-u" as string]: `${unitPx}px`,
+        ["--rk-top-clearance" as string]: `${topClearanceU * unitPx}px`,
+      }}
     >
       {!hideHeader ? <div className="rk-head">
         <div className="rk-head-txt">
@@ -293,7 +299,7 @@ export function RackElevation({
             <div
               className="rk-top-item"
               key={item.id}
-              style={{ height: item.heightU * U_PX }}
+              style={{ height: item.heightU * unitPx }}
             >
               <button type="button" className="rk-top-item-main" onClick={() => onEditItem?.(item)}>
                 <RackDevice
@@ -305,6 +311,7 @@ export function RackElevation({
                   yaw={item.metadata?.yaw ?? null}
                   kuaiguaiSize={item.metadata?.kuaiguaiSize ?? null}
                   kuaiguaiStyle={item.metadata?.kuaiguaiStyle ?? null}
+                  formFactor={item.metadata?.formFactor ?? null}
                   heightU={item.heightU}
                   seed={item.id}
                 />
@@ -325,7 +332,7 @@ export function RackElevation({
           {topPlaceGhost && placeSpec ? (
             <div
               className={`rk-top-item rk-place-ghost${topPlaceGhost.blocked ? " blocked" : ""}`}
-              style={{ height: placeSpec.heightU * U_PX }}
+              style={{ height: placeSpec.heightU * unitPx }}
               aria-hidden="true"
             >
               <RackDevice
@@ -337,6 +344,7 @@ export function RackElevation({
                 yaw={placeSpec.metadata?.yaw ?? null}
                 kuaiguaiSize={placeSpec.metadata?.kuaiguaiSize ?? null}
                 kuaiguaiStyle={placeSpec.metadata?.kuaiguaiStyle ?? null}
+                formFactor={placeSpec.metadata?.formFactor ?? null}
                 heightU={placeSpec.heightU}
                 seed="place-top-ghost"
               />
@@ -446,6 +454,7 @@ export function RackElevation({
                   yaw={item.metadata?.yaw ?? null}
                   kuaiguaiSize={item.metadata?.kuaiguaiSize ?? null}
                   kuaiguaiStyle={item.metadata?.kuaiguaiStyle ?? null}
+                  formFactor={item.metadata?.formFactor ?? null}
                   heightU={item.heightU}
                   accent={item.metadata?.accent ?? null}
                   shell={item.metadata?.shell ?? null}
@@ -550,6 +559,7 @@ export function RackElevation({
                   yaw={placeSpec.metadata?.yaw ?? null}
                   kuaiguaiSize={placeSpec.metadata?.kuaiguaiSize ?? null}
                   kuaiguaiStyle={placeSpec.metadata?.kuaiguaiStyle ?? null}
+                  formFactor={placeSpec.metadata?.formFactor ?? null}
                   heightU={Math.min(placeSpec.heightU, rack.heightU)}
                   accent={placeSpec.metadata?.accent ?? null}
                   shell={placeSpec.metadata?.shell ?? null}
@@ -604,7 +614,7 @@ export function RackElevation({
                 left: activePointer.x,
                 top: activePointer.y,
                 width: activePointer.width,
-                height: Math.max(1, placeSpec.heightU) * U_PX,
+                height: Math.max(1, placeSpec.heightU) * unitPx,
               }}
             >
               <RackDevice
@@ -621,6 +631,7 @@ export function RackElevation({
                 yaw={placeSpec.metadata?.yaw ?? null}
                 kuaiguaiSize={placeSpec.metadata?.kuaiguaiSize ?? null}
                 kuaiguaiStyle={placeSpec.metadata?.kuaiguaiStyle ?? null}
+                formFactor={placeSpec.metadata?.formFactor ?? null}
                 heightU={placeSpec.heightU}
                 accent={placeSpec.metadata?.accent ?? null}
                 shell={placeSpec.metadata?.shell ?? null}

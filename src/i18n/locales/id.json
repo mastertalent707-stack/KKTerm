@@ -1221,6 +1221,11 @@
       "portSpeedsHint": "Gunakan nilai seperti gigabit atau 10g; polling SNMP dapat menyegarkannya nanti.",
       "snmpLabel": "Polling SNMP",
       "snmpHint": "Simpan target SNMP atau petunjuk OID untuk pengambilan data.",
+      "formFactorLabel": "Faktor bentuk",
+      "formFactor": {
+        "rack": "Rak",
+        "tower": "Tower"
+      },
       "vendorLabel": "Model",
       "vendorHint": "Gunakan Dell 740XD, HP DL380, atau model sasis lain untuk pratinjau grafis.",
       "expiryLabel": "Kedaluwarsa",

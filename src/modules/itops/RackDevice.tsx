@@ -10,7 +10,12 @@
 // physical-hardware palette, like the terminal surfaces); status/accent colour
 // reads the shared theme tokens.
 
-import type { RackItemKind, RackItemStatus, RackShell } from "../../types";
+import type {
+  RackItemKind,
+  RackItemStatus,
+  RackServerFormFactor,
+  RackShell,
+} from "../../types";
 import { KuaiKuaiBag, type KuaiKuaiStyle } from "./KuaiKuaiBag";
 
 export interface RackDeviceProps {
@@ -28,6 +33,9 @@ export interface RackDeviceProps {
   yaw?: number | null;
   kuaiguaiSize?: "small" | "regular" | "large" | null;
   kuaiguaiStyle?: KuaiKuaiStyle | null;
+  formFactor?: RackServerFormFactor | null;
+  /** Dense object-picker rendering that leaves more room for the faceplate name. */
+  compact?: boolean;
   heightU: number;
   /** User accent override; falls back to the per-kind device colour. */
   accent?: string | null;
@@ -101,6 +109,8 @@ export function RackDevice({
   yaw,
   kuaiguaiSize,
   kuaiguaiStyle,
+  formFactor,
+  compact = false,
   heightU,
   accent,
   shell,
@@ -111,7 +121,9 @@ export function RackDevice({
   const devAccent = accent || KIND_ACCENT[kind] || "#8e8e93";
 
   const isPanel = kind === "patchPanel";
-  const isBlank = kind === "blank" || kind === "label";
+  const isBlankPlate = kind === "blank";
+  const isLabel = kind === "label";
+  const isBlank = isBlankPlate || isLabel;
   const isEquip = kind === "general" || kind === "equipment";
   const isKuaiguai = kind === "kuaiguai";
   const isServer = kind === "server" || kind === "connection";
@@ -146,14 +158,18 @@ export function RackDevice({
   const ledStatusClass = status === "warning" ? "led-warn" : offline ? "" : "led-ok";
   const ledPowerClass = offline ? "" : "led-ok";
 
-  const portCap = isPanel ? 24 : isSwitch ? 24 : 8;
+  let portCap = isPanel || isSwitch ? 24 : 8;
+  if (compact) portCap = isSwitch ? 6 : 4;
   const drawPorts = Math.min(ports || (isSwitch ? 12 : isRouter ? 5 : 0), portCap);
   const portList = Array.from({ length: drawPorts }, (_, i) => {
     const active = !offline && rand() > 0.34;
     return { active, color: active ? "var(--green)" : "var(--rkd-dim)", blk: active ? `blk-${(i % 5) + 1}` : "" };
   });
 
-  const drawDisks = Math.min(disks || (isServer ? 4 : isStorage ? 8 : 0), Math.max(1, heightU) * 24);
+  const drawDisks = Math.min(
+    disks || (isServer ? 4 : isStorage ? 8 : 0),
+    compact ? 4 : Math.max(1, heightU) * 24,
+  );
   const diskList = Array.from({ length: drawDisks }, (_, i) => {
     const busy = !offline && rand() > 0.42;
     return {
@@ -163,13 +179,17 @@ export function RackDevice({
     };
   });
 
-  const panelPorts = isPanel ? Array.from({ length: Math.min(ports || 24, 24) }, (_, i) => i) : [];
-  const outlets = isPdu ? [0, 1, 2, 3, 4, 5] : [];
-  const fwBars = isFirewall ? [0, 1, 2, 3, 4, 5].map((i) => `fwb-${(i % 3) + 1}`) : [];
+  const panelPorts = isPanel
+    ? Array.from({ length: Math.min(ports || 24, compact ? 4 : 24) }, (_, i) => i)
+    : [];
+  const outlets = isPdu ? (compact ? [0, 1, 2] : [0, 1, 2, 3, 4, 5]) : [];
+  const fwBars = isFirewall
+    ? (compact ? [0, 1, 2, 3] : [0, 1, 2, 3, 4, 5]).map((i) => `fwb-${(i % 3) + 1}`)
+    : [];
 
   const batteryPct = Math.max(0, Math.min(100, battery ?? (offline ? 0 : 88)));
   const cells = isUps
-    ? [0, 1, 2, 3, 4].map((i) => {
+    ? (compact ? [0, 1, 2] : [0, 1, 2, 3, 4]).map((i) => {
         const on = batteryPct > i * 20 + 4;
         const col = batteryPct < 30 ? "var(--amber)" : "var(--green)";
         return on ? col : "var(--rkd-cell-off)";
@@ -181,7 +201,7 @@ export function RackDevice({
   const loadPct = Math.max(2, Math.min(100, load ?? 62));
 
   const channels = isKvm
-    ? [1, 2, 3, 4].map((n) => {
+    ? (compact ? [1, 2] : [1, 2, 3, 4]).map((n) => {
         const sel = n === 1;
         return {
           n,
@@ -192,7 +212,7 @@ export function RackDevice({
       })
     : [];
 
-  const hasName = !!label && !isBlank;
+  const hasName = !!label && !isBlankPlate;
   const showLeds = !isBlank && !isPanel && !isKuaiguai;
   const showMeta = !isBlank && !isKuaiguai;
 
@@ -200,6 +220,8 @@ export function RackDevice({
     <div
       className="rkd"
       data-shell={shell ?? undefined}
+      data-compact={compact || undefined}
+      data-form-factor={isServer ? formFactor ?? "rack" : undefined}
       data-kuaiguai-size={isKuaiguai ? kuaiguaiSize ?? "regular" : undefined}
       style={{
         ["--rkd-accent" as string]: devAccent,

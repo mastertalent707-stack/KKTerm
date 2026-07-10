@@ -1221,6 +1221,11 @@
       "portSpeedsHint": "Usa valores como gigabit o 10g; el sondeo SNMP puede actualizarlos más tarde.",
       "snmpLabel": "Sondeo SNMP",
       "snmpHint": "Almacena un destino SNMP o una pista de OID para la recuperación de datos.",
+      "formFactorLabel": "Factor de forma",
+      "formFactor": {
+        "rack": "Rack",
+        "tower": "Torre"
+      },
       "vendorLabel": "Modelo",
       "vendorHint": "Usa Dell 740XD, HP DL380 u otro modelo de chasis para la vista previa gráfica.",
       "expiryLabel": "Vencimiento",

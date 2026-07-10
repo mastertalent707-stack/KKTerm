@@ -1221,6 +1221,11 @@
       "portSpeedsHint": "Utilisez des valeurs telles que gigabit ou 10g ; l'interrogation SNMP peut les actualiser ultérieurement.",
       "snmpLabel": "Interrogation SNMP",
       "snmpHint": "Stockez une cible SNMP ou un indice OID pour la récupération des données.",
+      "formFactorLabel": "Format",
+      "formFactor": {
+        "rack": "Rack",
+        "tower": "Tour"
+      },
       "vendorLabel": "Modèle",
       "vendorHint": "Utilisez Dell 740XD, HP DL380 ou un autre modèle de châssis pour l'aperçu graphique.",
       "expiryLabel": "Expiration",

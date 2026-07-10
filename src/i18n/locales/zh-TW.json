@@ -1221,6 +1221,11 @@
       "portSpeedsHint": "使用諸如 gigabit 或 10g 之類的值；SNMP 輪詢稍後可重新整理這些值。",
       "snmpLabel": "SNMP 輪詢",
       "snmpHint": "儲存用於資料擷取的 SNMP 目標或 OID 提示。",
+      "formFactorLabel": "外型規格",
+      "formFactor": {
+        "rack": "機架式",
+        "tower": "直立式"
+      },
       "vendorLabel": "型號",
       "vendorHint": "使用 Dell 740XD、HP DL380 或其他機箱型號進行圖形預覽。",
       "expiryLabel": "到期",

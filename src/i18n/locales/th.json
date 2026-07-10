@@ -1221,6 +1221,11 @@
       "portSpeedsHint": "ใช้ค่า เช่น gigabit หรือ 10g; การโพล SNMP สามารถรีเฟรชค่าเหล่านี้ได้ในภายหลัง",
       "snmpLabel": "การโพล SNMP",
       "snmpHint": "จัดเก็บเป้าหมาย SNMP หรือคำใบ้ OID สำหรับการดึงข้อมูล",
+      "formFactorLabel": "รูปแบบตัวเครื่อง",
+      "formFactor": {
+        "rack": "แร็ค",
+        "tower": "ทาวเวอร์"
+      },
       "vendorLabel": "รุ่น",
       "vendorHint": "ใช้ Dell 740XD, HP DL380 หรือรุ่นแชสซีอื่นสำหรับตัวอย่างแบบกราฟิก",
       "expiryLabel": "วันหมดอายุ",

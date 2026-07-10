@@ -1221,6 +1221,11 @@
       "portSpeedsHint": "gigabit や 10g などの値を使用します。SNMP ポーリングで後から更新できます。",
       "snmpLabel": "SNMP ポーリング",
       "snmpHint": "データ取得用の SNMP ターゲットまたは OID ヒントを保存します。",
+      "formFactorLabel": "フォームファクター",
+      "formFactor": {
+        "rack": "ラック",
+        "tower": "タワー"
+      },
       "vendorLabel": "モデル",
       "vendorHint": "グラフィカルプレビューには Dell 740XD、HP DL380、または別のシャーシモデルを使用します。",
       "expiryLabel": "有効期限",

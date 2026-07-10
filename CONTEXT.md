@@ -166,7 +166,7 @@ The device kind used to render behavior and faceplate visuals, such as server, s
 _Avoid_: connection type, transport, session kind
 
 **Rack Device Properties**:
-Non-secret presentation metadata for a Rack Device: label, U position, height, status, accent, icon, notes, shell/faceplate fields, kind-specific values such as ports, disks, battery, or load, and optional Connection bindings. These properties do not store live Session state or credentials. The editor groups them into type, appearance, and metadata columns; bindings use a separate dialog.
+Non-secret presentation metadata for a Rack Device: label, U position, height, status, accent, icon, notes, shell/faceplate fields, kind-specific values such as ports, disks, battery, load, or a Server's rack/tower form factor, and optional Connection bindings. Tower is a half-width faceplate presentation and does not change vertical U occupancy. These properties do not store live Session state or credentials. The editor groups them into type, appearance, and metadata columns; bindings use a separate dialog.
 _Avoid_: secrets, runtime status, connection settings
 
 **Host**:

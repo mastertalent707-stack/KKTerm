@@ -3,6 +3,7 @@ import type {
   RackItemMetadata,
   RackNetworkPort,
   RackPortSpeed,
+  RackServerFormFactor,
   RackSnmpHint,
 } from "../../types";
 
@@ -25,6 +26,12 @@ function trimOrNull(value: string | null | undefined): string | null {
 
 function normalizeVendor(value: string | null | undefined): string | null {
   return trimOrNull(value);
+}
+
+function normalizeFormFactor(
+  value: RackItemMetadata["formFactor"],
+): RackServerFormFactor | null {
+  return value === "tower" ? "tower" : value === "rack" ? "rack" : null;
 }
 
 export function normalizeConnectionIds(value: RackItemMetadata["connectionIds"]): string[] | null {
@@ -89,6 +96,7 @@ export function normalizeRackItemMetadata(metadata: RackItemMetadata): Normalize
     networkPorts: normalizeNetworkPorts(metadata.networkPorts),
     snmp: normalizeSnmpHint(metadata.snmp),
     vendor: normalizeVendor(metadata.vendor),
+    formFactor: normalizeFormFactor(metadata.formFactor),
   };
 }
 

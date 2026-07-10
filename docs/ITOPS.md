@@ -85,6 +85,8 @@ rendering and properties; it is not a Connection type.
 
 **Rack Device Properties** — non-secret presentation metadata for a Rack
 Device. Never store credentials or live Session state here.
+Server Rack Devices may use a rack or tower form factor; tower is a half-width
+faceplate presentation and does not change vertical U occupancy.
 
 **Host** — a durable inventory entry for one device or guest in a Site,
 addressed by hostname and stored in `itops_hosts`. The device itself can be a

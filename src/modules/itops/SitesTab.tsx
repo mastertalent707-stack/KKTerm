@@ -1920,6 +1920,7 @@ function RackObjectPicker({
               type="button"
               className="rm-picker-card"
               title={label}
+              aria-label={label}
               data-active={armedKind === kind || undefined}
               disabled={!available}
               onClick={() => available && onPickDevice(kind)}
@@ -1932,9 +1933,9 @@ function RackObjectPicker({
                   heightU={kind === "kuaiguai" ? 4 : 1}
                   shell="black"
                   seed={`picker-${kind}`}
+                  compact
                 />
               </span>
-              <span className="rm-picker-name">{label}</span>
             </button>
           );
         })}

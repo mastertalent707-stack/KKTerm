@@ -16,6 +16,7 @@ test("normalizeRackItemMetadata preserves legacy PR metadata while producing typ
     networkPorts: ["1:gigabit", "2:10g"],
     snmp: "public@192.0.2.10:1.3.6.1.2.1.2",
     vendor: "Dell",
+    formFactor: "tower",
   };
 
   const normalized = normalizeRackItemMetadata(legacy);
@@ -28,6 +29,7 @@ test("normalizeRackItemMetadata preserves legacy PR metadata while producing typ
   ]);
   assert.equal(normalized.snmp?.target, "192.0.2.10");
   assert.equal(normalized.vendor, "Dell");
+  assert.equal(normalized.formFactor, "tower");
 });
 
 test("summarizeRackDeviceMetadata returns compact visible inventory facts", () => {

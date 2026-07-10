@@ -260,6 +260,8 @@ export type RackItemKind =
 
 export type RackItemStatus = "online" | "warning" | "offline";
 
+export type RackServerFormFactor = "rack" | "tower";
+
 export type RackPortSpeed = "gigabit" | "10g" | "25g" | "40g" | "100g" | "custom";
 
 export interface RackNetworkPort {
@@ -317,6 +319,8 @@ export interface RackItemMetadata {
   kuaiguaiStyle?: "full" | "laidDown" | null;
   /** Hardware model used for the graphical device preview, e.g. Dell 740XD. */
   vendor?: string | null;
+  /** Server chassis presentation. Tower servers render at half rack width. */
+  formFactor?: RackServerFormFactor | null;
 }
 
 // Skeuomorphic shell finish for a rack cabinet or a device faceplate. White and
