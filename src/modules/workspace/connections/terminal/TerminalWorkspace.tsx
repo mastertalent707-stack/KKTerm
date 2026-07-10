@@ -1729,8 +1729,10 @@ function TerminalPaneView({
   // Per-Connection color scheme override wins over the global Terminal
   // Settings default; both live-apply to the open renderer below.
   const terminalColorScheme = pane.connection?.terminalColorScheme ?? terminalSettings.colorScheme;
+  const committedTerminalColorSchemeRef = useRef(terminalColorScheme);
 
   useEffect(() => {
+    committedTerminalColorSchemeRef.current = terminalColorScheme;
     terminalRendererRef.current?.setColorScheme(terminalColorScheme);
   }, [terminalColorScheme]);
 
@@ -2555,6 +2557,21 @@ function TerminalPaneView({
     }
   }
 
+  function previewTerminalColorScheme(nextScheme: string | null) {
+    terminalRendererRef.current?.setColorScheme(nextScheme ?? terminalSettings.colorScheme);
+  }
+
+  function restoreTerminalColorSchemePreview() {
+    terminalRendererRef.current?.setColorScheme(committedTerminalColorSchemeRef.current);
+  }
+
+  function commitTerminalColorScheme(nextScheme: string | null) {
+    const appliedScheme = nextScheme ?? terminalSettings.colorScheme;
+    committedTerminalColorSchemeRef.current = appliedScheme;
+    terminalRendererRef.current?.setColorScheme(appliedScheme);
+    void saveTerminalColorScheme(nextScheme);
+  }
+
   function startQuickSelect() {
     const renderer = terminalRendererRef.current;
     const host = terminalElementRef.current;
@@ -3178,14 +3195,19 @@ function TerminalPaneView({
                     {t("terminal.colorScheme")}
                     <ChevronRight size={13} className="terminal-menu-chevron" />
                   </button>
-                  <div className="terminal-menu terminal-menu-submenu-panel terminal-color-scheme-panel" role="menu">
+                  <div
+                    className="terminal-menu terminal-menu-submenu-panel terminal-color-scheme-panel"
+                    onMouseLeave={restoreTerminalColorSchemePreview}
+                    role="menu"
+                  >
                     <button
                       className="terminal-menu-item"
                       onClick={() => {
                         setActionsMenuOpen(false);
-                        void saveTerminalColorScheme(null);
+                        commitTerminalColorScheme(null);
                         focusTerminalRenderer();
                       }}
+                      onMouseEnter={() => previewTerminalColorScheme(null)}
                       role="menuitemradio"
                       aria-checked={!pane.connection?.terminalColorScheme}
                       type="button"
@@ -3202,9 +3224,10 @@ function TerminalPaneView({
                         key={scheme.id}
                         onClick={() => {
                           setActionsMenuOpen(false);
-                          void saveTerminalColorScheme(scheme.id);
+                          commitTerminalColorScheme(scheme.id);
                           focusTerminalRenderer();
                         }}
+                        onMouseEnter={() => previewTerminalColorScheme(scheme.id)}
                         role="menuitemradio"
                         aria-checked={pane.connection?.terminalColorScheme === scheme.id}
                         type="button"
