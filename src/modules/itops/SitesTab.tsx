@@ -221,7 +221,7 @@ export function SitesTab({
         const siteId = nodeId.site(site.id);
         const siteRacks = racksBySite[site.id] ?? [];
         const siteTopo = groupRackTopology(siteRacks, serverRoomsBySite[site.id] ?? []);
-        if (siteRacks.length > 0) {
+        if (siteTopo.length > 0) {
           next.add(siteId);
         }
         for (const room of siteTopo) {
@@ -322,15 +322,15 @@ export function SitesTab({
     };
   }, [activeGroup, resolveSite]);
 
-  // Load racks for every expanded Site node so the tree can show its topology.
+  // Load every Site's durable topology before deciding whether its tree row
+  // has children. Gating the request on expansion creates a deadlock for a
+  // restored collapsed row: unloaded data means no caret, so it cannot expand.
   useEffect(() => {
     for (const site of sites) {
-      if (isExpanded(nodeId.site(site.id))) {
-        if (!racksBySite[site.id]) void loadRacks(site.id);
-        if (!serverRoomsBySite[site.id]) void loadServerRooms(site.id);
-      }
+      if (!racksBySite[site.id]) void loadRacks(site.id);
+      if (!serverRoomsBySite[site.id]) void loadServerRooms(site.id);
     }
-  }, [sites, racksBySite, serverRoomsBySite, isExpanded, loadRacks, loadServerRooms]);
+  }, [sites, racksBySite, serverRoomsBySite, loadRacks, loadServerRooms]);
 
   const racks = useMemo(
     () => (activeGroup ? (racksBySite[activeGroup.id] ?? []) : []),
@@ -341,6 +341,9 @@ export function SitesTab({
     [activeGroup, serverRoomsBySite],
   );
   const topology = useMemo(() => groupRackTopology(racks, serverRooms), [racks, serverRooms]);
+  const topologyLoaded = activeGroup
+    ? racksBySite[activeGroup.id] !== undefined && serverRoomsBySite[activeGroup.id] !== undefined
+    : false;
   const selectedSiteIdForDialog = activeGroup?.id ?? sites[0]?.id ?? "";
   const selectedServerRoomForDialog =
     drill.serverRoom ?? (drill.rackId ? racks.find((rack) => rack.id === drill.rackId)?.serverRoom : undefined);
@@ -491,7 +494,10 @@ export function SitesTab({
   const q = query.trim().toLowerCase();
   const matchQ = (s: string) => !q || (s || t("itops.racks.unassigned")).toLowerCase().includes(q);
   const effectiveTreeWidth = treeCollapsed ? SITE_TREE_COLLAPSED_WIDTH : treeWidth;
-  const hasExpandableTreeNodes = sites.some((site) => (racksBySite[site.id] ?? []).length > 0);
+  const hasExpandableTreeNodes = sites.some(
+    (site) =>
+      groupRackTopology(racksBySite[site.id] ?? [], serverRoomsBySite[site.id] ?? []).length > 0,
+  );
   const addTopologyMenu = !treeCollapsed ? (
     <div className="ft-add-wrap">
       <button
@@ -619,7 +625,7 @@ export function SitesTab({
                       customIcon={site}
                       label={site.name}
                       tint={groupColor(site.id)}
-                      hasChildren={siteRacks.length > 0}
+                      hasChildren={siteTopo.length > 0}
                       open={open}
                       selected={selectedId === fId && drill.serverRoom == null}
                       onToggle={() => toggleNode(fId)}
@@ -706,6 +712,7 @@ export function SitesTab({
         <div className="hg-detail" data-tutorial-id="itops.siteView">
           <RackDrill
             topology={topology}
+            topologyLoaded={topologyLoaded}
             racks={racks}
             site={activeGroup}
             members={members}
@@ -726,6 +733,9 @@ export function SitesTab({
                 rack: null,
                 defaultServerRoom: serverRoom,
               });
+            }}
+            onAddServerRoom={() => {
+              setServerRoomDialog({ siteId: activeGroup.id, room: null });
             }}
             onAddRackForPlacement={(serverRoom, onSaved) => {
               setRackDialog({
@@ -949,6 +959,7 @@ function TreeRow({
 // ── Rack drill body ───────────────────────────────────────────────────────
 function RackDrill({
   topology,
+  topologyLoaded,
   racks,
   site,
   members,
@@ -963,6 +974,7 @@ function RackDrill({
   onEditItem,
   onBindItem,
   onMoveItem,
+  onAddServerRoom,
   onAddRack,
   onAddRackForPlacement,
   onDeleteServerRoom,
@@ -970,6 +982,7 @@ function RackDrill({
   onDeleteItem,
 }: {
   topology: ReturnType<typeof groupRackTopology>;
+  topologyLoaded: boolean;
   racks: Rack[];
   site: Site;
   /** The Site's resolved member Connections (for scoping the site segments). */
@@ -985,6 +998,7 @@ function RackDrill({
   onEditItem: (rack: Rack, item: RackItem) => void;
   onBindItem: (item: RackItem) => void;
   onMoveItem: (itemId: string, targetRackId: string, startU: number) => void;
+  onAddServerRoom: () => void;
   onAddRack: (serverRoom: string) => void;
   /** Picker flow: open the New Rack dialog, hand the saved rack back for a
    *  placement click instead of drilling into it. */
@@ -1502,11 +1516,7 @@ function RackDrill({
           <BatchRunsTab siteId={site.id} onNewBatchRun={() => requestNewBatchRun(site.id)} />
         ) : siteSegmentActive && siteView === "automations" ? (
           <AutomationsTab siteId={site.id} siteHosts={members.map((member) => member.host)} />
-        ) : racks.length === 0 ? (
-          <div className="card">
-            <div className="hg-dlg-empty">{t("itops.racks.empty")}</div>
-          </div>
-        ) : rack ? (
+        ) : !topologyLoaded ? null : rack ? (
           <RackStage
             rack={rack}
             hosts={siteHosts}
@@ -1521,7 +1531,16 @@ function RackDrill({
             onDeleteItem={editMode ? (item) => onDeleteItem(rack, item) : undefined}
           />
         ) : serverRoom ? (
-          roomView === "iso" || roomView === "floor" ? (
+          serverRoom.racks.length === 0 ? (
+            <div className="it-topology-empty">
+              <button type="button" className="it-btn primary" onClick={() => onAddRack(serverRoom.key)}>
+                <span className="it-btn-ic">
+                  <ItIcon name="plus" size={15} />
+                </span>
+                {t("itops.racks.addRack")}
+              </button>
+            </div>
+          ) : roomView === "iso" || roomView === "floor" ? (
             <div className="rm-spatial">
               {roomView === "iso" ? (
                 <ServerRoomIsoView
@@ -1598,6 +1617,15 @@ function RackDrill({
               </div>
             ))
           )
+        ) : topology.length === 0 ? (
+          <div className="it-topology-empty">
+            <button type="button" className="it-btn primary" onClick={onAddServerRoom}>
+              <span className="it-btn-ic">
+                <ItIcon name="plus" size={15} />
+              </span>
+              {t("itops.racks.addServerRoom")}
+            </button>
+          </div>
         ) : (
           <SiteRoomCards
             rooms={topology}
@@ -1726,9 +1754,9 @@ function useFreeDrag(
   return { startDrag, moveDrag, endDrag };
 }
 
-// Site View is a free-form Server Room placement surface in both modes: cards
-// sit on a full-pane dot grid at their stored positions. Edit mode adds drag
-// and delete; right-clicking empty surface offers the Site background change.
+// Site View is a free-form Server Room placement surface in both modes. Edit
+// mode reveals the dot grid and adds drag/delete controls; right-clicking empty
+// surface offers the Site background change.
 function SiteRoomCards({
   rooms,
   roomIcons,
@@ -1772,7 +1800,7 @@ function SiteRoomCards({
 
   return (
     <div
-      className="it-free-surface site"
+      className={`it-free-surface site${editMode ? " editing" : ""}`}
       style={{ minHeight: freeSurfaceHeight(rooms.length, FREE_CARD_WIDTH, FREE_CARD_HEIGHT) }}
       onContextMenu={onOpenBackground ? handleSurfaceContextMenu : undefined}
     >

@@ -3410,6 +3410,15 @@
 .itops-page .ft-drill .itops-bg-content > .card {
   margin: 0 14px 14px;
 }
+.itops-page .it-topology-empty {
+  align-self: center;
+  margin: auto;
+  padding: 14px;
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: var(--shadow-control);
+}
 .itops-page .it-drill-toolbar {
   position: sticky;
   top: 0;
@@ -3557,6 +3566,9 @@
 .itops-page .ft-drill-bg.has-bg .it-free-surface.site {
   background:
     radial-gradient(circle, color-mix(in srgb, var(--border) 58%, transparent) 1px, transparent 1.5px) 0 0 / 18px 18px;
+}
+.itops-page .it-free-surface.site:not(.editing) {
+  background-image: none;
 }
 .itops-page .it-free-card {
   position: absolute;

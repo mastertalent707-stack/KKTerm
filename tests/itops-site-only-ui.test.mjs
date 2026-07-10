@@ -87,6 +87,37 @@ test("Site tree add menu opens distinct Site, Server Room, and Rack dialogs", as
   assert.match(rackDialog, /itops\.racks\.serverRoomSelectLabel/);
 });
 
+test("Sites load durable topology before the tree decides whether they have children", async () => {
+  const sites = await read("src/modules/itops/SitesTab.tsx");
+
+  assert.match(
+    sites,
+    /for \(const site of sites\) \{[\s\S]*if \(!racksBySite\[site\.id\]\) void loadRacks\(site\.id\);[\s\S]*if \(!serverRoomsBySite\[site\.id\]\) void loadServerRooms\(site\.id\);/,
+  );
+  assert.doesNotMatch(sites, /if \(isExpanded\(nodeId\.site\(site\.id\)\)\)/);
+  assert.match(sites, /topologyLoaded=\{topologyLoaded\}/);
+});
+
+test("empty Site and Server Room views expose their contextual create actions", async () => {
+  const sites = await read("src/modules/itops/SitesTab.tsx");
+  const css = await read("src/modules/itops/itops.css");
+
+  assert.match(sites, /topology\.length === 0[\s\S]*itops\.racks\.addServerRoom/);
+  assert.match(sites, /serverRoom\.racks\.length === 0[\s\S]*itops\.racks\.addRack/);
+  assert.match(sites, /className="it-topology-empty"/);
+  assert.match(css, /\.itops-page \.it-topology-empty \{/);
+  assert.doesNotMatch(sites, /\) : racks\.length === 0 \? \(/);
+  assert.match(sites, /hasChildren=\{siteTopo\.length > 0\}/);
+});
+
+test("Site View shows its placement dots only while editing", async () => {
+  const sites = await read("src/modules/itops/SitesTab.tsx");
+  const css = await read("src/modules/itops/itops.css");
+
+  assert.match(sites, /className=\{`it-free-surface site\$\{editMode \? " editing" : ""\}`\}/);
+  assert.match(css, /\.itops-page \.it-free-surface\.site:not\(\.editing\) \{[\s\S]*background-image:\s*none;/);
+});
+
 test("Site topology rows open their existing dialogs from native Properties menus", async () => {
   const sites = await read("src/modules/itops/SitesTab.tsx");
   const english = JSON.parse(await read("src/i18n/locales/en.json"));
