@@ -1255,7 +1255,7 @@
       },
       "kuaiguaiStyleLabel": "패키지 형태",
       "kuaiguaiStyle": {
-        "full": "세워 놓기",
+        "full": "전체 (세워 놓기)",
         "laidDown": "눕혀 놓기(앞면 위)"
       },
       "portState": {

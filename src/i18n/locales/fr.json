@@ -1255,7 +1255,7 @@
       },
       "kuaiguaiStyleLabel": "Style du paquet",
       "kuaiguaiStyle": {
-        "full": "Debout",
+        "full": "Complet (debout)",
         "laidDown": "Couché (face vers le haut)"
       },
       "portState": {

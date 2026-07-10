@@ -1255,7 +1255,7 @@
       },
       "kuaiguaiStyleLabel": "パッケージの向き",
       "kuaiguaiStyle": {
-        "full": "立て置き",
+        "full": "フル（立て置き）",
         "laidDown": "平置き（表面が上）"
       },
       "portState": {

@@ -1255,7 +1255,7 @@
       },
       "kuaiguaiStyleLabel": "Estilo da embalagem",
       "kuaiguaiStyle": {
-        "full": "Em pé",
+        "full": "Inteiro (em pé)",
         "laidDown": "Deitada (frente para cima)"
       },
       "portState": {

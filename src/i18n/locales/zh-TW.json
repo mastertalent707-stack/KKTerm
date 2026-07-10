@@ -1255,7 +1255,7 @@
       },
       "kuaiguaiStyleLabel": "包裝樣式",
       "kuaiguaiStyle": {
-        "full": "直立",
+        "full": "完整（直立）",
         "laidDown": "平放（正面朝上）"
       },
       "portState": {

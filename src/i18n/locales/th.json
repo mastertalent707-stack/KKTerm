@@ -1255,7 +1255,7 @@
       },
       "kuaiguaiStyleLabel": "รูปแบบบรรจุภัณฑ์",
       "kuaiguaiStyle": {
-        "full": "แบบตั้ง",
+        "full": "แบบเต็ม (ตั้ง)",
         "laidDown": "แบบวางราบ (ด้านหน้าหงายขึ้น)"
       },
       "portState": {

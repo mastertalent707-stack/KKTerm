@@ -1255,7 +1255,7 @@
       },
       "kuaiguaiStyleLabel": "Stile confezione",
       "kuaiguaiStyle": {
-        "full": "In piedi",
+        "full": "Intero (in piedi)",
         "laidDown": "Sdraiato (fronte verso l’alto)"
       },
       "portState": {

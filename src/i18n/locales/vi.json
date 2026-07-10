@@ -1255,7 +1255,7 @@
       },
       "kuaiguaiStyleLabel": "Kiểu gói",
       "kuaiguaiStyle": {
-        "full": "Đặt đứng",
+        "full": "Nguyên (đặt đứng)",
         "laidDown": "Đặt nằm (mặt trước hướng lên)"
       },
       "portState": {
