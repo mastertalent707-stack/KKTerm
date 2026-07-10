@@ -3047,7 +3047,9 @@
     "quickSelectNoMatches": "Không có văn bản nào sao chép được trên màn hình.",
     "quickSelectCopied": "Đã sao chép {{text}}",
     "previousPrompt": "Dấu nhắc trước",
+    "previousPromptShortcut": "Ctrl+Shift+↑",
     "nextPrompt": "Dấu nhắc tiếp theo",
+    "nextPromptShortcut": "Ctrl+Shift+↓",
     "copyLastCommandOutput": "Sao chép kết quả lệnh gần nhất",
     "notification": "Thông báo từ {{name}}: {{message}}",
     "notificationWithTitle": "Thông báo từ {{name}}: {{title}} — {{message}}"

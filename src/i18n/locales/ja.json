@@ -3047,7 +3047,9 @@
     "quickSelectNoMatches": "画面にコピーできるテキストがありません。",
     "quickSelectCopied": "{{text}} をコピーしました",
     "previousPrompt": "前のプロンプト",
+    "previousPromptShortcut": "Ctrl+Shift+↑",
     "nextPrompt": "次のプロンプト",
+    "nextPromptShortcut": "Ctrl+Shift+↓",
     "copyLastCommandOutput": "直前のコマンド出力をコピー",
     "notification": "{{name}} からの通知: {{message}}",
     "notificationWithTitle": "{{name}} からの通知: {{title}} — {{message}}"

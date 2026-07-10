@@ -3047,7 +3047,9 @@
     "quickSelectNoMatches": "Tidak ada teks yang dapat disalin di layar.",
     "quickSelectCopied": "{{text}} disalin",
     "previousPrompt": "Prompt sebelumnya",
+    "previousPromptShortcut": "Ctrl+Shift+↑",
     "nextPrompt": "Prompt berikutnya",
+    "nextPromptShortcut": "Ctrl+Shift+↓",
     "copyLastCommandOutput": "Salin keluaran perintah terakhir",
     "notification": "Notifikasi dari {{name}}: {{message}}",
     "notificationWithTitle": "Notifikasi dari {{name}}: {{title}} — {{message}}"

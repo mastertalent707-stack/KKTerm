@@ -40,3 +40,45 @@ test("terminal color schemes preview on hover and restore when leaving the subme
     /committedTerminalColorSchemeRef\.current = appliedScheme;[\s\S]*?saveTerminalColorScheme\(nextScheme\)/,
   );
 });
+
+test("terminal color scheme rows use each palette's background and foreground", () => {
+  assert.match(
+    workspaceSource,
+    /backgroundColor: globalTerminalColorScheme\.palette\.background,[\s\S]*?color: globalTerminalColorScheme\.palette\.foreground/,
+  );
+  assert.match(
+    workspaceSource,
+    /backgroundColor: scheme\.palette\.background,[\s\S]*?color: scheme\.palette\.foreground/,
+  );
+  assert.match(
+    terminalCss,
+    /\.terminal-color-scheme-item:hover:not\(:disabled\)[\s\S]*?box-shadow:\s*inset 0 0 0 2px currentColor;/,
+  );
+  assert.doesNotMatch(workspaceSource, /terminal-color-scheme-swatch/);
+});
+
+test("terminal prompt navigation menu items show their keyboard shortcuts", () => {
+  assert.match(
+    workspaceSource,
+    /terminal\.previousPromptShortcut[\s\S]*?terminal\.nextPromptShortcut/,
+  );
+  assert.match(
+    terminalCss,
+    /\.terminal-menu-shortcut\s*\{[^}]*margin-left:\s*auto;[^}]*white-space:\s*nowrap;/s,
+  );
+});
+
+test("tmux panes hide prompt navigation and Quick Select sits before Copy Selection", () => {
+  assert.match(
+    workspaceSource,
+    /\{!pane\.tmuxSessionId \? \([\s\S]*?terminal\.previousPrompt[\s\S]*?terminal\.nextPrompt[\s\S]*?\) : null\}/,
+  );
+  assert.match(
+    workspaceSource,
+    /aria-label=\{t\("terminal\.quickSelect"\)\}[\s\S]*?<Scan size=\{13\} \/>[\s\S]*?aria-label=\{t\("terminal\.copySelection"\)\}/,
+  );
+  assert.doesNotMatch(
+    workspaceSource,
+    /setActionsMenuOpen\(false\);\s*startQuickSelect\(\);/,
+  );
+});

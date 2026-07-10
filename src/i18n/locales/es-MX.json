@@ -3047,7 +3047,9 @@
     "quickSelectNoMatches": "No hay texto copiable visible en la pantalla.",
     "quickSelectCopied": "{{text}} copiado",
     "previousPrompt": "Prompt anterior",
+    "previousPromptShortcut": "Ctrl+Shift+↑",
     "nextPrompt": "Prompt siguiente",
+    "nextPromptShortcut": "Ctrl+Shift+↓",
     "copyLastCommandOutput": "Copiar la salida del último comando",
     "notification": "Notificación de {{name}}: {{message}}",
     "notificationWithTitle": "Notificación de {{name}}: {{title}} — {{message}}"

@@ -23,7 +23,7 @@ import { forgetTmuxSessionId, useWorkspaceStore } from "../../../../store";
 import { GitIcon } from "../../../git/GitIcon";
 import { useGitRepoDetection } from "../../../git/useGitRepoDetection";
 import { createTerminalRenderer, logTerminalFontAtlasState, scheduleTerminalFontAtlasRefresh, type TerminalDimensions, type TerminalRenderer } from "./renderer";
-import { TERMINAL_COLOR_SCHEMES } from "./colorSchemes";
+import { resolveTerminalColorScheme, TERMINAL_COLOR_SCHEMES } from "./colorSchemes";
 import { findQuickSelectMatches, labelQuickSelectMatches, type LabeledQuickSelectMatch } from "./quickSelect";
 import { ensureLayout } from "../../layout";
 import {
@@ -1729,6 +1729,7 @@ function TerminalPaneView({
   // Per-Connection color scheme override wins over the global Terminal
   // Settings default; both live-apply to the open renderer below.
   const terminalColorScheme = pane.connection?.terminalColorScheme ?? terminalSettings.colorScheme;
+  const globalTerminalColorScheme = resolveTerminalColorScheme(terminalSettings.colorScheme);
   const committedTerminalColorSchemeRef = useRef(terminalColorScheme);
 
   useEffect(() => {
@@ -2973,6 +2974,16 @@ function TerminalPaneView({
           </button>
           <button
             className="terminal-pane-action"
+            aria-label={t("terminal.quickSelect")}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={startQuickSelect}
+            title={t("terminal.quickSelect")}
+            type="button"
+          >
+            <Scan size={13} />
+          </button>
+          <button
+            className="terminal-pane-action"
             aria-label={t("terminal.copySelection")}
             data-tutorial-id="terminal.copySelection"
             disabled={!selectedTerminalText}
@@ -3035,7 +3046,7 @@ function TerminalPaneView({
                   </button>
                   <div className="terminal-menu terminal-menu-submenu-panel" role="menu">
                     <button
-                      className="terminal-menu-item"
+                      className="terminal-menu-item terminal-color-scheme-item"
                       disabled={!canSplit}
                       onClick={() => handleSplit("right")}
                       role="menuitem"
@@ -3085,44 +3096,38 @@ function TerminalPaneView({
                   <Search size={13} />
                   {t("terminal.findInScrollback")}
                 </button>
-                <button
-                  className="terminal-menu-item"
-                  onClick={() => {
-                    setActionsMenuOpen(false);
-                    startQuickSelect();
-                  }}
-                  role="menuitem"
-                  type="button"
-                >
-                  <Scan size={13} />
-                  {t("terminal.quickSelect")}
-                </button>
-                <button
-                  className="terminal-menu-item"
-                  onClick={() => {
-                    setActionsMenuOpen(false);
-                    terminalRendererRef.current?.scrollToPreviousPrompt();
-                    focusTerminalRenderer();
-                  }}
-                  role="menuitem"
-                  type="button"
-                >
-                  <ArrowUp size={13} />
-                  {t("terminal.previousPrompt")}
-                </button>
-                <button
-                  className="terminal-menu-item"
-                  onClick={() => {
-                    setActionsMenuOpen(false);
-                    terminalRendererRef.current?.scrollToNextPrompt();
-                    focusTerminalRenderer();
-                  }}
-                  role="menuitem"
-                  type="button"
-                >
-                  <ArrowDown size={13} />
-                  {t("terminal.nextPrompt")}
-                </button>
+                {!pane.tmuxSessionId ? (
+                  <>
+                    <button
+                      className="terminal-menu-item"
+                      onClick={() => {
+                        setActionsMenuOpen(false);
+                        terminalRendererRef.current?.scrollToPreviousPrompt();
+                        focusTerminalRenderer();
+                      }}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <ArrowUp size={13} />
+                      {t("terminal.previousPrompt")}
+                      <kbd className="terminal-menu-shortcut">{t("terminal.previousPromptShortcut")}</kbd>
+                    </button>
+                    <button
+                      className="terminal-menu-item"
+                      onClick={() => {
+                        setActionsMenuOpen(false);
+                        terminalRendererRef.current?.scrollToNextPrompt();
+                        focusTerminalRenderer();
+                      }}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <ArrowDown size={13} />
+                      {t("terminal.nextPrompt")}
+                      <kbd className="terminal-menu-shortcut">{t("terminal.nextPromptShortcut")}</kbd>
+                    </button>
+                  </>
+                ) : null}
                 <button
                   className="terminal-menu-item"
                   onClick={handleSaveBuffer}
@@ -3210,6 +3215,10 @@ function TerminalPaneView({
                       onMouseEnter={() => previewTerminalColorScheme(null)}
                       role="menuitemradio"
                       aria-checked={!pane.connection?.terminalColorScheme}
+                      style={{
+                        backgroundColor: globalTerminalColorScheme.palette.background,
+                        color: globalTerminalColorScheme.palette.foreground,
+                      }}
                       type="button"
                     >
                       <Monitor size={13} />
@@ -3220,7 +3229,7 @@ function TerminalPaneView({
                     </button>
                     {TERMINAL_COLOR_SCHEMES.map((scheme) => (
                       <button
-                        className="terminal-menu-item"
+                        className="terminal-menu-item terminal-color-scheme-item"
                         key={scheme.id}
                         onClick={() => {
                           setActionsMenuOpen(false);
@@ -3230,18 +3239,13 @@ function TerminalPaneView({
                         onMouseEnter={() => previewTerminalColorScheme(scheme.id)}
                         role="menuitemradio"
                         aria-checked={pane.connection?.terminalColorScheme === scheme.id}
+                        style={{
+                          backgroundColor: scheme.palette.background,
+                          color: scheme.palette.foreground,
+                        }}
                         type="button"
                       >
-                        <span
-                          aria-hidden
-                          className="terminal-color-scheme-swatch"
-                          style={{
-                            backgroundColor: scheme.palette.background,
-                            color: scheme.palette.foreground,
-                          }}
-                        >
-                          a
-                        </span>
+                        <Palette aria-hidden size={13} />
                         {scheme.name}
                         {pane.connection?.terminalColorScheme === scheme.id ? (
                           <Check size={13} className="terminal-color-scheme-check" />

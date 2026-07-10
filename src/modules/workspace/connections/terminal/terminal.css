@@ -1876,23 +1876,27 @@
   white-space: nowrap;
 }
 
-.terminal-color-scheme-swatch {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  border: 1px solid var(--border);
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1;
+.terminal-color-scheme-item:hover:not(:disabled),
+.terminal-color-scheme-item:focus-visible {
+  filter: brightness(1.14);
+  box-shadow: inset 0 0 0 2px currentColor;
+  outline: none;
 }
 
 .terminal-color-scheme-check {
   margin-left: auto;
-  color: var(--accent);
+  color: inherit;
+}
+
+.terminal-menu-shortcut {
+  margin-left: auto;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 /* OSC 133 exit-status gutter mark on failed commands. */
