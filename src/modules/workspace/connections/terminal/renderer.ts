@@ -27,6 +27,7 @@ import {
 import {
   buildHyperlinkRuleUrl,
   decodeOsc777Notification,
+  findPromptNavigationTarget,
   parseOsc133Sequence,
   type TerminalNotification,
 } from "./oscSequences";
@@ -190,6 +191,8 @@ class XtermTerminalRenderer implements TerminalRenderer, TerminalFontAtlasRefres
   private lastOutputStartMarker: IMarker | null = null;
   private lastOutputEndMarker: IMarker | null = null;
   private runningOutputStartMarker: IMarker | null = null;
+  private promptNavigationLine: number | null = null;
+  private promptNavigationScrollInProgress = false;
 
   constructor(settings: TerminalSettings, backgroundOpacity: number) {
     this.backgroundOpacity = backgroundOpacity;
@@ -221,26 +224,27 @@ class XtermTerminalRenderer implements TerminalRenderer, TerminalFontAtlasRefres
       this.terminal.parser.registerOscHandler(133, (data) =>
         this.handleOsc133Sequence(data),
       ),
+      this.terminal.parser.registerOscHandler(9, (data) => {
+        // OSC 9;4;… is the ConEmu/Windows Terminal progress protocol, not a
+        // notification — shells emit it constantly, so it must not notify.
+        if (data && !data.startsWith("4;")) {
+          this.emitNotification({ title: null, body: data });
+        }
+        return true;
+      }),
+      this.terminal.parser.registerOscHandler(777, (data) => {
+        const notification = decodeOsc777Notification(data);
+        if (notification) {
+          this.emitNotification(notification);
+        }
+        return true;
+      }),
     );
-    if (settings.allowTerminalNotifications) {
-      this.oscSequenceDisposables.push(
-        this.terminal.parser.registerOscHandler(9, (data) => {
-          // OSC 9;4;… is the ConEmu/Windows Terminal progress protocol, not a
-          // notification — shells emit it constantly, so it must not notify.
-          if (data && !data.startsWith("4;")) {
-            this.emitNotification({ title: null, body: data });
-          }
-          return true;
-        }),
-        this.terminal.parser.registerOscHandler(777, (data) => {
-          const notification = decodeOsc777Notification(data);
-          if (notification) {
-            this.emitNotification(notification);
-          }
-          return true;
-        }),
-      );
-    }
+    this.terminal.onScroll(() => {
+      if (!this.promptNavigationScrollInProgress) {
+        this.promptNavigationLine = null;
+      }
+    });
     if (settings.allowOsc52Clipboard) {
       this.osc52Disposable = this.terminal.parser.registerOscHandler(52, (data) =>
         handleOsc52ClipboardSequence(data),
@@ -348,26 +352,24 @@ class XtermTerminalRenderer implements TerminalRenderer, TerminalFontAtlasRefres
   }
 
   scrollToPreviousPrompt() {
-    const viewportY = this.terminal.buffer.active.viewportY;
     const lines = this.livePromptLines();
-    for (let index = lines.length - 1; index >= 0; index -= 1) {
-      if (lines[index] < viewportY) {
-        this.terminal.scrollToLine(lines[index]);
-        return true;
-      }
+    const buffer = this.terminal.buffer.active;
+    const anchor = this.promptNavigationLine ?? buffer.baseY + buffer.cursorY + 1;
+    const target = findPromptNavigationTarget(lines, anchor, "previous");
+    if (target === null) {
+      return false;
     }
-    return false;
+    return this.scrollToPromptLine(target);
   }
 
   scrollToNextPrompt() {
-    const viewportY = this.terminal.buffer.active.viewportY;
-    for (const line of this.livePromptLines()) {
-      if (line > viewportY) {
-        this.terminal.scrollToLine(line);
-        return true;
-      }
+    const buffer = this.terminal.buffer.active;
+    const anchor = this.promptNavigationLine ?? buffer.viewportY;
+    const target = findPromptNavigationTarget(this.livePromptLines(), anchor, "next");
+    if (target === null) {
+      return false;
     }
-    return false;
+    return this.scrollToPromptLine(target);
   }
 
   getLastCommandOutput() {
@@ -443,12 +445,24 @@ class XtermTerminalRenderer implements TerminalRenderer, TerminalFontAtlasRefres
     return this.promptMarkers.map((marker) => marker.line).sort((a, b) => a - b);
   }
 
+  private scrollToPromptLine(line: number) {
+    this.promptNavigationLine = line;
+    this.promptNavigationScrollInProgress = true;
+    try {
+      this.terminal.scrollToLine(line);
+    } finally {
+      this.promptNavigationScrollInProgress = false;
+    }
+    return true;
+  }
+
   private handleOsc133Sequence(data: string) {
     const sequence = parseOsc133Sequence(data);
     if (!sequence) {
       return true;
     }
     if (sequence.kind === "A") {
+      this.promptNavigationLine = null;
       const marker = this.terminal.registerMarker(0);
       if (marker) {
         this.promptMarkers.push(marker);
