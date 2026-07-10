@@ -246,6 +246,7 @@ export type RackItemKind =
   | "switch"
   | "pdu"
   | "patchPanel"
+  // Legacy persisted kinds: retained only so older Site data still loads.
   | "blank"
   | "label"
   | "server"
@@ -261,6 +262,7 @@ export type RackItemKind =
 export type RackItemStatus = "online" | "warning" | "offline";
 
 export type RackServerFormFactor = "rack" | "tower";
+export type RackServerPanelStyle = "default" | "style1" | "style2";
 
 export type RackPortSpeed = "gigabit" | "10g" | "25g" | "40g" | "100g" | "custom";
 
@@ -321,6 +323,8 @@ export interface RackItemMetadata {
   vendor?: string | null;
   /** Server chassis presentation. Tower servers render at half rack width. */
   formFactor?: RackServerFormFactor | null;
+  /** Server front-panel artwork; independent of shell finish and form factor. */
+  serverPanelStyle?: RackServerPanelStyle | null;
 }
 
 // Skeuomorphic shell finish for a rack cabinet or a device faceplate. White and

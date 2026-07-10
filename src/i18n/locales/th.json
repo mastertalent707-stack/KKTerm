@@ -1226,6 +1226,12 @@
         "rack": "แร็ค",
         "tower": "ทาวเวอร์"
       },
+      "serverPanelStyleLabel": "รูปแบบแผงด้านหน้า",
+      "serverPanelStyle": {
+        "default": "ค่าเริ่มต้น",
+        "style1": "รูปแบบ 1",
+        "style2": "รูปแบบ 2"
+      },
       "vendorLabel": "รุ่น",
       "vendorHint": "ใช้ Dell 740XD, HP DL380 หรือรุ่นแชสซีอื่นสำหรับตัวอย่างแบบกราฟิก",
       "expiryLabel": "วันหมดอายุ",

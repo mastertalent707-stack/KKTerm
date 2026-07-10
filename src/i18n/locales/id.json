@@ -1226,6 +1226,12 @@
         "rack": "Rak",
         "tower": "Tower"
       },
+      "serverPanelStyleLabel": "Gaya panel depan",
+      "serverPanelStyle": {
+        "default": "Default",
+        "style1": "Gaya 1",
+        "style2": "Gaya 2"
+      },
       "vendorLabel": "Model",
       "vendorHint": "Gunakan Dell 740XD, HP DL380, atau model sasis lain untuk pratinjau grafis.",
       "expiryLabel": "Kedaluwarsa",

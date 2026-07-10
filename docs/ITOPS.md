@@ -86,7 +86,9 @@ rendering and properties; it is not a Connection type.
 **Rack Device Properties** — non-secret presentation metadata for a Rack
 Device. Never store credentials or live Session state here.
 Server Rack Devices may use a rack or tower form factor; tower is a half-width
-faceplate presentation and does not change vertical U occupancy.
+faceplate presentation and does not change vertical U occupancy. A Server may
+also select Default, Style 1, or Style 2 front-panel artwork independently of
+its form factor and shell finish.
 
 **Host** — a durable inventory entry for one device or guest in a Site,
 addressed by hostname and stored in `itops_hosts`. The device itself can be a
@@ -572,7 +574,7 @@ run-history soft reference is `site_id`, and commands/i18n use the Site term.
 The Site topology layer adds per-Site **Server Rooms**, **Racks**, and **Rack
 Devices**. Racks are drawn as full 42U rack elevations and may hold placed
 Connections (click to open ssh/rdp/vnc/etc.) or passive items (switch, PDU,
-patch panel, blank, label). Scoped Batch Runs use Server Room / Rack scope. See
+patch panel). Scoped Batch Runs use Server Room / Rack scope. See
 `docs/SITE.md` for the detailed data model and product terminology.
 
 The following are noted for later consideration (not yet planned in detail):

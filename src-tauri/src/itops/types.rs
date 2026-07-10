@@ -373,6 +373,7 @@ pub enum RackItemKind {
     Switch,
     Pdu,
     PatchPanel,
+    // Legacy persisted kinds: no longer offered by Rack Device pickers.
     Blank,
     Label,
     Server,
@@ -613,6 +614,9 @@ pub struct RackItemMetadata {
     /// Server chassis presentation ("rack" | "tower").
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub form_factor: Option<String>,
+    /// Server front-panel artwork ("default" | "style1" | "style2").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_panel_style: Option<String>,
 }
 
 /// One device occupying a contiguous `start_u..start_u + height_u` span in a

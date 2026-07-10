@@ -14,6 +14,7 @@ import type {
   RackItemKind,
   RackItemStatus,
   RackServerFormFactor,
+  RackServerPanelStyle,
   RackShell,
 } from "../../types";
 import { KuaiKuaiBag, type KuaiKuaiStyle } from "./KuaiKuaiBag";
@@ -34,6 +35,7 @@ export interface RackDeviceProps {
   kuaiguaiSize?: "small" | "regular" | "large" | null;
   kuaiguaiStyle?: KuaiKuaiStyle | null;
   formFactor?: RackServerFormFactor | null;
+  serverPanelStyle?: RackServerPanelStyle | null;
   /** Dense object-picker rendering that leaves more room for the faceplate name. */
   compact?: boolean;
   heightU: number;
@@ -110,6 +112,7 @@ export function RackDevice({
   kuaiguaiSize,
   kuaiguaiStyle,
   formFactor,
+  serverPanelStyle,
   compact = false,
   heightU,
   accent,
@@ -134,6 +137,7 @@ export function RackDevice({
   const isPdu = kind === "pdu";
   const isUps = kind === "ups";
   const isKvm = kind === "kvm";
+  const panelStyle = kind === "server" ? serverPanelStyle ?? "default" : "default";
 
   if (isKuaiguai) {
     return (
@@ -153,10 +157,7 @@ export function RackDevice({
 
   const statusLed = STATUS_LED[status];
   const statusGlow = STATUS_GLOW[status];
-  const powerColor = offline ? "#5a2422" : "var(--green)";
-  const powerGlow = offline ? "transparent" : "rgba(50,215,75,.55)";
   const ledStatusClass = status === "warning" ? "led-warn" : offline ? "" : "led-ok";
-  const ledPowerClass = offline ? "" : "led-ok";
 
   let portCap = isPanel || isSwitch ? 24 : 8;
   if (compact) portCap = isSwitch ? 6 : 4;
@@ -214,7 +215,6 @@ export function RackDevice({
 
   const hasName = !!label && !isBlankPlate;
   const showLeds = !isBlank && !isPanel && !isKuaiguai;
-  const showMeta = !isBlank && !isKuaiguai;
 
   return (
     <div
@@ -222,6 +222,7 @@ export function RackDevice({
       data-shell={shell ?? undefined}
       data-compact={compact || undefined}
       data-form-factor={isServer ? formFactor ?? "rack" : undefined}
+      data-server-panel-style={kind === "server" ? panelStyle : undefined}
       data-kuaiguai-size={isKuaiguai ? kuaiguaiSize ?? "regular" : undefined}
       style={{
         ["--rkd-accent" as string]: devAccent,
@@ -238,11 +239,6 @@ export function RackDevice({
       <div className="rkd-body">
         {showLeds ? (
           <div className="rkd-leds">
-            <span
-              className={ledPowerClass}
-              title="power"
-              style={{ background: powerColor, boxShadow: `0 0 6px ${powerGlow}` }}
-            />
             <span
               className={ledStatusClass}
               title="status"
@@ -323,19 +319,63 @@ export function RackDevice({
 
           {/* SERVER / CONNECTION */}
           {isServer ? (
-            <div className="rkd-server">
-              <div className="rkd-disks-row">
-                {diskList.map((disk, i) => (
-                  <span className="rkd-disk-bay" key={i}>
-                    <span className={`rkd-disk-led ${disk.blk}`} style={{ background: disk.color }} />
-                  </span>
-                ))}
-              </div>
-              <div className="rkd-vent" />
-              <div className="rkd-fans">
-                <span className="fan rkd-fan" />
-                <span className="fan rkd-fan alt" />
-              </div>
+            <div className="rkd-server" data-panel-style={panelStyle}>
+              {panelStyle === "style1" ? (
+                <div className="rkd-server-style1" aria-hidden="true">
+                  <span className="rkd-server-style1-control" />
+                  <div className="rkd-server-style1-bays">
+                    {Array.from({ length: Math.max(8, Math.min(12, diskList.length)) }, (_, i) => (
+                      <span className="rkd-server-style1-bay" key={i}>
+                        <i className={i % 3 === 0 ? `blk-${(i % 5) + 1}` : undefined} />
+                      </span>
+                    ))}
+                  </div>
+                  <svg className="rkd-server-style1-lattice" viewBox="0 0 180 40" preserveAspectRatio="none">
+                    <g fill="none" stroke="currentColor" strokeWidth="4">
+                      <path d="M-8 20 2 2h22l10 18-10 18H2Z" />
+                      <path d="M32 20 42 2h22l10 18-10 18H42Z" />
+                      <path d="M72 20 82 2h22l10 18-10 18H82Z" />
+                      <path d="M112 20 122 2h22l10 18-10 18h-22Z" />
+                      <path d="M152 20 162 2h22l10 18-10 18h-22Z" />
+                    </g>
+                    <text x="90" y="25" textAnchor="middle">DELL</text>
+                  </svg>
+                  <span className="rkd-server-style1-io"><i /><i /><i /></span>
+                </div>
+              ) : panelStyle === "style2" ? (
+                <div className="rkd-server-style2" aria-hidden="true">
+                  <span className="rkd-server-style2-bezel left" />
+                  <div className="rkd-server-style2-core">
+                    <div className="rkd-server-style2-bays top">
+                      {Array.from({ length: 12 }, (_, i) => <i key={i} />)}
+                    </div>
+                    <span className="rkd-server-style2-rail upper" />
+                    <span className="rkd-server-style2-badge" />
+                    <span className="rkd-server-style2-rail lower" />
+                    <div className="rkd-server-style2-bays bottom">
+                      {Array.from({ length: Math.max(8, Math.min(12, diskList.length)) }, (_, i) => (
+                        <i key={i} />
+                      ))}
+                    </div>
+                  </div>
+                  <span className="rkd-server-style2-bezel right"><i /><i /><i /></span>
+                </div>
+              ) : (
+                <>
+                  <div className="rkd-disks-row">
+                    {diskList.map((disk, i) => (
+                      <span className="rkd-disk-bay" key={i}>
+                        <span className={`rkd-disk-led ${disk.blk}`} style={{ background: disk.color }} />
+                      </span>
+                    ))}
+                  </div>
+                  <div className="rkd-vent" />
+                  <div className="rkd-fans">
+                    <span className="fan rkd-fan" />
+                    <span className="fan rkd-fan alt" />
+                  </div>
+                </>
+              )}
             </div>
           ) : null}
 
@@ -437,12 +477,6 @@ export function RackDevice({
             </div>
           ) : null}
         </div>
-
-        {showMeta ? (
-          <div className="rkd-meta">
-            <span className="rkd-status-dot" style={{ background: statusLed }} title={status} />
-          </div>
-        ) : null}
       </div>
     </div>
   );

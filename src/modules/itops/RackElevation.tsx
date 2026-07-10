@@ -312,6 +312,7 @@ export function RackElevation({
                   kuaiguaiSize={item.metadata?.kuaiguaiSize ?? null}
                   kuaiguaiStyle={item.metadata?.kuaiguaiStyle ?? null}
                   formFactor={item.metadata?.formFactor ?? null}
+                  serverPanelStyle={item.metadata?.serverPanelStyle ?? null}
                   heightU={item.heightU}
                   seed={item.id}
                 />
@@ -345,6 +346,7 @@ export function RackElevation({
                 kuaiguaiSize={placeSpec.metadata?.kuaiguaiSize ?? null}
                 kuaiguaiStyle={placeSpec.metadata?.kuaiguaiStyle ?? null}
                 formFactor={placeSpec.metadata?.formFactor ?? null}
+                serverPanelStyle={placeSpec.metadata?.serverPanelStyle ?? null}
                 heightU={placeSpec.heightU}
                 seed="place-top-ghost"
               />
@@ -455,6 +457,7 @@ export function RackElevation({
                   kuaiguaiSize={item.metadata?.kuaiguaiSize ?? null}
                   kuaiguaiStyle={item.metadata?.kuaiguaiStyle ?? null}
                   formFactor={item.metadata?.formFactor ?? null}
+                  serverPanelStyle={item.metadata?.serverPanelStyle ?? null}
                   heightU={item.heightU}
                   accent={item.metadata?.accent ?? null}
                   shell={item.metadata?.shell ?? null}
@@ -560,6 +563,7 @@ export function RackElevation({
                   kuaiguaiSize={placeSpec.metadata?.kuaiguaiSize ?? null}
                   kuaiguaiStyle={placeSpec.metadata?.kuaiguaiStyle ?? null}
                   formFactor={placeSpec.metadata?.formFactor ?? null}
+                  serverPanelStyle={placeSpec.metadata?.serverPanelStyle ?? null}
                   heightU={Math.min(placeSpec.heightU, rack.heightU)}
                   accent={placeSpec.metadata?.accent ?? null}
                   shell={placeSpec.metadata?.shell ?? null}
@@ -632,6 +636,7 @@ export function RackElevation({
                 kuaiguaiSize={placeSpec.metadata?.kuaiguaiSize ?? null}
                 kuaiguaiStyle={placeSpec.metadata?.kuaiguaiStyle ?? null}
                 formFactor={placeSpec.metadata?.formFactor ?? null}
+                serverPanelStyle={placeSpec.metadata?.serverPanelStyle ?? null}
                 heightU={placeSpec.heightU}
                 accent={placeSpec.metadata?.accent ?? null}
                 shell={placeSpec.metadata?.shell ?? null}

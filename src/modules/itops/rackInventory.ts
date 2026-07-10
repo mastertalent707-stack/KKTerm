@@ -4,6 +4,7 @@ import type {
   RackNetworkPort,
   RackPortSpeed,
   RackServerFormFactor,
+  RackServerPanelStyle,
   RackSnmpHint,
 } from "../../types";
 
@@ -32,6 +33,12 @@ function normalizeFormFactor(
   value: RackItemMetadata["formFactor"],
 ): RackServerFormFactor | null {
   return value === "tower" ? "tower" : value === "rack" ? "rack" : null;
+}
+
+function normalizeServerPanelStyle(
+  value: RackItemMetadata["serverPanelStyle"],
+): RackServerPanelStyle | null {
+  return value === "style1" || value === "style2" || value === "default" ? value : null;
 }
 
 export function normalizeConnectionIds(value: RackItemMetadata["connectionIds"]): string[] | null {
@@ -97,6 +104,7 @@ export function normalizeRackItemMetadata(metadata: RackItemMetadata): Normalize
     snmp: normalizeSnmpHint(metadata.snmp),
     vendor: normalizeVendor(metadata.vendor),
     formFactor: normalizeFormFactor(metadata.formFactor),
+    serverPanelStyle: normalizeServerPanelStyle(metadata.serverPanelStyle),
   };
 }
 
