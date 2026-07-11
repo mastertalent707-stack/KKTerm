@@ -1,16 +1,17 @@
-// Hosts segment (docs/ITOPS.md Hosts) — one Site's Host inventory. A flat
+// Hosts page (docs/ITOPS.md Hosts) — one Site's Host inventory. A flat
 // toolbar plus the parent/child Host tree: each row shows the Host's kind,
 // name, detected remote-access chips from the last connectivity scan, bound
 // Connection count, and per-row actions (rescan, add child, bindings, edit,
 // delete). Import accepts a pasted hostname list and auto-scans the new rows.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { ConfirmSheet } from "../../app/ui/dialog";
-import { isTauriRuntime } from "../../lib/tauri";
+import { invokeCommand, isTauriRuntime } from "../../lib/tauri";
 import { useWorkspaceStore } from "../../store";
-import type { HostScanEvent, SiteHost } from "../../types";
+import type { Connection, HostScanEvent, SiteHost } from "../../types";
+import { flattenConnections } from "../workspace/connections/treeUtils";
 import { ItIcon, type ItIconName } from "./icons";
 import { HostDialog } from "./HostDialog";
 import { HostImportDialog } from "./HostImportDialog";
@@ -69,7 +70,7 @@ export function HostsPanel({ siteId }: { siteId: string }) {
   const scanHosts = useItOpsStore((state) => state.scanHosts);
   const deleteHost = useItOpsStore((state) => state.deleteHost);
   const applyHostScanEvent = useItOpsStore((state) => state.applyHostScanEvent);
-  const hostImportRequest = useItOpsStore((state) => state.hostImportRequest);
+  const requestNewBatchRun = useItOpsStore((state) => state.requestNewBatchRun);
 
   const [importOpen, setImportOpen] = useState(false);
   const [editorHost, setEditorHost] = useState<SiteHost | null>(null);
@@ -77,10 +78,39 @@ export function HostsPanel({ siteId }: { siteId: string }) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [bindingsHost, setBindingsHost] = useState<SiteHost | null>(null);
   const [pendingDelete, setPendingDelete] = useState<SiteHost | null>(null);
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [selectedHostIds, setSelectedHostIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     void loadHosts(siteId).catch(() => undefined);
   }, [siteId, loadHosts]);
+
+  useEffect(() => {
+    if (!isTauriRuntime()) return;
+    void invokeCommand("list_connection_tree")
+      .then((tree) => setConnections(flattenConnections(tree)))
+      .catch(() => setConnections([]));
+  }, []);
+
+  const runnableHostIds = useMemo(() => {
+    const sshConnectionIds = new Set(
+      connections
+        .filter((connection) => connection.type === "ssh")
+        .map((connection) => connection.id),
+    );
+    return new Set(
+      (hosts ?? [])
+        .filter((host) => host.connectionIds.some((id) => sshConnectionIds.has(id)))
+        .map((host) => host.id),
+    );
+  }, [connections, hosts]);
+
+  useEffect(() => {
+    setSelectedHostIds((current) => {
+      const next = new Set([...current].filter((id) => runnableHostIds.has(id)));
+      return next.size === current.size && [...next].every((id) => current.has(id)) ? current : next;
+    });
+  }, [runnableHostIds]);
 
   // Stream per-host scan results into the store so chips update as they land.
   useEffect(() => {
@@ -92,15 +122,6 @@ export function HostsPanel({ siteId }: { siteId: string }) {
       void unlisten.then((dispose) => dispose());
     };
   }, [applyHostScanEvent]);
-
-  // The drill toolbar's "+" on the Hosts segment requests the import dialog.
-  const seenImportRequest = useRef(hostImportRequest);
-  useEffect(() => {
-    if (hostImportRequest !== seenImportRequest.current) {
-      seenImportRequest.current = hostImportRequest;
-      setImportOpen(true);
-    }
-  }, [hostImportRequest]);
 
   function notifyError(error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -134,9 +155,52 @@ export function HostsPanel({ siteId }: { siteId: string }) {
 
   const rows = buildHostTreeRows(hosts ?? []);
 
+  function toggleSelected(id: string) {
+    if (!runnableHostIds.has(id)) return;
+    setSelectedHostIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllRunnable() {
+    setSelectedHostIds((current) =>
+      current.size === runnableHostIds.size ? new Set() : new Set(runnableHostIds),
+    );
+  }
+
   return (
-    <div className="card it-hosts">
+    <div className="it-hosts it-destination-surface">
+      <div className="it-destination-page-head">
+        <div>
+          <h2>{t("itops.tabs.hosts")}</h2>
+          <p>{t("itops.hosts.pageDescription")}</p>
+        </div>
+        <span className="it-hosts-selection-count">
+          {t("itops.hosts.selectedCount", { count: selectedHostIds.size })}
+        </span>
+        <button
+          type="button"
+          className="it-btn primary"
+          disabled={selectedHostIds.size === 0}
+          onClick={() => requestNewBatchRun(siteId, { hostIds: [...selectedHostIds] })}
+        >
+          <ItIcon name="run" size={14} />
+          {t("itops.actions.runTask")}
+        </button>
+      </div>
       <div className="it-hosts-toolbar">
+        <label className="it-host-select-all">
+          <input
+            type="checkbox"
+            checked={runnableHostIds.size > 0 && selectedHostIds.size === runnableHostIds.size}
+            disabled={runnableHostIds.size === 0}
+            onChange={toggleAllRunnable}
+          />
+          {t("itops.hosts.selectAll")}
+        </label>
         <span className="it-hosts-count">
           {t("itops.hosts.hostCount", { count: hosts?.length ?? 0 })}
         </span>
@@ -169,6 +233,15 @@ export function HostsPanel({ siteId }: { siteId: string }) {
                 aria-level={depth + 1}
                 style={{ paddingLeft: 10 + depth * 22 }}
               >
+                <input
+                  type="checkbox"
+                  className="it-host-select"
+                  checked={selectedHostIds.has(host.id)}
+                  disabled={!runnableHostIds.has(host.id)}
+                  title={!runnableHostIds.has(host.id) ? t("itops.hosts.noRunnableConnection") : undefined}
+                  aria-label={t("itops.hosts.selectHost", { name: hostDisplayName(host) })}
+                  onChange={() => toggleSelected(host.id)}
+                />
                 <span className={`it-host-kind ${host.kind}`} title={t(`itops.hosts.kind.${host.kind}`)}>
                   <ItIcon name={KIND_ICON[host.kind]} size={14} />
                 </span>

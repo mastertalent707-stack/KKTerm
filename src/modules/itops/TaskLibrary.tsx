@@ -70,13 +70,12 @@ function taskKind(task: ItopsTask): "script" | "playbook" {
   return task.task.kind;
 }
 
-export function TaskLibrary({ defaultSiteId }: { defaultSiteId?: string | null }) {
+export function TaskLibrary() {
   const { t } = useTranslation();
   const tasks = useItOpsStore((state) => state.tasks);
   const loaded = useItOpsStore((state) => state.tasksLoaded);
   const loadTasks = useItOpsStore((state) => state.loadTasks);
   const removeTask = useItOpsStore((state) => state.removeTask);
-  const requestNewBatchRun = useItOpsStore((state) => state.requestNewBatchRun);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -140,7 +139,6 @@ export function TaskLibrary({ defaultSiteId }: { defaultSiteId?: string | null }
               <span className="it-task-spacer" />
               <button type="button" className="it-btn" onClick={() => setEditor(selected)}><ItIcon name="edit" size={14} />{t("itops.actions.edit")}</button>
               <button type="button" className="it-btn" onClick={() => setPendingDelete(selected)}><ItIcon name="trash" size={14} />{t("itops.actions.delete")}</button>
-              <button type="button" className="it-btn primary" onClick={() => requestNewBatchRun(defaultSiteId ?? undefined, undefined, selected.task)}><ItIcon name="run" size={14} />{t("itops.actions.runTask")}</button>
             </header>
             <section className="it-task-definition">
               <div className="it-section-label">{t("itops.tasks.definitionHeading")}</div>

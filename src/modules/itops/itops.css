@@ -6519,13 +6519,42 @@
   box-shadow: 0 0 5px var(--green);
 }
 
-/* ── Hosts segment (docs/ITOPS.md Hosts) ─────────────────────────────────── */
+/* ── Hosts page (docs/ITOPS.md Hosts) ────────────────────────────────────── */
 .itops-page .it-hosts {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 0 14px 14px;
+  margin: 0;
+  padding: var(--pad);
 }
+
+.itops-page .it-destination-page {
+  overflow: auto;
+  background: var(--chrome-strong);
+}
+
+.itops-page .it-destination-surface {
+  min-height: 100%;
+}
+
+.itops-page .it-destination-page-head {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.itops-page .it-destination-page-head > div { min-width: 0; flex: 1; }
+.itops-page .it-destination-page-head h2 { margin: 0; color: var(--text); font-size: 16px; }
+.itops-page .it-destination-page-head p { margin: 3px 0 0; color: var(--text-muted); font-size: 11px; }
+.itops-page .it-hosts-selection-count { color: var(--text-muted); font-size: 11px; font-weight: 600; }
+.itops-page .it-host-select-all { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 11px; }
+.itops-page .it-host-select,
+.itops-page .it-host-select-all input { accent-color: var(--accent); }
+.itops-page .it-host-select:disabled { opacity: 0.35; }
 
 /* Global Task Library: reusable definitions stay outside Site ownership. */
 .itops-page .ft-tree-library-label {

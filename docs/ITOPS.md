@@ -113,8 +113,11 @@ bounded-concurrency TCP probes for SSH (22), WinRM (5985/5986), and HTTPS
 live Session state and never a secret, and per-host results stream on the
 `itops://host-scan` event channel. A Rack Device may reference a Host through
 `metadata.hostId` so the Rack View balloon callout lists the Host and its
-child Hosts. Storage lives in `src-tauri/src/itops/host_storage.rs`; the panel
-UI is Site View's Hosts segment (`src/modules/itops/HostsPanel.tsx`).
+child Hosts. Storage lives in `src-tauri/src/itops/host_storage.rs`; the
+Site-owned Hosts page is implemented by `src/modules/itops/HostsPanel.tsx`.
+That page owns manual execution targeting: the operator selects Hosts with SSH
+Connection bindings, chooses a reusable Task or ad-hoc Batch Task, and starts a
+Batch Run scoped to exactly those Host ids.
 _Avoid_: node, agent, connection host field
 
 **Transport** — how a Batch Run reaches one host. Per host (derived from
@@ -207,7 +210,7 @@ Three SQLite tables (new schema version):
   condition, ordered actions, poll/stop/suppression settings (the durable
   superset of `WatchdogConfig`), plus an optional Site binding (`site_id`,
   a soft reference like `itops_run_history`'s) that scopes the rule to one
-  Site's Automations segment.
+  Site's Automations page.
 - `itops_run_history` — id, source (manual run or automation id), task
   summary, started/finished, per-host outcome summary, consolidated
   report blob. Local-first; no telemetry.
@@ -263,16 +266,22 @@ to drill down Server Room → Rack beneath Server Rooms. These destinations are
 navigation state, not durable database entities or copied containers.
 
 The global **Task Library** is a sibling of Sites rather than a child of every
-Site. Opening a Task shows its definition and launches the existing Batch Run
-dialog with that Task prefilled and the active Site preselected. Starting from
-another Site-owned surface preselects that Site; starting without an active Site
-requires choosing targets. This prevents duplicated per-Site scripts and makes
-the execution model visible in the information architecture.
+Site. Opening a Task shows and manages its definition. Manual execution starts
+only from selected Hosts; the Host-scoped launcher offers reusable definitions
+from the Task Library alongside an ad-hoc option. This prevents duplicated
+per-Site scripts and keeps target selection explicit.
 
-The former Site View segments remain available as a transition path while the
-tree destinations settle, but resolve to the same Site-scoped surfaces. Run
-History shows the selected Site's live run and completed reports; “Batch Runs”
-is the execution concept, not the name of a durable container. Automations are
+Site View is now overview-only and has no segmented content switcher. Hosts,
+Automations, and Run History each own a separate Site-scoped page selected from
+the navigator. The Hosts page owns Host selection and the manual **Run Task**
+action; its launcher accepts a reusable Task from the global Task Library or an
+ad-hoc Batch Task and fixes the target scope to the selected Host ids. A Host is
+runnable when it has a bound SSH Connection; target resolution uses the first
+bound SSH Connection for each selected Host and deduplicates Connections.
+
+Run History is read-only navigation over the selected Site's live run and
+completed reports. It has no independent start or rerun action; “Batch Run” is
+the execution concept, not the name of a page or durable container. Automations are
 filtered to rules bound to the selected Site by their durable `site_id` (set in
 the node editor's header Site select and defaulted from the destination that
 opened it; legacy rows without a binding fall back to inference — a runBatch

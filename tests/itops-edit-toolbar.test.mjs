@@ -11,7 +11,7 @@ test("IT Ops drill views expose icon-only edit and share-export actions", async 
   assert.match(sites, /aria-label=\{t\("itops\.actions\.viewActions"\)\}/);
   assert.match(sites, /title=\{editMode \? t\("itops\.actions\.editDone"\) : t\("itops\.actions\.edit"\)\}/);
   assert.match(sites, /<ItIcon name=\{editMode \? "check" : "edit"\}/);
-  assert.match(sites, /siteSegmentActive \? \(/);
+  assert.doesNotMatch(sites, /siteSegmentActive/);
   assert.doesNotMatch(sites, /rack\s*\?\s*t\("itops\.racks\.addItemTitle"\)/);
   assert.match(sites, /<ItIcon name="share"/);
   assert.match(sites, /handleExport\("pdf"\)/);

@@ -4,54 +4,34 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("Site View switcher sits in the drill toolbar with Overview / Batch Runs / Automations", async () => {
+test("Site overview is topology-only without the old segmented control", async () => {
   const sites = await read("src/modules/itops/SitesTab.tsx");
 
-  // The segmented control renders inside the toolbar row, only at Site level.
-  assert.match(
-    sites,
-    /className="it-drill-toolbar">[\s\S]*?!serverRoom && !rack \? \([\s\S]*?className="rm-segmented"/,
-  );
-  assert.match(sites, /aria-label=\{t\("itops\.sites\.viewLabel"\)\}/);
-  assert.match(sites, /<ItIcon name="room" size=\{13\} \/>[\s\S]*?itops\.sites\.viewOverview/);
-  assert.match(sites, /<ItIcon name="run" size=\{13\} \/>[\s\S]*?itops\.tabs\.runs/);
-  assert.match(sites, /<ItIcon name="auto" size=\{13\} \/>[\s\S]*?itops\.tabs\.autos/);
-  // Switching Sites or drilling resets the segment to the Overview surface.
-  assert.match(sites, /setSiteView\("overview"\);[\s\S]*?\}, \[viewKey\]\)/);
+  assert.doesNotMatch(sites, /itops\.sites\.viewLabel/);
+  assert.doesNotMatch(sites, /const \[siteView|siteView ===|setSiteView/);
+  assert.doesNotMatch(sites, /siteSegmentActive/);
+  // The Server Room layout switcher remains; it is not Site navigation.
+  assert.match(sites, /aria-label=\{t\("itops\.floorPlan\.viewLabel"\)\}/);
 });
 
-test("Non-overview segments swap in the site-scoped tabs and hide topology actions", async () => {
+test("Hosts, Automations, and Run History render as separate destination pages", async () => {
   const sites = await read("src/modules/itops/SitesTab.tsx");
 
-  // The segments render the existing Batch Runs / Automations surfaces,
-  // scoped to the selected Site's Connections.
-  assert.match(
-    sites,
-    /<BatchRunsTab siteId=\{site\.id\} onNewBatchRun=\{\(\) => requestNewBatchRun\(site\.id\)\} \/>/,
-  );
-  assert.match(
-    sites,
-    /<AutomationsTab siteId=\{site\.id\} siteHosts=\{members\.map\(\(member\) => member\.host\)\} \/>/,
-  );
-  // Topology-only toolbar actions hide while a non-overview segment shows.
-  assert.match(sites, /const siteSegmentActive = !serverRoom && !rack && siteView !== "overview";/);
-  assert.match(sites, /!siteSegmentActive \? \([\s\S]*?<ItIcon name=\{editMode \? "check" : "edit"\}/);
-  assert.match(sites, /!siteSegmentActive \? \([\s\S]*?className="it-drill-export"/);
-  // The plus action follows the segment: new Batch Run / new Automation.
-  assert.match(sites, /if \(siteView === "batchRuns"\) \{\s*requestNewBatchRun\(site\.id\);/);
-  assert.match(sites, /if \(siteView === "automations"\) \{\s*requestNewAutomation\(\);/);
-  assert.match(sites, /t\("itops\.actions\.newBatchRun"\)/);
-  assert.match(sites, /t\("itops\.actions\.newAutomation"\)/);
+  assert.match(sites, /selectedDestination === "hosts"[\s\S]*?<HostsPanel siteId=\{activeGroup\.id\} \/>/);
+  assert.match(sites, /selectedDestination === "automations"[\s\S]*?<AutomationsTab siteId=\{activeGroup\.id\}/);
+  assert.match(sites, /selectedDestination === "runHistory"[\s\S]*?<BatchRunsTab siteId=\{activeGroup\.id\} \/>/);
+  assert.match(sites, /className="hg-detail it-destination-page"/);
 });
 
-test("Batch Runs and Automations tabs accept a Site scope", async () => {
+test("Run History and Automations pages accept a Site scope", async () => {
   const runs = await read("src/modules/itops/BatchRunsTab.tsx");
   const autos = await read("src/modules/itops/AutomationsTab.tsx");
 
-  // Batch Runs: the live run and history only show this Site's runs.
+  // Run History: live and completed runs only show this Site's records.
   assert.match(runs, /siteId\?: string;/);
   assert.match(runs, /allRunHistory\.filter\(\(entry\) => entry\.siteId === siteId\)/);
   assert.match(runs, /activeRun && \(!siteId \|\| activeRun\.siteId === siteId\)/);
+  assert.doesNotMatch(runs, /onNewBatchRun/);
 
   // Automations: the durable siteId binding wins; legacy rows without one
   // fall back to inference (runBatch action target, or a host-addressed
@@ -68,6 +48,20 @@ test("Batch Runs and Automations tabs accept a Site scope", async () => {
     autos,
     /allAutomations\.filter\(\(automation\) => automationBoundToSite\(automation, siteId, hostSet\)\)/,
   );
+});
+
+test("Hosts page owns selected-Host Task launches", async () => {
+  const hosts = await read("src/modules/itops/HostsPanel.tsx");
+  const dialog = await read("src/modules/itops/BatchRunDialog.tsx");
+  const rustTypes = await read("src-tauri/src/itops/types.rs");
+  const storage = await read("src-tauri/src/itops/storage.rs");
+
+  assert.match(hosts, /selectedHostIds/);
+  assert.match(hosts, /requestNewBatchRun\(siteId, \{ hostIds: \[\.\.\.selectedHostIds\] \}\)/);
+  assert.match(hosts, /connection\.type === "ssh"/);
+  assert.match(dialog, /scope\.hostIds\?\.length/);
+  assert.match(rustTypes, /pub host_ids: Vec<String>/);
+  assert.match(storage, /first SSH binding/);
 });
 
 test("Automation editor owns the durable Site binding", async () => {

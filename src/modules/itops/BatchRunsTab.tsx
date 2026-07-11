@@ -139,7 +139,6 @@ function LiveRunView({ run }: { run: LiveRun }) {
   const { t } = useTranslation();
   const sites = useItOpsStore((state) => state.sites);
   const cancelRun = useItOpsStore((state) => state.cancelRun);
-  const requestNewBatchRun = useItOpsStore((state) => state.requestNewBatchRun);
 
   const tally = run.hosts.reduce(
     (acc, host) => {
@@ -226,18 +225,7 @@ function LiveRunView({ run }: { run: LiveRun }) {
               </span>
               {t("itops.actions.cancel")}
             </button>
-          ) : (
-            <button
-              type="button"
-              className="it-btn"
-              onClick={() => requestNewBatchRun(run.siteId ?? undefined)}
-            >
-              <span className="it-btn-ic">
-                <ItIcon name="rerun" size={14} />
-              </span>
-              {t("itops.actions.rerun")}
-            </button>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -388,12 +376,20 @@ function RunReportView({ entry, onBack }: { entry: RunHistoryEntry; onBack: () =
   );
 }
 
-export function BatchRunsTab({
-  onNewBatchRun,
-  siteId,
-}: {
-  onNewBatchRun: () => void;
-  /** When set, only runs targeting this Site are shown (Site View segment). */
+function RunHistoryHeader() {
+  const { t } = useTranslation();
+  return (
+    <div className="it-destination-page-head">
+      <div>
+        <h2>{t("itops.navigation.runHistory")}</h2>
+        <p>{t("itops.batchRuns.historyDescription")}</p>
+      </div>
+    </div>
+  );
+}
+
+export function BatchRunsTab({ siteId }: {
+  /** When set, only runs targeting this Site are shown. */
   siteId?: string;
 }) {
   const { t } = useTranslation();
@@ -405,28 +401,25 @@ export function BatchRunsTab({
   const [openReport, setOpenReport] = useState<RunHistoryEntry | null>(null);
 
   if (activeRun && (!siteId || activeRun.siteId === siteId)) {
-    return <LiveRunView run={activeRun} />;
+    return <div className="it-destination-surface"><RunHistoryHeader /><LiveRunView run={activeRun} /></div>;
   }
 
   if (openReport) {
-    return <RunReportView entry={openReport} onBack={() => setOpenReport(null)} />;
+    return <div className="it-destination-surface"><RunHistoryHeader /><RunReportView entry={openReport} onBack={() => setOpenReport(null)} /></div>;
   }
 
   return (
-    <div className="br">
-      <div className="it-empty" style={{ minHeight: 240 }}>
-        <span className="glyph">
-          <ItIcon name="run" size={28} sw={1.6} />
-        </span>
-        <h2>{t("itops.batchRuns.emptyTitle")}</h2>
-        <p>{t("itops.batchRuns.emptyBody")}</p>
-        <button type="button" className="it-btn primary" onClick={onNewBatchRun}>
-          <span className="it-btn-ic">
-            <ItIcon name="run" size={14} />
+    <div className="br it-destination-surface">
+      <RunHistoryHeader />
+      {runHistory.length === 0 ? (
+        <div className="it-empty" style={{ minHeight: 240 }}>
+          <span className="glyph">
+            <ItIcon name="history" size={28} sw={1.6} />
           </span>
-          {t("itops.actions.startBatchRun")}
-        </button>
-      </div>
+          <h2>{t("itops.batchRuns.emptyTitle")}</h2>
+          <p>{t("itops.batchRuns.historyEmptyBody")}</p>
+        </div>
+      ) : null}
 
       {runHistory.length > 0 ? (
         <>

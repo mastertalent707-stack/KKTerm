@@ -116,9 +116,7 @@ type PendingDelete =
 const FREE_CARD_WIDTH = 240;
 const FREE_CARD_HEIGHT = 74;
 
-// Site View segments: the Server Room card overview, or the Hosts / Batch
-// Runs / Automations surfaces scoped to the selected Site.
-type SiteViewMode = "overview" | "hosts" | "batchRuns" | "automations";
+type SiteDestination = "site" | "serverRooms" | "hosts" | "runHistory" | "automations";
 
 // A stable per-group tile colour (Sites don't store one); hashing the id
 // keeps a group's colour steady across reloads without a durable field.
@@ -170,7 +168,7 @@ export function SitesTab({
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [drill, setDrill] = useState<DrillPath>(EMPTY_DRILL);
-  const [siteView, setSiteView] = useState<SiteViewMode>("overview");
+  const [selectedDestination, setSelectedDestination] = useState<SiteDestination>("site");
   const [rootSurface, setRootSurface] = useState<"site" | "tasks">("site");
   const [members, setMembers] = useState<ResolvedHost[]>([]);
   const [dialog, setDialog] = useState<{ group: Site | null } | null>(null);
@@ -231,13 +229,12 @@ export function SitesTab({
         const siteId = nodeId.site(site.id);
         const siteRacks = racksBySite[site.id] ?? [];
         const siteTopo = groupRackTopology(siteRacks, serverRoomsBySite[site.id] ?? []);
-        if (siteTopo.length > 0) {
-          next.add(siteId);
-        }
+        // Every Site has the virtual Server Rooms / Hosts / Automations /
+        // Run History children, even when its topology is empty.
+        next.add(siteId);
+        next.add(`${siteId}:rooms`);
         for (const room of siteTopo) {
-          if (room.racks.length > 0) {
-            next.add(nodeId.serverRoom(site.id, room.key));
-          }
+          next.add(nodeId.serverRoom(site.id, room.key));
         }
       }
       return next;
@@ -379,15 +376,15 @@ export function SitesTab({
   function selectNode(siteId: string, next: DrillPath) {
     setRootSurface("site");
     setActiveId(siteId);
-    setSiteView("overview");
+    setSelectedDestination("serverRooms");
     setDrill(next);
   }
 
-  function selectSiteDestination(siteId: string, view: SiteViewMode) {
+  function selectSiteDestination(siteId: string, destination: SiteDestination) {
     setRootSurface("site");
     setActiveId(siteId);
     setDrill(EMPTY_DRILL);
-    setSiteView(view);
+    setSelectedDestination(destination);
   }
 
   function showPropertiesMenu(event: ReactMouseEvent<HTMLElement>, action: () => void) {
@@ -534,10 +531,7 @@ export function SitesTab({
   const q = query.trim().toLowerCase();
   const matchQ = (s: string) => !q || (s || t("itops.racks.unassigned")).toLowerCase().includes(q);
   const effectiveTreeWidth = treeCollapsed ? SITE_TREE_COLLAPSED_WIDTH : treeWidth;
-  const hasExpandableTreeNodes = sites.some(
-    (site) =>
-      groupRackTopology(racksBySite[site.id] ?? [], serverRoomsBySite[site.id] ?? []).length > 0,
-  );
+  const hasExpandableTreeNodes = sites.length > 0;
   const addTopologyMenu = !treeCollapsed ? (
     <div className="ft-add-wrap">
       <button
@@ -667,10 +661,10 @@ export function SitesTab({
                       tint={groupColor(site.id)}
                       hasChildren
                       open={open}
-                      selected={selectedId === fId && drill.serverRoom == null && siteView === "overview" && rootSurface === "site"}
+                      selected={activeId === site.id && selectedDestination === "site" && drill.serverRoom == null && rootSurface === "site"}
                       onToggle={() => toggleNode(fId)}
                       onSelect={() => {
-                        selectSiteDestination(site.id, "overview");
+                        selectSiteDestination(site.id, "site");
                       }}
                       onContextMenu={(event) =>
                         showPropertiesMenu(event, () => setDialog({ group: site }))
@@ -685,13 +679,10 @@ export function SitesTab({
                           count={siteTopo.length}
                           hasChildren={siteTopo.length > 0}
                           open={isExpanded(`${fId}:rooms`)}
-                          selected={activeId === site.id && siteView === "overview" && drill.serverRoom == null && rootSurface === "site"}
+                          selected={activeId === site.id && selectedDestination === "serverRooms" && drill.serverRoom == null && rootSurface === "site"}
                           onToggle={() => toggleNode(`${fId}:rooms`)}
-                          onSelect={() => selectSiteDestination(site.id, "overview")}
+                          onSelect={() => selectSiteDestination(site.id, "serverRooms")}
                         />
-                        <TreeRow depth={1} icon="server" label={t("itops.tabs.hosts")} hasChildren={false} open={false} selected={activeId === site.id && siteView === "hosts" && rootSurface === "site"} onSelect={() => selectSiteDestination(site.id, "hosts")} />
-                        <TreeRow depth={1} icon="auto" label={t("itops.tabs.autos")} hasChildren={false} open={false} selected={activeId === site.id && siteView === "automations" && rootSurface === "site"} onSelect={() => selectSiteDestination(site.id, "automations")} />
-                        <TreeRow depth={1} icon="history" label={t("itops.navigation.runHistory")} hasChildren={false} open={false} selected={activeId === site.id && siteView === "batchRuns" && rootSurface === "site"} onSelect={() => selectSiteDestination(site.id, "batchRuns")} />
                         {isExpanded(`${fId}:rooms`) ? siteTopo
                           .filter((room) => matchQ(room.key))
                           .map((room) => {
@@ -748,6 +739,9 @@ export function SitesTab({
                               </div>
                             );
                           }) : null}
+                        <TreeRow depth={1} icon="server" label={t("itops.tabs.hosts")} hasChildren={false} open={false} selected={activeId === site.id && selectedDestination === "hosts" && rootSurface === "site"} onSelect={() => selectSiteDestination(site.id, "hosts")} />
+                        <TreeRow depth={1} icon="auto" label={t("itops.tabs.autos")} hasChildren={false} open={false} selected={activeId === site.id && selectedDestination === "automations" && rootSurface === "site"} onSelect={() => selectSiteDestination(site.id, "automations")} />
+                        <TreeRow depth={1} icon="history" label={t("itops.navigation.runHistory")} hasChildren={false} open={false} selected={activeId === site.id && selectedDestination === "runHistory" && rootSurface === "site"} onSelect={() => selectSiteDestination(site.id, "runHistory")} />
                       </>
                     ) : null}
                   </div>
@@ -767,7 +761,19 @@ export function SitesTab({
       {/* ── Detail ── */}
       {rootSurface === "tasks" ? (
         <div className="hg-detail">
-          <TaskLibrary defaultSiteId={activeGroup?.id} />
+          <TaskLibrary />
+        </div>
+      ) : activeGroup && selectedDestination === "hosts" ? (
+        <div className="hg-detail it-destination-page">
+          <HostsPanel siteId={activeGroup.id} />
+        </div>
+      ) : activeGroup && selectedDestination === "automations" ? (
+        <div className="hg-detail it-destination-page">
+          <AutomationsTab siteId={activeGroup.id} siteHosts={members.map((member) => member.host)} />
+        </div>
+      ) : activeGroup && selectedDestination === "runHistory" ? (
+        <div className="hg-detail it-destination-page">
+          <BatchRunsTab siteId={activeGroup.id} />
         </div>
       ) : activeGroup ? (
         <div className="hg-detail" data-tutorial-id="itops.siteView">
@@ -776,11 +782,8 @@ export function SitesTab({
             topologyLoaded={topologyLoaded}
             racks={racks}
             site={activeGroup}
-            members={members}
             drill={drill}
             setDrill={setDrill}
-            siteView={siteView}
-            setSiteView={setSiteView}
             viewBackground={viewBackground}
             roomIcons={activeGroup.roomIcons}
             hostForItem={hostForItem}
@@ -1031,11 +1034,8 @@ function RackDrill({
   topologyLoaded,
   racks,
   site,
-  members,
   drill,
   setDrill,
-  siteView,
-  setSiteView,
   viewBackground,
   roomIcons,
   hostForItem,
@@ -1058,12 +1058,8 @@ function RackDrill({
   topologyLoaded: boolean;
   racks: Rack[];
   site: Site;
-  /** The Site's resolved member Connections (for scoping the site segments). */
-  members: ResolvedHost[];
   drill: DrillPath;
   setDrill: (next: DrillPath) => void;
-  siteView: SiteViewMode;
-  setSiteView: (next: SiteViewMode) => void;
   viewBackground: DashboardBackground | null | undefined;
   roomIcons?: Record<string, ItOpsCustomIcon>;
   hostForItem: (item: RackItem) => string | null;
@@ -1105,13 +1101,7 @@ function RackDrill({
   const [roomView, setRoomView] = useState<RoomViewMode>(loadRoomViewMode);
   useEffect(() => saveRoomViewMode(roomView), [roomView]);
 
-  // Site View segment: the Server Room card overview (default), or the Batch
-  // Runs / Automations surfaces scoped to this Site's Connections.
-  const requestNewBatchRun = useItOpsStore((state) => state.requestNewBatchRun);
-  const requestNewAutomation = useItOpsStore((state) => state.requestNewAutomation);
-  const requestHostImport = useItOpsStore((state) => state.requestHostImport);
-
-  // Host inventory for the Hosts segment and the Rack View callouts.
+  // Host inventory for Rack View callouts.
   const siteHosts = useItOpsStore((state) => state.hostsBySite[site.id]);
   const loadHosts = useItOpsStore((state) => state.loadHosts);
   useEffect(() => {
@@ -1412,20 +1402,6 @@ function RackDrill({
     );
   }
 
-  function handleSegmentAdd() {
-    if (siteView === "hosts") {
-      requestHostImport();
-      return;
-    }
-    if (siteView === "batchRuns") {
-      requestNewBatchRun(site.id);
-      return;
-    }
-    if (siteView === "automations") {
-      requestNewAutomation();
-    }
-  }
-
   function kindLabel(kind: RackItem["kind"]) {
     return t(`itops.racks.kind.${kind}`);
   }
@@ -1518,61 +1494,11 @@ function RackDrill({
     scheduleDurableSave("grid", next);
   }
 
-  // A non-overview Site View segment replaces the topology surface, so the
-  // topology-only toolbar actions (edit / export / auto-organize) hide with it.
-  const siteSegmentActive = !serverRoom && !rack && siteView !== "overview";
-  const segmentAddLabel =
-    siteView === "hosts"
-      ? t("itops.hosts.importAction")
-      : siteView === "batchRuns"
-        ? t("itops.actions.newBatchRun")
-        : t("itops.actions.newAutomation");
-
   return (
     <div className="ft-drill">
       <ItOpsBackground background={viewBackground} className="ft-drill-bg">
         <div className="it-drill-toolbar">
           <div className="it-drill-spacer" />
-          {!serverRoom && !rack ? (
-            <div
-              className="rm-segmented"
-              role="group"
-              aria-label={t("itops.sites.viewLabel")}
-            >
-              <button
-                type="button"
-                data-active={siteView === "overview"}
-                onClick={() => setSiteView("overview")}
-              >
-                <ItIcon name="room" size={13} />
-                {t("itops.sites.viewOverview")}
-              </button>
-              <button
-                type="button"
-                data-active={siteView === "hosts"}
-                onClick={() => setSiteView("hosts")}
-              >
-                <ItIcon name="server" size={13} />
-                {t("itops.tabs.hosts")}
-              </button>
-              <button
-                type="button"
-                data-active={siteView === "batchRuns"}
-                onClick={() => setSiteView("batchRuns")}
-              >
-                <ItIcon name="run" size={13} />
-                {t("itops.tabs.runs")}
-              </button>
-              <button
-                type="button"
-                data-active={siteView === "automations"}
-                onClick={() => setSiteView("automations")}
-              >
-                <ItIcon name="auto" size={13} />
-                {t("itops.tabs.autos")}
-              </button>
-            </div>
-          ) : null}
           {serverRoom && !rack ? (
             <div
               className="rm-segmented"
@@ -1618,7 +1544,7 @@ function RackDrill({
             </div>
           ) : null}
           <div className="it-drill-actions" aria-label={t("itops.actions.viewActions")}>
-            {!rack && !serverRoom && !siteSegmentActive && topology.length > 0 ? (
+            {!rack && !serverRoom && topology.length > 0 ? (
               <button
                 type="button"
                 className="it-drill-action"
@@ -1629,32 +1555,18 @@ function RackDrill({
                 <ItIcon name="grid" size={15} />
               </button>
             ) : null}
-            {!siteSegmentActive ? (
+            <button
+              type="button"
+              className={`it-drill-action${editMode ? " active" : ""}`}
+              title={editMode ? t("itops.actions.editDone") : t("itops.actions.edit")}
+              aria-label={editMode ? t("itops.actions.editDone") : t("itops.actions.edit")}
+              aria-pressed={editMode}
+              onClick={() => setEditMode((value) => !value)}
+            >
+              <ItIcon name={editMode ? "check" : "edit"} size={15} />
+            </button>
+            <div className="it-drill-export">
               <button
-                type="button"
-                className={`it-drill-action${editMode ? " active" : ""}`}
-                title={editMode ? t("itops.actions.editDone") : t("itops.actions.edit")}
-                aria-label={editMode ? t("itops.actions.editDone") : t("itops.actions.edit")}
-                aria-pressed={editMode}
-                onClick={() => setEditMode((value) => !value)}
-              >
-                <ItIcon name={editMode ? "check" : "edit"} size={15} />
-              </button>
-            ) : null}
-            {siteSegmentActive ? (
-              <button
-                type="button"
-                className="it-drill-action"
-                title={segmentAddLabel}
-                aria-label={segmentAddLabel}
-                onClick={handleSegmentAdd}
-              >
-                <ItIcon name="plus" size={15} />
-              </button>
-            ) : null}
-            {!siteSegmentActive ? (
-              <div className="it-drill-export">
-                <button
                   type="button"
                   className="it-drill-action"
                   title={t("itops.actions.export")}
@@ -1664,8 +1576,8 @@ function RackDrill({
                   onClick={() => setExportMenuOpen((open) => !open)}
                 >
                   <ItIcon name="share" size={15} />
-                </button>
-                {exportMenuOpen ? (
+              </button>
+              {exportMenuOpen ? (
                   <>
                     <div className="it-drill-menu-backdrop" onClick={() => setExportMenuOpen(false)} />
                     <div className="it-drill-menu" role="menu">
@@ -1681,18 +1593,11 @@ function RackDrill({
                       ) : null}
                     </div>
                   </>
-                ) : null}
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </div>
         </div>
-        {siteSegmentActive && siteView === "hosts" ? (
-          <HostsPanel siteId={site.id} />
-        ) : siteSegmentActive && siteView === "batchRuns" ? (
-          <BatchRunsTab siteId={site.id} onNewBatchRun={() => requestNewBatchRun(site.id)} />
-        ) : siteSegmentActive && siteView === "automations" ? (
-          <AutomationsTab siteId={site.id} siteHosts={members.map((member) => member.host)} />
-        ) : !topologyLoaded ? null : rack ? (
+        {!topologyLoaded ? null : rack ? (
           <div className="it-rack-layout">
             <RackStage
               rack={rack}

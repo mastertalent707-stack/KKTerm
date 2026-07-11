@@ -299,10 +299,6 @@ interface ItOpsState {
   scanHosts: (siteId: string, hostIds: string[]) => Promise<void>;
   /** Fold one streamed `itops://host-scan` event into the Host cache. */
   applyHostScanEvent: (event: HostScanEvent) => void;
-  /** Bumped when the Hosts segment's toolbar "+" requests the import dialog. */
-  hostImportRequest: number;
-  requestHostImport: () => void;
-
   // ── Batch Runs (Phase 2) ──
   activeRun: LiveRun | null;
   runHistory: RunHistoryEntry[];
@@ -559,12 +555,6 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
   // ── Hosts ──
   hostsBySite: {},
   scanningHostIds: {},
-  hostImportRequest: 0,
-
-  requestHostImport() {
-    set({ hostImportRequest: get().hostImportRequest + 1 });
-  },
-
   async loadHosts(siteId) {
     if (!isTauriRuntime()) {
       set({ hostsBySite: { ...get().hostsBySite, [siteId]: [] } });

@@ -1071,6 +1071,11 @@
     },
     "hosts": {
       "empty": "No Hosts yet. Import a hostname list to build this Site's inventory.",
+      "pageDescription": "Select Hosts with bound SSH Connections, then run a Task against only those targets.",
+      "selectedCount": "{{count}} selected",
+      "selectAll": "Select all runnable Hosts",
+      "selectHost": "Select {{name}}",
+      "noRunnableConnection": "Bind an SSH Connection before running Tasks on this Host.",
       "hostCount_one": "{{count}} Host",
       "hostCount_other": "{{count}} Hosts",
       "importAction": "Import Hosts",
@@ -1376,7 +1381,7 @@
       "specs": "Specs"
     },
     "batchRuns": {
-      "emptyTitle": "No Batch Runs yet",
+      "emptyTitle": "No run history yet",
       "emptyBody": "Send a script or an interactive playbook to every host in a Site at once, with per-host live output and a saved report.",
       "stateRunning": "Running",
       "stateCompleted": "Completed",
@@ -1401,6 +1406,9 @@
       "siteLabel": "Site",
       "scopeRack": "Targeting rack {{name}} only",
       "scopeServerRoom": "Targeting server room {{name}} only",
+      "scopeSelectedHosts": "Targeting {{count}} selected Hosts only",
+      "taskSourceLabel": "Task source",
+      "adHocTask": "Ad hoc task",
       "scriptLabel": "Script",
       "scriptPlaceholder": "sudo apt-get update && sudo apt-get upgrade -y",
       "noGroups": "Create a Site first to run a Batch Run.",
@@ -1408,6 +1416,8 @@
       "stateCanceled": "Canceled",
       "progressComplete": "{{done}} of {{total}} complete",
       "historyHeading": "Recent runs",
+      "historyDescription": "Live progress and completed Task reports for this Site.",
+      "historyEmptyBody": "Runs started from the Hosts page or an Automation will appear here.",
       "historySummary": "{{ok}}/{{total}} ok",
       "waitingOutput": "Waiting for output…",
       "noOutput": "No output captured",
@@ -1433,6 +1443,7 @@
     "automations": {
       "emptyTitle": "No Automations yet",
       "emptyBody": "A durable rule — one trigger, an optional condition, and ordered actions — that re-arms every time KKTerm launches. The evolved Watchdog.",
+      "pageDescription": "Manage the durable rules bound to this Site.",
       "armed": "Armed",
       "disabled": "Disabled",
       "builder": {

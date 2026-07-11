@@ -23,7 +23,7 @@ import { useItOpsStore } from "./state";
 type TaskMode = "script" | "playbook";
 
 function scopeIsSet(scope?: RunScope | null): scope is RunScope {
-  return !!scope && !!(scope.rackId || scope.serverRoom);
+  return !!scope && !!(scope.rackId || scope.serverRoom || scope.hostIds?.length);
 }
 
 function emptyStep(): PlaybookStep {
@@ -45,6 +45,7 @@ export function BatchRunDialog({
 }) {
   const { t } = useTranslation();
   const sites = useItOpsStore((state) => state.sites);
+  const tasks = useItOpsStore((state) => state.tasks);
   const racksBySite = useItOpsStore((state) => state.racksBySite);
   const startBatchRun = useItOpsStore((state) => state.startBatchRun);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
@@ -55,6 +56,9 @@ export function BatchRunDialog({
   const scope = scopeIsSet(defaultScope) ? defaultScope : null;
   const scopeLabel = (() => {
     if (!scope) return "";
+    if (scope.hostIds?.length) {
+      return t("itops.batchRuns.scopeSelectedHosts", { count: scope.hostIds.length });
+    }
     if (scope.rackId) {
       const rack = (racksBySite[groupId] ?? []).find((entry) => entry.id === scope.rackId);
       return t("itops.batchRuns.scopeRack", { name: rack?.name ?? scope.rackId });
@@ -70,6 +74,10 @@ export function BatchRunDialog({
     defaultTask?.kind === "playbook" ? defaultTask.steps : [emptyStep()],
   );
   const [busy, setBusy] = useState(false);
+  const [taskSourceId, setTaskSourceId] = useState(() => {
+    if (!defaultTask) return "";
+    return tasks.find((entry) => JSON.stringify(entry.task) === JSON.stringify(defaultTask))?.id ?? "";
+  });
 
   const hasGroups = sites.length > 0;
   // Drop only fully-blank steps. A step with an empty `send` but a set `expect`
@@ -87,6 +95,19 @@ export function BatchRunDialog({
     setSteps((current) =>
       current.map((step, position) => (position === index ? { ...step, ...patch } : step)),
     );
+  }
+
+  function selectTaskSource(id: string) {
+    setTaskSourceId(id);
+    const selected = tasks.find((entry) => entry.id === id);
+    if (!selected) return;
+    setMode(selected.task.kind);
+    if (selected.task.kind === "script") {
+      setBody(selected.task.body);
+      return;
+    }
+    setPlaybookName(selected.task.name);
+    setSteps(selected.task.steps);
   }
 
   function buildTask(): BatchTask {
@@ -150,6 +171,16 @@ export function BatchRunDialog({
               />
             </Field>
             {scope ? <div className="it-scope-note">{scopeLabel}</div> : null}
+            <Field label={t("itops.batchRuns.taskSourceLabel")}>
+              <Select
+                value={taskSourceId}
+                onChange={(event) => selectTaskSource(event.currentTarget.value)}
+                options={[
+                  { value: "", label: t("itops.batchRuns.adHocTask") },
+                  ...tasks.map((entry) => ({ value: entry.id, label: entry.name })),
+                ]}
+              />
+            </Field>
             <Field label={t("itops.batchRuns.taskTypeLabel")}>
               <Segmented
                 value={mode}

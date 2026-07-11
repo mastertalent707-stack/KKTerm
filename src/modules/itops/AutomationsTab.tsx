@@ -133,7 +133,7 @@ export function AutomationsTab({
   siteId,
   siteHosts,
 }: {
-  /** When set, only Automations bound to this Site are shown (Site View segment). */
+  /** When set, only Automations bound to this Site are shown. */
   siteId?: string;
   /** The Site's resolved member hosts, for matching host-addressed triggers. */
   siteHosts?: string[];
@@ -197,27 +197,38 @@ export function AutomationsTab({
       />
     ) : null;
 
+  const pageHeader = (
+    <div className="it-destination-page-head">
+      <div>
+        <h2>{t("itops.tabs.autos")}</h2>
+        <p>{t("itops.automations.pageDescription")}</p>
+      </div>
+      <button type="button" className="it-btn primary" onClick={() => setEditor(null)}>
+        <ItIcon name="plus" size={14} />
+        {t("itops.actions.newAutomation")}
+      </button>
+    </div>
+  );
+
   if (loaded && automations.length === 0) {
     return (
-      <div className="it-empty">
-        <span className="glyph">
-          <ItIcon name="auto" size={28} sw={1.6} />
-        </span>
-        <h2>{t("itops.automations.emptyTitle")}</h2>
-        <p>{t("itops.automations.emptyBody")}</p>
-        <button type="button" className="it-btn primary" onClick={() => setEditor(null)}>
-          <span className="it-btn-ic">
-            <ItIcon name="plus" size={15} />
+      <div className="it-destination-surface">
+        {pageHeader}
+        <div className="it-empty">
+          <span className="glyph">
+            <ItIcon name="auto" size={28} sw={1.6} />
           </span>
-          {t("itops.actions.newAutomation")}
-        </button>
+          <h2>{t("itops.automations.emptyTitle")}</h2>
+          <p>{t("itops.automations.emptyBody")}</p>
+        </div>
         {editorOverlay}
       </div>
     );
   }
 
   return (
-    <div className="au">
+    <div className="au it-destination-surface">
+      {pageHeader}
       <div className="au-list">
         {automations.map((automation) => (
           <div key={automation.id} className={`au-row${automation.enabled ? "" : " off"}`}>

@@ -647,12 +647,17 @@ pub struct RunScope {
     pub rack_id: Option<String>,
     #[serde(default)]
     pub server_room: Option<String>,
+    /// Site Host ids selected on the Hosts page. Each Host resolves through
+    /// its first bound SSH Connection; Hosts without one are not runnable.
+    #[serde(default)]
+    pub host_ids: Vec<String>,
 }
 
 impl RunScope {
     pub fn is_empty(&self) -> bool {
         self.rack_id.as_deref().unwrap_or("").is_empty()
             && self.server_room.as_deref().unwrap_or("").is_empty()
+            && self.host_ids.is_empty()
     }
 }
 

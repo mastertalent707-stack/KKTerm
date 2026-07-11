@@ -122,7 +122,7 @@ The live runtime that executes an armed **Automation** (or an ad-hoc live monito
 _Avoid_: monitor profile, durable watcher (the Automation is the durable part)
 
 **IT Ops Module**:
-A built-in Activity Rail Module for site operations: **Sites**, **Hosts**, global reusable **Tasks**, **Batch Runs**, and **Automations**. Its operational navigator exposes Site-owned Server Rooms, Hosts, Automations, and Run History, plus a global Task Library; topology drills through Site View, Server Room View, and Rack View. Lives with Dashboard and Install Helper above Settings. Not a Connection, Session, or Dashboard widget. See `docs/ITOPS.md` and `docs/ADR/0011-it-ops-module.md`.
+A built-in Activity Rail Module for site operations: **Sites**, **Hosts**, global reusable **Tasks**, **Batch Runs**, and **Automations**. Its operational navigator exposes Site-owned Server Rooms, Hosts, Automations, and Run History as separate destinations, plus a global Task Library; topology drills through Site View, Server Room View, and Rack View. The Site destination is its overview-only Site View and has no Hosts, Batch Runs, or Automations segmented control. Lives with Dashboard and Install Helper above Settings. Not a Connection, Session, or Dashboard widget. See `docs/ITOPS.md` and `docs/ADR/0011-it-ops-module.md`.
 _Avoid_: operations center, site manager, orchestrator
 
 **Task**:
@@ -130,7 +130,7 @@ A durable, reusable IT Ops definition of what to execute: a script or interactiv
 _Avoid_: Site task, saved run, workflow
 
 **Task Library**:
-The global IT Ops collection of reusable Tasks. It appears once in the operational navigator as a sibling of Sites, never once beneath every Site. Opening a Task shows its definition and can launch it with the active Site preselected. The Task Library is a view/collection, not a durable entity or target container.
+The global IT Ops collection of reusable Tasks. It appears once in the operational navigator as a sibling of Sites, never once beneath every Site. Opening a Task shows and manages its definition; manual execution starts from selected Hosts, where the launcher offers Tasks from this library. The Task Library is a view/collection, not a durable entity, target container, or run launcher.
 _Avoid_: Site Tasks, scripts folder, workflow library, job catalog
 
 **Sites**:
@@ -146,8 +146,8 @@ The undeletable fallback Site (stored id `default-fleet`, a legacy literal kept 
 Fleet→Site rename) that exists when IT Ops has no other Site rows. It is a safe top-level parent for Server Rooms, Racks, and Rack Devices, not a Connection or Session.
 
 **Site View**:
-The right-side topology view opened from one Site's Server Rooms destination. It shows that Site's Server Rooms as cards and is the entry point into Server Room View and Rack View. It is not the same thing as the plural **Sites** collection or the whole Site-owned navigation group.
-_Avoid_: overview, dashboard, host group details
+The overview-only topology page opened by selecting a Site or its Server Rooms destination. It shows that Site's Server Rooms as cards and is the entry point into Server Room View and Rack View. Hosts, Automations, and Run History have their own pages and never appear as Site View segments. It is not the same thing as the plural **Sites** collection or the whole Site-owned navigation group.
+_Avoid_: dashboard, host group details, Site tab
 
 **Server Room**:
 A durable, Site-owned topology entity stored in `itops_server_rooms`. The topology path is **Site → Server Room → Rack**: a Server Room may remain empty, while every new Rack must belong to a Server Room in the same Site. It owns no Connections or Sessions and may gain additional relationships later.
@@ -178,7 +178,7 @@ Non-secret presentation metadata for a Rack Device: label, U position, height, s
 _Avoid_: secrets, runtime status, connection settings
 
 **Host**:
-A durable IT Ops inventory entry for one device or guest in a Site, addressed by hostname and stored in `itops_hosts`. The device itself can be a Host, and a Host may carry **child Hosts** — its VMs or containers — via a soft self reference (`parent_host_id`). A Host may bind multiple **Connections** at once (ordered soft references), e.g. an SSH terminal plus an HTTPS URL Connection to its management interface, and stores the last **connectivity scan** snapshot (SSH / WinRM / HTTPS reachability probes) as data, never live Session state and never a secret. Hosts import from a pasted hostname list in the Site's Hosts destination and can be linked to a **Rack Device** (`metadata.hostId`) so the Rack View callout lists the Host and its child Hosts. A Host is not a Connection, not a Session, and not the `host` address field of a Connection.
+A durable IT Ops inventory entry for one device or guest in a Site, addressed by hostname and stored in `itops_hosts`. The device itself can be a Host, and a Host may carry **child Hosts** — its VMs or containers — via a soft self reference (`parent_host_id`). A Host may bind multiple **Connections** at once (ordered soft references), e.g. an SSH terminal plus an HTTPS URL Connection to its management interface, and stores the last **connectivity scan** snapshot (SSH / WinRM / HTTPS reachability probes) as data, never live Session state and never a secret. Hosts import from a pasted hostname list in the Site's Hosts destination and can be linked to a **Rack Device** (`metadata.hostId`) so the Rack View callout lists the Host and its child Hosts. The Hosts page is also the manual execution surface: select runnable Hosts and launch a reusable Task or ad-hoc Batch Task against exactly that selection. A Host is not a Connection, not a Session, and not the `host` address field of a Connection.
 _Avoid_: server entry (as a durable term), connection host field, node, agent
 
 **Batch Task**:
@@ -194,7 +194,7 @@ One execution of a reusable Task or ad-hoc Batch Task across resolved targets, f
 _Avoid_: broadcast, job, deployment
 
 **Run History**:
-The Site-owned navigation destination that lists the active Batch Run and completed run records scoped to that Site. Completed rows come from `itops_run_history`; live progress remains in memory. Run History is an audit collection, not a Task library and not a queue.
+The Site-owned navigation destination that lists the active Batch Run and completed run records scoped to that Site. Completed rows come from `itops_run_history`; live progress remains in memory. New manual runs start from selected Hosts, not from Run History. Run History is an audit collection, not a Task library, launch surface, or queue.
 _Avoid_: Batch Runs tab, jobs, task history
 
 **Run Report**:

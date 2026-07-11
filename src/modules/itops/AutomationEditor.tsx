@@ -427,7 +427,7 @@ export function AutomationEditor({
   onClose,
 }: {
   automation: Automation | null;
-  /** Site binding preselected for a new Automation (Site View segment). */
+  /** Site binding preselected for a new Automation opened from its Site page. */
   defaultSiteId?: string;
   onClose: () => void;
 }) {

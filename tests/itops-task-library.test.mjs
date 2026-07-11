@@ -4,6 +4,8 @@ import test from "node:test";
 
 const sites = await readFile(new URL("../src/modules/itops/SitesTab.tsx", import.meta.url), "utf8");
 const library = await readFile(new URL("../src/modules/itops/TaskLibrary.tsx", import.meta.url), "utf8");
+const hosts = await readFile(new URL("../src/modules/itops/HostsPanel.tsx", import.meta.url), "utf8");
+const launcher = await readFile(new URL("../src/modules/itops/BatchRunDialog.tsx", import.meta.url), "utf8");
 const schema = await readFile(new URL("../src-tauri/src/storage.rs", import.meta.url), "utf8");
 const commands = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
 
@@ -12,11 +14,30 @@ test("IT Ops navigator keeps Tasks global and Site operations virtual", () => {
   assert.match(sites, /itops\.navigation\.runHistory/);
   assert.match(sites, /itops\.tasks\.heading/);
   assert.match(sites, /rootSurface === "tasks"/);
-  assert.match(sites, /<TaskLibrary defaultSiteId=/);
+  assert.match(sites, /<TaskLibrary \/>/);
 });
 
-test("Task Library launches saved definitions through the Batch Run path", () => {
-  assert.match(library, /requestNewBatchRun\(defaultSiteId \?\? undefined, undefined, selected\.task\)/);
+test("Server Room topology stays inside its destination and selection is exclusive", () => {
+  const serverRoomsRow = sites.indexOf('label={t("itops.navigation.serverRooms")}');
+  const topologyRows = sites.indexOf("siteTopo\n                          .filter", serverRoomsRow);
+  const hostsRow = sites.indexOf('label={t("itops.tabs.hosts")}', serverRoomsRow);
+  assert.ok(serverRoomsRow >= 0 && topologyRows > serverRoomsRow && hostsRow > topologyRows);
+  assert.match(sites, /selectedDestination === "site"/);
+  assert.match(sites, /selectedDestination === "serverRooms"/);
+});
+
+test("Collapse All closes every Site and Server Rooms container", () => {
+  const collapseBlock = sites.match(/const collapseAllNodes = useCallback\([\s\S]*?\n  \}, \[racksBySite/)?.[0] ?? "";
+  assert.match(collapseBlock, /next\.add\(siteId\);/);
+  assert.match(collapseBlock, /next\.add\(`\$\{siteId\}:rooms`\);/);
+  assert.doesNotMatch(collapseBlock, /if \(siteTopo\.length > 0\) \{\s*next\.add\(siteId\)/);
+});
+
+test("Task Library manages definitions while the Hosts launcher selects saved Tasks", () => {
+  assert.doesNotMatch(library, /requestNewBatchRun/);
+  assert.match(hosts, /requestNewBatchRun\(siteId, \{ hostIds: \[\.\.\.selectedHostIds\] \}\)/);
+  assert.match(launcher, /const tasks = useItOpsStore/);
+  assert.match(launcher, /itops\.batchRuns\.taskSourceLabel/);
   assert.match(library, /const createTask = useItOpsStore/);
   assert.match(library, /const updateTask = useItOpsStore/);
 });

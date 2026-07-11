@@ -379,6 +379,7 @@ export interface Rack {
 export interface RunScope {
   rackId?: string | null;
   serverRoom?: string | null;
+  hostIds?: string[];
 }
 
 // One step of an interactive Playbook: text sent to the host's PTY shell, then
