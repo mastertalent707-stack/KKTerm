@@ -30,6 +30,7 @@ export function KuaiKuaiBag({
   const id = useId().replace(/:/g, "");
   const bag = `${id}-bag`;
   const sheen = `${id}-sheen`;
+  const puff = `${id}-puff`;
   const transform = style === "laidDown" ? "translate(0 112) rotate(-90) scale(.33 1.05)" : undefined;
   const grayscale = kuaiKuaiGrayscale(expiry);
 
@@ -54,6 +55,11 @@ export function KuaiKuaiBag({
           <stop offset=".22" stopColor="#fff" stopOpacity="0" />
           <stop offset="1" stopColor="#2f7d13" stopOpacity=".24" />
         </linearGradient>
+        <radialGradient id={puff} cx="42%" cy="38%" r="72%">
+          <stop offset="0" stopColor="#fff" stopOpacity=".28" />
+          <stop offset=".58" stopColor="#fff" stopOpacity="0" />
+          <stop offset="1" stopColor="#205f0c" stopOpacity=".34" />
+        </radialGradient>
       </defs>
       <g transform={transform}>
         <path
@@ -63,6 +69,7 @@ export function KuaiKuaiBag({
           strokeWidth="2"
           strokeLinejoin="round"
         />
+        <path d="M22 31Q140 8 258 31C251 116 251 224 258 309Q140 332 22 309C29 224 29 116 22 31Z" fill={`url(#${puff})`} pointerEvents="none" />
         <path
           d="M16 24C22 112 22 228 16 316L264 316C258 228 258 112 264 24Z"
           fill={`url(#${sheen})`}

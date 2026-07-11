@@ -144,9 +144,7 @@ export function RackItemDialog({
   const [shell, setShell] = useState<RackShell>(item?.metadata?.shell ?? "black");
   const [expiry, setExpiry] = useState(item?.metadata?.expiry ?? "");
   const [rotation, setRotation] = useState(item?.metadata?.rotation ?? -2);
-  const [kuaiguaiSize, setKuaiguaiSize] = useState<"small" | "regular" | "large">(
-    initialMetadata.kuaiguaiSize ?? "regular",
-  );
+  const kuaiguaiSize = "large" as const;
   const [kuaiguaiStyle, setKuaiguaiStyle] = useState<KuaiKuaiStyle>(initialKuaiguaiStyle);
   const [notes, setNotes] = useState(item?.metadata?.notes ?? "");
   const [tags, setTags] = useState(joinValues(item?.metadata?.tags));
@@ -624,31 +622,27 @@ export function RackItemDialog({
             )}
 
             {kind === "kuaiguai" ? (
-              <div className="rack-form-grid two">
+              <div className="rack-form-grid rack-kuaiguai-fields">
                 <Field label={t("itops.racks.kuaiguaiStyleLabel")}>
                   <Select
-                    value={`${kuaiguaiStyle}:${kuaiguaiSize}`}
+                    value={kuaiguaiStyle}
                     onChange={(event) => {
-                      const [nextStyle, nextSize] = event.currentTarget.value.split(":") as [
-                        KuaiKuaiStyle,
-                        "small" | "regular" | "large",
-                      ];
-                      selectKuaiguaiStyle(nextStyle);
-                      setKuaiguaiSize(nextSize);
+                      selectKuaiguaiStyle(event.currentTarget.value as KuaiKuaiStyle);
                     }}
-                    options={(["full", "laidDown"] as const).flatMap((styleValue) =>
-                      (["small", "regular", "large"] as const).map((sizeValue) => ({
-                        value: `${styleValue}:${sizeValue}`,
-                        label: `${t(`itops.racks.kuaiguaiStyle.${styleValue}`)} · ${t(`itops.racks.kuaiguaiSize.${sizeValue}`)}`,
-                      })),
-                    )}
+                    options={(["full", "laidDown"] as const).map((styleValue) => ({
+                      value: styleValue,
+                      label: `${t(`itops.racks.kuaiguaiStyle.${styleValue}`)} · ${t("itops.racks.kuaiguaiSize.large")}`,
+                    }))}
                   />
                 </Field>
-                <Field label={t("itops.racks.expiryLabel")}>
-                  <TextInput value={expiry} placeholder="2026-12-31" onChange={(event) => setExpiry(event.currentTarget.value)} />
-                </Field>
                 <Field label={t("itops.racks.rotationLabel")}>
-                  <Stepper value={rotation} min={-45} onChange={(next) => setRotation(Math.max(-45, Math.min(45, next)))} ariaDecrease={t("itops.racks.rotationDecrease")} ariaIncrease={t("itops.racks.rotationIncrease")} />
+                  <div className="rack-kuaiguai-rotation">
+                    <input type="range" min={-45} max={45} step={1} value={rotation} aria-label={t("itops.racks.rotationLabel")} onChange={(event) => setRotation(Number(event.currentTarget.value))} />
+                    <output>{rotation}°</output>
+                  </div>
+                </Field>
+                <Field label={t("itops.racks.expiryLabel")}>
+                  <TextInput type="date" value={expiry} onChange={(event) => setExpiry(event.currentTarget.value)} />
                 </Field>
               </div>
             ) : null}

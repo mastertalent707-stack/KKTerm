@@ -65,14 +65,18 @@ test("Server editor exposes all three persisted front-panel styles", async () =>
   assert.match(dialog, /\["default", "style1", "style2"\]/);
 });
 
-test("Kuai Kuai properties stay package-only with one combined style choice", async () => {
+test("Kuai Kuai properties expose only the two large poses with date and rotation controls", async () => {
   const dialog = await read("src/modules/itops/RackItemDialog.tsx");
 
   // Status/shell/accent/power-draw are hidden and not persisted for 乖乖.
   assert.match(dialog, /\{isKuaiguai \? null : \(\s*<>\s*<Field label=\{t\("itops\.racks\.statusLabel"\)\}>/);
   assert.match(dialog, /powerW: isKuaiguai \? null : parsedPowerDraw/);
-  // One select carries pose and size together; yaw is gone.
-  assert.match(dialog, /value=\{`\$\{kuaiguaiStyle\}:\$\{kuaiguaiSize\}`\}/);
+  // The selector has two poses, both locked to large; yaw is gone.
+  assert.match(dialog, /value=\{kuaiguaiStyle\}/);
+  assert.match(dialog, /\["full", "laidDown"\]/);
+  assert.match(dialog, /kuaiguaiSize\.large/);
+  assert.match(dialog, /type="range"[\s\S]*min=\{-45\}[\s\S]*max=\{45\}/);
+  assert.match(dialog, /TextInput type="date"/);
   assert.doesNotMatch(dialog, /kuaiguaiSizeLabel|yawLabel|\byaw\b/);
   // Editing an existing device hides the type switcher grid.
   assert.match(dialog, /placementMode \|\| isEdit \? null : \(/);
