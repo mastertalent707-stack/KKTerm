@@ -1288,7 +1288,7 @@ function RackDrill({
         startU: target.heightU + 1,
         heightU: KUAIGUAI_TOP_CLEARANCE_U,
         metadata: {
-          kuaiguaiSize: "regular",
+          kuaiguaiSize: "large",
           kuaiguaiStyle: "full",
           rackTopCorner: corner,
         },
