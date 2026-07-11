@@ -199,7 +199,9 @@ between each other (no DAG); each reads the trigger snapshot.
 Three SQLite tables (new schema version):
 
 - `itops_sites` — id, name, ordered Connection ids, optional dynamic filter,
-  transport defaults.
+  and a legacy transport fallback retained for storage compatibility. Site
+  Properties does not expose transport; new Sites use `auto`, and current Host
+  execution resolves from bound Connections.
 - `itops_site_racks` / `itops_site_rack_items` — Site topology and Rack
   Devices. Pure metadata; Connection ids are soft references.
 - `itops_hosts` — per-Site Host inventory: hostname, label, kind
@@ -381,6 +383,9 @@ exports save PDF, while Rack View also saves an Excel-readable inventory table.
 An empty Server Room uses explanatory guidance with an inline New Rack action.
 An empty Rack uses an inline Edit mode action that reveals the Rack Device
 picker.
+Site, Server Room, and Rack tree rows share one native context-menu contract:
+Properties first, a separator, then Delete with a trash icon. Delete routes to
+the shared danger `ConfirmSheet`; the seeded Default Site shows Delete disabled.
 The live
 Batch Run view renders a per-host grid
 with status chips and **live streamed output** (each host auto-reveals its

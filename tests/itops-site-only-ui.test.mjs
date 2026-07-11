@@ -76,7 +76,8 @@ test("Site tree add menu opens distinct Site, Server Room, and Rack dialogs", as
   assert.match(sites, /customIcon=\{site\.roomIcons\?\.\[room\.key\]\}/);
   assert.match(sites, /<ConnectionIcon\b/);
   assert.match(siteDialog, /itops\.sites\.createHelp/);
-  assert.match(siteDialog, /\{isEdit \? \([\s\S]*itops\.sites\.perHostTransport/);
+  assert.doesNotMatch(siteDialog, /itops\.sites\.perHostTransport|TRANSPORTS|setTransport/);
+  assert.match(siteDialog, /transport: group\?\.transport \?\? "auto"/);
   assert.doesNotMatch(siteDialog, /\{isEdit \? \([\s\S]{0,120}<Field\s+label=\{t\("itops\.sites\.connectionsLabel"\)\}/);
   assert.match(serverRoomDialog, /itops\.racks\.serverRoomSiteLabel/);
   assert.match(serverRoomDialog, /createServerRoom\(/);
@@ -118,16 +119,24 @@ test("Site View shows its placement dots only while editing", async () => {
   assert.match(css, /\.itops-page \.it-free-surface\.site:not\(\.editing\) \{[\s\S]*background-image:\s*none;/);
 });
 
-test("Site topology rows open their existing dialogs from native Properties menus", async () => {
+test("Site topology rows expose Properties and confirmation-backed Delete menus", async () => {
   const sites = await read("src/modules/itops/SitesTab.tsx");
   const english = JSON.parse(await read("src/i18n/locales/en.json"));
 
   assert.match(sites, /showNativeContextMenu/);
   assert.match(sites, /label: t\("common\.properties"\)/);
+  assert.match(sites, /label: t\("itops\.actions\.delete"\)/);
+  assert.match(sites, /iconSvg: nativeMenuIcons\.trash/);
   assert.equal(english.common.properties, "Properties");
   assert.match(sites, /setDialog\(\{ group: site \}\)/);
   assert.match(sites, /setServerRoomDialog\(\{ siteId: site\.id, room: room\.room! \}\)/);
   assert.match(sites, /setRackDialog\(\{ siteId: site\.id, rack \}\)/);
+  assert.match(sites, /setPendingDelete\(\{ kind: "site", site \}\)/);
+  assert.match(sites, /deleteDisabled: site\.id === DEFAULT_SITE_ID/);
+  assert.match(sites, /await removeSite\(pending\.site\.id\)/);
+  assert.match(sites, /setPendingDelete\(\{ kind: "serverRoom"/);
+  assert.match(sites, /setPendingDelete\(\{ kind: "rack"/);
+  assert.match(sites, /<ConfirmSheet[\s\S]*pendingDelete\.kind === "site"/);
   assert.match(sites, /<TreeRow[\s\S]*onContextMenu=/);
 });
 

@@ -111,12 +111,14 @@ type ItOpsCustomIcon = {
 };
 
 type PendingDelete =
+  | { kind: "site"; site: Site }
   | { kind: "serverRoom"; siteId: string; room: ServerRoom; racks: Rack[] }
   | { kind: "rack"; siteId: string; rack: Rack }
   | { kind: "item"; siteId: string; rack: Rack; item: RackItem };
 
 const FREE_CARD_WIDTH = 240;
 const FREE_CARD_HEIGHT = 74;
+const DEFAULT_SITE_ID = "default-fleet";
 
 type SiteDestination = "site" | "serverRooms" | "hosts" | "runHistory" | "automations";
 
@@ -165,6 +167,7 @@ export function SitesTab({
   const loadRacks = useItOpsStore((state) => state.loadRacks);
   const serverRoomsBySite = useItOpsStore((state) => state.serverRoomsBySite);
   const loadServerRooms = useItOpsStore((state) => state.loadServerRooms);
+  const removeSite = useItOpsStore((state) => state.removeSite);
   const deleteServerRoom = useItOpsStore((state) => state.deleteServerRoom);
   const taskCount = useItOpsStore((state) => state.tasks.length);
 
@@ -388,7 +391,18 @@ export function SitesTab({
     setSelectedDestination(destination);
   }
 
-  function showPropertiesMenu(event: ReactMouseEvent<HTMLElement>, action: () => void) {
+  function showTopologyMenu(
+    event: ReactMouseEvent<HTMLElement>,
+    {
+      onProperties,
+      onDelete,
+      deleteDisabled = false,
+    }: {
+      onProperties: () => void;
+      onDelete: () => void;
+      deleteDisabled?: boolean;
+    },
+  ) {
     event.preventDefault();
     event.stopPropagation();
     void showNativeContextMenu(
@@ -397,7 +411,15 @@ export function SitesTab({
           kind: "item",
           label: t("common.properties"),
           iconSvg: nativeMenuIcons.pencil,
-          action,
+          action: onProperties,
+        },
+        { kind: "separator" },
+        {
+          kind: "item",
+          label: t("itops.actions.delete"),
+          iconSvg: nativeMenuIcons.trash,
+          disabled: deleteDisabled,
+          action: onDelete,
         },
       ],
       { x: event.clientX, y: event.clientY },
@@ -462,6 +484,14 @@ export function SitesTab({
     if (!pending) return;
     setPendingDelete(null);
     try {
+      if (pending.kind === "site") {
+        await removeSite(pending.site.id);
+        setActiveId(null);
+        setDrill(EMPTY_DRILL);
+        setSelectedDestination("site");
+        setRootSurface("site");
+        return;
+      }
       if (pending.kind === "serverRoom") {
         for (const rack of pending.racks) {
           await deleteRack(pending.siteId, rack.id);
@@ -663,7 +693,11 @@ export function SitesTab({
                         selectSiteDestination(site.id, "site");
                       }}
                       onContextMenu={(event) =>
-                        showPropertiesMenu(event, () => setDialog({ group: site }))
+                        showTopologyMenu(event, {
+                          onProperties: () => setDialog({ group: site }),
+                          onDelete: () => setPendingDelete({ kind: "site", site }),
+                          deleteDisabled: site.id === DEFAULT_SITE_ID,
+                        })
                       }
                     />
                     {open ? (
@@ -702,9 +736,17 @@ export function SitesTab({
                                   onContextMenu={
                                     room.room
                                       ? (event) =>
-                                          showPropertiesMenu(event, () =>
-                                            setServerRoomDialog({ siteId: site.id, room: room.room! }),
-                                          )
+                                          showTopologyMenu(event, {
+                                            onProperties: () =>
+                                              setServerRoomDialog({ siteId: site.id, room: room.room! }),
+                                            onDelete: () =>
+                                              setPendingDelete({
+                                                kind: "serverRoom",
+                                                siteId: site.id,
+                                                room: room.room!,
+                                                racks: room.racks,
+                                              }),
+                                          })
                                       : undefined
                                   }
                                 />
@@ -725,9 +767,12 @@ export function SitesTab({
                                           })
                                         }
                                         onContextMenu={(event) =>
-                                          showPropertiesMenu(event, () =>
-                                            setRackDialog({ siteId: site.id, rack }),
-                                          )
+                                          showTopologyMenu(event, {
+                                            onProperties: () =>
+                                              setRackDialog({ siteId: site.id, rack }),
+                                            onDelete: () =>
+                                              setPendingDelete({ kind: "rack", siteId: site.id, rack }),
+                                          })
                                         }
                                       />
                                     ))
@@ -889,14 +934,18 @@ export function SitesTab({
         <ConfirmSheet
           tone="danger"
           title={
-            pendingDelete.kind === "serverRoom"
+            pendingDelete.kind === "site"
+              ? t("itops.sites.deleteTitle")
+              : pendingDelete.kind === "serverRoom"
               ? t("itops.racks.deleteServerRoomTitle")
               : pendingDelete.kind === "rack"
                 ? t("itops.racks.deleteTitle")
                 : t("itops.racks.deleteItemTitle")
           }
           message={
-            pendingDelete.kind === "serverRoom"
+            pendingDelete.kind === "site"
+              ? t("itops.sites.deleteBody", { name: pendingDelete.site.name })
+              : pendingDelete.kind === "serverRoom"
               ? t("itops.racks.deleteServerRoomBody", {
                   name: pendingDelete.room.name,
                   count: pendingDelete.racks.length,
