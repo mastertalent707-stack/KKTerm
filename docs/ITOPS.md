@@ -384,8 +384,14 @@ An empty Server Room uses explanatory guidance with an inline New Rack action.
 An empty Rack uses an inline Edit mode action that reveals the Rack Device
 picker.
 Site, Server Room, and Rack tree rows share one native context-menu contract:
-Properties first, a separator, then Delete with a trash icon. Delete routes to
-the shared danger `ConfirmSheet`; the seeded Default Site shows Delete disabled.
+Properties is always the final item, separated from the commands above it.
+Delete sits above Properties and routes to the shared danger `ConfirmSheet`;
+the seeded Default Site shows Delete disabled. A Server Room also places
+`itops.racks.addRackAction` above Delete and opens the New Rack dialog already
+scoped to that Server Room.
+The virtual Server Rooms row has its own single-command native menu:
+`itops.racks.addServerRoomAction`, which opens the New Server Room dialog for
+that Site.
 The live
 Batch Run view renders a per-host grid
 with status chips and **live streamed output** (each host auto-reveals its

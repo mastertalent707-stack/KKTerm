@@ -321,10 +321,13 @@ The visible IT Ops Module opens directly into the Site topology surface:
 - **Sites tree** — the left column contains the Module title/icon and the
   searchable Site → Server Room → Rack navigator. The whole column is
   resizable, and the IT Ops title-bar Sites button hides or shows it. Width
-  and hidden state persist. A native right-click menu exposes Properties and
-  Delete for each Site, Server Room, or Rack. Properties reopens the existing
-  add dialog in edit mode; Delete always opens the shared confirmation sheet.
-  The undeletable Default Site keeps a disabled Delete item.
+  and hidden state persist. A native right-click menu exposes Delete followed
+  by a separator and final Properties item for each Site, Server Room, or Rack.
+  A Server Room prepends `itops.racks.addRackAction`. Properties reopens the
+  existing add dialog in edit mode; Delete always opens the shared confirmation
+  sheet. The undeletable Default Site keeps a disabled Delete item.
+  Right-clicking the virtual Server Rooms row instead exposes
+  `itops.racks.addServerRoomAction` for that Site.
 - **Site View** — selecting a Site shows Server Room cards.
 - **Server Room View** — selecting a Server Room shows its Racks in one of
   three layouts: rack elevations (default, optionally grouped by each Rack's

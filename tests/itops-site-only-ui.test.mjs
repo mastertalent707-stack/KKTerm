@@ -138,6 +138,29 @@ test("Site topology rows expose Properties and confirmation-backed Delete menus"
   assert.match(sites, /setPendingDelete\(\{ kind: "rack"/);
   assert.match(sites, /<ConfirmSheet[\s\S]*pendingDelete\.kind === "site"/);
   assert.match(sites, /<TreeRow[\s\S]*onContextMenu=/);
+  const menuHelper = sites.match(/function showTopologyMenu\([\s\S]*?\n  \}/)?.[0] ?? "";
+  assert.ok(menuHelper.indexOf('label: t("itops.actions.delete")') < menuHelper.indexOf('label: t("common.properties")'));
+  assert.match(menuHelper, /label: t\("common\.properties"\)[\s\S]*action: onProperties[\s\S]*$/);
+});
+
+test("Server Room rows expose Add Rack before Delete and final Properties", async () => {
+  const sites = await read("src/modules/itops/SitesTab.tsx");
+  const english = JSON.parse(await read("src/i18n/locales/en.json"));
+
+  assert.equal(english.itops.racks.addRackAction, "Add Rack");
+  assert.match(sites, /showTopologyMenu\(event, \{[\s\S]*addAction: \{[\s\S]*label: t\("itops\.racks\.addRackAction"\)/);
+  assert.match(sites, /setRackDialog\(\{[\s\S]*siteId: site\.id,[\s\S]*rack: null,[\s\S]*defaultServerRoom: room\.key/);
+});
+
+test("Server Rooms virtual row exposes its contextual add command", async () => {
+  const sites = await read("src/modules/itops/SitesTab.tsx");
+  const english = JSON.parse(await read("src/i18n/locales/en.json"));
+
+  assert.equal(english.itops.racks.addServerRoomAction, "Add Server Room");
+  assert.match(sites, /label=\{t\("itops\.navigation\.serverRooms"\)\}[\s\S]*onContextMenu=\{\(event\) =>[\s\S]*showAddServerRoomMenu\(event, site\.id\)/);
+  assert.match(sites, /label: t\("itops\.racks\.addServerRoomAction"\)/);
+  assert.match(sites, /iconSvg: nativeMenuIcons\.plus/);
+  assert.match(sites, /setServerRoomDialog\(\{ siteId, room: null \}\)/);
 });
 
 test("Site dialog no longer loads or selects Connections", async () => {

@@ -19,7 +19,7 @@ import {
 import { Trans, useTranslation } from "react-i18next";
 import { Maximize2, Minimize2 } from "../../lib/reicon";
 import { ConfirmSheet } from "../../app/ui/dialog";
-import { showNativeContextMenu } from "../../lib/nativeContextMenu";
+import { showNativeContextMenu, type NativeContextMenuItem } from "../../lib/nativeContextMenu";
 import { nativeMenuIcons } from "../../lib/nativeMenuIcons";
 import { useWorkspaceStore } from "../../store";
 import type { Site, Rack, RackItem, RackItemKind, ResolvedHost, ServerRoom } from "../../types";
@@ -397,29 +397,54 @@ export function SitesTab({
       onProperties,
       onDelete,
       deleteDisabled = false,
+      addAction,
     }: {
       onProperties: () => void;
       onDelete: () => void;
       deleteDisabled?: boolean;
+      addAction?: { label: string; action: () => void };
     },
   ) {
+    event.preventDefault();
+    event.stopPropagation();
+    const items: NativeContextMenuItem[] = [];
+    if (addAction) {
+      items.push({
+        kind: "item",
+        label: addAction.label,
+        iconSvg: nativeMenuIcons.plus,
+        action: addAction.action,
+      });
+    }
+    items.push(
+      {
+        kind: "item",
+        label: t("itops.actions.delete"),
+        iconSvg: nativeMenuIcons.trash,
+        disabled: deleteDisabled,
+        action: onDelete,
+      },
+      { kind: "separator" },
+      {
+        kind: "item",
+        label: t("common.properties"),
+        iconSvg: nativeMenuIcons.pencil,
+        action: onProperties,
+      },
+    );
+    void showNativeContextMenu(items, { x: event.clientX, y: event.clientY });
+  }
+
+  function showAddServerRoomMenu(event: ReactMouseEvent<HTMLElement>, siteId: string) {
     event.preventDefault();
     event.stopPropagation();
     void showNativeContextMenu(
       [
         {
           kind: "item",
-          label: t("common.properties"),
-          iconSvg: nativeMenuIcons.pencil,
-          action: onProperties,
-        },
-        { kind: "separator" },
-        {
-          kind: "item",
-          label: t("itops.actions.delete"),
-          iconSvg: nativeMenuIcons.trash,
-          disabled: deleteDisabled,
-          action: onDelete,
+          label: t("itops.racks.addServerRoomAction"),
+          iconSvg: nativeMenuIcons.plus,
+          action: () => setServerRoomDialog({ siteId, room: null }),
         },
       ],
       { x: event.clientX, y: event.clientY },
@@ -712,6 +737,7 @@ export function SitesTab({
                           selected={activeId === site.id && selectedDestination === "serverRooms" && drill.serverRoom == null && rootSurface === "site"}
                           onToggle={() => toggleNode(`${fId}:rooms`)}
                           onSelect={() => selectSiteDestination(site.id, "serverRooms")}
+                          onContextMenu={(event) => showAddServerRoomMenu(event, site.id)}
                         />
                         {isExpanded(`${fId}:rooms`) ? siteTopo
                           .filter((room) => matchQ(room.key))
@@ -737,6 +763,15 @@ export function SitesTab({
                                     room.room
                                       ? (event) =>
                                           showTopologyMenu(event, {
+                                            addAction: {
+                                              label: t("itops.racks.addRackAction"),
+                                              action: () =>
+                                                setRackDialog({
+                                                  siteId: site.id,
+                                                  rack: null,
+                                                  defaultServerRoom: room.key,
+                                                }),
+                                            },
                                             onProperties: () =>
                                               setServerRoomDialog({ siteId: site.id, room: room.room! }),
                                             onDelete: () =>
