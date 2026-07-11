@@ -42,7 +42,6 @@ import {
 import { rackFloorMetrics } from "./roomFloorPlan";
 import { ItIcon } from "./icons";
 import { RoomObjectPlanArtwork } from "./RoomObjectArtwork";
-import { KuaiKuaiBag } from "./KuaiKuaiBag";
 import { isRackTopItem } from "./rackPlacement";
 import {
   OBJECT_ACCENTS,
@@ -634,8 +633,11 @@ function BlueprintRack({
       >
         <span className="rm-bp-rack-name">{rack.name}</span>
         {topKuaiguai ? (
-          <span className="rm-bp-top-kuaiguai">
-            <KuaiKuaiBag style="laidDown" expiry={topKuaiguai.metadata?.expiry} />
+          <span
+            className="rm-bp-top-kuaiguai"
+            style={{ "--obj": OBJECT_ACCENTS.kuaikuai } as React.CSSProperties}
+          >
+            <RoomObjectPlanArtwork kind="kuaikuai" />
           </span>
         ) : null}
         <RackTagChips rack={rack} />

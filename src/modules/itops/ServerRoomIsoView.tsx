@@ -26,12 +26,12 @@ import { showNativeContextMenu } from "../../lib/nativeContextMenu";
 import type { Rack, RackItem, RackItemStatus } from "../../types";
 import { rackFloorMetrics } from "./roomFloorPlan";
 import { RoomObjectIsoArtwork } from "./RoomObjectIsoReference";
-import { KuaiKuaiBag } from "./KuaiKuaiBag";
 import { isRackTopItem } from "./rackPlacement";
 import {
   ISO_ROT_DEG,
   ISO_TILT_COS,
   ISO_TILT_DEG,
+  cornerFromDisplayPoint,
   expandIsoFloorFrame,
   isoPlacementCells,
   moveIsoRack,
@@ -199,12 +199,28 @@ export function ServerRoomIsoView({
   const placementPointer = useRoomPlacementPointer(placing, onCancelPlacement);
   // Cursor-tracked placement preview: hovering a tile (or a cabinet) while a
   // picker card is armed snaps the armed object's ghost to that grid cell.
-  const [hover, setHover] = useState<IsoCell | null>(null);
+  const [hover, setHover] = useState<(IsoCell & { corner: Corner }) | null>(null);
   useEffect(() => {
     if (!placing) setHover(null);
   }, [placing]);
-  const setHoverCell = (cell: IsoCell) =>
-    setHover((prev) => (prev && prev.x === cell.x && prev.y === cell.y ? prev : cell));
+  const setHoverCell = (cell: IsoCell, corner: Corner = 0) =>
+    setHover((prev) =>
+      prev && prev.x === cell.x && prev.y === cell.y && prev.corner === corner
+        ? prev
+        : { ...cell, corner },
+    );
+  const cornerFromTileEvent = (
+    event: ReactPointerEvent<HTMLButtonElement> | ReactMouseEvent<HTMLButtonElement>,
+  ): Corner =>
+    tool != null && objectSpec(tool).quarter
+      ? cornerFromDisplayPoint(
+          event.nativeEvent.offsetX,
+          event.nativeEvent.offsetY,
+          event.currentTarget.offsetWidth,
+          event.currentTarget.offsetHeight,
+          angle,
+        )
+      : 0;
   const clearHoverOutsideTarget = (event: ReactPointerEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
     if (!target.closest(".rm-iso-tile, .rm-iso-cab")) setHover(null);
@@ -396,16 +412,26 @@ export function ServerRoomIsoView({
     );
   }
 
-  function placeObjectAt(cell: IsoCell) {
+  function placeObjectAt(cell: IsoCell, corner: Corner = 0) {
     if (tool == null || !onObjectsChange) return;
-    const spans = footprintSpans(cell, tool, 0, racks, layout.cells, objects, undefined, 0, facing);
+    const spans = footprintSpans(
+      cell,
+      tool,
+      0,
+      racks,
+      layout.cells,
+      objects,
+      undefined,
+      corner,
+      facing,
+    );
     const z = resolveDropZ(spans, tool);
     if (z == null) {
       onObjectBlocked?.();
       return;
     }
     if (tool === "kuaikuai" && onPlaceKuaiguai) {
-      const support = rackTopSupport(cell, tool, 0, 0, z, racks, layout.cells, facing);
+      const support = rackTopSupport(cell, tool, 0, corner, z, racks, layout.cells, facing);
       if (support) {
         if (onPlaceKuaiguai(support)) onObjectPlaced?.();
         else onObjectBlocked?.();
@@ -414,7 +440,7 @@ export function ServerRoomIsoView({
     }
     onObjectsChange([
       ...objects,
-      { id: crypto.randomUUID(), kind: tool, x: cell.x, y: cell.y, z, rot: 0, corner: 0 },
+      { id: crypto.randomUUID(), kind: tool, x: cell.x, y: cell.y, z, rot: 0, corner },
     ]);
     onObjectPlaced?.();
   }
@@ -581,12 +607,21 @@ export function ServerRoomIsoView({
                             ? t(`itops.floorPlan.object.${tool}`)
                             : t("itops.floorPlan.isoAddHere")
                       }
-                      onPointerEnter={placing ? () => setHoverCell(cell) : undefined}
-                      onClick={() =>
+                      onPointerEnter={
+                        placing
+                          ? (event) => setHoverCell(cell, cornerFromTileEvent(event))
+                          : undefined
+                      }
+                      onPointerMove={
+                        placing
+                          ? (event) => setHoverCell(cell, cornerFromTileEvent(event))
+                          : undefined
+                      }
+                      onClick={(event) =>
                         placeRackId != null
                           ? placeRackAt(cell)
                           : tool != null
-                            ? placeObjectAt(cell)
+                            ? placeObjectAt(cell, cornerFromTileEvent(event))
                             : onAddRack?.()
                       }
                     >
@@ -673,41 +708,67 @@ export function ServerRoomIsoView({
                       // for the pending rack at its depth, front flush.
                       if (tool != null) {
                         const dropZ = resolveDropZ(
-                          footprintSpans(hover, tool, 0, racks, layout.cells, objects, undefined, 0, facing),
+                          footprintSpans(
+                            hover,
+                            tool,
+                            0,
+                            racks,
+                            layout.cells,
+                            objects,
+                            undefined,
+                            hover.corner,
+                            facing,
+                          ),
                           tool,
                         );
                         // A rack-top 乖乖 drop becomes the rack's single top
                         // item, so an occupied cabinet top reads as blocked.
                         const topTaken = (() => {
                           if (dropZ == null || tool !== "kuaikuai") return false;
-                          const support = rackTopSupport(hover, tool, 0, 0, dropZ, racks, layout.cells, facing);
+                          const support = rackTopSupport(
+                            hover,
+                            tool,
+                            0,
+                            hover.corner,
+                            dropZ,
+                            racks,
+                            layout.cells,
+                            facing,
+                          );
                           return !!support && support.items.some((item) => isRackTopItem(item, support.heightU));
                         })();
                         const z = topTaken ? null : dropZ;
-                        const span = objectCellSpan(tool, 0);
-                        const tileRect = rotateRectForView(
-                          { x: hover.x + offX, y: hover.y + offY, w: span.w, d: span.h },
-                          angle,
-                          floorCols,
-                          floorRows,
-                        );
-                        const tile = {
-                          left: tileRect.x * CELL,
-                          top: tileRect.y * CELL,
-                          width: tileRect.w * CELL,
-                          height: tileRect.d * CELL,
-                        };
-                        // A fresh object drops with grid rot/corner 0. Rotate
+                        // A fresh object drops with grid rotation 0. Rotate
                         // the exact fractional footprint so quarter fixtures
                         // keep their floor-plan corner in every view angle.
-                        const fp = objectFootprint(tool, 0, 0);
-                        const anchor = objectSurfaceAnchor(tool, 0, 0);
+                        const fp = objectFootprint(tool, 0, hover.corner);
+                        const anchor = objectSurfaceAnchor(tool, 0, hover.corner);
                         const displayRect = rotateRectForView(
                           { x: hover.x + offX + fp.x, y: hover.y + offY + fp.y, w: fp.w, d: fp.d },
                           angle,
                           floorCols,
                           floorRows,
                         );
+                        const span = objectCellSpan(tool, 0);
+                        const tileRect = objectSpec(tool).quarter
+                          ? displayRect
+                          : rotateRectForView(
+                              {
+                                x: hover.x + offX,
+                                y: hover.y + offY,
+                                w: span.w,
+                                d: span.h,
+                              },
+                              angle,
+                              floorCols,
+                              floorRows,
+                            );
+                        const tile = {
+                          left: tileRect.x * CELL,
+                          top: tileRect.y * CELL,
+                          width: tileRect.w * CELL,
+                          height: tileRect.d * CELL,
+                        };
                         const displayAnchor = rotatePointForView(
                           { x: hover.x + offX + anchor.x, y: hover.y + offY + anchor.y },
                           angle,
@@ -960,12 +1021,20 @@ function IsoCabinet({
           >
             {rack.name}
           </span>
-          {topKuaiguai ? (
-            <span className="rm-iso-top-kuaiguai">
-              <KuaiKuaiBag style="laidDown" expiry={topKuaiguai.metadata?.expiry} />
-            </span>
-          ) : null}
         </span>
+        {topKuaiguai ? (
+          <span
+            className="rm-iso-rack-top-kuaiguai"
+            data-kind="kuaikuai"
+            style={{ transform: surfaceModel(h, "-50%, -100%") }}
+          >
+            <RoomObjectIsoArtwork
+              kind="kuaikuai"
+              facing={facing}
+              expiry={topKuaiguai.metadata?.expiry}
+            />
+          </span>
+        ) : null}
         <span
           className={`rm-iso-face rm-iso-front ${southRole}`}
           style={{ width: w, height: h, top: d - h }}

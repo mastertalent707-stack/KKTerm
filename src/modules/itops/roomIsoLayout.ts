@@ -200,6 +200,22 @@ export type Facing = 0 | 1 | 2 | 3;
  *  step maps corner c to (c + 1) % 4 — so `rotateFacingForView` applies. */
 export type Corner = 0 | 1 | 2 | 3;
 
+/** Map a pointer position inside a displayed floor tile back to the durable
+ * grid corner. The room rotates corners clockwise for each view step, so the
+ * picked display quadrant must be rotated back before it is stored. */
+export function cornerFromDisplayPoint(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  angle: IsoViewAngle,
+): Corner {
+  const east = x >= width / 2;
+  const south = y >= height / 2;
+  const displayed: Corner = south ? (east ? 2 : 3) : east ? 1 : 0;
+  return ((displayed - angle + 4) % 4) as Corner;
+}
+
 export function sanitizeCorner(value: unknown): Corner {
   return value === 1 || value === 2 || value === 3 ? value : 0;
 }

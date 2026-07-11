@@ -17,6 +17,7 @@ import {
   type RoomObject,
 } from "../src/modules/itops/roomObjects";
 import {
+  cornerFromDisplayPoint,
   rotateCellForView,
   rotateFacingForView,
   sanitizeFacing,
@@ -125,6 +126,41 @@ test("quarter objects in different rack corners share the same rack top", () => 
     { a: 0 },
   );
   assert.equal(resolveDropZ(sameCorner, "kuaikuai"), 44);
+});
+
+test("fire extinguisher and 乖乖 share one floor cell in different corners", () => {
+  const fire = { ...obj("fire", "fireExtinguisher", 0, 0, 0), corner: 0 as const };
+  const spans = footprintSpans(
+    { x: 0, y: 0 },
+    "kuaikuai",
+    0,
+    [],
+    {},
+    [fire],
+    undefined,
+    2,
+  );
+
+  assert.deepEqual(spans, []);
+  assert.equal(resolveDropZ(spans, "kuaikuai"), 0);
+});
+
+test("2.5D pointer quadrants map back to durable corners at every view angle", () => {
+  const displayPoints = [
+    [10, 10],
+    [90, 10],
+    [90, 90],
+    [10, 90],
+  ] as const;
+
+  for (const angle of [0, 1, 2, 3] as const) {
+    for (const [displayCorner, [x, y]] of displayPoints.entries()) {
+      assert.equal(
+        cornerFromDisplayPoint(x, y, 100, 100, angle),
+        (displayCorner - angle + 4) % 4,
+      );
+    }
+  }
 });
 
 test("settleRoomObjects repairs stale raised rack-top corner placements", () => {
