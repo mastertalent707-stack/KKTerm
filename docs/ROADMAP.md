@@ -231,7 +231,7 @@ Second-tier follow-ups to the shipped OSC 133 / Quick Select / inline images / n
 
 ### IT Ops Center
 
-Design accepted: see `docs/ADR/0011-it-ops-module.md`, `docs/ADR/0012-winrm-transport-library.md` (WinRM transport for Windows Update playbooks), `docs/ITOPS.md`, and `docs/manual/12-it-ops.md`. The first runtime module is wired up with Host Groups, Batch Runs, Automations, run history, and Run Reports; the remaining work is deeper IT Ops automation functionality.
+Design accepted: see `docs/ADR/0011-it-ops-module.md`, `docs/ADR/0012-winrm-transport-library.md` (WinRM transport for Windows Update playbooks), `docs/ITOPS.md`, and `docs/manual/12-it-ops.md`. The runtime module is Site-first, with Site-owned Server Rooms, Hosts, Automations, and Run History plus a global reusable Task Library. The first Task slice persists reusable scripts and launches them through Batch Runs; reusable Playbook editing and Automation `taskId` references remain follow-up work.
 
 - [ ] More IT Ops automation actions, conditions, and reusable workflow templates.
 - [ ] Automated server-update playbooks (apt, dnf, yum, Windows Update via WinRM) with dry-run preview and rollback-aware sequencing.

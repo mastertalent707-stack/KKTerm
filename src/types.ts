@@ -396,6 +396,15 @@ export type BatchTask =
   | { kind: "script"; body: string; shell?: string | null }
   | { kind: "playbook"; name: string; steps: PlaybookStep[] };
 
+// Reusable global Task Library entry. Targets are chosen when the Task runs.
+export interface ItopsTask {
+  id: string;
+  name: string;
+  description: string;
+  sortOrder: number;
+  task: BatchTask;
+}
+
 export interface HostReport {
   connectionId: string;
   name: string;

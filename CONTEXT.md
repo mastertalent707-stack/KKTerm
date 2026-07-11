@@ -114,7 +114,7 @@ A Pane's **kind** (terminal, sftp, ftp, localFiles, webview, remoteDesktop) is w
 Terminal Panes for tmux-enabled SSH Connections may carry a generated friendly tmux session id, such as `kkterm-cockpit001`, used to resume that Pane's remote tmux session when the Pane is recreated. Current Pane tmux ids use the `kkterm-<sci-fi-name><number>` shape and are remembered in frontend workspace storage. That id belongs to the frontend workspace/Pane layer, not the backend Connection model.
 
 **Automation**:
-A durable IT Ops rule stored in SQLite (`itops_automations`): one trigger, an optional condition predicate, and a typed action (notify, popup, email, webhook, run a Batch Run, or AI intervention). Automations persist across app restart and re-arm on launch. An Automation is the durable definition; the live **Watchdog** runtime is what executes it, the same way a **Connection** is durable and a **Session** is its live runtime. Created and managed in the **IT Ops Module**. See `docs/ITOPS.md` and `src-tauri/src/itops/`.
+A durable IT Ops rule stored in SQLite (`itops_automations`): one trigger, an optional condition predicate, and an ordered list of typed actions such as notify, popup, email, webhook, or launching a Task as a Batch Run. Automations persist across app restart and re-arm on launch. An Automation is the durable definition; the live **Watchdog** runtime evaluates it, the same way a **Connection** is durable and a **Session** is its live runtime. Created and managed in a Site's Automations destination. See `docs/ITOPS.md` and `src-tauri/src/itops/`.
 _Avoid_: watchdog (for the durable rule), workflow, job, saved alert
 
 **Watchdog**:
@@ -122,15 +122,23 @@ The live runtime that executes an armed **Automation** (or an ad-hoc live monito
 _Avoid_: monitor profile, durable watcher (the Automation is the durable part)
 
 **IT Ops Module**:
-A built-in Activity Rail Module for site operations: **Sites**, **Hosts**, **Batch Runs**, and **Automations**. Its current primary UI is the Site topology surface: a left **Sites** tree and a right drill-down through **Site View**, **Server Room View**, and **Rack View**. Batch Run and Automation functionality remains part of the Module even when those management surfaces are hidden. Lives with Dashboard and Install Helper above Settings. Not a Connection, Session, or Dashboard widget. See `docs/ITOPS.md` and `docs/ADR/0011-it-ops-module.md`.
+A built-in Activity Rail Module for site operations: **Sites**, **Hosts**, global reusable **Tasks**, **Batch Runs**, and **Automations**. Its operational navigator exposes Site-owned Server Rooms, Hosts, Automations, and Run History, plus a global Task Library; topology drills through Site View, Server Room View, and Rack View. Lives with Dashboard and Install Helper above Settings. Not a Connection, Session, or Dashboard widget. See `docs/ITOPS.md` and `docs/ADR/0011-it-ops-module.md`.
 _Avoid_: operations center, site manager, orchestrator
 
+**Task**:
+A durable, reusable IT Ops definition of what to execute: a script or interactive Playbook stored in `itops_tasks`. Tasks are global to the IT Ops Module and own no Site, Host selection, Session, credential, or live run state. A Site/Host selection supplies targets when launched; an Automation supplies a trigger plus Task and targets. A Task is not a saved Batch Run.
+_Avoid_: Site task, saved run, workflow
+
+**Task Library**:
+The global IT Ops collection of reusable Tasks. It appears once in the operational navigator as a sibling of Sites, never once beneath every Site. Opening a Task shows its definition and can launch it with the active Site preselected. The Task Library is a view/collection, not a durable entity or target container.
+_Avoid_: Site Tasks, scripts folder, workflow library, job catalog
+
 **Sites**:
-The IT Ops collection and navigator for Site records. In the current UI it is the left-column tree that contains Sites and their topology children. A row in Sites selects a **Site**; the plural term names the view/collection, not a durable data type.
+The IT Ops collection of Site records in the operational navigator. Expanding a Site exposes predefined virtual destinations for Server Rooms, Hosts, Automations, and Run History; those rows are navigation state, not stored folders. A Site row selects a **Site**. The plural term names the collection, not a durable data type.
 _Avoid_: fleets, host groups tab, inventory browser
 
 **Site**:
-A durable, named selection of existing Connections (plus an optional dynamic filter by type/folder) used as the target for Batch Runs and Automation `runBatch` actions. Stored in `itops_sites`; it references Connection ids and owns no Session and no secret. It is not a Connection type. A Site may own a topology of Server Rooms, Racks, and Rack Devices.
+A durable, named selection of existing Connections (plus an optional dynamic filter by type/folder) used as a target when launching a Task, starting an ad-hoc Batch Run, or executing an Automation action. Stored in `itops_sites`; it references Connection ids and owns no Session and no secret. It is not a Connection type. A Site may own Hosts and a topology of Server Rooms, Racks, and Rack Devices, but it does not own global Tasks.
 _Avoid_: fleet, host group, inventory, host list, connection group (as a Connection type)
 
 **Default Site**:
@@ -138,7 +146,7 @@ The undeletable fallback Site (stored id `default-fleet`, a legacy literal kept 
 Fleet→Site rename) that exists when IT Ops has no other Site rows. It is a safe top-level parent for Server Rooms, Racks, and Rack Devices, not a Connection or Session.
 
 **Site View**:
-The top-level right-side view for one selected Site. It shows that Site's Server Rooms as cards and is the entry point into the topology drill-down. It is not the same thing as the plural **Sites** navigator.
+The right-side topology view opened from one Site's Server Rooms destination. It shows that Site's Server Rooms as cards and is the entry point into Server Room View and Rack View. It is not the same thing as the plural **Sites** collection or the whole Site-owned navigation group.
 _Avoid_: overview, dashboard, host group details
 
 **Server Room**:
@@ -170,16 +178,32 @@ Non-secret presentation metadata for a Rack Device: label, U position, height, s
 _Avoid_: secrets, runtime status, connection settings
 
 **Host**:
-A durable IT Ops inventory entry for one device or guest in a Site, addressed by hostname and stored in `itops_hosts`. The device itself can be a Host, and a Host may carry **child Hosts** — its VMs or containers — via a soft self reference (`parent_host_id`). A Host may bind multiple **Connections** at once (ordered soft references), e.g. an SSH terminal plus an HTTPS URL Connection to its management interface, and stores the last **connectivity scan** snapshot (SSH / WinRM / HTTPS reachability probes) as data, never live Session state and never a secret. Hosts import from a pasted hostname list in Site View's Hosts segment and can be linked to a **Rack Device** (`metadata.hostId`) so the Rack View callout lists the Host and its child Hosts. A Host is not a Connection, not a Session, and not the `host` address field of a Connection.
+A durable IT Ops inventory entry for one device or guest in a Site, addressed by hostname and stored in `itops_hosts`. The device itself can be a Host, and a Host may carry **child Hosts** — its VMs or containers — via a soft self reference (`parent_host_id`). A Host may bind multiple **Connections** at once (ordered soft references), e.g. an SSH terminal plus an HTTPS URL Connection to its management interface, and stores the last **connectivity scan** snapshot (SSH / WinRM / HTTPS reachability probes) as data, never live Session state and never a secret. Hosts import from a pasted hostname list in the Site's Hosts destination and can be linked to a **Rack Device** (`metadata.hostId`) so the Rack View callout lists the Host and its child Hosts. A Host is not a Connection, not a Session, and not the `host` address field of a Connection.
 _Avoid_: server entry (as a durable term), connection host field, node, agent
 
+**Batch Task**:
+The typed execution payload consumed by the Batch Run executor: either a script body or an interactive Playbook. A durable Task stores one Batch Task, while the Batch Run launcher may also construct one ad hoc. Use **Task** for the reusable user-facing definition and **Batch Task** only for this executor/data-model payload.
+_Avoid_: durable Task (when referring only to the payload), job definition
+
+**Script**:
+The one-shot Batch Task kind: a free-form command body executed once per resolved Host. A script may be saved inside a reusable Task or entered ad hoc in the Batch Run launcher. Capitalize **Task** when referring to the durable wrapper; a script by itself is only execution content.
+_Avoid_: shell Task, job, Playbook
+
 **Batch Run**:
-One execution of a Batch Task (a one-shot script or an interactive, expect-style playbook) across a resolved Site, fanned out with bounded concurrency over a per-host transport (SSH, WinRM, or PsExec). Live per-host progress streams to the run grid as it happens; on completion a consolidated report — including each host's captured output — is written to `itops_run_history`, where it can be reopened as a read-only Run Report. The run is live runtime, not a durable definition.
+One execution of a reusable Task or ad-hoc Batch Task across resolved targets, fanned out with bounded concurrency over a per-host transport (SSH, WinRM, or PsExec). Live per-host progress streams as it happens; on completion a consolidated report — including each Host's captured output — is written to Run History. A Batch Run is runtime execution, not a durable definition or navigator container.
 _Avoid_: broadcast, job, deployment
 
+**Run History**:
+The Site-owned navigation destination that lists the active Batch Run and completed run records scoped to that Site. Completed rows come from `itops_run_history`; live progress remains in memory. Run History is an audit collection, not a Task library and not a queue.
+_Avoid_: Batch Runs tab, jobs, task history
+
+**Run Report**:
+The read-only view of one completed Batch Run. It presents the persisted consolidated result and capped per-Host output snapshot. A Run Report survives later Task edits or deletion and cannot be re-armed like an Automation.
+_Avoid_: Task, live run, Session log
+
 **Playbook**:
-A Batch Task kind: a user-authored, ordered sequence of interactive steps run over a single PTY shell per host. Each step **sends** a command or input and optionally **waits for** a literal output substring (a prompt) before the next step runs; a step that times out waiting for its `expect` stops the playbook on that host while other hosts continue. Distinct from a one-shot **script** Batch Task because steps can answer prompts (`[sudo] password:`, `Continue? [Y/n]`) and build on each other's shell state. See `docs/ITOPS.md` and `src-tauri/src/ssh.rs` (`run_playbook_capture_streaming`).
-_Avoid_: workflow (that reads as Automation), recipe (that is an Install Helper term), curated update sequence
+A Batch Task kind that may be stored inside a reusable Task: a user-authored, ordered sequence of interactive steps run over a single PTY shell per Host. Each step **sends** a command or input and optionally **waits for** a literal output substring before the next step runs; a step that times out stops the Playbook on that Host while other Hosts continue. Distinct from a one-shot script because steps can answer prompts (`[sudo] password:`, `Continue? [Y/n]`) and build on earlier shell state. See `docs/ITOPS.md` and `src-tauri/src/ssh.rs` (`run_playbook_capture_streaming`).
+_Avoid_: workflow (that reads as Automation), recipe (an Install Helper term), curated update sequence
 
 ## UI Layout
 

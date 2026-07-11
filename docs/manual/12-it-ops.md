@@ -3,11 +3,11 @@
 ## AI grep hints
 
 - Keys: `itops.*`, `settings.sectionItOps`, `watchdog.*`
-- Topics: IT Ops Module, Sites, Site View, Server Room, Server Room View, Server Room floor plan, Server Room 2.5D view, Rack View, racks, Rack Device, Rack Device Type, Rack Device Properties, rack unit (U), rack shell, tree navigator, drill-down, virtual datacenter, click-to-connect, Hosts, Host inventory, host import, hostname list, connectivity scan, child hosts, VM guests, container guests, Host Connection bindings, Batch Runs, Automations, site task, run history, Run Report, transport, SSH, WinRM, PsExec, trigger, condition, action, armed, disabled, Watchdog Status Bar
+- Topics: IT Ops Module, Sites, Site View, Server Room, Server Room View, Server Room floor plan, Server Room 2.5D view, Rack View, racks, Rack Device, Rack Device Type, Rack Device Properties, rack unit (U), rack shell, tree navigator, Task Library, reusable Task, drill-down, virtual datacenter, click-to-connect, Hosts, Host inventory, host import, hostname list, connectivity scan, child hosts, VM guests, container guests, Host Connection bindings, Batch Runs, Automations, run history, Run Report, transport, SSH, WinRM, PsExec, trigger, condition, action, armed, disabled, Watchdog Status Bar
 - Tutorial targets: `app.activityRailItOps`, `itops.sitesTree`, `itops.siteView`
 - Synonyms: "run on many hosts", "bulk command", "site", "host group" (renamed to Site), "host collection", "host inventory", "import servers", "detect ssh", "detect winrm", "scan hosts", "virtual machines on a host", "rack diagram", "rack elevation", "top-down view", "floor plan", "floor-plan view", "room footprint", "DCIM map", "2.5D view", "isometric room", "3D server room", "axonometric view", "utilization heatmap", "capacity heatmap", "rack health map", "virtual datacenter", "data center map", "open from rack", "scheduled monitor", "saved watchdog", "automation rule", "batch script", "run report"
 
-The **IT Ops Module** is an Activity Rail destination for operating across multiple existing Connections. Its current visible surface is Sites: a left Sites navigator and a right Site topology drill-down. Batch Runs and Automations are managed per Site from Site View's `itops.sites.viewLabel` segmented control; there is no separate top-level tab chrome. Settings → General → `settings.activityRail` controls whether the Module appears; it is hidden by default.
+The **IT Ops Module** is an Activity Rail destination for operating across multiple existing Connections. Its left operational navigator contains Sites and the global `itops.tasks.heading` Task Library. Expanding a Site exposes `itops.navigation.serverRooms`, `itops.tabs.hosts`, `itops.tabs.autos`, and `itops.navigation.runHistory`; only the active Site normally needs to remain expanded. Settings → General → `settings.activityRail` controls whether the Module appears; it is hidden by default.
 
 ## Sites
 
@@ -15,7 +15,7 @@ A **Site** is the durable top-level container for Server Rooms and Racks. It is 
 
 Open Sites from the add menu beside `itops.title` and choose `itops.racks.addSite`. The New Site dialog explains that a Site can model a region, location, customer, project, or other infrastructure grouping. Enter `itops.sites.nameLabel`; Connection binding is not part of Site creation. The header's shared icon picker customizes the Site icon. Save with `itops.actions.create`.
 
-The left Sites column includes the `itops.title` label/icon and can be resized like the Connection Tree. Use the Sites title-bar button, placed immediately before the `app.aiAssistant` button, to hide or show the entire left Sites navigator. The right column shows the selected Site only; it does not show the old Sites / Batch Runs / Automations top bar — Site View's `itops.sites.viewLabel` segmented control covers Batch Runs and Automations per Site instead.
+The left column includes the `itops.title` label/icon and can be resized like the Connection Tree. Use the title-bar button immediately before `app.aiAssistant` to hide or show it. Site children are predefined navigation destinations, not stored folders. `itops.navigation.serverRooms` preserves the existing Server Room → Rack topology tree; Hosts, Automations, and Run History open the same Site-scoped surfaces previously reached from Site View's segmented control. `itops.tasks.heading` is global and therefore appears once outside all Sites.
 
 ### Site View, Server Room View, and Rack View
 
@@ -58,6 +58,10 @@ A **Host** is a durable inventory entry for one device or guest in a Site, addre
 ## Batch Runs
 
 A **Batch Run** sends one script to every resolved host in a selected Site. Site View's `itops.tabs.runs` segment shows the selected Site's Batch Runs only: its live run, its recent runs, and a start affordance — the toolbar plus (`itops.actions.newBatchRun`) and the empty state's `itops.actions.startBatchRun` open the launcher preselected to that Site. In the launcher, select `itops.batchRuns.siteLabel`, enter the script under `itops.batchRuns.scriptLabel`, and choose `itops.actions.run`.
+
+## Task Library
+
+A **Task** is a reusable script or Playbook definition; it does not own targets. Open the global `itops.tasks.heading` destination to create, edit, delete, inspect, or run a Task. `itops.actions.runTask` opens the Batch Run launcher with the Task definition prefilled and the active Site preselected. The first implementation slice creates and edits script Tasks; ad-hoc Playbooks remain available in the Batch Run launcher while reusable Playbook editing is completed. Deleting a Task does not change saved Run History.
 
 Execution fans out with bounded concurrency. The live view shows queued, running, successful, and failed hosts and streams each host's combined output. `itops.actions.cancel` stops an active run. A completed run is written to Recent runs; select an entry to open its read-only Run Report and inspect the saved per-host output. `itops.actions.rerun` opens a new launcher preselected to the same Site.
 

@@ -1002,6 +1002,11 @@
       "runs": "Batch Runs",
       "autos": "Automations"
     },
+    "navigation": {
+      "serverRooms": "Server Rooms",
+      "runHistory": "Run History",
+      "library": "Library"
+    },
     "actions": {
       "newSite": "New Site",
       "newBatchRun": "New Batch Run",
@@ -1106,6 +1111,30 @@
       "bindingsHint": "Bind one or more Connections to this Host — e.g. its SSH terminal and an HTTPS URL Connection to its management interface.",
       "deleteConfirmTitle": "Delete Host \"{{name}}\"?",
       "deleteConfirmBody": "Its child Hosts are kept and move up one level. No Connection is deleted."
+    },
+    "tasks": {
+      "heading": "Task Library",
+      "searchPlaceholder": "Search tasks…",
+      "newTitle": "New Task",
+      "editTitle": "Edit Task",
+      "nameLabel": "Name",
+      "descriptionLabel": "Description",
+      "shellLabel": "Shell",
+      "shellPlaceholder": "Use the transport default",
+      "scriptLabel": "Script",
+      "definitionHeading": "Definition",
+      "noDescription": "No description",
+      "emptyTitle": "No reusable Tasks yet",
+      "emptyBody": "Save a script as a Task, then run it against any Site or use it from an Automation.",
+      "savedNotice": "Saved Task “{{name}}”.",
+      "deletedNotice": "Deleted Task “{{name}}”.",
+      "deleteTitle": "Delete Task?",
+      "deleteBody": "“{{name}}” will be removed. Existing Run History is not affected.",
+      "playbookEditLater": "Reusable Playbook editing will be added in a later implementation slice.",
+      "kind": {
+        "script": "Script task",
+        "playbook": "Playbook"
+      }
     },
     "racks": {
       "heading": "Racks",

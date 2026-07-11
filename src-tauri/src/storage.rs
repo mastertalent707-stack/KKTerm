@@ -12,7 +12,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 44;
+const SCHEMA_USER_VERSION: i32 = 45;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -341,6 +341,18 @@ CREATE TABLE IF NOT EXISTS itops_run_history (
 
 CREATE INDEX IF NOT EXISTS idx_itops_run_history_source
     ON itops_run_history(source, started_at);
+
+-- Reusable IT Ops task definitions. Tasks are global to the Module: a Site or
+-- Host selection supplies the target when the task is launched. v45.
+CREATE TABLE IF NOT EXISTS itops_tasks (
+    id           TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    description  TEXT NOT NULL DEFAULT '',
+    sort_order   INTEGER NOT NULL,
+    task_json    TEXT NOT NULL,
+    created_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
 -- A durable Automation (docs/ITOPS.md Phase 3): the persistent definition of a
 -- Watchdog. Enabled rows are re-armed into the live WatchdogRegistry on launch;

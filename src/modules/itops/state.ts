@@ -10,6 +10,7 @@ import type {
   AutomationAction,
   AutomationTestResult,
   BatchTask,
+  ItopsTask,
   HostImportResult,
   HostKind,
   HostScanEvent,
@@ -311,11 +312,20 @@ interface ItOpsState {
   pendingRunGroupId: string | null;
   /** Optional Rack / Server Room scope carried into the launcher for a scoped run. */
   pendingRunScope: RunScope | null;
-  requestNewBatchRun: (siteId?: string, scope?: RunScope) => void;
+  pendingRunTask: BatchTask | null;
+  requestNewBatchRun: (siteId?: string, scope?: RunScope, task?: BatchTask) => void;
   applyRunEvent: (event: RunEvent) => void;
   startBatchRun: (siteId: string, task: BatchTask, scope?: RunScope | null) => Promise<string>;
   cancelRun: (runId: string) => Promise<void>;
   loadRunHistory: () => Promise<void>;
+
+  // ── Global Task Library ──
+  tasks: ItopsTask[];
+  tasksLoaded: boolean;
+  loadTasks: () => Promise<void>;
+  createTask: (name: string, description: string, task: BatchTask) => Promise<ItopsTask>;
+  updateTask: (id: string, name: string, description: string, task: BatchTask) => Promise<ItopsTask>;
+  removeTask: (id: string) => Promise<void>;
 
   // ── Automations (Phase 3) ──
   automations: Automation[];
@@ -659,12 +669,14 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
   newRunRequest: 0,
   pendingRunGroupId: null,
   pendingRunScope: null,
+  pendingRunTask: null,
 
-  requestNewBatchRun(siteId, scope) {
+  requestNewBatchRun(siteId, scope, task) {
     set({
       newRunRequest: get().newRunRequest + 1,
       pendingRunGroupId: siteId ?? null,
       pendingRunScope: scope ?? null,
+      pendingRunTask: task ?? null,
     });
   },
 
@@ -696,6 +708,36 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
     }
     const runHistory = await invokeCommand("itops_list_run_history", { limit: 25 });
     set({ runHistory, historyLoaded: true });
+  },
+
+  // ── Global Task Library ──
+  tasks: [],
+  tasksLoaded: false,
+
+  async loadTasks() {
+    if (!isTauriRuntime()) {
+      set({ tasksLoaded: true });
+      return;
+    }
+    const tasks = await invokeCommand("itops_list_tasks");
+    set({ tasks, tasksLoaded: true });
+  },
+
+  async createTask(name, description, task) {
+    const created = await invokeCommand("itops_create_task", { name, description, task });
+    set({ tasks: [...get().tasks, created] });
+    return created;
+  },
+
+  async updateTask(id, name, description, task) {
+    const updated = await invokeCommand("itops_update_task", { id, name, description, task });
+    set({ tasks: get().tasks.map((entry) => (entry.id === id ? updated : entry)) });
+    return updated;
+  },
+
+  async removeTask(id) {
+    await invokeCommand("itops_remove_task", { id });
+    set({ tasks: get().tasks.filter((entry) => entry.id !== id) });
   },
 
   // ── Automations ──

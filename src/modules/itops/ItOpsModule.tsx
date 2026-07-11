@@ -48,17 +48,20 @@ export function ItOpsModule({
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
   const loadSites = useItOpsStore((state) => state.loadSites);
   const loadRunHistory = useItOpsStore((state) => state.loadRunHistory);
+  const loadTasks = useItOpsStore((state) => state.loadTasks);
   const loadAutomations = useItOpsStore((state) => state.loadAutomations);
   const applyRunEvent = useItOpsStore((state) => state.applyRunEvent);
   const newRunRequest = useItOpsStore((state) => state.newRunRequest);
   const pendingRunGroupId = useItOpsStore((state) => state.pendingRunGroupId);
   const pendingRunScope = useItOpsStore((state) => state.pendingRunScope);
+  const pendingRunTask = useItOpsStore((state) => state.pendingRunTask);
 
   useEffect(() => {
     void loadSites();
     void loadRunHistory();
+    void loadTasks();
     void loadAutomations();
-  }, [loadSites, loadRunHistory, loadAutomations]);
+  }, [loadSites, loadRunHistory, loadTasks, loadAutomations]);
 
   // Stream live Batch Run progress into the store.
   useEffect(() => {
@@ -136,6 +139,7 @@ export function ItOpsModule({
         <BatchRunDialog
           defaultGroupId={batchDialogGroupId}
           defaultScope={batchDialogScope}
+          defaultTask={pendingRunTask}
           onClose={() => setBatchDialogOpen(false)}
           onStarted={() => setBatchDialogOpen(false)}
         />

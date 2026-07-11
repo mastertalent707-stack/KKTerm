@@ -54,6 +54,7 @@ import type {
   SiteHost,
   RoomIconEntry,
   BatchTask,
+  ItopsTask,
   RunHistoryEntry,
   Automation,
   AutomationAction,
@@ -1343,6 +1344,22 @@ type CommandMap = {
   itops_list_run_history: {
     args: { limit?: number } | undefined;
     result: RunHistoryEntry[];
+  };
+  itops_list_tasks: {
+    args: undefined;
+    result: ItopsTask[];
+  };
+  itops_create_task: {
+    args: { name: string; description: string; task: BatchTask };
+    result: ItopsTask;
+  };
+  itops_update_task: {
+    args: { id: string; name: string; description: string; task: BatchTask };
+    result: ItopsTask;
+  };
+  itops_remove_task: {
+    args: { id: string };
+    result: void;
   };
   itops_list_automations: {
     args: undefined;

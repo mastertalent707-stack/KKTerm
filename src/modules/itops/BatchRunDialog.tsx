@@ -33,11 +33,13 @@ function emptyStep(): PlaybookStep {
 export function BatchRunDialog({
   defaultGroupId,
   defaultScope,
+  defaultTask,
   onClose,
   onStarted,
 }: {
   defaultGroupId?: string | null;
   defaultScope?: RunScope | null;
+  defaultTask?: BatchTask | null;
   onClose: () => void;
   onStarted: () => void;
 }) {
@@ -59,10 +61,14 @@ export function BatchRunDialog({
     }
     return t("itops.batchRuns.scopeServerRoom", { name: scope.serverRoom ?? "" });
   })();
-  const [mode, setMode] = useState<TaskMode>("script");
-  const [body, setBody] = useState("");
-  const [playbookName, setPlaybookName] = useState("");
-  const [steps, setSteps] = useState<PlaybookStep[]>([emptyStep()]);
+  const [mode, setMode] = useState<TaskMode>(defaultTask?.kind ?? "script");
+  const [body, setBody] = useState(defaultTask?.kind === "script" ? defaultTask.body : "");
+  const [playbookName, setPlaybookName] = useState(
+    defaultTask?.kind === "playbook" ? defaultTask.name : "",
+  );
+  const [steps, setSteps] = useState<PlaybookStep[]>(
+    defaultTask?.kind === "playbook" ? defaultTask.steps : [emptyStep()],
+  );
   const [busy, setBusy] = useState(false);
 
   const hasGroups = sites.length > 0;

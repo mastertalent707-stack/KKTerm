@@ -711,6 +711,19 @@ pub enum BatchTask {
     },
 }
 
+/// A reusable, global IT Ops task definition. Targets are deliberately absent:
+/// a Site, Host selection, or Automation supplies them when the Task launches.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ItopsTask {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    pub sort_order: i64,
+    pub task: BatchTask,
+}
+
 impl BatchTask {
     /// A redacted, one-line label for the run-history audit log — never the full
     /// script body, which may embed secrets.

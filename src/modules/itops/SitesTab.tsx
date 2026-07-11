@@ -28,6 +28,7 @@ import { SiteDialog } from "./SiteDialog";
 import { BatchRunsTab } from "./BatchRunsTab";
 import { AutomationsTab } from "./AutomationsTab";
 import { HostsPanel } from "./HostsPanel";
+import { TaskLibrary } from "./TaskLibrary";
 import { RackElevation } from "./RackElevation";
 import { RackDialog } from "./RackDialog";
 import { ServerRoomDialog } from "./ServerRoomDialog";
@@ -165,9 +166,12 @@ export function SitesTab({
   const serverRoomsBySite = useItOpsStore((state) => state.serverRoomsBySite);
   const loadServerRooms = useItOpsStore((state) => state.loadServerRooms);
   const deleteServerRoom = useItOpsStore((state) => state.deleteServerRoom);
+  const taskCount = useItOpsStore((state) => state.tasks.length);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [drill, setDrill] = useState<DrillPath>(EMPTY_DRILL);
+  const [siteView, setSiteView] = useState<SiteViewMode>("overview");
+  const [rootSurface, setRootSurface] = useState<"site" | "tasks">("site");
   const [members, setMembers] = useState<ResolvedHost[]>([]);
   const [dialog, setDialog] = useState<{ group: Site | null } | null>(null);
   const [rackDialog, setRackDialog] = useState<{
@@ -373,8 +377,17 @@ export function SitesTab({
 
   // Select a node: focus its Site, switch to the Rack view, and set the drill.
   function selectNode(siteId: string, next: DrillPath) {
+    setRootSurface("site");
     setActiveId(siteId);
+    setSiteView("overview");
     setDrill(next);
+  }
+
+  function selectSiteDestination(siteId: string, view: SiteViewMode) {
+    setRootSurface("site");
+    setActiveId(siteId);
+    setDrill(EMPTY_DRILL);
+    setSiteView(view);
   }
 
   function showPropertiesMenu(event: ReactMouseEvent<HTMLElement>, action: () => void) {
@@ -499,7 +512,9 @@ export function SitesTab({
   }
 
   // The deepest selected node id, for tree-row highlighting.
-  const selectedId = !activeGroup
+  const selectedId = rootSurface === "tasks"
+    ? "itops:tasks"
+    : !activeGroup
     ? ""
     : drill.rackId
       ? nodeId.rack(drill.rackId)
@@ -650,20 +665,34 @@ export function SitesTab({
                       customIcon={site}
                       label={site.name}
                       tint={groupColor(site.id)}
-                      hasChildren={siteTopo.length > 0}
+                      hasChildren
                       open={open}
-                      selected={selectedId === fId && drill.serverRoom == null}
+                      selected={selectedId === fId && drill.serverRoom == null && siteView === "overview" && rootSurface === "site"}
                       onToggle={() => toggleNode(fId)}
                       onSelect={() => {
-                        setActiveId(site.id);
-                        setDrill(EMPTY_DRILL);
+                        selectSiteDestination(site.id, "overview");
                       }}
                       onContextMenu={(event) =>
                         showPropertiesMenu(event, () => setDialog({ group: site }))
                       }
                     />
-                    {open
-                      ? siteTopo
+                    {open ? (
+                      <>
+                        <TreeRow
+                          depth={1}
+                          icon="room"
+                          label={t("itops.navigation.serverRooms")}
+                          count={siteTopo.length}
+                          hasChildren={siteTopo.length > 0}
+                          open={isExpanded(`${fId}:rooms`)}
+                          selected={activeId === site.id && siteView === "overview" && drill.serverRoom == null && rootSurface === "site"}
+                          onToggle={() => toggleNode(`${fId}:rooms`)}
+                          onSelect={() => selectSiteDestination(site.id, "overview")}
+                        />
+                        <TreeRow depth={1} icon="server" label={t("itops.tabs.hosts")} hasChildren={false} open={false} selected={activeId === site.id && siteView === "hosts" && rootSurface === "site"} onSelect={() => selectSiteDestination(site.id, "hosts")} />
+                        <TreeRow depth={1} icon="auto" label={t("itops.tabs.autos")} hasChildren={false} open={false} selected={activeId === site.id && siteView === "automations" && rootSurface === "site"} onSelect={() => selectSiteDestination(site.id, "automations")} />
+                        <TreeRow depth={1} icon="history" label={t("itops.navigation.runHistory")} hasChildren={false} open={false} selected={activeId === site.id && siteView === "batchRuns" && rootSurface === "site"} onSelect={() => selectSiteDestination(site.id, "batchRuns")} />
+                        {isExpanded(`${fId}:rooms`) ? siteTopo
                           .filter((room) => matchQ(room.key))
                           .map((room) => {
                             const mId = nodeId.serverRoom(site.id, room.key);
@@ -671,7 +700,7 @@ export function SitesTab({
                             return (
                               <div key={mId}>
                                 <TreeRow
-                                  depth={1}
+                                  depth={2}
                                   icon="room"
                                   customIcon={site.roomIcons?.[room.key]}
                                   label={room.key || t("itops.racks.unassigned")}
@@ -696,7 +725,7 @@ export function SitesTab({
                                   ? room.racks.map((rack) => (
                                       <TreeRow
                                         key={rack.id}
-                                        depth={2}
+                                        depth={3}
                                         icon="rack"
                                         label={rack.name}
                                         hasChildren={false}
@@ -718,11 +747,14 @@ export function SitesTab({
                                   : null}
                               </div>
                             );
-                          })
-                      : null}
+                          }) : null}
+                      </>
+                    ) : null}
                   </div>
                 );
               })}
+              <div className="ft-tree-library-label">{t("itops.navigation.library")}</div>
+              <TreeRow depth={0} icon="code" label={t("itops.tasks.heading")} count={taskCount} hasChildren={false} open={false} selected={rootSurface === "tasks"} onSelect={() => setRootSurface("tasks")} />
             </div>
           </>
         ) : null}
@@ -733,7 +765,11 @@ export function SitesTab({
       </div>
 
       {/* ── Detail ── */}
-      {activeGroup ? (
+      {rootSurface === "tasks" ? (
+        <div className="hg-detail">
+          <TaskLibrary defaultSiteId={activeGroup?.id} />
+        </div>
+      ) : activeGroup ? (
         <div className="hg-detail" data-tutorial-id="itops.siteView">
           <RackDrill
             topology={topology}
@@ -743,6 +779,8 @@ export function SitesTab({
             members={members}
             drill={drill}
             setDrill={setDrill}
+            siteView={siteView}
+            setSiteView={setSiteView}
             viewBackground={viewBackground}
             roomIcons={activeGroup.roomIcons}
             hostForItem={hostForItem}
@@ -996,6 +1034,8 @@ function RackDrill({
   members,
   drill,
   setDrill,
+  siteView,
+  setSiteView,
   viewBackground,
   roomIcons,
   hostForItem,
@@ -1022,6 +1062,8 @@ function RackDrill({
   members: ResolvedHost[];
   drill: DrillPath;
   setDrill: (next: DrillPath) => void;
+  siteView: SiteViewMode;
+  setSiteView: (next: SiteViewMode) => void;
   viewBackground: DashboardBackground | null | undefined;
   roomIcons?: Record<string, ItOpsCustomIcon>;
   hostForItem: (item: RackItem) => string | null;
@@ -1065,7 +1107,6 @@ function RackDrill({
 
   // Site View segment: the Server Room card overview (default), or the Batch
   // Runs / Automations surfaces scoped to this Site's Connections.
-  const [siteView, setSiteView] = useState<SiteViewMode>("overview");
   const requestNewBatchRun = useItOpsStore((state) => state.requestNewBatchRun);
   const requestNewAutomation = useItOpsStore((state) => state.requestNewAutomation);
   const requestHostImport = useItOpsStore((state) => state.requestHostImport);
@@ -1120,7 +1161,6 @@ function RackDrill({
     setEditMode(false);
     setExportMenuOpen(false);
     setBackgroundOpen(false);
-    setSiteView("overview");
   }, [viewKey]);
   useEffect(() => {
     const pendingRackId = placeRackIdRef.current;

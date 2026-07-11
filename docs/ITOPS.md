@@ -19,6 +19,9 @@ The IT Ops Module owns:
 - **Hosts** — a per-Site durable inventory of devices and their VM/container
   guests, imported from hostname lists and scanned for remote-access
   endpoints (see "Hosts" below).
+- **Tasks** — global reusable script or Playbook definitions. A Task owns what
+  to execute but never owns targets; a Site, Host selection, or Automation
+  supplies targets when the Task launches.
 - **Batch Runs** — fan-out task execution across a Site with
   per-host live output and a consolidated, saved run report.
 - **Automations** — durable trigger → condition → action rules (the
@@ -39,7 +42,7 @@ It does not own:
 - Selective export/import shape (extends the ADR-0010 flow; it does not
   fork it).
 
-## Why this is one Module, not three features
+## Why this is one Module, not separate features
 
 Batch Runs and Automations are the same primitive seen from two
 directions. A Batch Run is a task executed **now** against a Site.
@@ -48,6 +51,10 @@ trigger fires. They share the host-targeting model (Sites), the
 fan-out executor, the transport adapters, and the run-history store.
 Keeping them in one Module lets an Automation's `runBatch` action reuse
 the exact executor a manual run uses.
+
+The UI makes the shared primitive explicit: **Task + targets → Batch Run**,
+while **trigger + Task + targets → Automation**. Tasks are global to IT Ops so
+the same definition can run against several Sites without duplication.
 
 ## Domain Concepts
 
@@ -133,6 +140,16 @@ the Connection, overridable per Site/run):
   host** (other hosts continue). Steps run over a **single shell per
   host**, so later steps see the state earlier steps left behind.
 
+**Task** — a durable reusable Batch Task stored in `itops_tasks`. A Task has a
+name, optional description, and one script or Playbook definition. It has no
+Site id, Host ids, credentials, or live state. The operator chooses targets at
+launch time; an Automation references the Task and target Site separately.
+Deleting or editing a Task never rewrites completed Run History, whose report
+keeps a redacted task-summary snapshot. The first implementation slice supports
+creating and editing reusable script Tasks; reusable Playbook editing follows
+without changing the durable `BatchTask` shape.
+_Avoid_: Site task, saved Batch Run, Automation workflow
+
 **Batch Run** — one execution of a Batch Task against a resolved Host
 Site. Live run state (per-host status, streamed stdout/stderr, exit
 codes, cancellation) is **in-memory**; on completion a consolidated
@@ -194,6 +211,8 @@ Three SQLite tables (new schema version):
 - `itops_run_history` — id, source (manual run or automation id), task
   summary, started/finished, per-host outcome summary, consolidated
   report blob. Local-first; no telemetry.
+- `itops_tasks` — global reusable Task definitions: id, name, description,
+  ordered position, and typed `BatchTask` JSON. No target or live state.
 
 Durable definitions only. **Live state never persists**: in-flight Batch
 Run progress, Automation poll ticks, tick ring buffers, and runtime state
@@ -236,18 +255,29 @@ UI/native thread (`docs/ARCHITECTURE.md` command-runtime boundaries).
 
 ## Frontend
 
-`src/modules/itops/` owns the Module shell. The current visible shell opens
-directly into the Site topology surface: a resizable/collapsible left Sites
-tree and a right Site View / Server Room View / Rack View drill-down. Batch
-Run and Automation editors/runtime remain in this source area; instead of
-top-level tab chrome, Site View carries a segmented control (Overview /
-Batch Runs / Automations) that swaps the topology surface for that Site's
-Batch Runs or Automations — runs filtered to the Site, Automations filtered
-to rules bound to it by their durable `site_id` (set in the node editor's
-header Site select and defaulted from the segment that opened it; legacy
-rows without a binding fall back to inference — a runBatch action targeting
-the Site, or a host-addressed trigger watching one of its resolved member
-hosts). The
+`src/modules/itops/` owns the Module shell. The visible shell uses one
+resizable/collapsible operational navigator. Only the active Site needs to be
+expanded. Each Site exposes predefined virtual destinations — **Server Rooms**,
+**Hosts**, **Automations**, and **Run History** — while its topology continues
+to drill down Server Room → Rack beneath Server Rooms. These destinations are
+navigation state, not durable database entities or copied containers.
+
+The global **Task Library** is a sibling of Sites rather than a child of every
+Site. Opening a Task shows its definition and launches the existing Batch Run
+dialog with that Task prefilled and the active Site preselected. Starting from
+another Site-owned surface preselects that Site; starting without an active Site
+requires choosing targets. This prevents duplicated per-Site scripts and makes
+the execution model visible in the information architecture.
+
+The former Site View segments remain available as a transition path while the
+tree destinations settle, but resolve to the same Site-scoped surfaces. Run
+History shows the selected Site's live run and completed reports; “Batch Runs”
+is the execution concept, not the name of a durable container. Automations are
+filtered to rules bound to the selected Site by their durable `site_id` (set in
+the node editor's header Site select and defaulted from the destination that
+opened it; legacy rows without a binding fall back to inference — a runBatch
+action targeting the Site, or a host-addressed trigger watching one of its
+resolved member hosts). The
 drill-down views own an icon-only Edit / Export toolbar: edit mode gates free
 placement, Rack Device drag/drop, empty-slot add affordances, and destructive
 controls; normal mode remains an inspect/open surface. Site and Server Room
@@ -378,6 +408,17 @@ CREATE TABLE IF NOT EXISTS itops_run_history (
 
 CREATE INDEX IF NOT EXISTS idx_itops_run_history_source
     ON itops_run_history(source, started_at);
+
+-- A reusable global Task definition. Targets are supplied when launched.
+CREATE TABLE IF NOT EXISTS itops_tasks (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    sort_order  INTEGER NOT NULL,
+    task_json   TEXT NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 `itops_run_history` uses a **soft** `host_group_id` (no `REFERENCES`) so
