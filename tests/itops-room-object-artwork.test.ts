@@ -12,7 +12,7 @@ import { ROOM_OBJECT_KINDS } from "../src/modules/itops/roomObjects";
 test("every Server Room object has distinct floor-plan and 2.5D artwork", () => {
   for (const kind of ROOM_OBJECT_KINDS) {
     const plan = renderToStaticMarkup(createElement(RoomObjectPlanArtwork, { kind }));
-    const iso = renderToStaticMarkup(createElement(RoomObjectIsoArtwork, { kind }));
+    const iso = renderToStaticMarkup(createElement(RoomObjectIsoArtwork, { kind, facing: 0 }));
 
     assert.match(plan, new RegExp(`data-kind="${kind}"`));
     assert.match(iso, new RegExp(`data-kind="${kind}"`));
@@ -20,6 +20,20 @@ test("every Server Room object has distinct floor-plan and 2.5D artwork", () => 
     assert.match(iso, /rm-ref-iso-stage/);
     assert.match(iso, /rotateX\(55deg\) rotateZ\(45deg\)/);
     assert.notEqual(plan, iso);
+  }
+});
+
+test("2.5D room objects render the four effective quarter-turn facings", () => {
+  for (const [facing, degrees] of [
+    [0, 45],
+    [1, 135],
+    [2, 225],
+    [3, 315],
+  ] as const) {
+    const iso = renderToStaticMarkup(createElement(RoomObjectIsoArtwork, { kind: "aircon", facing }));
+    assert.match(iso, new RegExp(`data-facing="${facing}"`));
+    assert.match(iso, new RegExp(`rotateZ\\(${degrees}deg\\)`));
+    assert.match(iso, new RegExp(`rotateZ\\(-${degrees}deg\\)`));
   }
 });
 
@@ -33,7 +47,6 @@ test("2.5D 乖乖 sits on the real room surface instead of a fake rack top", () 
 test("2.5D reference models retain the design-file construction dimensions", () => {
   const aircon = renderToStaticMarkup(createElement(RoomObjectIsoArtwork, { kind: "aircon" }));
   const ups = renderToStaticMarkup(createElement(RoomObjectIsoArtwork, { kind: "ups" }));
-  const cableTray = renderToStaticMarkup(createElement(RoomObjectIsoArtwork, { kind: "cableTray" }));
 
   assert.match(aircon, /width:56px;height:38px/);
   assert.match(aircon, /translateZ\(104px\)/);
@@ -41,8 +54,6 @@ test("2.5D reference models retain the design-file construction dimensions", () 
   assert.match(ups, /width:40px;height:40px/);
   assert.match(ups, /translateZ\(62px\)/);
   assert.match(ups, /88% · online/);
-  assert.match(cableTray, /width:84px;height:22px/);
-  assert.match(cableTray, /translateZ\(54px\)/);
 });
 
 test("snapped 2.5D previews do not flatten the reference model", async () => {
@@ -53,6 +64,12 @@ test("snapped 2.5D previews do not flatten the reference model", async () => {
 
   assert.match(css, /\.rm-iso-obj-model \{[^}]*transform-style: preserve-3d/s);
   assert.match(css, /\.rm-iso-plane \.rm-ref-iso-stage > div \{[^}]*transform: none !important/s);
+  for (const [facing, degrees] of [[1, 90], [2, 180], [3, 270]]) {
+    assert.match(
+      css,
+      new RegExp(`data-facing="${facing}"[^}]*rm-ref-iso-stage > div \\{[^}]*rotateZ\\(${degrees}deg\\) !important`, "s"),
+    );
+  }
   assert.doesNotMatch(css, /\.rm-iso-obj\.ghost \{[^}]*opacity:/s);
   assert.doesNotMatch(css, /\.itops-page \.rm-iso-obj-model \{[^}]*filter:/s);
 });

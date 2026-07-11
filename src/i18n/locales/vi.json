@@ -1251,8 +1251,7 @@
         "firewall": "Tường lửa",
         "ups": "UPS",
         "kvm": "Bộ chuyển mạch KVM",
-        "equipment": "Thiết bị",
-        "general": "Chung",
+        "genericDevice": "Thiết bị chung",
         "kuaiguai": "Kuai Kuai"
       },
       "kuaiguaiSize": {
@@ -1325,7 +1324,6 @@
         "camera": "Camera an ninh",
         "aircon": "Điều hòa không khí",
         "fireExtinguisher": "Bình chữa cháy",
-        "cableTray": "Máng cáp",
         "ups": "Bộ lưu điện (UPS)",
         "sensor": "Cảm biến môi trường",
         "smokeDetector": "Đầu báo khói",

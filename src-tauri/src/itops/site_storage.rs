@@ -768,7 +768,6 @@ const ROOM_OBJECT_KINDS: &[&str] = &[
     "camera",
     "aircon",
     "fireExtinguisher",
-    "cableTray",
     "ups",
     "sensor",
     "smokeDetector",

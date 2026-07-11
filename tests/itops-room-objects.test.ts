@@ -236,6 +236,7 @@ test("sanitizeRoomObjects drops malformed entries and rounds coordinates", () =>
   const parsed = sanitizeRoomObjects([
     { id: "ok", kind: "camera", x: 1.4, y: 2.6, z: 52.2, rot: 3, corner: 2 },
     { id: "legacy", kind: "sensor", x: 0, y: 0, z: 40, rot: 0 },
+    { id: "removed-cable", kind: "cableTray", x: 0, y: 0, z: 50, rot: 0 },
     { id: "bad-kind", kind: "sofa", x: 0, y: 0, z: 0, rot: 0 },
     { id: 42, kind: "camera", x: 0, y: 0, z: 0, rot: 0 },
     { id: "bad-x", kind: "camera", x: "left", y: 0, z: 0, rot: 0 },
@@ -285,13 +286,12 @@ test("large fixtures span whole cells and rotate their span", () => {
   const fp = objectFootprint("aircon", 0, 0);
   assert.equal(fp.w, objectSpec("aircon").wide);
   assert.equal(fp.x, (1 - fp.w) / 2);
-  assert.deepEqual(objectCellSpan("cableTray", 0), { w: 1, h: 1 });
 });
 
 test("fixture footprints match Server Room Objects.dc.html", () => {
   assert.deepEqual(
     Object.fromEntries(
-      (["aircon", "ups", "crashCart", "camera", "sensor", "smokeDetector", "fireExtinguisher", "cableTray", "kuaikuai"] as const)
+      (["aircon", "ups", "crashCart", "camera", "sensor", "smokeDetector", "fireExtinguisher", "kuaikuai"] as const)
         .map((kind) => [kind, [objectSpec(kind).wide, objectSpec(kind).deep]]),
     ),
     {
@@ -302,7 +302,6 @@ test("fixture footprints match Server Room Objects.dc.html", () => {
       sensor: [0.24, 0.24],
       smokeDetector: [0.3, 0.3],
       fireExtinguisher: [0.28, 0.28],
-      cableTray: [1, 0.3],
       kuaikuai: [0.36, 0.28],
     },
   );

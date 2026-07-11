@@ -1251,8 +1251,7 @@
         "firewall": "Pare-feu",
         "ups": "Onduleur",
         "kvm": "Commutateur KVM",
-        "equipment": "Équipement",
-        "general": "Général",
+        "genericDevice": "Appareil générique",
         "kuaiguai": "Kuai Kuai"
       },
       "kuaiguaiSize": {
@@ -1325,7 +1324,6 @@
         "camera": "Caméra de surveillance",
         "aircon": "Climatiseur",
         "fireExtinguisher": "Extincteur",
-        "cableTray": "Chemin de câbles",
         "ups": "Onduleur",
         "sensor": "Capteur d'environnement",
         "smokeDetector": "Détecteur de fumée",

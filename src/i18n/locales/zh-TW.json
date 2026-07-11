@@ -1251,8 +1251,7 @@
         "firewall": "防火牆",
         "ups": "UPS",
         "kvm": "KVM 切換器",
-        "equipment": "設備",
-        "general": "一般",
+        "genericDevice": "通用裝置",
         "kuaiguai": "乖乖"
       },
       "kuaiguaiSize": {
@@ -1325,7 +1324,6 @@
         "camera": "監視攝影機",
         "aircon": "空調主機",
         "fireExtinguisher": "滅火器",
-        "cableTray": "線槽",
         "ups": "不斷電系統",
         "sensor": "環境感測器",
         "smokeDetector": "煙霧偵測器",

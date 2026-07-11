@@ -1251,8 +1251,7 @@
         "firewall": "ไฟร์วอลล์",
         "ups": "UPS",
         "kvm": "สวิตช์ KVM",
-        "equipment": "อุปกรณ์",
-        "general": "ทั่วไป",
+        "genericDevice": "อุปกรณ์ทั่วไป",
         "kuaiguai": "Kuai Kuai"
       },
       "kuaiguaiSize": {
@@ -1325,7 +1324,6 @@
         "camera": "กล้องวงจรปิด",
         "aircon": "เครื่องปรับอากาศ",
         "fireExtinguisher": "ถังดับเพลิง",
-        "cableTray": "รางเคเบิล",
         "ups": "UPS",
         "sensor": "เซนเซอร์สภาพแวดล้อม",
         "smokeDetector": "เครื่องตรวจจับควัน",

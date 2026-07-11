@@ -1251,8 +1251,7 @@
         "firewall": "방화벽",
         "ups": "UPS",
         "kvm": "KVM 스위치",
-        "equipment": "장비",
-        "general": "일반",
+        "genericDevice": "일반 장치",
         "kuaiguai": "콰이콰이"
       },
       "kuaiguaiSize": {
@@ -1325,7 +1324,6 @@
         "camera": "보안 카메라",
         "aircon": "항온항습기",
         "fireExtinguisher": "소화기",
-        "cableTray": "케이블 트레이",
         "ups": "UPS",
         "sensor": "환경 센서",
         "smokeDetector": "연기 감지기",

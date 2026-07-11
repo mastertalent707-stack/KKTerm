@@ -255,8 +255,7 @@ export type RackItemKind =
   | "firewall"
   | "ups"
   | "kvm"
-  | "equipment"
-  | "general"
+  | "genericDevice"
   | "kuaiguai";
 
 export type RackItemStatus = "online" | "warning" | "offline";

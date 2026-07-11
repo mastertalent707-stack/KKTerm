@@ -48,8 +48,7 @@ export const RACK_ITEM_KINDS: RackItemKind[] = [
   "ups",
   "kvm",
   "patchPanel",
-  "equipment",
-  "general",
+  "genericDevice",
   "kuaiguai",
 ];
 const STATUS_OPTIONS: RackItemStatus[] = ["online", "warning", "offline"];

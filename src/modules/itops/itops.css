@@ -3554,7 +3554,7 @@
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
 }
 
-/* Equipment / general. */
+/* Generic Rack Device. */
 .itops-page .rkd-equip {
   gap: 8px;
 }
@@ -4877,7 +4877,6 @@
 .itops-page .rm-iso-obj-model[data-kind="sensor"] { width: 48px; height: 38px; }
 .itops-page .rm-iso-obj-model[data-kind="smokeDetector"] { width: 45px; height: 22px; }
 .itops-page .rm-iso-obj-model[data-kind="fireExtinguisher"] { width: 38px; height: 54px; }
-.itops-page .rm-iso-obj-model[data-kind="cableTray"] { width: 78px; height: 42px; }
 .itops-page .rm-iso-obj-model[data-kind="kuaikuai"] { width: 42px; height: 56px; }
 .itops-page .rm-object-art-iso {
   position: relative;
@@ -4902,11 +4901,20 @@
 .itops-page .rm-object-art-iso[data-kind="sensor"] .rm-ref-iso-stage { transform: scale(0.82); }
 .itops-page .rm-object-art-iso[data-kind="smokeDetector"] .rm-ref-iso-stage { transform: scale(0.86); }
 .itops-page .rm-object-art-iso[data-kind="fireExtinguisher"] .rm-ref-iso-stage { transform: scale(0.88); }
-.itops-page .rm-object-art-iso[data-kind="cableTray"] .rm-ref-iso-stage { transform: scale(0.72); }
 .itops-page .rm-object-art-iso[data-kind="kuaikuai"] .rm-ref-iso-stage { transform: scale(0.9); }
 .itops-page .rm-iso-plane .rm-ref-iso-stage > div {
-  /* The live room plane already owns rotateX(55deg) rotateZ(45deg). */
+  /* The live room plane already owns rotateX(55deg) rotateZ(45deg). Keep
+     only the object's effective quarter-turn inside that projected plane. */
   transform: none !important;
+}
+.itops-page .rm-iso-plane .rm-object-art-iso[data-facing="1"] .rm-ref-iso-stage > div {
+  transform: rotateZ(90deg) !important;
+}
+.itops-page .rm-iso-plane .rm-object-art-iso[data-facing="2"] .rm-ref-iso-stage > div {
+  transform: rotateZ(180deg) !important;
+}
+.itops-page .rm-iso-plane .rm-object-art-iso[data-facing="3"] .rm-ref-iso-stage > div {
+  transform: rotateZ(270deg) !important;
 }
 @keyframes rm-object-fan { to { transform: rotate(360deg); } }
 @keyframes rm-object-breathe { 50% { opacity: 0.45; transform: scale(0.88); } }

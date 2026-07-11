@@ -1251,8 +1251,7 @@
         "firewall": "Firewall",
         "ups": "Nobreak",
         "kvm": "Comutador KVM",
-        "equipment": "Equipamento",
-        "general": "Geral",
+        "genericDevice": "Dispositivo genérico",
         "kuaiguai": "Kuai Kuai"
       },
       "kuaiguaiSize": {
@@ -1325,7 +1324,6 @@
         "camera": "Câmera de segurança",
         "aircon": "Ar-condicionado",
         "fireExtinguisher": "Extintor de incêndio",
-        "cableTray": "Eletrocalha",
         "ups": "Nobreak",
         "sensor": "Sensor ambiental",
         "smokeDetector": "Detector de fumaça",

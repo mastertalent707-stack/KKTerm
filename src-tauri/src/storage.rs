@@ -405,7 +405,7 @@ CREATE INDEX IF NOT EXISTS idx_itops_site_racks_site
     ON itops_site_racks(site_id, sort_order);
 
 -- Non-rack Server Room fixtures on the room floor grid (docs/SITE.md Room
--- Object): cameras, CRAC units, fire extinguishers, cable trays, UPS
+-- Object): cameras, CRAC units, fire extinguishers, UPS
 -- cabinets, sensors, smoke detectors, crash carts, 乖乖. Scoped by Site +
 -- Server Room name like racks; z is the object's bottom in rack units so
 -- occupants can stack in one floor cell. v41. corner is the cell quadrant a

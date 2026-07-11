@@ -258,7 +258,7 @@ pub struct RackFacingEntry {
 }
 
 /// A non-rack Server Room fixture on the room floor grid (docs/SITE.md Room
-/// Object): camera, CRAC unit, fire extinguisher, cable tray, UPS, sensor,
+/// Object): camera, CRAC unit, fire extinguisher, UPS, sensor,
 /// smoke detector, crash cart, or 乖乖. `z` is the bottom of the object in
 /// rack units above the floor so occupants can stack in one cell.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -382,8 +382,7 @@ pub enum RackItemKind {
     Firewall,
     Ups,
     Kvm,
-    Equipment,
-    General,
+    GenericDevice,
     Kuaiguai,
 }
 
@@ -402,8 +401,7 @@ impl RackItemKind {
             RackItemKind::Firewall => "firewall",
             RackItemKind::Ups => "ups",
             RackItemKind::Kvm => "kvm",
-            RackItemKind::Equipment => "equipment",
-            RackItemKind::General => "general",
+            RackItemKind::GenericDevice => "genericDevice",
             RackItemKind::Kuaiguai => "kuaiguai",
         }
     }
@@ -422,11 +420,26 @@ impl RackItemKind {
             "firewall" => Some(RackItemKind::Firewall),
             "ups" => Some(RackItemKind::Ups),
             "kvm" => Some(RackItemKind::Kvm),
-            "equipment" => Some(RackItemKind::Equipment),
-            "general" => Some(RackItemKind::General),
+            "genericDevice" | "equipment" | "general" => Some(RackItemKind::GenericDevice),
             "kuaiguai" => Some(RackItemKind::Kuaiguai),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod rack_item_kind_tests {
+    use super::RackItemKind;
+
+    #[test]
+    fn legacy_generic_device_kinds_migrate_to_the_merged_kind() {
+        for legacy in ["equipment", "general"] {
+            assert_eq!(
+                RackItemKind::from_db_str(legacy),
+                Some(RackItemKind::GenericDevice)
+            );
+        }
+        assert_eq!(RackItemKind::GenericDevice.as_db_str(), "genericDevice");
     }
 }
 

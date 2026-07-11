@@ -1,6 +1,6 @@
 // Server Room objects (docs/SITE.md Server Room View): non-rack room fixtures
-// — security cameras, CRAC units, fire extinguishers, cable trays, UPS
-// cabinets, environment sensors, smoke detectors, crash carts, and the
+// — security cameras, CRAC units, fire extinguishers, UPS cabinets,
+// environment sensors, smoke detectors, crash carts, and the
 // obligatory pack of 乖乖 — placed on the same floor grid as the racks in both
 // the floor plan and the 2.5D view. Each object also has a vertical position:
 // `z` is the bottom of the object in rack units above the floor, so two
@@ -27,7 +27,6 @@ export type RoomObjectKind =
   | "camera"
   | "aircon"
   | "fireExtinguisher"
-  | "cableTray"
   | "ups"
   | "sensor"
   | "smokeDetector"
@@ -38,7 +37,6 @@ export const ROOM_OBJECT_KINDS: RoomObjectKind[] = [
   "camera",
   "aircon",
   "fireExtinguisher",
-  "cableTray",
   "ups",
   "sensor",
   "smokeDetector",
@@ -83,7 +81,6 @@ const SPECS: Record<RoomObjectKind, RoomObjectSpec> = {
   camera: { heightU: 3, defaultZ: 52, wide: 0.34, deep: 0.34, quarter: true },
   aircon: { heightU: 46, defaultZ: "floor", wide: 0.94, deep: 0.62 },
   fireExtinguisher: { heightU: 7, defaultZ: "floor", wide: 0.28, deep: 0.28, quarter: true },
-  cableTray: { heightU: 2, defaultZ: 50, wide: 1, deep: 0.3 },
   ups: { heightU: 12, defaultZ: "floor", wide: 0.6, deep: 0.6 },
   sensor: { heightU: 2, defaultZ: 40, wide: 0.24, deep: 0.24, quarter: true },
   smokeDetector: { heightU: 1, defaultZ: ROOM_CEILING_U - 1, wide: 0.3, deep: 0.3, quarter: true },

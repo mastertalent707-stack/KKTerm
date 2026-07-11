@@ -83,7 +83,7 @@ Replaces the **Host Group** entry in `CONTEXT.md`; adds the rest. Follows the
   status colouring) with compact utilisation/power tags, and hold
   **Room Objects**. _Avoid_: area view, region view.
 - **Room Object** — a non-rack fixture standing on the Server Room floor grid
-  (security camera, air conditioner, fire extinguisher, cable tray, UPS,
+  (security camera, air conditioner, fire extinguisher, UPS,
   environment sensor, smoke detector, crash cart, 乖乖). A Room Object has a
   facing and a vertical position in rack units, so occupants can share a
   floor cell while their vertical spans don't intersect. Resting objects
@@ -97,7 +97,7 @@ Replaces the **Host Group** entry in `CONTEXT.md`; adds the rest. Follows the
   smoke detector, 乖乖) occupy one cell quadrant chosen by a durable
   `corner` property (clockwise 0=NW..3=SW). Larger fixtures use the exact
   one-cell proportions from `Server Room Objects.dc.html` (for example CRAC
-  0.94×0.62, UPS 0.6×0.6, and cable tray 1.0×0.3) and block their snapped
+  0.94×0.62 and UPS 0.6×0.6) and block their snapped
   cell for stacking. Durable in
   `itops_room_objects`, scoped by Site + Server Room name like racks (the
   pure model lives in `roomObjects.ts`; the pre-durable localStorage scope
@@ -118,7 +118,7 @@ Replaces the **Host Group** entry in `CONTEXT.md`; adds the rest. Follows the
   the older `RackItem` / Rack Item names. _Avoid_: slot, node, host card.
 - **Rack Device Type** — the finite visual/device kind for a Rack Device:
   connection, server, storage, switch, router, firewall, PDU, UPS, KVM, patch
-  panel, equipment, general, 乖乖, blank, or label. It controls faceplate
+  panel, generic device, 乖乖, blank, or label. It controls faceplate
   rendering and editing fields; it is not a Connection type.
 - **Rack Device Properties** — non-secret presentation metadata for a Rack
   Device: label, status, accent, notes, tags, additional Connection bindings,
@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS itops_site_rack_items (
     connection_id TEXT,
     -- 'connection' | 'switch' | 'pdu' | 'patchPanel' | 'blank' | 'label' |
     -- 'server' | 'storage' | 'router' | 'firewall' | 'ups' | 'kvm' |
-    -- 'equipment' | 'general' — each kind paints its own animated faceplate.
+    -- 'genericDevice' — passive catch-all hardware with a generic faceplate.
     kind          TEXT NOT NULL,
     -- Display label (passive items, or an override for a connection item).
     label         TEXT NOT NULL DEFAULT '',

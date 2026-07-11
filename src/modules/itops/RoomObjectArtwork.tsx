@@ -57,14 +57,6 @@ export function RoomObjectPlanArtwork({ kind }: { kind: RoomObjectKind }) {
           <circle className="rm-art-fill rm-art-breathe" cx="67" cy="35" r="2.5" />
         </>
       ) : null}
-      {kind === "cableTray" ? (
-        <>
-          <rect className="rm-art-soft" x="8" y="34" width="84" height="32" rx="3" />
-          <path className="rm-art-detail" d="M20 34v32m12-32v32m12-32v32m12-32v32m12-32v32m12-32v32" />
-          <path className="rm-art-cable blue" d="M12 44h76" /><path className="rm-art-cable green" d="M12 50h76" /><path className="rm-art-cable amber" d="M12 56h76" />
-          <circle className="rm-art-signal" cx="20" cy="44" r="3.2" />
-        </>
-      ) : null}
       {kind === "kuaikuai" ? (
         <>
           <circle className="rm-art-aura" cx="50" cy="50" r="30" />

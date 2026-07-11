@@ -25,6 +25,16 @@ test("Rack Device pickers no longer offer Blank or Label", async () => {
   assert.doesNotMatch(catalog, /"label"/);
 });
 
+test("Rack Device pickers merge Equipment and General into Generic Device", async () => {
+  const dialog = await read("src/modules/itops/RackItemDialog.tsx");
+  const catalogStart = dialog.indexOf("export const RACK_ITEM_KINDS");
+  const catalogEnd = dialog.indexOf("const STATUS_OPTIONS", catalogStart);
+  const catalog = dialog.slice(catalogStart, catalogEnd);
+
+  assert.match(catalog, /"genericDevice"/);
+  assert.doesNotMatch(catalog, /"equipment"|"general"/);
+});
+
 test("Server Tower form factor is stored and rendered at half width", async () => {
   const dialog = await read("src/modules/itops/RackItemDialog.tsx");
   const device = await read("src/modules/itops/RackDevice.tsx");

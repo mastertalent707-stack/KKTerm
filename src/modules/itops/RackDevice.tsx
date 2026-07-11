@@ -61,8 +61,7 @@ const KIND_ACCENT: Record<RackItemKind, string> = {
   patchPanel: "#8e8e93",
   blank: "#48484a",
   label: "#48484a",
-  general: "#8e8e93",
-  equipment: "#8e8e93",
+  genericDevice: "#8e8e93",
   kuaiguai: "#30d158",
 };
 
@@ -127,7 +126,7 @@ export function RackDevice({
   const isBlankPlate = kind === "blank";
   const isLabel = kind === "label";
   const isBlank = isBlankPlate || isLabel;
-  const isEquip = kind === "general" || kind === "equipment";
+  const isGenericDevice = kind === "genericDevice";
   const isKuaiguai = kind === "kuaiguai";
   const isServer = kind === "server" || kind === "connection";
   const isStorage = kind === "storage";
@@ -490,11 +489,11 @@ export function RackDevice({
             </div>
           ) : null}
 
-          {/* EQUIPMENT / GENERAL */}
-          {isEquip ? (
+          {/* GENERIC DEVICE */}
+          {isGenericDevice ? (
             <div className="rkd-equip">
               <div className="rkd-vent flex" />
-              <span className="rkd-equip-label">{kind === "equipment" ? "Equipment" : "Device"}</span>
+              <span className="rkd-equip-label">{label}</span>
             </div>
           ) : null}
 

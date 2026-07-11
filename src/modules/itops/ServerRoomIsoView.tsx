@@ -637,6 +637,7 @@ export function ServerRoomIsoView({
                     object={object}
                     rect={objectDisplayRect(object)}
                     anchor={objectDisplayAnchor(object)}
+                    facing={rotateFacingForView(object.rot, angle)}
                     drag={drag?.kind === "object" && drag.id === object.id ? drag : null}
                     editMode={!!editMode}
                     selected={selectedItem?.kind === "object" && selectedItem.id === object.id}
@@ -743,7 +744,7 @@ export function ServerRoomIsoView({
                                     transform: surfaceModel(zPx(z), "-50%, -100%"),
                                   }}
                                 >
-                                  <RoomObjectIsoArtwork kind={tool} />
+                                  <RoomObjectIsoArtwork kind={tool} facing={rotateFacingForView(0, angle)} />
                                 </span>
                               </div>
                             ) : null}
@@ -1022,6 +1023,7 @@ function IsoObject({
   object,
   rect,
   anchor,
+  facing,
   drag,
   editMode,
   selected,
@@ -1041,6 +1043,8 @@ function IsoObject({
   rect: CellRect;
   /** Display point where the sprite touches the surface, already view-rotated. */
   anchor: { x: number; y: number };
+  /** Object facing after applying the current room view angle. */
+  facing: Facing;
   drag: DragState | null;
   editMode: boolean;
   selected: boolean;
@@ -1097,7 +1101,7 @@ function IsoObject({
           transform: surfaceModel(bottom, "-50%, -100%"),
         }}
       >
-        <RoomObjectIsoArtwork kind={object.kind} />
+        <RoomObjectIsoArtwork kind={object.kind} facing={facing} />
       </span>
       {editMode && selected ? (
         <span
