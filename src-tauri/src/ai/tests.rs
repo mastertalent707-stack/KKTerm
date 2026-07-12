@@ -1,6 +1,14 @@
 use super::*;
 
 #[test]
+fn large_agent_jobs_have_headroom_and_never_dump_unexecuted_tool_json_at_the_limit() {
+    assert_eq!(DEFAULT_MAX_AGENT_TOOL_SUBTURNS, 10);
+    assert_eq!(ITOPS_MAX_AGENT_TOOL_SUBTURNS, 32);
+    assert!(TOOL_SUBTURN_LIMIT_NOTICE.contains("Do not output tool-call JSON"));
+    assert!(TOOL_SUBTURN_LIMIT_NOTICE.contains("requested work is incomplete"));
+}
+
+#[test]
 fn playbook_ai_decision_accepts_closed_json_and_rejects_unknown_actions() {
     let decision = parse_playbook_ai_decision(
         "```json\n{\"decision\":\"success\",\"reason\":\"service is active\"}\n```",
