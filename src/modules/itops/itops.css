@@ -2231,6 +2231,7 @@
   border-radius: 13px;
   background: color-mix(in srgb, var(--surface) 82%, transparent);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--text) 12%, transparent);
+  -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
   transform: translateX(-50%);
 }

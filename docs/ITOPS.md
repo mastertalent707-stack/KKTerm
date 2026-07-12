@@ -325,7 +325,7 @@ Hosts, Automations, Run History, Task Library, and any later non-spatial
 destination opened from the IT Ops navigator. Do not give a new destination an
 independent page shell or visual language.
 
-**Required page anatomy**
+#### Required page anatomy
 
 1. The navigator's detail host uses `it-destination-page`; the destination root
    uses `it-destination-surface`. The root owns the shared `var(--pad)` inset.
@@ -345,7 +345,7 @@ independent page shell or visual language.
    Avoid unrelated floating cards, per-row shadows, and different corner radii
    for each destination.
 
-**Master-detail and specialized content**
+#### Master-detail and specialized content
 
 - Task Library may keep its master-detail body, but the split view is one
   bordered content region below the shared page header. Its create action stays
@@ -360,7 +360,7 @@ independent page shell or visual language.
   not destination pages. They keep their centered view controls and icon-only
   Edit/Export toolbar described below.
 
-**Empty and setup states**
+#### Empty and setup states
 
 - Keep the page header and its action positions unchanged when data is empty.
   Do not replace the entire destination with a one-off landing page.
@@ -380,7 +380,7 @@ independent page shell or visual language.
   translated sentences with `Trans` component markers. Do not concatenate text
   fragments or replace a hint with a lone button.
 
-**Implementation and review gates**
+#### Implementation and review gates
 
 - Reuse the existing `it-destination-*`, `it-task-library-*`, list-row, and
   `it-empty-hint` rules in `src/modules/itops/itops.css`. Extend these
@@ -762,7 +762,7 @@ The plumbing above is complete (Sites, SSH Batch Runs, durable
 Automations + action catalog, playbooks, AI integration), but from an
 operator's seat the Module today is mostly a transport: it returns N raw
 per-host output blobs and a flat list of names. The enhancements below turn it
-into something that produces *answers* and a site you *see*. They are captured
+into something that produces _answers_ and a site you _see_. They are captured
 here so the design is not lost; sequence them by demand.
 
 **Site management (implemented, detailed in `docs/SITE.md`).** Host Group is
@@ -778,7 +778,7 @@ The following are noted for later consideration (not yet planned in detail):
 
 1. **Run result synthesis (low-hanging).** A Batch Run already persists
    per-host `{exitCode, ok, output}` in `itops_run_history.report_json` and
-   `RunReportView` replays the text. Add a synthesis layer over that *existing*
+   `RunReportView` replays the text. Add a synthesis layer over that _existing_
    data: an **aggregate view** (group hosts by identical output / exit code —
    "27 OK, 2 disk 94%, 1 unreachable"), an **outlier/diff** mode (show only
    hosts whose output differs from the majority — site drift), and an
@@ -786,13 +786,13 @@ The following are noted for later consideration (not yet planned in detail):
    Mostly frontend + AI over data the backend already stores; highest
    value-per-effort. Reframes a run from "30 transcripts" to "one answer."
 
-3. **Built-in task library (cheap quick win).** A new Batch Run today is an
+2. **Built-in task library (cheap quick win).** A new Batch Run today is an
    empty textarea. Ship a curated, per-OS task catalog (disk/mem/uptime,
    who's-logged-in, service status, package-update dry-run, security-patch
    status) so the tool is usable in the first 30 seconds. Matches the ROADMAP
    "reusable workflow templates" item.
 
-4. **Durable Automation event log.** Automation fires are transient today
+3. **Durable Automation event log.** Automation fires are transient today
    (`itops://automation` emits a one-shot notice/popup, then it's gone). Batch
    Runs get durable `itops_run_history`; Automations get nothing. Add a durable
    automation-event log (what fired, when, trigger snapshot, which actions ran,
@@ -800,7 +800,7 @@ The following are noted for later consideration (not yet planned in detail):
    answerable. Live runtime state still stays in-memory; only the fire record
    is durable.
 
-5. **Scheduled inventory with trend.** The `Schedule` (cron) trigger only
+4. **Scheduled inventory with trend.** The `Schedule` (cron) trigger only
    drives fire-and-forget actions. Add a pattern that runs a query on a
    schedule, stores each snapshot, and shows what changed since the last run —
    reusing the run-history store plus the diff from (1). This is where ongoing
