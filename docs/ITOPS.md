@@ -418,7 +418,9 @@ resolved member hosts). The
 drill-down views own an icon-only Edit / Export toolbar: edit mode gates free
 placement, Rack Device drag/drop, empty-slot add affordances, and destructive
 controls; normal mode remains an inspect/open surface. Site and Server Room
-exports save PDF, while Rack View also saves an Excel-readable inventory table.
+exports save a graphical PDF report with topology summaries, scaled rack elevations,
+placed Rack Device faceplates, and paginated inventory data. Rack View also saves an
+Excel-readable inventory table.
 An empty Server Room uses explanatory guidance with an inline New Rack action.
 An empty Rack uses an inline Edit mode action that reveals the Rack Device
 picker.
