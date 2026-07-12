@@ -25,6 +25,7 @@ import { useGitRepoDetection } from "../../../git/useGitRepoDetection";
 import { createTerminalRenderer, logTerminalFontAtlasState, scheduleTerminalFontAtlasRefresh, type TerminalDimensions, type TerminalRenderer } from "./renderer";
 import { resolveTerminalColorScheme, TERMINAL_COLOR_SCHEMES } from "./colorSchemes";
 import { findQuickSelectMatches, labelQuickSelectMatches, quickSelectPointerAction, type LabeledQuickSelectMatch } from "./quickSelect";
+import { workspaceShortcutFromKeyboardEvent } from "../../keymap";
 import { ensureLayout } from "../../layout";
 import {
   broadcastInputToOtherPanes,
@@ -1625,6 +1626,12 @@ function TerminalPaneView({
   useEffect(() => {
     onFocusRef.current = onFocus;
   }, [onFocus]);
+  // The xterm custom key handler is installed once per terminal, so shortcut
+  // targets that change across renders are reached through a ref.
+  const shortcutHandlersRef = useRef({ canSplit, onFontChange, onSplit });
+  useEffect(() => {
+    shortcutHandlersRef.current = { canSplit, onFontChange, onSplit };
+  }, [canSplit, onFontChange, onSplit]);
   useEffect(() => {
     isActiveRef.current = isActive;
   }, [isActive]);
@@ -1941,19 +1948,82 @@ function TerminalPaneView({
         return false;
       }
 
-      if (event.type !== "keydown" || !event.ctrlKey) {
+      if (event.type !== "keydown") {
         return true;
       }
 
-      const key = event.key.toLowerCase();
-      // Quick Select (WezTerm parity): Ctrl+Shift+Space copies a visible
-      // token by hint label.
-      if (event.shiftKey && event.code === "Space") {
-        event.preventDefault();
-        startQuickSelect();
-        return false;
+      // Terminal-scope Workspace shortcuts, rebindable in Settings →
+      // Shortcuts. Workspace-scope shortcuts (Tab management) are handled by
+      // the window capture listener before xterm ever sees the key.
+      const action = workspaceShortcutFromKeyboardEvent(
+        event,
+        useWorkspaceStore.getState().generalSettings.workspaceShortcuts,
+        "terminal",
+      );
+      switch (action) {
+        case "copy": {
+          const selection = terminal.getSelection();
+          if (selection) {
+            void writeToClipboard(selection);
+            setSelectedTerminalText(selection);
+            setContextMenu(null);
+            return false;
+          }
+          return true;
+        }
+        case "paste":
+          // Prevent the browser's native paste event from also reaching
+          // xterm's hidden textarea — otherwise the clipboard text is written
+          // twice.
+          event.preventDefault();
+          void handlePasteIntoTerminal();
+          return false;
+        case "quickSelect":
+          // Quick Select (WezTerm parity): copies a visible token by hint
+          // label.
+          event.preventDefault();
+          startQuickSelect();
+          return false;
+        case "find":
+          event.preventDefault();
+          setSearchOpen(true);
+          return false;
+        case "zoomIn":
+          event.preventDefault();
+          shortcutHandlersRef.current.onFontChange(1);
+          return false;
+        case "zoomOut":
+          event.preventDefault();
+          shortcutHandlersRef.current.onFontChange(-1);
+          return false;
+        case "zoomReset":
+          event.preventDefault();
+          shortcutHandlersRef.current.onFontChange("reset");
+          return false;
+        case "splitRight":
+        case "splitLeft":
+        case "splitDown":
+        case "splitUp": {
+          if (shortcutHandlersRef.current.canSplit) {
+            event.preventDefault();
+            const direction = action === "splitRight"
+              ? "right"
+              : action === "splitLeft"
+                ? "left"
+                : action === "splitDown"
+                  ? "down"
+                  : "up";
+            shortcutHandlersRef.current.onSplit(pane.id, direction);
+          }
+          return false;
+        }
+        default:
+          break;
       }
-      if ((key === "c" && event.shiftKey) || key === "insert") {
+
+      // Fixed conventional aliases kept alongside the rebindable bindings:
+      // Ctrl+Insert copies and Ctrl+Shift+V pastes in most terminals.
+      if (event.ctrlKey && event.key === "Insert") {
         const selection = terminal.getSelection();
         if (selection) {
           void writeToClipboard(selection);
@@ -1963,10 +2033,7 @@ function TerminalPaneView({
         }
         return true;
       }
-
-      if (key === "v") {
-        // Prevent the browser's native paste event from also reaching xterm's
-        // hidden textarea — otherwise the clipboard text is written twice.
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "v") {
         event.preventDefault();
         void handlePasteIntoTerminal();
         return false;

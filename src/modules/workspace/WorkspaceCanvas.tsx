@@ -23,6 +23,7 @@ import type {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { DEFAULT_WORKSPACE_ID, useWorkspaceStore } from "../../store";
+import { workspaceShortcutFromKeyboardEvent } from "./keymap";
 import type { WorkspaceTab } from "../../types";
 
 const SftpWorkspace = lazy(() =>
@@ -393,6 +394,62 @@ export function WorkspaceCanvas({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [closeLocalTerminalPopup, localTerminalPopup]);
+
+  useEffect(() => {
+    if (!workspaceActive) {
+      return;
+    }
+    // Capture phase so Tab shortcuts win over xterm.js and other focused
+    // surfaces; stopPropagation keeps the handled key out of the terminal.
+    const handleShortcutKeyDown = (event: globalThis.KeyboardEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      // Remote Desktop surfaces forward raw keys to the remote host, and the
+      // Settings overlay hosts the shortcut recorder; leave their input alone.
+      if (target?.closest(".rdp-canvas-view, .vnc-display, .settings-backdrop, .dialog-backdrop")) {
+        return;
+      }
+      const state = useWorkspaceStore.getState();
+      const action = workspaceShortcutFromKeyboardEvent(
+        event,
+        state.generalSettings.workspaceShortcuts,
+        "workspace",
+      );
+      if (!action) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      switch (action) {
+        case "newTab":
+          state.openLocalTerminal();
+          break;
+        case "closeTab":
+          if (state.activeTabId) {
+            state.closeTab(state.activeTabId);
+          }
+          break;
+        case "nextTab":
+        case "previousTab": {
+          const workspaceTabs = state.tabs.filter(
+            (tab) => tabWorkspaceId(tab) === state.activeWorkspaceId,
+          );
+          if (workspaceTabs.length < 2) {
+            break;
+          }
+          const index = workspaceTabs.findIndex((tab) => tab.id === state.activeTabId);
+          const step = action === "nextTab" ? 1 : -1;
+          const nextTab =
+            workspaceTabs[(index + step + workspaceTabs.length) % workspaceTabs.length];
+          state.activateTab(nextTab.id);
+          break;
+        }
+        default:
+          break;
+      }
+    };
+    window.addEventListener("keydown", handleShortcutKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", handleShortcutKeyDown, { capture: true });
+  }, [workspaceActive]);
 
   const terminalPopup = localTerminalPopup
     ? createPortal(

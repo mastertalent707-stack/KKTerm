@@ -2,6 +2,7 @@ use crate::window_state::{MainWindowSettings, validate_main_window_settings};
 use rusqlite::{Connection as SqliteConnection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::BTreeMap,
     fs,
     fs::{File, OpenOptions},
     io::{Read, Write, copy},
@@ -542,6 +543,11 @@ pub struct GeneralSettings {
     advanced_debugging_enabled: bool,
     #[serde(default)]
     rdp_webview_stability: bool,
+    // Workspace shortcut overrides keyed by frontend keymap action id. A null
+    // value explicitly unbinds the action; absent ids keep the frontend
+    // catalog default. Stored opaque — only bounded/sanitized here.
+    #[serde(default)]
+    workspace_shortcuts: BTreeMap<String, Option<String>>,
     // Global application proxy. `proxy_mode` is "system" (default), "none", or
     // "manual"; `proxy_url` holds the normalized `<scheme>://host:port` value
     // (http/https/socks5) when the mode is "manual". See `net::proxy`.
@@ -4783,6 +4789,7 @@ fn default_general_settings() -> GeneralSettings {
         status_bar_monitor_interval_seconds: default_status_bar_monitor_interval_seconds(),
         advanced_debugging_enabled: false,
         rdp_webview_stability: false,
+        workspace_shortcuts: BTreeMap::new(),
         proxy_mode: default_proxy_mode(),
         proxy_url: None,
         last_backup_at: None,
@@ -5364,6 +5371,7 @@ fn validate_general_settings(mut settings: GeneralSettings) -> Result<GeneralSet
         3_600 | 86_400 | 604_800 | 2_592_000 => settings.installer_check_interval_seconds,
         _ => default_installer_check_interval_seconds(),
     };
+    settings.workspace_shortcuts = sanitize_workspace_shortcuts(settings.workspace_shortcuts);
     settings.proxy_mode = match settings.proxy_mode.trim().to_lowercase().as_str() {
         "none" => "none".to_string(),
         "manual" => "manual".to_string(),
@@ -5378,6 +5386,36 @@ fn validate_general_settings(mut settings: GeneralSettings) -> Result<GeneralSet
         settings.proxy_url = None;
     }
     Ok(settings)
+}
+
+/// Sanitize Workspace shortcut overrides: trimmed non-empty keys and values
+/// (an empty trimmed value collapses to None = explicitly unbound), bounded
+/// lengths, and a bounded entry count. Action ids and binding strings are
+/// interpreted by the frontend keymap catalog, so unknown ids are kept.
+fn sanitize_workspace_shortcuts(
+    shortcuts: BTreeMap<String, Option<String>>,
+) -> BTreeMap<String, Option<String>> {
+    shortcuts
+        .into_iter()
+        .filter_map(|(key, value)| {
+            let key = key.trim().to_string();
+            if key.is_empty() || key.len() > 64 {
+                return None;
+            }
+            let value = match value {
+                Some(value) => {
+                    let value = value.trim().to_string();
+                    if value.len() > 64 {
+                        return None;
+                    }
+                    if value.is_empty() { None } else { Some(value) }
+                }
+                None => None,
+            };
+            Some((key, value))
+        })
+        .take(64)
+        .collect()
 }
 
 /// Validate and normalize a global app proxy URL to `<scheme>://host:port`.

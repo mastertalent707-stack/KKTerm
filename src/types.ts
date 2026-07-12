@@ -738,6 +738,9 @@ export interface GeneralSettings {
   statusBarMonitorIntervalSeconds: number;
   advancedDebuggingEnabled: boolean;
   rdpWebviewStability: boolean;
+  // Workspace shortcut overrides keyed by keymap action id. A null value
+  // explicitly unbinds the action; absent ids keep the catalog default.
+  workspaceShortcuts: Record<string, string | null>;
   proxyMode: ProxyMode;
   proxyUrl?: string;
   lastBackupAt?: string | null;

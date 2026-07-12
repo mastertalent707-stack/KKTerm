@@ -51,6 +51,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   statusBarMonitorIntervalSeconds: 5,
   advancedDebuggingEnabled: false,
   rdpWebviewStability: false,
+  workspaceShortcuts: {},
   proxyMode: "system",
   proxyUrl: "",
   lastBackupAt: null,
