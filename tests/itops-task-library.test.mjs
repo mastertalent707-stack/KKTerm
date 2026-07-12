@@ -63,9 +63,18 @@ test("Batch Run shows saved Task definitions in a read-only Task Editor preview"
   assert.match(launcher, /selectedTask \? \([\s\S]*<ReadonlyTaskDefinition[\s\S]*\) : \(/);
 });
 
+test("Ad hoc Batch Runs support Script definitions only", () => {
+  assert.match(launcher, /selectedTask\?\.task \?\? \{ kind: "script", body \}/);
+  assert.match(launcher, /selectedTask \? \([\s\S]*<ReadonlyTaskDefinition[\s\S]*\) : \([\s\S]*itops\.batchRuns\.scriptLabel/);
+  assert.doesNotMatch(launcher, /type TaskMode/);
+  assert.doesNotMatch(launcher, /setPlaybookName|updateStep|setSteps/);
+  assert.doesNotMatch(launcher, /itops\.batchRuns\.addStep/);
+});
+
 test("AI nodes consume previous output through a closed non-executable decision contract", () => {
   assert.match(library, /aiInstruction: step\.kind === "ai"/);
-  assert.match(launcher, /aiInstruction: step\.aiInstruction/);
+  assert.match(launcher, /return selectedTask\?\.task \?\? \{ kind: "script", body \}/);
+  assert.match(launcher, /selectedStep\.aiInstruction/);
   assert.match(runner, /run_playbook_ai_decision/);
   assert.match(ai, /allow_tools: false/);
   assert.match(ai, /PlaybookAiDecisionKind/);
@@ -76,7 +85,7 @@ test("AI nodes consume previous output through a closed non-executable decision 
 test("Playbook sudo nodes persist only a vault reference and survive the launcher", () => {
   assert.match(library, /kind: "itopsTaskSecret"/);
   assert.match(library, /secretOwnerId: step\.kind === "sudo"/);
-  assert.match(launcher, /secretOwnerId: step\.secretOwnerId/);
+  assert.match(launcher, /return selectedTask\?\.task \?\? \{ kind: "script", body \}/);
   assert.match(launcher, /step\.kind === "sudo"/);
 });
 

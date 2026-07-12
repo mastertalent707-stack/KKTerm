@@ -2391,12 +2391,6 @@
   gap: 12px 16px;
 }
 .br-launch-config .it-scope-note { grid-column: 1 / -1; }
-.br-ad-hoc-step-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
 .br-launch-sheet.has-task-preview .kk-dlg-body {
   overflow: hidden;
 }

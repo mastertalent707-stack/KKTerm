@@ -116,7 +116,7 @@ live Session state and never a secret, and per-host results stream on the
 child Hosts. Storage lives in `src-tauri/src/itops/host_storage.rs`; the
 Site-owned Hosts page is implemented by `src/modules/itops/HostsPanel.tsx`.
 That page owns manual execution targeting: the operator selects Hosts with SSH
-Connection bindings, chooses a reusable Task or ad-hoc Batch Task, and starts a
+Connection bindings, chooses a reusable Task or ad-hoc Script Batch Task, and starts a
 Batch Run scoped to exactly those Host ids.
 _Avoid_: node, agent, connection host field
 
@@ -272,7 +272,7 @@ navigation state, not durable database entities or copied containers.
 The global **Task Library** is a sibling of Sites rather than a child of every
 Site. Opening a Task shows and manages its definition. Manual execution starts
 only from selected Hosts; the Host-scoped launcher offers reusable definitions
-from the Task Library alongside an ad-hoc option. This prevents duplicated
+from the Task Library alongside an ad-hoc Script option. This prevents duplicated
 per-Site scripts and keeps target selection explicit.
 
 Creating or editing a Playbook opens a full ordered workflow editor. Command
@@ -385,7 +385,7 @@ Site View is now overview-only and has no segmented content switcher. Hosts,
 Automations, and Run History each own a separate Site-scoped page selected from
 the navigator. The Hosts page owns Host selection and the manual **Run Task**
 action; its launcher accepts a reusable Task from the global Task Library or an
-ad-hoc Batch Task and fixes the target scope to the selected Host ids. A Host is
+ad-hoc Script Batch Task and fixes the target scope to the selected Host ids. A Host is
 runnable when it has a bound SSH Connection; target resolution uses the first
 bound SSH Connection for each selected Host and deduplicates Connections.
 
