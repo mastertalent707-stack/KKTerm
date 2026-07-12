@@ -2182,7 +2182,7 @@ fn general_settings_round_trip_through_settings_table() {
     assert!(defaults.submit_ai_attachments_directly);
     assert!(!defaults.separate_split_terminal_backgrounds);
     assert!(defaults.show_installer_on_rail);
-    assert!(!defaults.show_it_ops);
+    assert!(defaults.show_it_ops);
     assert!(defaults.show_dont_sleep_on_rail);
     assert_eq!(
         defaults.activity_rail_order,
@@ -2301,6 +2301,32 @@ fn general_settings_round_trip_through_settings_table() {
     assert!(reloaded.advanced_debugging_enabled);
     assert!(reloaded.rdp_webview_stability);
     assert!(reloaded.last_backup_at.is_none());
+}
+
+#[test]
+fn it_ops_visibility_revealed_for_upgrading_installs() {
+    let db_path = temp_db_path("itops-reveal-migration");
+    // Simulate a pre-release install: persist the former dev-era hidden value,
+    // then roll the schema version back to before the reveal migration.
+    {
+        let storage = Storage::open(db_path.clone()).expect("storage opens");
+        let mut settings = storage.general_settings().expect("load defaults");
+        settings.show_it_ops = false;
+        storage
+            .update_general_settings(settings)
+            .expect("persist hidden IT Ops");
+    }
+    {
+        let connection = rusqlite::Connection::open(&db_path).expect("raw open");
+        connection
+            .execute_batch("PRAGMA user_version = 46;")
+            .expect("downgrade schema version");
+    }
+
+    // Reopening runs initialize_schema, whose v47 migration flips the flag on.
+    let storage = Storage::open(db_path).expect("storage reopens");
+    let migrated = storage.general_settings().expect("load migrated settings");
+    assert!(migrated.show_it_ops);
 }
 
 #[test]

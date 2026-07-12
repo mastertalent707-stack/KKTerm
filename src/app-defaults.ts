@@ -35,7 +35,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   submitAiAttachmentsDirectly: true,
   separateSplitTerminalBackgrounds: false,
   showInstallerOnRail: true,
-  showItOps: false,
+  showItOps: true,
   showDontSleepOnRail: true,
   activityRailOrder: [...DEFAULT_ACTIVITY_RAIL_ORDER],
   installerCheckIntervalSeconds: 86400,
