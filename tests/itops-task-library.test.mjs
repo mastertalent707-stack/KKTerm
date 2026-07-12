@@ -4,6 +4,7 @@ import test from "node:test";
 
 const sites = await readFile(new URL("../src/modules/itops/SitesTab.tsx", import.meta.url), "utf8");
 const library = await readFile(new URL("../src/modules/itops/TaskLibrary.tsx", import.meta.url), "utf8");
+const itopsCss = await readFile(new URL("../src/modules/itops/itops.css", import.meta.url), "utf8");
 const hosts = await readFile(new URL("../src/modules/itops/HostsPanel.tsx", import.meta.url), "utf8");
 const launcher = await readFile(new URL("../src/modules/itops/BatchRunDialog.tsx", import.meta.url), "utf8");
 const schema = await readFile(new URL("../src-tauri/src/storage.rs", import.meta.url), "utf8");
@@ -49,6 +50,19 @@ test("Task Library manages definitions while the Hosts launcher selects saved Ta
   assert.doesNotMatch(library, /playbookEditLater/);
 });
 
+test("Batch Run shows saved Task definitions in a read-only Task Editor preview", () => {
+  assert.match(launcher, /const selectedTask = tasks\.find/);
+  assert.match(launcher, /function ReadonlyTaskDefinition/);
+  assert.match(launcher, /function ReadonlyScriptTask/);
+  assert.match(launcher, /function ReadonlyPlaybookTask/);
+  assert.match(launcher, /className="br-task-preview"/);
+  assert.match(launcher, /<ReactFlow/);
+  assert.match(launcher, /<TextInput readOnly/);
+  assert.match(launcher, /<TextArea readOnly/);
+  assert.match(launcher, /selectedTask \? 1040 : 580/);
+  assert.match(launcher, /selectedTask \? \([\s\S]*<ReadonlyTaskDefinition[\s\S]*\) : \(/);
+});
+
 test("AI nodes consume previous output through a closed non-executable decision contract", () => {
   assert.match(library, /aiInstruction: step\.kind === "ai"/);
   assert.match(launcher, /aiInstruction: step\.aiInstruction/);
@@ -82,11 +96,16 @@ test("Task Library is a spreadsheet list with stable-id run statistics", () => {
   assert.match(library, /onOpenRunHistory\(stats\.lastSiteId\)/);
 });
 
-test("Playbook connector buttons insert commands at the selected edge", () => {
+test("Playbook connector buttons open a node picker and insert the selected kind at that edge", () => {
   assert.match(library, /function TaskEdge/);
   assert.match(library, /className="pb-edge-add nodrag nopan"/);
-  assert.match(library, /insertCommandStep/);
+  assert.match(library, /className="pb-edge-picker nodrag nopan"/);
+  assert.match(library, /role="menu"/);
+  assert.match(library, /onInsert\(data\.insertIndex, kind\)/);
+  assert.match(library, /insertStepAt/);
+  assert.match(library, /"command", "sudo", "ai"/);
   assert.match(library, /insertIndex: index/);
+  assert.match(itopsCss, /\.pb-edge-control\s*\{[^}]*pointer-events:\s*all/s);
 });
 
 test("sudo credential typing stays local and outside React Flow node state", () => {

@@ -17,7 +17,7 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { ConfirmSheet, Btn, DialogShell, Field, Segmented, TextArea, TextInput } from "../../app/ui/dialog";
+import { Actions, ConfirmSheet, Btn, DialogShell, Field, Segmented, TextArea, TextInput } from "../../app/ui/dialog";
 import { invokeCommand } from "../../lib/tauri";
 import { useWorkspaceStore } from "../../store";
 import type { BatchTask, ItopsTask, PlaybookStep } from "../../types";
@@ -81,11 +81,12 @@ interface TaskNodeData extends Record<string, unknown> {
   selected: boolean;
   source: boolean;
   target: boolean;
+  mono: boolean;
 }
 
 function TaskNode({ data }: NodeProps<Node<TaskNodeData>>) {
   return (
-    <div className={`au-node pb-node${data.selected ? " sel" : ""}`}>
+    <div className={`au-node pb-node${data.selected ? " sel" : ""}${data.mono ? " mono" : ""}`}>
       {data.target ? <Handle type="target" position={Position.Left} className="au-handle" /> : null}
       <span className="au-node-ic" style={{ background: data.color }}><ItIcon name={data.icon} size={15} /></span>
       <span className="au-node-tx"><span className="au-node-lab">{data.label}</span><span className="au-node-sub">{data.sub}</span></span>
@@ -96,24 +97,73 @@ function TaskNode({ data }: NodeProps<Node<TaskNodeData>>) {
 
 interface TaskEdgeData extends Record<string, unknown> {
   insertIndex: number;
-  onInsert: (index: number) => void;
+  onInsert: (index: number, kind: EditorStep["kind"]) => void;
   label: string;
+  optionLabels: Record<EditorStep["kind"], string>;
 }
 
 function TaskEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, data }: EdgeProps<Edge<TaskEdgeData>>) {
+  const [open, setOpen] = useState(false);
+  const controlRef = useRef<HTMLDivElement>(null);
   const [path, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsidePress = (event: PointerEvent) => {
+      if (!controlRef.current?.contains(event.target as globalThis.Node)) setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  const kinds: EditorStep["kind"][] = ["command", "sudo", "ai"];
   return (
     <>
       <BaseEdge id={id} path={path} markerEnd={markerEnd} className="au-edge" />
       <EdgeLabelRenderer>
-        <button
-          type="button"
-          className="pb-edge-add nodrag nopan"
+        <div
+          ref={controlRef}
+          className="pb-edge-control nodrag nopan"
           style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
-          aria-label={data?.label}
-          title={data?.label}
-          onClick={(event) => { event.stopPropagation(); data?.onInsert(data.insertIndex); }}
-        >+</button>
+        >
+          <button
+            type="button"
+            className="pb-edge-add nodrag nopan"
+            aria-label={data?.label}
+            title={data?.label}
+            aria-haspopup="menu"
+            aria-expanded={open}
+            onClick={(event) => { event.stopPropagation(); setOpen((current) => !current); }}
+          >+</button>
+          {open && data ? (
+            <div className="pb-edge-picker nodrag nopan" role="menu" aria-label={data.label} onClick={(event) => event.stopPropagation()}>
+              {kinds.map((kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  role="menuitem"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    data.onInsert(data.insertIndex, kind);
+                    setOpen(false);
+                  }}
+                >
+                  <span className={`pb-edge-picker-icon ${kind}`}>
+                    <ItIcon name={kind === "sudo" ? "ssh" : kind === "ai" ? "bot" : "code"} size={14} />
+                  </span>
+                  {data.optionLabels[kind]}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </EdgeLabelRenderer>
     </>
   );
@@ -188,32 +238,32 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
   const nodes = useMemo<Node<TaskNodeData>[]>(() => {
     const list: Node<TaskNodeData>[] = [{
       id: "start", type: "task", position: { x: 0, y: 150 }, draggable: false,
-      data: { icon: "run", color: IT_ACCENTS.green, label: t("itops.tasks.startNode"), sub: t("itops.tasks.startNodeSub"), selected: selectedId === "start", source: true, target: false },
+      data: { icon: "run", color: IT_ACCENTS.green, label: t("itops.tasks.startNode"), sub: t("itops.tasks.startNodeSub"), selected: selectedId === "start", source: true, target: false, mono: false },
     }];
     steps.forEach((step, index) => {
       const isSudo = step.kind === "sudo";
       const isAi = step.kind === "ai";
       const ownerId = step.secretOwnerId ?? "";
       list.push({
-        id: step.id, type: "task", position: { x: 245 + index * 235, y: 150 }, draggable: false,
+        id: step.id, type: "task", position: { x: 266 + index * 266, y: 150 }, draggable: false,
         data: {
           icon: isSudo ? "ssh" : isAi ? "bot" : "code",
           color: isSudo ? IT_ACCENTS.orange : isAi ? IT_ACCENTS.purple : IT_ACCENTS.blue,
           label: step.name.trim() || (isSudo ? t("itops.tasks.sudoNode") : isAi ? t("itops.tasks.aiNode") : t("itops.tasks.commandNode")),
           sub: isSudo ? (secretPresence[ownerId] ? t("itops.tasks.credentialStored") : t("itops.tasks.credentialRequired")) : isAi ? (step.aiInstruction?.trim() || t("itops.tasks.aiUnset")) : (step.send.trim() || t("itops.tasks.commandUnset")),
-          selected: selectedId === step.id, source: true, target: true,
+          selected: selectedId === step.id, source: true, target: true, mono: step.kind === "command",
         },
       });
     });
     list.push({
-      id: "end", type: "task", position: { x: 245 + steps.length * 235, y: 150 }, draggable: false,
-      data: { icon: "stop", color: IT_ACCENTS.teal, label: t("itops.tasks.endNode"), sub: t("itops.tasks.endNodeSub"), selected: selectedId === "end", source: false, target: true },
+      id: "end", type: "task", position: { x: 266 + steps.length * 266, y: 150 }, draggable: false,
+      data: { icon: "stop", color: IT_ACCENTS.teal, label: t("itops.tasks.endNode"), sub: t("itops.tasks.endNodeSub"), selected: selectedId === "end", source: false, target: true, mono: false },
     });
     return list;
   }, [secretPresence, selectedId, steps, t]);
 
-  function insertCommandStep(index: number) {
-    const next = commandStep();
+  function insertStepAt(index: number, kind: EditorStep["kind"]) {
+    const next = kind === "sudo" ? sudoStep() : kind === "ai" ? aiStep() : commandStep();
     setSteps((current) => [...current.slice(0, index), next, ...current.slice(index)]);
     setSelectedId(next.id);
   }
@@ -226,7 +276,16 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
       target: ids[index + 1],
       type: "insert",
       markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-      data: { insertIndex: index, onInsert: insertCommandStep, label: t("itops.tasks.insertCommand") },
+      data: {
+        insertIndex: index,
+        onInsert: insertStepAt,
+        label: t("itops.tasks.addNode"),
+        optionLabels: {
+          command: t("itops.tasks.addCommand"),
+          sudo: t("itops.tasks.addSudo"),
+          ai: t("itops.tasks.addAi"),
+        },
+      },
     }));
   }, [steps, t]);
 
@@ -234,6 +293,8 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
     if (!selectedStep) return;
     setSteps((current) => current.map((step) => step.id === selectedStep.id ? { ...step, ...patch } : step));
   }
+
+  const scriptLineCount = Math.max(body.split("\n").length, 16);
 
   function addStep(kind: EditorStep["kind"]) {
     const next = kind === "sudo" ? sudoStep() : kind === "ai" ? aiStep() : commandStep();
@@ -311,7 +372,15 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
               <Field label={t("itops.tasks.descriptionLabel")}><TextInput value={description} onChange={(event) => setDescription(event.currentTarget.value)} /></Field>
               <Field label={t("itops.tasks.shellLabel")}><TextInput mono value={shell} placeholder={t("itops.tasks.shellPlaceholder")} onChange={(event) => setShell(event.currentTarget.value)} /></Field>
             </div>
-            <Field label={t("itops.tasks.scriptLabel")} req><TextArea className="mono pb-script-body" value={body} spellCheck={false} onChange={(event) => setBody(event.currentTarget.value)} /></Field>
+            <div className="pb-script-main">
+              <span className="pb-script-label">{t("itops.tasks.scriptLabel")}<span aria-hidden="true">*</span></span>
+              <div className="pb-code-editor">
+                <div className="pb-code-gutter" aria-hidden="true">
+                  {Array.from({ length: scriptLineCount }, (_, index) => <span key={index}>{index + 1}</span>)}
+                </div>
+                <TextArea className="mono pb-script-body" value={body} spellCheck={false} onChange={(event) => setBody(event.currentTarget.value)} />
+              </div>
+            </div>
           </div>
         ) : (
           <div className="au-editor-body">
@@ -346,8 +415,10 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
           </div>
         )}
         <div className="pb-editor-foot">
-          <Btn kind="primary" icon="check" onClick={() => void save()} disabled={!ready}>{t("itops.actions.save")}</Btn>
-          <Btn onClick={onClose}>{t("itops.actions.cancel")}</Btn>
+          <Actions
+            cancel={<Btn onClick={onClose}>{t("itops.actions.cancel")}</Btn>}
+            primary={<Btn kind="primary" icon="check" onClick={() => void save()} disabled={!ready}>{t("itops.actions.save")}</Btn>}
+          />
         </div>
       </div>
     </DialogShell>
