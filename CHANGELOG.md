@@ -14,6 +14,7 @@ All notable changes to KKTerm are documented here.
 
 ## New
 
+- **IT Ops:** The IT Ops Module is now officially released and shows on the Activity Rail by default. Fresh installs and upgrades reveal it automatically; anyone who prefers it hidden can still turn it off in **Settings → IT Ops**. (by @ryantsai)
 - **IT Ops:** Exposed IT Ops topology tools to the AI assistant and the built-in MCP server. (PR #573 by @ryantsai)
 
 ## Improved

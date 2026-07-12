@@ -325,7 +325,7 @@ function App() {
     return { ok: true };
   }
 
-  // The IT Ops Module is hidden by default while under development. If it gets
+  // The IT Ops Module shows by default, but users can hide it. If it gets
   // turned off while it is the active (or last-active) page, fall back to the
   // Workspace so the user is never stranded on a Module they can't navigate to.
   useEffect(() => {
