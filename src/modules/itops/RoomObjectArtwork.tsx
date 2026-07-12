@@ -25,9 +25,14 @@ export function RoomObjectPlanArtwork({ kind }: { kind: RoomObjectKind }) {
       ) : null}
       {kind === "crashCart" ? (
         <>
-          <rect className="rm-art-soft" x="24" y="28" width="50" height="46" rx="5" />
-          <path className="rm-art-line" d="M18 36h62M27 47h44M27 59h44M74 31h10v18" />
-          <circle className="rm-art-fill" cx="35" cy="80" r="5" /><circle className="rm-art-fill" cx="64" cy="80" r="5" />
+          <rect className="rm-art-soft" x="26" y="30" width="48" height="40" rx="4" />
+          <rect className="rm-art-dark" x="14" y="40" width="20" height="16" rx="2" strokeWidth="1.5" />
+          <g stroke="var(--green)" strokeWidth="1.2" opacity="0.8"><path d="M17 44h14M17 48h14M17 52h10" /></g>
+          <rect className="rm-art-detail" x="40" y="42" width="20" height="16" rx="2" />
+          <rect className="rm-art-dark" x="46" y="26" width="8" height="8" rx="2" strokeWidth="1.5" />
+          <path className="rm-art-line" d="M50 34v-4" strokeWidth="1.5" />
+          <circle className="rm-art-fill" cx="30" cy="34" r="3.4" /><circle className="rm-art-fill" cx="70" cy="34" r="3.4" />
+          <circle className="rm-art-fill" cx="30" cy="66" r="3.4" /><circle className="rm-art-fill" cx="70" cy="66" r="3.4" />
         </>
       ) : null}
       {kind === "camera" ? (
