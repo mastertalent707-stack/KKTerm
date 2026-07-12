@@ -1003,7 +1003,7 @@
       "autos": "自动化"
     },
     "navigation": {
-      "serverRooms": "服务器机房",
+      "serverRooms": "机房",
       "runHistory": "运行历史",
       "library": "库"
     },
@@ -1069,7 +1069,7 @@
       "viewLabel": "站点视图模式",
       "viewOverview": "概览",
       "autoOrganize": "自动排列",
-      "emptyServerRoomsHint": "此站点没有服务器机房。<addServerRoom>新建服务器机房</addServerRoom>。"
+      "emptyServerRoomsHint": "此站点没有机房。<addServerRoom>新建机房</addServerRoom>。"
     },
     "hosts": {
       "empty": "还没有主机。<importHosts>导入主机</importHosts>以建立此站点的清单。",
@@ -1187,7 +1187,7 @@
     "racks": {
       "heading": "机架",
       "empty": "暂无机架。将此站点的主机排布为虚拟数据中心。",
-      "emptyServerRoomHint": "此服务器机房中没有机架。<addRack>新建机架</addRack>。",
+      "emptyServerRoomHint": "此机房中没有机架。<addRack>新建机架</addRack>。",
       "emptyRackHint": "机架为空，请启用<editMode>编辑模式</editMode>以添加设备。",
       "rackCount": "{{count}} 个机架",
       "unitCount": "{{count}}U",
@@ -1204,13 +1204,13 @@
       "nameLabel": "名称",
       "namePlaceholder": "例如，A12",
       "siteLabel": "站点",
-      "serverRoomLabel": "服务器机房",
+      "serverRoomLabel": "机房",
       "serverRoomSiteLabel": "站点",
       "serverRoomNameLabel": "机房名称",
       "serverRoomSelectLabel": "机房",
       "serverRoomPlaceholder": "例如 机房 B",
       "serverRoomCreateHelp": "机房属于某个站点，在添加机架之前可以保持为空。",
-      "serverRoomRequiredOption": "选择服务器机房",
+      "serverRoomRequiredOption": "选择机房",
       "firstRackLabel": "首个机架",
       "firstRackHint": "机房通过其机架存储，因此此操作会在机房中创建首个机架。",
       "shellLabel": "外壳",
@@ -1231,8 +1231,8 @@
       "disksSpec": "{{count}} 个托架",
       "addNode": "添加…",
       "addSite": "新建站点",
-      "addServerRoom": "新建服务器机房",
-      "addServerRoomAction": "添加服务器机房",
+      "addServerRoom": "新建机房",
+      "addServerRoomAction": "添加机房",
       "addRack": "新建机架",
       "addRackAction": "添加机架",
       "heightLabel": "高度 (U)",
@@ -1453,7 +1453,7 @@
       "launchTitle": "新建批量运行",
       "siteLabel": "站点",
       "scopeRack": "仅针对机架 {{name}}",
-      "scopeServerRoom": "仅针对服务器机房 {{name}}",
+      "scopeServerRoom": "仅针对机房 {{name}}",
       "scopeSelectedHosts": "仅以选定的 {{count}} 台主机为目标",
       "taskSourceLabel": "任务来源",
       "adHocTask": "临时任务",

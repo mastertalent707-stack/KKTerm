@@ -1003,7 +1003,7 @@
       "autos": "自動化"
     },
     "navigation": {
-      "serverRooms": "伺服器機房",
+      "serverRooms": "機房",
       "runHistory": "執行記錄",
       "library": "任務庫"
     },
@@ -1069,7 +1069,7 @@
       "viewLabel": "站台檢視模式",
       "viewOverview": "總覽",
       "autoOrganize": "自動排列",
-      "emptyServerRoomsHint": "此站台沒有伺服器機房。<addServerRoom>新增伺服器機房</addServerRoom>。"
+      "emptyServerRoomsHint": "此站台沒有機房。<addServerRoom>新增機房</addServerRoom>。"
     },
     "hosts": {
       "empty": "尚無主機。<importHosts>匯入主機</importHosts>以建立此站台的清冊。",
@@ -1187,7 +1187,7 @@
     "racks": {
       "heading": "機架",
       "empty": "尚無機架。將此站台的主機排列為虛擬資料中心。",
-      "emptyServerRoomHint": "此伺服器機房中沒有機架。<addRack>新增機架</addRack>。",
+      "emptyServerRoomHint": "此機房中沒有機架。<addRack>新增機架</addRack>。",
       "emptyRackHint": "機架是空的，請啟用<editMode>編輯模式</editMode>以新增裝置。",
       "rackCount": "{{count}} 個機架",
       "unitCount": "{{count}}U",
@@ -1204,13 +1204,13 @@
       "nameLabel": "名稱",
       "namePlaceholder": "例如，A12",
       "siteLabel": "站台",
-      "serverRoomLabel": "伺服器機房",
+      "serverRoomLabel": "機房",
       "serverRoomSiteLabel": "站台",
       "serverRoomNameLabel": "機房名稱",
       "serverRoomSelectLabel": "機房",
       "serverRoomPlaceholder": "例如 機房 B",
       "serverRoomCreateHelp": "機房屬於某個站台，在新增機架之前可以保持為空。",
-      "serverRoomRequiredOption": "選取伺服器機房",
+      "serverRoomRequiredOption": "選取機房",
       "firstRackLabel": "第一個機架",
       "firstRackHint": "機房是透過其機架儲存，因此此動作會在機房中建立第一個機架。",
       "shellLabel": "外殼",
@@ -1231,8 +1231,8 @@
       "disksSpec": "{{count}} 個機槽",
       "addNode": "新增…",
       "addSite": "新增站台",
-      "addServerRoom": "新增伺服器機房",
-      "addServerRoomAction": "新增伺服器機房",
+      "addServerRoom": "新增機房",
+      "addServerRoomAction": "新增機房",
       "addRack": "新增機架",
       "addRackAction": "新增機架",
       "heightLabel": "高度 (U)",
@@ -1453,7 +1453,7 @@
       "launchTitle": "新增批次執行",
       "siteLabel": "站台",
       "scopeRack": "僅以機架 {{name}} 為目標",
-      "scopeServerRoom": "僅以伺服器機房 {{name}} 為目標",
+      "scopeServerRoom": "僅以機房 {{name}} 為目標",
       "scopeSelectedHosts": "僅以選取的 {{count}} 台主機為目標",
       "taskSourceLabel": "任務來源",
       "adHocTask": "臨時任務",
