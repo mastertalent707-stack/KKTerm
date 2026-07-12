@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Background,
   BackgroundVariant,
+  BaseEdge,
   Controls,
+  EdgeLabelRenderer,
   Handle,
   MarkerType,
   Position,
   ReactFlow,
+  getStraightPath,
   type Edge,
+  type EdgeProps,
   type Node,
   type NodeProps,
 } from "@xyflow/react";
@@ -90,8 +94,51 @@ function TaskNode({ data }: NodeProps<Node<TaskNodeData>>) {
   );
 }
 
+interface TaskEdgeData extends Record<string, unknown> {
+  insertIndex: number;
+  onInsert: (index: number) => void;
+  label: string;
+}
+
+function TaskEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, data }: EdgeProps<Edge<TaskEdgeData>>) {
+  const [path, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+  return (
+    <>
+      <BaseEdge id={id} path={path} markerEnd={markerEnd} className="au-edge" />
+      <EdgeLabelRenderer>
+        <button
+          type="button"
+          className="pb-edge-add nodrag nopan"
+          style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
+          aria-label={data?.label}
+          title={data?.label}
+          onClick={(event) => { event.stopPropagation(); data?.onInsert(data.insertIndex); }}
+        >+</button>
+      </EdgeLabelRenderer>
+    </>
+  );
+}
+
+function SudoCredentialInput({ ownerId, stored, drafts, onValidityChange, placeholder }: {
+  ownerId: string;
+  stored: boolean;
+  drafts: MutableRefObject<Record<string, string>>;
+  onValidityChange: (valid: boolean) => void;
+  placeholder: string;
+}) {
+  const [value, setValue] = useState(() => drafts.current[ownerId] ?? "");
+  return <TextInput type="password" value={value} placeholder={placeholder} onChange={(event) => {
+    const next = event.currentTarget.value;
+    const wasValid = stored || value.trim().length > 0;
+    const isValid = stored || next.trim().length > 0;
+    drafts.current[ownerId] = next;
+    setValue(next);
+    if (wasValid !== isValid) onValidityChange(isValid);
+  }} />;
+}
+
 const taskNodeTypes = { task: TaskNode };
-const taskEdgeStyle = { markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 }, className: "au-edge" } as const;
+const taskEdgeTypes = { insert: TaskEdge };
 
 function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => void }) {
   const { t } = useTranslation();
@@ -107,7 +154,8 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
   const [shell, setShell] = useState(script?.shell ?? "");
   const [steps, setSteps] = useState<EditorStep[]>(() => task?.task.kind === "playbook" ? task.task.steps.map(normalizeStep) : [commandStep()]);
   const [selectedId, setSelectedId] = useState(() => steps[0]?.id ?? "start");
-  const [secretDrafts, setSecretDrafts] = useState<Record<string, string>>({});
+  const secretDrafts = useRef<Record<string, string>>({});
+  const [secretDraftValidity, setSecretDraftValidity] = useState<Record<string, boolean>>({});
   const [secretPresence, setSecretPresence] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const selectedStep = steps.find((step) => step.id === selectedId) ?? null;
@@ -133,9 +181,9 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
       if (step.kind === "command") return step.send.trim().length > 0;
       if (step.kind === "ai") return !!step.aiInstruction?.trim();
       const ownerId = step.secretOwnerId ?? "";
-      return !!ownerId && (secretPresence[ownerId] || !!secretDrafts[ownerId]?.trim());
+      return !!ownerId && (secretPresence[ownerId] || secretDraftValidity[ownerId]);
     });
-  }, [body, busy, mode, name, secretDrafts, secretPresence, steps]);
+  }, [body, busy, mode, name, secretDraftValidity, secretPresence, steps]);
 
   const nodes = useMemo<Node<TaskNodeData>[]>(() => {
     const list: Node<TaskNodeData>[] = [{
@@ -164,10 +212,23 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
     return list;
   }, [secretPresence, selectedId, steps, t]);
 
-  const edges = useMemo<Edge[]>(() => {
+  function insertCommandStep(index: number) {
+    const next = commandStep();
+    setSteps((current) => [...current.slice(0, index), next, ...current.slice(index)]);
+    setSelectedId(next.id);
+  }
+
+  const edges = useMemo<Edge<TaskEdgeData>[]>(() => {
     const ids = ["start", ...steps.map((step) => step.id), "end"];
-    return ids.slice(0, -1).map((source, index) => ({ id: `task-edge-${index}`, source, target: ids[index + 1], ...taskEdgeStyle }));
-  }, [steps]);
+    return ids.slice(0, -1).map((source, index) => ({
+      id: `task-edge-${index}`,
+      source,
+      target: ids[index + 1],
+      type: "insert",
+      markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
+      data: { insertIndex: index, onInsert: insertCommandStep, label: t("itops.tasks.insertCommand") },
+    }));
+  }, [steps, t]);
 
   function updateSelected(patch: Partial<EditorStep>) {
     if (!selectedStep) return;
@@ -187,7 +248,7 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
         .map((step) => step.secretOwnerId)
         .filter((ownerId): ownerId is string => !!ownerId),
     );
-    for (const [ownerId, secret] of Object.entries(secretDrafts)) {
+    for (const [ownerId, secret] of Object.entries(secretDrafts.current)) {
       if (!activeOwnerIds.has(ownerId) || !secret.trim()) continue;
       await invokeCommand("store_secret", { request: { kind: "itopsTaskSecret", ownerId, secret } });
       storedOwnerIds.push(ownerId);
@@ -240,11 +301,9 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
       <div className="au-editor pb-editor" role="dialog" aria-modal="true" aria-label={task ? t("itops.tasks.editTitle") : t("itops.tasks.newTitle")}>
         <div className="au-editor-head">
           <span className="au-editor-tile"><ItIcon name="book" size={17} /></span>
-          <input className="au-editor-name" value={name} placeholder={t("itops.tasks.namePlaceholder")} onChange={(event) => setName(event.currentTarget.value)} aria-label={t("itops.tasks.nameLabel")} />
+          <strong className="pb-editor-title">{task ? t("itops.tasks.editTitle") : t("itops.tasks.newTitle")}</strong>
+          <label className="pb-editor-name"><span>{t("itops.tasks.nameLabel")}</span><input className="au-editor-name" value={name} placeholder={t("itops.tasks.namePlaceholder")} onChange={(event) => setName(event.currentTarget.value)} /></label>
           <Segmented value={mode} onChange={(value) => setMode(value as TaskMode)} options={[{ value: "script", label: t("itops.tasks.kind.script") }, { value: "playbook", label: t("itops.tasks.kind.playbook") }]} />
-          <span className="au-editor-sp" />
-          <Btn onClick={onClose}>{t("itops.actions.cancel")}</Btn>
-          <Btn kind="primary" icon="check" onClick={() => void save()} disabled={!ready}>{t("itops.actions.save")}</Btn>
         </div>
         {mode === "script" ? (
           <div className="pb-script-editor">
@@ -257,7 +316,7 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
         ) : (
           <div className="au-editor-body">
             <div className="au-canvas pb-canvas">
-              <ReactFlow nodes={nodes} edges={edges} nodeTypes={taskNodeTypes} onNodeClick={(_event, node) => setSelectedId(node.id)} onPaneClick={() => setSelectedId("")} nodesConnectable={false} nodesDraggable={false} edgesFocusable={false} deleteKeyCode={null} fitView proOptions={{ hideAttribution: true }}>
+              <ReactFlow nodes={nodes} edges={edges} nodeTypes={taskNodeTypes} edgeTypes={taskEdgeTypes} onNodeClick={(_event, node) => setSelectedId(node.id)} onPaneClick={() => setSelectedId("")} nodesConnectable={false} nodesDraggable={false} edgesFocusable={false} deleteKeyCode={null} fitView proOptions={{ hideAttribution: true }}>
                 <Background variant={BackgroundVariant.Dots} gap={18} size={1} /><Controls showInteractive={false} />
               </ReactFlow>
               <div className="pb-add-node"><span>{t("itops.tasks.addNode")}</span><Btn sm icon="plus" onClick={() => addStep("command")}>{t("itops.tasks.addCommand")}</Btn><Btn sm icon="plus" onClick={() => addStep("sudo")}>{t("itops.tasks.addSudo")}</Btn><Btn sm icon="plus" onClick={() => addStep("ai")}>{t("itops.tasks.addAi")}</Btn></div>
@@ -273,7 +332,7 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
                     <>
                       <Field label={t("itops.tasks.promptLabel")} req hint={t("itops.tasks.promptHint")}><TextInput mono value={selectedStep.expect ?? ""} onChange={(event) => updateSelected({ expect: event.currentTarget.value })} /></Field>
                       <Field label={t("itops.tasks.credentialLabel")} req hint={t("itops.tasks.credentialHint")}>
-                        <TextInput type="password" value={secretDrafts[selectedStep.secretOwnerId ?? ""] ?? ""} placeholder={secretPresence[selectedStep.secretOwnerId ?? ""] ? t("itops.tasks.credentialStoredPlaceholder") : t("itops.tasks.credentialPlaceholder")} onChange={(event) => { const ownerId = selectedStep.secretOwnerId ?? newId("itops-sudo"); if (!selectedStep.secretOwnerId) updateSelected({ secretOwnerId: ownerId }); setSecretDrafts((current) => ({ ...current, [ownerId]: event.currentTarget.value })); }} />
+                        <SudoCredentialInput ownerId={selectedStep.secretOwnerId ?? ""} stored={!!secretPresence[selectedStep.secretOwnerId ?? ""]} drafts={secretDrafts} placeholder={secretPresence[selectedStep.secretOwnerId ?? ""] ? t("itops.tasks.credentialStoredPlaceholder") : t("itops.tasks.credentialPlaceholder")} onValidityChange={(valid) => setSecretDraftValidity((current) => ({ ...current, [selectedStep.secretOwnerId ?? ""]: valid }))} />
                       </Field>
                       <div className={`pb-secret-state ${secretPresence[selectedStep.secretOwnerId ?? ""] ? "stored" : "missing"}`}><ItIcon name={secretPresence[selectedStep.secretOwnerId ?? ""] ? "check" : "alert"} size={13} />{secretPresence[selectedStep.secretOwnerId ?? ""] ? t("itops.tasks.credentialStoredDetail") : t("itops.tasks.credentialMissingDetail")}</div>
                       <p className="au-side-hint">{t("itops.tasks.sudoCacheHint")}</p>
@@ -286,6 +345,10 @@ function TaskEditor({ task, onClose }: { task: ItopsTask | null; onClose: () => 
             </div></aside>
           </div>
         )}
+        <div className="pb-editor-foot">
+          <Btn kind="primary" icon="check" onClick={() => void save()} disabled={!ready}>{t("itops.actions.save")}</Btn>
+          <Btn onClick={onClose}>{t("itops.actions.cancel")}</Btn>
+        </div>
       </div>
     </DialogShell>
   );
@@ -295,29 +358,39 @@ function taskKind(task: ItopsTask): "script" | "playbook" {
   return task.task.kind;
 }
 
-export function TaskLibrary() {
+export function TaskLibrary({ onOpenRunHistory }: { onOpenRunHistory: (siteId: string) => void }) {
   const { t } = useTranslation();
   const tasks = useItOpsStore((state) => state.tasks);
   const loaded = useItOpsStore((state) => state.tasksLoaded);
   const loadTasks = useItOpsStore((state) => state.loadTasks);
   const removeTask = useItOpsStore((state) => state.removeTask);
+  const runHistory = useItOpsStore((state) => state.runHistory);
+  const historyLoaded = useItOpsStore((state) => state.historyLoaded);
+  const loadRunHistory = useItOpsStore((state) => state.loadRunHistory);
   const showStatusBarNotice = useWorkspaceStore((state) => state.showStatusBarNotice);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [editor, setEditor] = useState<ItopsTask | null | undefined>(undefined);
   const [pendingDelete, setPendingDelete] = useState<ItopsTask | null>(null);
 
   useEffect(() => { if (!loaded) void loadTasks(); }, [loaded, loadTasks]);
-  useEffect(() => {
-    if (!tasks.length) setSelectedId(null);
-    else if (!tasks.some((task) => task.id === selectedId)) setSelectedId(tasks[0].id);
-  }, [selectedId, tasks]);
+  useEffect(() => { if (!historyLoaded) void loadRunHistory(); }, [historyLoaded, loadRunHistory]);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return needle ? tasks.filter((task) => `${task.name} ${task.description}`.toLowerCase().includes(needle)) : tasks;
   }, [query, tasks]);
-  const selected = tasks.find((task) => task.id === selectedId) ?? null;
+  const taskStats = useMemo(() => {
+    const stats = new Map<string, { executions: number; failures: number; lastSiteId: string | null }>();
+    for (const run of runHistory) {
+      if (!run.taskId) continue;
+      const current = stats.get(run.taskId) ?? { executions: 0, failures: 0, lastSiteId: null };
+      current.executions += 1;
+      current.failures += run.report.failed;
+      current.lastSiteId ??= run.siteId ?? null;
+      stats.set(run.taskId, current);
+    }
+    return stats;
+  }, [runHistory]);
 
   async function confirmDelete() {
     if (!pendingDelete) return;
@@ -344,43 +417,27 @@ export function TaskLibrary() {
           {t("itops.tasks.newTitle")}
         </button>
       </div>
-      <div className="it-task-library">
-        <aside className="it-task-list">
-          <label className="it-task-search">
+      <div className="it-task-table-shell">
+        <label className="it-task-search">
             <ItIcon name="search" size={13} />
             <input value={query} placeholder={t("itops.tasks.searchPlaceholder")} onChange={(event) => setQuery(event.currentTarget.value)} />
-          </label>
-          <div className="it-task-rows">
-            {filtered.map((task) => (
-              <button key={task.id} type="button" className="it-task-row" data-active={task.id === selectedId} onClick={() => setSelectedId(task.id)}>
-                <span className="it-task-row-icon"><ItIcon name={taskKind(task) === "script" ? "code" : "book"} size={15} /></span>
-                <span><strong>{task.name}</strong><small>{t(`itops.tasks.kind.${taskKind(task)}`)}</small></span>
-              </button>
-            ))}
+        </label>
+        {filtered.length ? <div className="it-task-table" role="table">
+          <div className="it-task-table-head" role="row">
+            <span>{t("itops.tasks.columnName")}</span><span>{t("itops.tasks.columnType")}</span><span>{t("itops.tasks.columnExecutions")}</span><span>{t("itops.tasks.columnFailures")}</span><span>{t("itops.tasks.columnHistory")}</span><span>{t("itops.tasks.columnActions")}</span>
           </div>
-        </aside>
-
-        <main className="it-task-detail">
-          {selected ? (
-            <>
-              <header className="it-task-detail-head">
-                <span className="it-task-detail-icon"><ItIcon name={taskKind(selected) === "script" ? "code" : "book"} size={20} /></span>
-                <div><h2>{selected.name}</h2><p>{selected.description || t("itops.tasks.noDescription")}</p></div>
-                <span className="it-task-spacer" />
-                <button type="button" className="it-btn" onClick={() => setEditor(selected)}><ItIcon name="edit" size={14} />{t("itops.actions.edit")}</button>
-                <button type="button" className="it-btn" onClick={() => setPendingDelete(selected)}><ItIcon name="trash" size={14} />{t("itops.actions.delete")}</button>
-              </header>
-              <section className="it-task-definition">
-                <div className="it-section-label">{t("itops.tasks.definitionHeading")}</div>
-                {selected.task.kind === "script" ? <pre>{selected.task.body}</pre> : (
-                  <div className="it-task-steps">{selected.task.steps.map((step, index) => <div key={step.id ?? index}><strong>{index + 1}. {step.name || (step.kind === "sudo" ? t("itops.tasks.sudoNode") : step.kind === "ai" ? t("itops.tasks.aiNode") : step.send)}</strong><code>{step.kind === "sudo" ? t("itops.tasks.credentialStored") : step.kind === "ai" ? step.aiInstruction : step.send}</code></div>)}</div>
-                )}
-              </section>
-            </>
-          ) : loaded ? (
-            <ItOpsEmptyHint>{t("itops.tasks.emptyBody")}</ItOpsEmptyHint>
-          ) : null}
-        </main>
+          {filtered.map((task) => {
+            const stats = taskStats.get(task.id) ?? { executions: 0, failures: 0, lastSiteId: null };
+            return <div key={task.id} className="it-task-table-row" role="row">
+              <span className="it-task-table-name"><span className="it-task-row-icon"><ItIcon name={taskKind(task) === "script" ? "code" : "book"} size={15} /></span><span><strong>{task.name}</strong><small>{task.description || t("itops.tasks.noDescription")}</small></span></span>
+              <span>{t(`itops.tasks.kind.${taskKind(task)}`)}</span>
+              <span className="it-task-number">{stats.executions}</span>
+              <span className={stats.failures ? "it-task-number failed" : "it-task-number"}>{stats.failures}</span>
+              <span><button type="button" className="it-task-history-link" disabled={!stats.lastSiteId} onClick={() => stats.lastSiteId && onOpenRunHistory(stats.lastSiteId)}>{t("itops.tasks.viewHistory")}</button></span>
+              <span className="it-task-row-actions"><button type="button" className="it-icon-btn" aria-label={t("itops.actions.edit")} onClick={() => setEditor(task)}><ItIcon name="edit" size={14} /></button><button type="button" className="it-icon-btn" aria-label={t("itops.actions.delete")} onClick={() => setPendingDelete(task)}><ItIcon name="trash" size={14} /></button></span>
+            </div>;
+          })}
+        </div> : loaded ? <ItOpsEmptyHint>{t("itops.tasks.emptyBody")}</ItOpsEmptyHint> : null}
       </div>
 
       {editor !== undefined ? <TaskEditor task={editor} onClose={() => setEditor(undefined)} /> : null}

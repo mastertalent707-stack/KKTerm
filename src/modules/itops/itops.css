@@ -1950,9 +1950,35 @@
 /* Task Library workflow editor. It shares the Automation editor shell and
    canvas grammar, while keeping Playbooks as one ordered chain. */
 .pb-editor {
-  width: 94vw;
-  max-width: 1320px;
-  height: 88vh;
+  width: min(92vw, 1120px);
+  height: min(84vh, 760px);
+}
+.pb-editor-title {
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+.pb-editor-name {
+  display: flex;
+  min-width: 220px;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+.pb-editor-name .au-editor-name {
+  min-width: 0;
+  flex: 1;
+}
+.pb-editor-foot {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--hairline);
+  background: var(--surface);
 }
 .pb-editor .kk-segmented {
   flex: 0 0 210px;
@@ -1967,6 +1993,22 @@
 .pb-node {
   width: 180px;
 }
+.pb-edge-add {
+  position: absolute;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.pb-edge-add:hover { background: var(--accent-soft); }
 .pb-add-node {
   position: absolute;
   z-index: 4;
@@ -6703,9 +6745,9 @@
   text-transform: uppercase;
 }
 
-.itops-page .it-task-library {
-  display: grid;
-  grid-template-columns: minmax(220px, 290px) minmax(0, 1fr);
+.itops-page .it-task-table-shell {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -6717,15 +6759,6 @@
 .itops-page .it-task-library-page {
   display: flex;
   flex-direction: column;
-}
-
-.itops-page .it-task-list {
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  flex-direction: column;
-  border-right: 1px solid var(--hairline);
-  background: var(--surface-muted);
 }
 
 .itops-page .it-task-detail-head {
@@ -6745,6 +6778,40 @@
   background: var(--surface);
   color: var(--text-muted);
 }
+.itops-page .it-task-table { min-width: 780px; overflow: auto; border-top: 1px solid var(--hairline); }
+.itops-page .it-task-table-head,
+.itops-page .it-task-table-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 2fr) minmax(110px, .7fr) 100px 90px 120px 74px;
+  align-items: center;
+}
+.itops-page .it-task-table-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+.itops-page .it-task-table-head > span,
+.itops-page .it-task-table-row > span { min-width: 0; padding: 7px 10px; border-right: 1px solid var(--hairline); }
+.itops-page .it-task-table-head > span:last-child,
+.itops-page .it-task-table-row > span:last-child { border-right: 0; }
+.itops-page .it-task-table-row { min-height: 48px; border-bottom: 1px solid var(--hairline); color: var(--text); font-size: 11px; }
+.itops-page .it-task-table-row:hover { background: var(--hover); }
+.itops-page .it-task-table-name { display: flex; align-items: center; gap: 9px; }
+.itops-page .it-task-table-name > span:last-child { min-width: 0; }
+.itops-page .it-task-table-name strong,
+.itops-page .it-task-table-name small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.itops-page .it-task-table-name small { margin-top: 2px; color: var(--text-muted); font-size: 10px; }
+.itops-page .it-task-number { font-variant-numeric: tabular-nums; text-align: right; }
+.itops-page .it-task-number.failed { color: var(--red); font-weight: 700; }
+.itops-page .it-task-history-link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer; }
+.itops-page .it-task-history-link:disabled { color: var(--text-faint); cursor: default; }
+.itops-page .it-task-row-actions { display: flex; justify-content: flex-end; gap: 3px; }
 
 .itops-page .it-task-search input {
   min-width: 0;

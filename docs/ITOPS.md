@@ -294,8 +294,11 @@ shell command or choose an arbitrary graph edge.
 Hosts, Automations, Run History, and the global Task Library share one
 destination-page frame: the same content inset, compact title/description
 header, right-aligned primary actions, divider, and bordered-row rhythm. The
-Task Library keeps its master-detail body inside that frame rather than owning
-a separate full-height chrome layout.
+Task Library keeps its spreadsheet-style Task table inside that frame rather
+than owning a separate full-height chrome layout. Each row shows Task kind,
+execution count, failed-host count, and a link to the most recent Site Run
+History containing that Task. Statistics use the Task's stable id; ad-hoc,
+Automation, and older unattributed history rows are never guessed by label.
 
 ### IT Ops destination-page UI contract
 

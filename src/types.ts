@@ -441,6 +441,7 @@ export interface RunHistoryEntry {
   id: string;
   source: string;
   siteId?: string | null;
+  taskId?: string | null;
   taskSummary: string;
   startedAt: string;
   finishedAt?: string | null;

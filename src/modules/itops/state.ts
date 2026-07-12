@@ -311,7 +311,7 @@ interface ItOpsState {
   pendingRunTask: BatchTask | null;
   requestNewBatchRun: (siteId?: string, scope?: RunScope, task?: BatchTask) => void;
   applyRunEvent: (event: RunEvent) => void;
-  startBatchRun: (siteId: string, task: BatchTask, scope?: RunScope | null) => Promise<string>;
+  startBatchRun: (siteId: string, task: BatchTask, scope?: RunScope | null, taskId?: string | null) => Promise<string>;
   cancelRun: (runId: string) => Promise<void>;
   loadRunHistory: () => Promise<void>;
 
@@ -677,11 +677,11 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
     }
   },
 
-  async startBatchRun(siteId, task, scope) {
+  async startBatchRun(siteId, task, scope, taskId) {
     // The Started event populates activeRun; clear any prior run first so the
     // grid does not briefly show stale hosts.
     set({ activeRun: null });
-    return invokeCommand("itops_start_batch_run", { siteId, task, scope: scope ?? null });
+    return invokeCommand("itops_start_batch_run", { siteId, task, scope: scope ?? null, taskId: taskId ?? null });
   },
 
   async cancelRun(runId) {
@@ -696,7 +696,7 @@ export const useItOpsStore = create<ItOpsState>((set, get) => ({
       set({ historyLoaded: true });
       return;
     }
-    const runHistory = await invokeCommand("itops_list_run_history", { limit: 25 });
+    const runHistory = await invokeCommand("itops_list_run_history", { limit: 500 });
     set({ runHistory, historyLoaded: true });
   },
 

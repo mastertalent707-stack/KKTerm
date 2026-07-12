@@ -169,8 +169,9 @@ pub fn itops_start_batch_run(
     site_id: String,
     task: BatchTask,
     scope: Option<RunScope>,
+    task_id: Option<String>,
 ) -> Result<String, String> {
-    start_run(&app, site_id, task, scope)
+    start_run(&app, site_id, task, scope, task_id)
 }
 
 /// Start a Batch Run; reusable by the command above and the Automation
@@ -182,6 +183,7 @@ pub fn start_run(
     site_id: String,
     task: BatchTask,
     scope: Option<RunScope>,
+    task_id: Option<String>,
 ) -> Result<String, String> {
     let secrets = app.state::<secrets::Secrets>();
     let known_hosts = ssh::app_known_hosts_path(app)?;
@@ -268,6 +270,7 @@ pub fn start_run(
                     &run_id_thread,
                     "manual",
                     Some(&site_id),
+                    task_id.as_deref(),
                     &task_summary,
                     &started_at,
                     Some(&finished_at),

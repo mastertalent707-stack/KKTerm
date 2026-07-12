@@ -136,7 +136,7 @@ export function BatchRunDialog({
     }
     setBusy(true);
     try {
-      await startBatchRun(groupId, buildTask(), scope);
+      await startBatchRun(groupId, buildTask(), scope, taskSourceId || null);
       showStatusBarNotice(t("itops.batchRuns.startedNotice"), { tone: "success" });
       onStarted();
       onClose();

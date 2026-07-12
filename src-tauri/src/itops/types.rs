@@ -928,6 +928,7 @@ pub struct RunHistoryEntry {
     pub id: String,
     pub source: String,
     pub site_id: Option<String>,
+    pub task_id: Option<String>,
     pub task_summary: String,
     pub started_at: String,
     pub finished_at: Option<String>,

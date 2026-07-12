@@ -837,7 +837,7 @@ export function SitesTab({
       {/* ── Detail ── */}
       {rootSurface === "tasks" ? (
         <div className="hg-detail it-destination-page">
-          <TaskLibrary />
+        <TaskLibrary onOpenRunHistory={(siteId) => selectSiteDestination(siteId, "runHistory")} />
         </div>
       ) : activeGroup && selectedDestination === "hosts" ? (
         <div className="hg-detail it-destination-page">

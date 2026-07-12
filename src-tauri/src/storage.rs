@@ -331,6 +331,8 @@ CREATE TABLE IF NOT EXISTS itops_run_history (
     -- 'manual' or 'automation:<automation_id>'.
     source         TEXT NOT NULL,
     site_id  TEXT,
+    -- Stable soft reference for reusable-Task statistics; null for ad-hoc and Automation runs.
+    task_id        TEXT,
     -- Redacted one-line task label, never a secret-bearing script body.
     task_summary   TEXT NOT NULL,
     started_at     TEXT NOT NULL,
@@ -2058,6 +2060,9 @@ impl Storage {
         connection
             .execute_batch(CURRENT_SCHEMA)
             .map_err(to_storage_error)?;
+        // Reusable Task execution statistics need a stable identity. Older
+        // history rows remain unattributed instead of being guessed by label.
+        ensure_column(&connection, "itops_run_history", "task_id", "TEXT")?;
         // The default Site row keeps its legacy "default-fleet" id (an opaque key)
         // but its display name is migrated to "Default Site" for upgraded installs;
         // INSERT OR IGNORE in ensure_default_site never updates an existing row.

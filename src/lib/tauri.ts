@@ -1334,7 +1334,7 @@ type CommandMap = {
     result: Connection;
   };
   itops_start_batch_run: {
-    args: { siteId: string; task: BatchTask; scope?: RunScope | null };
+    args: { siteId: string; task: BatchTask; scope?: RunScope | null; taskId?: string | null };
     result: string;
   };
   itops_cancel_batch_run: {

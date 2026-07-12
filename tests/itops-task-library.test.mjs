@@ -16,7 +16,7 @@ test("IT Ops navigator keeps Tasks global and Site operations virtual", () => {
   assert.match(sites, /itops\.navigation\.runHistory/);
   assert.match(sites, /itops\.tasks\.heading/);
   assert.match(sites, /rootSurface === "tasks"/);
-  assert.match(sites, /<TaskLibrary \/>/);
+  assert.match(sites, /<TaskLibrary onOpenRunHistory=/);
 });
 
 test("Server Room topology stays inside its destination and selection is exclusive", () => {
@@ -72,6 +72,28 @@ test("Task Library uses the shared destination page frame", () => {
   assert.match(library, /className="it-destination-page-head"/);
   assert.match(library, /itops\.tasks\.pageDescription/);
   assert.match(library, /className="it-btn primary"[\s\S]*itops\.tasks\.newTitle/);
+});
+
+test("Task Library is a spreadsheet list with stable-id run statistics", () => {
+  assert.match(library, /className="it-task-table"/);
+  assert.match(library, /run\.taskId/);
+  assert.match(library, /current\.executions \+= 1/);
+  assert.match(library, /current\.failures \+= run\.report\.failed/);
+  assert.match(library, /onOpenRunHistory\(stats\.lastSiteId\)/);
+});
+
+test("Playbook connector buttons insert commands at the selected edge", () => {
+  assert.match(library, /function TaskEdge/);
+  assert.match(library, /className="pb-edge-add nodrag nopan"/);
+  assert.match(library, /insertCommandStep/);
+  assert.match(library, /insertIndex: index/);
+});
+
+test("sudo credential typing stays local and outside React Flow node state", () => {
+  assert.match(library, /function SudoCredentialInput[\s\S]*const \[value, setValue\] = useState/);
+  assert.match(library, /drafts\.current\[ownerId\] = next/);
+  assert.match(library, /const secretDrafts = useRef/);
+  assert.doesNotMatch(library, /setSecretDrafts/);
 });
 
 test("Tasks are durable global rows with registered CRUD commands", () => {
