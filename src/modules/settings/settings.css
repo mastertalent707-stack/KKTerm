@@ -782,6 +782,79 @@
   font-weight: 800;
 }
 
+.shortcut-list {
+  display: grid;
+  gap: 6px;
+}
+
+.shortcut-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.shortcut-row-label {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.shortcut-row-controls {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.shortcut-binding-button {
+  min-width: 130px;
+  padding: 3px 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.shortcut-binding-button.unbound {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.shortcut-binding-button.recording {
+  color: var(--accent);
+  font-style: italic;
+  border-color: var(--accent);
+}
+
+.shortcut-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.shortcut-icon-button:hover {
+  color: var(--text);
+  background: var(--surface-muted);
+}
+
+.shortcut-conflict-notice {
+  margin: 0;
+  color: var(--red);
+  font-size: 12px;
+}
+
 .settings-collapsible-legend-button {
   display: inline-flex;
   gap: 6px;
