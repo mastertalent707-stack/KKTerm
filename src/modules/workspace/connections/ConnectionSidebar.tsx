@@ -48,7 +48,7 @@ import { WorkspaceIcon } from "../workspaceIcons";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, CircleDot, Folder, FolderPlus, KeyRound, LayoutDashboard, List, Maximize2, Minimize2, PanelsTopLeft, PanelRight, Pencil, Pin, PinOff, Play, Plus, Radio, RotateCcw, Save, Search, Settings, SquarePlus, Trash2, X } from "../../../lib/reicon";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { DragEvent as ReactDragEvent, FormEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
+import type { DragEvent as ReactDragEvent, FormEvent, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import {
@@ -2211,6 +2211,14 @@ export function ConnectionSidebar({
       return;
     }
 
+    await requestDeleteTarget(target);
+  }
+
+  // Confirm-then-delete a connection or folder. Prefers the native OS
+  // confirmation dialog and falls back to the in-app ConfirmDeleteDialog when
+  // the native dialog is unavailable. Shared by the tree context menu and the
+  // Connection Tree keyboard shortcut (Delete).
+  async function requestDeleteTarget(target: DeleteTarget) {
     let confirmed: boolean | null;
     try {
       confirmed = await confirmNativeDialog(deleteConfirmationMessage(t, target), {
@@ -2231,6 +2239,45 @@ export function ConnectionSidebar({
 
     if (confirmed === null) {
       setConfirmDeleteTarget(target);
+    }
+  }
+
+  // Connection Tree keyboard shortcuts: F2 renames and Delete removes the
+  // connection whose row currently has focus (falling back to the selected
+  // connection). Scoped to the tree container so a Delete keypress in a
+  // terminal or text field can never remove a connection. Child Connection
+  // Tabs and folders keep their existing context-menu flows.
+  function handleTreeKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.defaultPrevented || (event.key !== "F2" && event.key !== "Delete")) {
+      return;
+    }
+    const target = event.target as HTMLElement;
+    // Never hijack typing in the rename input, search field, or any editable.
+    if (target.closest("input, textarea, [contenteditable='true']")) {
+      return;
+    }
+    if (inlineRenameTarget || inlineChildRenameTarget) {
+      return;
+    }
+    const rowConnectionId =
+      target.closest<HTMLElement>(".connection-row[data-connection-id]")?.dataset.connectionId;
+    const connectionId = rowConnectionId ?? selectedConnectionId;
+    if (!connectionId) {
+      return;
+    }
+    const found = findConnectionInTree(treeRef.current, connectionId);
+    if (!found) {
+      return;
+    }
+    const { connection } = found;
+    event.preventDefault();
+    setSelectedConnectionId(connection.id);
+    if (event.key === "F2") {
+      setPendingFolderDraft(null);
+      setTreeError("");
+      setInlineRenameTarget({ kind: "connection", id: connection.id });
+    } else {
+      void requestDeleteTarget({ kind: "connection", connection });
     }
   }
 
@@ -2925,6 +2972,7 @@ export function ConnectionSidebar({
         onDragOver={handleTreePathsDragOver}
         onDragLeave={handleTreePathsDragLeave}
         onDrop={handleTreePathsDrop}
+        onKeyDown={handleTreeKeyDown}
       >
         {/* In "Hide Folders" mode the flat list below already includes these
             root connections (flattenConnections starts at the root), so render
