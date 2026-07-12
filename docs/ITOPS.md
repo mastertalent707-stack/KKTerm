@@ -115,7 +115,10 @@ live Session state and never a secret, and per-host results stream on the
 `metadata.hostId` so the Rack View balloon callout lists the Host and its
 child Hosts. Storage lives in `src-tauri/src/itops/host_storage.rs`; the
 Site-owned Hosts page is implemented by `src/modules/itops/HostsPanel.tsx`.
-That page owns manual execution targeting: the operator selects Hosts with SSH
+Each Host row also shows its current Batch Run state (queued, running,
+succeeded, or failed) while a run is active, plus the newest persisted run
+result for that Host in a separate Last run status column. That page owns
+manual execution targeting: the operator selects Hosts with SSH
 Connection bindings, chooses a reusable Task or ad-hoc Script Batch Task, and starts a
 Batch Run scoped to exactly those Host ids.
 _Avoid_: node, agent, connection host field

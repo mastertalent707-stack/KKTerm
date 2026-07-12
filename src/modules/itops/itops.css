@@ -7392,7 +7392,32 @@
   border: 1px solid var(--border);
   border-radius: 9px;
   background: var(--surface);
-  overflow: hidden;
+  overflow: auto;
+}
+.itops-page .it-host-list-head,
+.itops-page .it-host-row {
+  min-width: 760px;
+}
+.itops-page .it-host-list-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+.itops-page .it-host-list-head-spacer {
+  flex: 1;
+}
+.itops-page .it-host-list-head > span:not(.it-host-list-head-spacer):not(.it-host-list-head-actions) {
+  flex: 0 0 96px;
+}
+.itops-page .it-host-list-head-actions {
+  flex: 0 0 145px;
 }
 .itops-page .it-host-row {
   display: flex;
@@ -7477,6 +7502,30 @@
   color: var(--text);
 }
 .itops-page .it-host-chip.muted {
+  color: var(--text-faint);
+}
+.itops-page .it-host-run-status {
+  display: inline-flex;
+  flex: 0 0 96px;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.itops-page .it-host-run-status.running,
+.itops-page .it-host-run-status.pending {
+  color: var(--accent);
+}
+.itops-page .it-host-run-status.ok {
+  color: var(--green);
+}
+.itops-page .it-host-run-status.failed {
+  color: var(--red);
+}
+.itops-page .it-host-run-status.empty {
   color: var(--text-faint);
 }
 .itops-page .it-host-bind {

@@ -18,6 +18,7 @@ import { HostImportDialog } from "./HostImportDialog";
 import { HostBindingsDialog } from "./HostBindingsDialog";
 import { ItOpsEmptyHint } from "./ItOpsEmptyHint";
 import { buildHostTreeRows, childHostsOf, hostDisplayName } from "./hostTree";
+import { hostRunStatuses, type HostRunStatus } from "./hostRunStatus";
 import { useItOpsStore } from "./state";
 
 const KIND_ICON: Record<SiteHost["kind"], ItIconName> = {
@@ -26,6 +27,43 @@ const KIND_ICON: Record<SiteHost["kind"], ItIconName> = {
   container: "grid",
   other: "network",
 };
+
+const RUN_STATUS_ICON: Record<Exclude<HostRunStatus["current"], null>, ItIconName> = {
+  pending: "pending",
+  running: "spinner",
+  ok: "check",
+  failed: "xmark",
+};
+
+function HostTaskStatus({ status }: { status: HostRunStatus["current"] }) {
+  const { t } = useTranslation();
+  if (!status) return <span className="it-host-run-status empty">—</span>;
+  const label =
+    status === "pending"
+      ? t("itops.batchRuns.codeQueued")
+      : status === "running"
+        ? t("itops.batchRuns.codeRunning")
+        : status === "ok"
+          ? t("itops.batchRuns.statOk")
+          : t("itops.batchRuns.statFailed");
+  return (
+    <span className={`it-host-run-status ${status}`}>
+      <ItIcon name={RUN_STATUS_ICON[status]} size={12} />
+      {label}
+    </span>
+  );
+}
+
+function HostLastRunStatus({ status }: { status: HostRunStatus["last"] }) {
+  const { t } = useTranslation();
+  if (!status) return <span className="it-host-run-status empty">—</span>;
+  return (
+    <span className={`it-host-run-status ${status}`}>
+      <ItIcon name={status === "ok" ? "check" : "xmark"} size={12} />
+      {status === "ok" ? t("itops.batchRuns.statOk") : t("itops.batchRuns.statFailed")}
+    </span>
+  );
+}
 
 /** Detected remote-access chips for one Host's last scan. */
 export function HostScanChips({ host, scanning }: { host: SiteHost; scanning: boolean }) {
@@ -72,6 +110,8 @@ export function HostsPanel({ siteId }: { siteId: string }) {
   const deleteHost = useItOpsStore((state) => state.deleteHost);
   const applyHostScanEvent = useItOpsStore((state) => state.applyHostScanEvent);
   const requestNewBatchRun = useItOpsStore((state) => state.requestNewBatchRun);
+  const activeRun = useItOpsStore((state) => state.activeRun);
+  const runHistory = useItOpsStore((state) => state.runHistory);
 
   const [importOpen, setImportOpen] = useState(false);
   const [editorHost, setEditorHost] = useState<SiteHost | null>(null);
@@ -155,6 +195,10 @@ export function HostsPanel({ siteId }: { siteId: string }) {
   }
 
   const rows = buildHostTreeRows(hosts ?? []);
+  const runStatuses = useMemo(
+    () => hostRunStatuses(hosts ?? [], siteId, activeRun, runHistory),
+    [activeRun, hosts, runHistory, siteId],
+  );
 
   function toggleSelected(id: string) {
     if (!runnableHostIds.has(id)) return;
@@ -230,9 +274,16 @@ export function HostsPanel({ siteId }: { siteId: string }) {
         </ItOpsEmptyHint>
       ) : (
         <div className="it-hosts-list" role="tree" aria-label={t("itops.tabs.hosts")}>
+          <div className="it-host-list-head" aria-hidden="true">
+            <span className="it-host-list-head-spacer" />
+            <span>{t("itops.hosts.taskStatusColumn")}</span>
+            <span>{t("itops.hosts.lastRunStatusColumn")}</span>
+            <span className="it-host-list-head-actions" />
+          </div>
           {rows.map(({ host, depth }) => {
             const scanning = !!scanningHostIds[host.id];
             const childCount = childHostsOf(hosts ?? [], host.id).length;
+            const runStatus = runStatuses.get(host.id) ?? { current: null, last: null };
             return (
               <div
                 key={host.id}
@@ -263,6 +314,8 @@ export function HostsPanel({ siteId }: { siteId: string }) {
                 <span className="it-host-chips">
                   <HostScanChips host={host} scanning={scanning} />
                 </span>
+                <HostTaskStatus status={runStatus.current} />
+                <HostLastRunStatus status={runStatus.last} />
                 <button
                   type="button"
                   className={`it-host-bind${host.connectionIds.length > 0 ? " bound" : ""}`}

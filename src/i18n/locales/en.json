@@ -1094,6 +1094,8 @@
       "scanning": "scanning…",
       "scanPending": "not scanned",
       "scanNone": "no remote access",
+      "taskStatusColumn": "Task status",
+      "lastRunStatusColumn": "Last run status",
       "kindLabel": "Kind",
       "kind": {
         "physical": "Physical device",

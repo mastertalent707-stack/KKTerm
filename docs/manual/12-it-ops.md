@@ -43,7 +43,7 @@ Clicking a Rack Device that has bound Connections (its placed host and/or the `i
 
 ## Hosts
 
-A **Host** is a durable inventory entry for one device or guest in a Site, addressed by hostname. The device itself can be a Host, and a Host can carry **child Hosts** — its virtual machines or containers (`itops.hosts.kind.physical`, `itops.hosts.kind.vm`, `itops.hosts.kind.container`, `itops.hosts.kind.other`). The Site-owned `itops.tabs.hosts` page lists the selected Site's Hosts as a parent/child tree with a count roll-up (`itops.hosts.hostCount`) and owns Host import and manual Task execution.
+A **Host** is a durable inventory entry for one device or guest in a Site, addressed by hostname. The device itself can be a Host, and a Host can carry **child Hosts** — its virtual machines or containers (`itops.hosts.kind.physical`, `itops.hosts.kind.vm`, `itops.hosts.kind.container`, `itops.hosts.kind.other`). The Site-owned `itops.tabs.hosts` page lists the selected Site's Hosts as a parent/child tree with a count roll-up (`itops.hosts.hostCount`) and owns Host import and manual Task execution. Its `itops.hosts.taskStatusColumn` column shows queued, running, successful, or failed progress for the active Batch Run; `itops.hosts.lastRunStatusColumn` shows the newest completed result associated with the Host's bound execution Connection.
 
 When the Site has no Hosts, the shared compact empty hint (`itops.hosts.empty`) includes an inline `itops.hosts.importAction` action. IT Ops uses the same no-glyph, one-sentence hint treatment for empty Hosts, Automations, Run History, Task Library, Site topology, Server Rooms, and Racks.
 

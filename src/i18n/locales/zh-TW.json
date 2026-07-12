@@ -1094,6 +1094,8 @@
       "scanning": "掃描中…",
       "scanPending": "未掃描",
       "scanNone": "無遠端存取",
+      "taskStatusColumn": "任務狀態",
+      "lastRunStatusColumn": "上次執行狀態",
       "kindLabel": "類型",
       "kind": {
         "physical": "實體裝置",
@@ -1120,14 +1122,14 @@
       "deleteConfirmBody": "其子主機會保留並上移一層。不會刪除任何連線。"
     },
     "tasks": {
-      "columnOs": "Applicable OS",
-      "applicableOsLabel": "Applicable OS",
-      "applicableOsHint": "Choose every operating system this Task supports.",
-      "builtInBadge": "Built-in",
-      "duplicateBuiltin": "Duplicate to customize",
-      "duplicateName": "{{name}} copy",
+      "columnOs": "適用作業系統",
+      "applicableOsLabel": "適用作業系統",
+      "applicableOsHint": "請選擇此任務支援的所有作業系統。",
+      "builtInBadge": "內建",
+      "duplicateBuiltin": "複製以自訂",
+      "duplicateName": "{{name}} 副本",
       "applicableOs": {
-        "any": "Any OS",
+        "any": "任意作業系統",
         "linux": "Linux",
         "macos": "macOS",
         "windows": "Windows",
@@ -1138,12 +1140,12 @@
         "aristaEos": "Arista EOS"
       },
       "catalog": {
-        "identity": "System identity",
-        "uptime": "Uptime",
-        "resources": "Resource usage",
-        "interfaces": "Network interfaces",
-        "routing": "Routing and DNS",
-        "logs": "Recent logs"
+        "identity": "系統識別",
+        "uptime": "運作時間",
+        "resources": "資源使用量",
+        "interfaces": "網路介面",
+        "routing": "路由和 DNS",
+        "logs": "最近的記錄"
       },
       "heading": "任務庫",
       "pageDescription": "建立及管理可重複使用的任務。",
