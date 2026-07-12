@@ -13,7 +13,7 @@ use std::{
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
-const SCHEMA_USER_VERSION: i32 = 46;
+const SCHEMA_USER_VERSION: i32 = 47;
 
 const DEFAULT_TERMINAL_OPACITY: u8 = 50;
 
@@ -511,8 +511,10 @@ pub struct GeneralSettings {
     separate_split_terminal_backgrounds: bool,
     #[serde(default = "default_show_installer_on_rail")]
     show_installer_on_rail: bool,
-    // IT Ops Module rail visibility. Defaults off while the Module is in
-    // development; users opt in via Settings → IT Ops.
+    // IT Ops Module rail visibility. Now that the Module is officially released
+    // it defaults on; users can still hide it via Settings → IT Ops. Installs
+    // that persisted the former dev-era `false` are flipped once by the v47
+    // migration (see `reveal_it_ops_on_release`).
     #[serde(default = "default_show_it_ops")]
     show_it_ops: bool,
     #[serde(default = "default_show_dont_sleep_on_rail")]
@@ -2592,6 +2594,19 @@ impl Storage {
         )?;
         // Cell quadrant of quarter-block room fixtures (NULL = pre-corner row).
         ensure_column(&connection, "itops_room_objects", "corner", "INTEGER")?;
+        // v47: IT Ops graduated from a dev-only, hidden-by-default Module to an
+        // officially released one. Existing installs persisted `showItOps: false`
+        // (the former dev default, baked into the 'general' settings blob by any
+        // settings save — including the periodic auto-backup timestamp update), so
+        // flipping the default alone only reaches fresh installs. Reveal the Module
+        // once for upgrading installs. Nothing distinguishes "never touched" from
+        // "explicitly hidden while in dev", and the Module was never officially
+        // visible to be hidden, so treat every upgrading install as opting in;
+        // users can hide it again afterwards and that choice persists (this
+        // one-time migration never runs again).
+        if stored_version < 47 {
+            reveal_it_ops_on_release(&connection)?;
+        }
         connection
             .execute_batch(&format!("PRAGMA user_version = {SCHEMA_USER_VERSION}"))
             .map_err(to_storage_error)?;
@@ -2816,6 +2831,41 @@ fn ensure_column(
         .execute(
             &format!("ALTER TABLE {table} ADD COLUMN {column} {definition}"),
             [],
+        )
+        .map_err(to_storage_error)?;
+    Ok(())
+}
+
+/// One-time v47 migration: reveal the IT Ops Module on the Activity Rail for
+/// upgrading installs by flipping the stored `showItOps` flag to `true` in the
+/// 'general' settings blob. Fresh installs have no 'general' row yet and pick up
+/// the new default instead, so this only touches already-persisted settings. A
+/// missing or unparseable blob is left untouched.
+fn reveal_it_ops_on_release(connection: &SqliteConnection) -> Result<(), String> {
+    let stored: Option<String> = connection
+        .query_row(
+            "SELECT value FROM settings WHERE key = 'general'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(to_storage_error)?;
+    let Some(stored) = stored else {
+        return Ok(());
+    };
+    let Ok(serde_json::Value::Object(mut object)) =
+        serde_json::from_str::<serde_json::Value>(&stored)
+    else {
+        return Ok(());
+    };
+    object.insert("showItOps".to_string(), serde_json::Value::Bool(true));
+    let serialized = serde_json::to_string(&serde_json::Value::Object(object))
+        .map_err(|error| format!("failed to serialize general settings: {error}"))?;
+    connection
+        .execute(
+            "UPDATE settings SET value = ?1, updated_at = CURRENT_TIMESTAMP \
+             WHERE key = 'general'",
+            params![serialized],
         )
         .map_err(to_storage_error)?;
     Ok(())
@@ -4865,7 +4915,7 @@ fn default_show_dashboard_on_rail() -> bool {
 }
 
 fn default_show_it_ops() -> bool {
-    false
+    true
 }
 
 fn default_show_dont_sleep_on_rail() -> bool {
