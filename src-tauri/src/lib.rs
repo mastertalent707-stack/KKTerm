@@ -2532,7 +2532,10 @@ async fn probe_file_view(
 async fn read_file_view_text(
     request: file_viewer::FileViewTextRequest,
 ) -> Result<file_viewer::FileViewText, String> {
-    run_blocking_command("read file view text", move || file_viewer::read_text(request)).await
+    run_blocking_command("read file view text", move || {
+        file_viewer::read_text(request)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -2619,10 +2622,7 @@ fn create_compare_temp_dir() -> Result<String, String> {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|delta| delta.as_nanos())
         .unwrap_or(0);
-    let dir = std::env::temp_dir().join(format!(
-        "kkterm-compare-{}-{nanos}",
-        std::process::id()
-    ));
+    let dir = std::env::temp_dir().join(format!("kkterm-compare-{}-{nanos}", std::process::id()));
     std::fs::create_dir_all(&dir)
         .map_err(|error| format!("failed to create compare staging directory: {error}"))?;
     Ok(dir.to_string_lossy().into_owned())
@@ -3340,6 +3340,15 @@ fn send_rdp_client_text(
 
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
+fn send_rdp_client_clipboard_text(
+    rdp_sessions: tauri::State<'_, rdp_client::RdpClientSessionManager>,
+    request: rdp_client::RdpClientTextRequest,
+) -> Result<(), String> {
+    rdp_sessions.clipboard_text(request)
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
 fn send_rdp_client_ctrl_alt_delete(
     rdp_sessions: tauri::State<'_, rdp_client::RdpClientSessionManager>,
     request: rdp_client::RdpClientSimpleRequest,
@@ -4015,6 +4024,8 @@ pub fn run() {
             send_rdp_client_key_event,
             #[cfg(not(target_os = "windows"))]
             send_rdp_client_text,
+            #[cfg(not(target_os = "windows"))]
+            send_rdp_client_clipboard_text,
             #[cfg(not(target_os = "windows"))]
             send_rdp_client_ctrl_alt_delete,
             #[cfg(not(target_os = "windows"))]
