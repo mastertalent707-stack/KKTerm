@@ -597,6 +597,7 @@ export function TerminalWorkspace({
           onClose={closeSshPortForwardingDialog}
           onConnectionUpdated={(updatedConnection) => {
             refreshOpenConnectionMetadata(updatedConnection);
+            notifyConnectionTreeInvalidated();
             setSshPortForwardingDialogConnection(updatedConnection);
           }}
         />,
