@@ -255,6 +255,10 @@ export function RdpCanvasView({
     sendPointer(e.clientX, e.clientY, buttonMaskRef.current);
   };
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    // WKWebView can apply the canvas's default pointer focus after this handler
+    // and immediately blur the hidden IME input. Cancel that default transition
+    // so keyboard and composition events stay routed to the input we focus here.
+    e.preventDefault();
     focusInput("pointerdown");
     const bit = e.button === 1 ? 1 : e.button === 2 ? 2 : e.button === 0 ? 0 : -1;
     if (bit >= 0) {
@@ -437,7 +441,7 @@ export function RdpCanvasView({
         : "";
 
   return (
-    <div className="rdp-canvas-view" onPointerDown={() => focusInput("surface-pointerdown")}>
+    <div className="rdp-canvas-view">
       <canvas
         ref={setCanvasRef}
         className="rdp-canvas-surface"
