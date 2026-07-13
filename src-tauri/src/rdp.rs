@@ -29,6 +29,7 @@ mod platform {
                 LibraryLoader::{GetModuleHandleW, GetProcAddress, LoadLibraryW},
                 Memory::{GMEM_MOVEABLE, GlobalAlloc, GlobalLock, GlobalUnlock},
                 Ole::{CF_UNICODETEXT, DISPID_PROPERTYPUT, IOleInPlaceObject, OleInitialize},
+                Threading::{AttachThreadInput, GetCurrentThreadId},
                 Variant::{
                     VARIANT, VT_BOOL, VT_BSTR, VT_DISPATCH, VT_I2, VT_I4, VT_UI4, VariantClear,
                 },
@@ -40,9 +41,10 @@ mod platform {
                     VIRTUAL_KEY, VkKeyScanW,
                 },
                 WindowsAndMessaging::{
-                    CallNextHookEx, CreateWindowExW, DestroyWindow, GetClientRect, GetWindowRect,
-                    HC_ACTION, HHOOK, HMENU, IsChild, MSLLHOOKSTRUCT, SW_SHOWNOACTIVATE,
-                    SWP_NOACTIVATE, SWP_NOZORDER, SendMessageW, SetForegroundWindow, SetWindowPos,
+                    CallNextHookEx, CreateWindowExW, DestroyWindow, GetClientRect,
+                    GetForegroundWindow, GetWindowRect, GetWindowThreadProcessId, HC_ACTION, HHOOK,
+                    HMENU, IsChild, MSLLHOOKSTRUCT, SW_SHOWNOACTIVATE, SWP_NOACTIVATE,
+                    SWP_NOZORDER, SendMessageW, SetForegroundWindow, SetWindowPos,
                     SetWindowsHookExW, ShowWindow, UnhookWindowsHookEx, WH_MOUSE_LL,
                     WM_LBUTTONDOWN, WM_MBUTTONDOWN, WM_RBUTTONDOWN, WM_XBUTTONDOWN,
                     WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_POPUP,
@@ -1393,12 +1395,7 @@ mod platform {
                 let module = GetModuleHandleW(PCWSTR::null())
                     .ok()
                     .map(|handle| HINSTANCE(handle.0));
-                match SetWindowsHookExW(
-                        WH_MOUSE_LL,
-                        Some(rdp_overlay_focus_hook_proc),
-                        module,
-                        0,
-                    ) {
+                match SetWindowsHookExW(WH_MOUSE_LL, Some(rdp_overlay_focus_hook_proc), module, 0) {
                     Ok(hook) => {
                         state.hook = Some(hook);
                     }
@@ -1932,9 +1929,77 @@ mod platform {
         // raise in some paths, but best-effort focus still keeps programmatic input
         // routed to the in-process control when Windows permits it.
         unsafe {
-            let _ = SetForegroundWindow(owner);
-            let _ = SetForegroundWindow(active);
-            let _ = SetFocus(Some(focus));
+            let current_thread = GetCurrentThreadId();
+            let owner_thread = GetWindowThreadProcessId(owner, None);
+            let active_thread = GetWindowThreadProcessId(active, None);
+            let focus_thread = GetWindowThreadProcessId(focus, None);
+            let foreground = GetForegroundWindow();
+            let foreground_thread = if foreground.0.is_null() {
+                0
+            } else {
+                GetWindowThreadProcessId(foreground, None)
+            };
+            let attached_owner = owner_thread != 0
+                && owner_thread != current_thread
+                && AttachThreadInput(current_thread, owner_thread, true).as_bool();
+            let attached_active = active_thread != 0
+                && active_thread != current_thread
+                && active_thread != owner_thread
+                && AttachThreadInput(current_thread, active_thread, true).as_bool();
+            let attached_focus = focus_thread != 0
+                && focus_thread != current_thread
+                && focus_thread != owner_thread
+                && focus_thread != active_thread
+                && AttachThreadInput(current_thread, focus_thread, true).as_bool();
+            let attached_foreground = foreground_thread != 0
+                && foreground_thread != current_thread
+                && foreground_thread != owner_thread
+                && foreground_thread != active_thread
+                && foreground_thread != focus_thread
+                && AttachThreadInput(current_thread, foreground_thread, true).as_bool();
+
+            let foreground_owner = SetForegroundWindow(owner).as_bool();
+            let foreground_active = SetForegroundWindow(active).as_bool();
+            let previous_focus = SetFocus(Some(focus));
+            let (set_focus_succeeded, previous_focus_hwnd) = match previous_focus {
+                Ok(previous) => (true, format_hwnd(previous)),
+                Err(error) => (false, error.to_string()),
+            };
+            rdp_debug(
+                "focus.apply",
+                &json!({
+                    "ownerHwnd": format_hwnd(owner),
+                    "activeHwnd": format_hwnd(active),
+                    "focusHwnd": format_hwnd(focus),
+                    "foregroundHwnd": format_hwnd(foreground),
+                    "currentThread": current_thread,
+                    "ownerThread": owner_thread,
+                    "activeThread": active_thread,
+                    "focusThread": focus_thread,
+                    "foregroundThread": foreground_thread,
+                    "attachedOwnerThread": attached_owner,
+                    "attachedActiveThread": attached_active,
+                    "attachedFocusThread": attached_focus,
+                    "attachedForegroundThread": attached_foreground,
+                    "setForegroundOwner": foreground_owner,
+                    "setForegroundActive": foreground_active,
+                    "setFocusSucceeded": set_focus_succeeded,
+                    "previousFocusHwnd": previous_focus_hwnd,
+                }),
+            );
+
+            if attached_foreground {
+                let _ = AttachThreadInput(current_thread, foreground_thread, false);
+            }
+            if attached_focus {
+                let _ = AttachThreadInput(current_thread, focus_thread, false);
+            }
+            if attached_active {
+                let _ = AttachThreadInput(current_thread, active_thread, false);
+            }
+            if attached_owner {
+                let _ = AttachThreadInput(current_thread, owner_thread, false);
+            }
         }
     }
 
