@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Fingerprint, KeyRound, Layers, LockKeyhole, ScrollText, Settings2, WandSparkles } from "../../../../lib/reicon";
+import { Fingerprint, KeyRound, Layers, LockKeyhole, ScrollText, Settings2, Shield, WandSparkles } from "../../../../lib/reicon";
 import { useTranslation } from "react-i18next";
 import { Switch } from "../../../../app/ui/dialog";
 import { technicalInputProps } from "../../../../lib/inputBehavior";
-import type { Connection, SshCompressionMode, SshOldProtocolsMode, SshSettings, StoredCredentialSummary } from "../../../../types";
+import type { Connection, SshCompressionMode, SshSettings, StoredCredentialSummary } from "../../../../types";
 import { defaultPortForConnectionType } from "../utils";
 import { PasswordCredentialSelect, PasswordField } from "./ConnectionPasswordFields";
 import { SshStartupScriptDialog } from "./SshStartupScriptDialog";
@@ -23,7 +23,6 @@ export function SshConnectionFields({
   matchingPasswordCredentials,
   onAuthMethodChange,
   onBrowseKeyFile,
-  onImportSshConfig,
   onKeyPathChange,
   onOpenKeyEmailDialog,
   onPortDraftChange,
@@ -48,7 +47,6 @@ export function SshConnectionFields({
   matchingPasswordCredentials: StoredCredentialSummary[];
   onAuthMethodChange: (authMethod: "keyFile" | "password" | "agent") => void;
   onBrowseKeyFile: () => void;
-  onImportSshConfig: () => void;
   onKeyPathChange: (keyPath: string) => void;
   onOpenKeyEmailDialog: () => void;
   onPortDraftChange: (port: string) => void;
@@ -160,11 +158,6 @@ export function SshConnectionFields({
             </button>
           </div>
         </div>
-        {!isEditMode ? (
-          <button className="toolbar-button" onClick={onImportSshConfig} type="button">
-            {t("connections.importSshConfig")}
-          </button>
-        ) : null}
         {authMethod === "password" ? (
           <>
             <PasswordField
@@ -294,8 +287,8 @@ export function SshConnectionOptions({
   const [sshCompressionDraft, setSshCompressionDraft] = useState<SshCompressionMode>(
     initialConnection?.sshCompression ?? sshSettings.defaultSshCompression ?? "fast",
   );
-  const [sshOldProtocolsDraft, setSshOldProtocolsDraft] = useState<SshOldProtocolsMode>(
-    initialConnection?.sshOldProtocols ?? sshSettings.defaultSshOldProtocols ?? "off",
+  const [legacyProtocolsEnabledDraft, setLegacyProtocolsEnabledDraft] = useState(
+    (initialConnection?.sshOldProtocols ?? sshSettings.defaultSshOldProtocols ?? "off") === "legacy",
   );
   // When inheriting defaults the per-Connection SOCKS fields are blank, so the
   // launch falls back to the global app proxy (Settings → Proxy).
@@ -310,9 +303,9 @@ export function SshConnectionOptions({
   const displayedSshCompression = sshInheritsSettingsDefaults
     ? sshSettings.defaultSshCompression ?? "fast"
     : sshCompressionDraft;
-  const displayedSshOldProtocols = sshInheritsSettingsDefaults
-    ? sshSettings.defaultSshOldProtocols ?? "off"
-    : sshOldProtocolsDraft;
+  const displayedLegacyProtocolsEnabled = sshInheritsSettingsDefaults
+    ? (sshSettings.defaultSshOldProtocols ?? "off") === "legacy"
+    : legacyProtocolsEnabledDraft;
   const hasProxyJumpOverride = !sshInheritsSettingsDefaults && proxyJumpDraft.trim().length > 0;
   const hasSocksProxyOverride = !sshInheritsSettingsDefaults && sshSocksProxyDraft.trim().length > 0;
   const hasDisplayedSocksProxy = displayedSshSocksProxy.trim().length > 0;
@@ -391,18 +384,21 @@ export function SshConnectionOptions({
             <option value="off">{t("settings.sshCompressionOff")}</option>
           </select>
         </label>
-        <label className="connection-proxy-row">
+        <div className="connection-session-toggle">
+          <Shield className="option-glyph" size={17} aria-hidden />
           <span>{t("connections.sshOldProtocols")}</span>
-          <select
+          <Switch
+            ariaLabel={t("connections.sshOldProtocols")}
             disabled={sshInheritsSettingsDefaults}
+            on={displayedLegacyProtocolsEnabled}
+            onChange={setLegacyProtocolsEnabledDraft}
+          />
+          <input
             name="sshOldProtocols"
-            onChange={(event) => setSshOldProtocolsDraft(event.currentTarget.value as SshOldProtocolsMode)}
-            value={displayedSshOldProtocols}
-          >
-            <option value="off">{t("settings.sshOldProtocolsOff")}</option>
-            <option value="legacy">{t("settings.sshOldProtocolsLegacy")}</option>
-          </select>
-        </label>
+            type="hidden"
+            value={displayedLegacyProtocolsEnabled ? "legacy" : "off"}
+          />
+        </div>
         <div className="connection-session-toggle">
           <Layers className="option-glyph" size={17} aria-hidden />
           <span>{t("connections.useTmux")}</span>

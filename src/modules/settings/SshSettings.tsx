@@ -5,7 +5,7 @@ import type { TFunction } from "i18next";
 import { invokeCommand, isTauriRuntime, selectKeyFile } from "../../lib/tauri";
 import { LegacyDialogActions } from "../../app/ui/dialog";
 import { useWorkspaceStore } from "../../store";
-import type { SshCompressionMode, SshOldProtocolsMode, SshSettings as SshSettingsType } from "../../types";
+import type { SshCompressionMode, SshSettings as SshSettingsType } from "../../types";
 import { SettingsSectionHeader, useSettingsSaveRegistration } from "./shared";
 import { ToggleSwitch } from "./ToggleSwitch";
 
@@ -251,22 +251,22 @@ export function SshSettings() {
             </select>
             <small className="field-hint">{t("settings.sshCompressionHint")}</small>
           </label>
-          <label>
-            <span>{t("settings.sshOldProtocols")}</span>
-            <select
-              onChange={(event) => {
-                const defaultSshOldProtocols = event.currentTarget.value as SshOldProtocolsMode;
+        </div>
+        <div className="settings-toggle-list">
+          <label className="settings-toggle-row">
+            <ToggleSwitch
+              checked={(sshDraft.defaultSshOldProtocols ?? "off") === "legacy"}
+              onChange={(checked) =>
                 setSshDraft((settings) => ({
                   ...settings,
-                  defaultSshOldProtocols,
-                }));
-              }}
-              value={sshDraft.defaultSshOldProtocols ?? "off"}
-            >
-              <option value="off">{t("settings.sshOldProtocolsOff")}</option>
-              <option value="legacy">{t("settings.sshOldProtocolsLegacy")}</option>
-            </select>
-            <small className="field-hint">{t("settings.sshOldProtocolsHint")}</small>
+                  defaultSshOldProtocols: checked ? "legacy" : "off",
+                }))
+              }
+            />
+            <span>
+              <strong>{t("settings.sshOldProtocols")}</strong>
+              <small>{t("settings.sshOldProtocolsHint")}</small>
+            </span>
           </label>
         </div>
       </fieldset>

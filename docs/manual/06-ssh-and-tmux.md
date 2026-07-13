@@ -31,9 +31,9 @@ Add/Edit Connection places `connections.keyPassphraseOptional` directly below th
 
 ## Old protocol compatibility
 
-`settings.sshOldProtocols` controls the global default for old SSH protocol compatibility and defaults off. `connections.sshOldProtocols` can override it for a single SSH Connection. The legacy mode appends SHA-1-era key-exchange algorithms only for trusted older hosts that cannot negotiate the modern default set; leave it off for ordinary servers.
+`settings.sshOldProtocols` controls the global **Legacy Protocols** default and is off by default. `connections.sshOldProtocols` is the matching single-switch override for one SSH Connection. Enabling either switch appends the complete supported set of SHA-1-era key-exchange algorithms; individual legacy algorithms cannot be selected. Enable it only for trusted older hosts that cannot negotiate the modern default set.
 
-The Add SSH Connection dialog's `connections.importSshConfig` action imports the platform default SSH config (`%USERPROFILE%\.ssh\config` on Windows, `~/.ssh/config` on macOS/Linux) when it exists. If the default file is absent, KKTerm opens a file picker. The import applies the first importable `Host` draft to the dialog and leaves unsupported directives visible through the SSH config importer result.
+The Add SSH Connection dialog's footer-left `connections.importSshConfig` action imports the platform default SSH config (`%USERPROFILE%\.ssh\config` on Windows, `~/.ssh/config` on macOS/Linux) when it exists. If the default file is absent, KKTerm opens a file picker. The import applies the first importable concrete `Host` alias to the dialog. Exact, `*`, `?`, and negated (`!`) Host patterns contribute supported `HostName`, `User`, `Port`, `IdentityFile`, and `ProxyJump` values using OpenSSH's first-obtained-value-wins order; wildcard-only patterns do not become Connections. Put broad `Host *` defaults after specific blocks when those blocks must override them. Unsupported directives are reported with their source line.
 
 ## Idle behaviour
 

@@ -510,7 +510,7 @@ export interface SshConfigImportPreview {
   unsupportedDirectives: UnsupportedSshDirective[];
 }
 
-export type ImportFileFormat = "csv" | "tsv" | "rdcman" | "mobaxterm" | "putty" | "bookmarks";
+export type ImportFileFormat = "csv" | "tsv" | "rdcman" | "mobaxterm" | "putty" | "sshConfig" | "bookmarks";
 
 export interface ImportedConnectionDraft {
   name: string;
@@ -518,6 +518,8 @@ export interface ImportedConnectionDraft {
   user: string;
   url?: string;
   port?: number;
+  keyPath?: string;
+  proxyJump?: string;
   type: "local" | "ssh" | "telnet" | "serial" | "url" | "rdp" | "vnc";
   folderPath: string[];
 }
@@ -3468,7 +3470,7 @@ export async function selectConnectionImportFile() {
     filters: [
       {
         name: i18next.t("connections.import.fromFileTitle"),
-        extensions: ["csv", "tsv", "txt", "rdg", "mxtsessions", "reg"],
+        extensions: ["csv", "tsv", "txt", "rdg", "mxtsessions", "reg", "config"],
       },
       { name: i18next.t("common.allFilesFilter"), extensions: ["*"] },
     ],

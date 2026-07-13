@@ -4859,7 +4859,6 @@ function ConnectionDialog({
             matchingPasswordCredentials={matchingPasswordCredentials}
             onAuthMethodChange={setAuthMethod}
             onBrowseKeyFile={() => void handleBrowseKeyFile()}
-            onImportSshConfig={() => void handleImportSshConfig()}
             onKeyPathChange={setKeyPath}
             onOpenKeyEmailDialog={handleOpenKeyEmailDialog}
             onPortDraftChange={setPortDraft}
@@ -5086,6 +5085,11 @@ function ConnectionDialog({
         {rdpLocalResourceError || error ? <p className="form-error">{rdpLocalResourceError || error}</p> : null}
 
         <LegacyDialogActions
+          extraLeft={connectionType === "ssh" && !isEditMode ? (
+            <button className="toolbar-button" onClick={() => void handleImportSshConfig()} type="button">
+              {t("connections.importSshConfig")}
+            </button>
+          ) : undefined}
           primary={<button className="approve-button" disabled={!connectionType} type="submit">
             <Check size={15} />
             {mode === "quick" ? t("connections.saveAndConnect") : t("common.save")}

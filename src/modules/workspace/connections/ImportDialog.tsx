@@ -56,6 +56,8 @@ type Candidate = {
   password: string;
   url?: string;
   port?: number;
+  keyPath?: string;
+  proxyJump?: string;
   type: ConnectionType;
   folderPath: string[];
 };
@@ -532,8 +534,16 @@ export function ImportDialog({ sshSettings, onClose, onImported }: ImportDialogP
           folderId: rowFolderId,
           workspaceId: destinationWorkspaceId,
           port,
+          keyPath: row.type === "ssh" && !password ? row.keyPath : undefined,
+          proxyJump: row.type === "ssh" ? row.proxyJump : undefined,
           url: row.type === "url" ? row.url ?? row.host : undefined,
-          authMethod: password && row.type === "ssh" ? "password" : undefined,
+          authMethod: row.type === "ssh"
+            ? password
+              ? "password"
+              : row.keyPath
+                ? "keyFile"
+                : undefined
+            : undefined,
         };
         const connection = await invokeCommand("create_connection", { request });
         await storeImportedPassword(connection.id, password);
@@ -1243,6 +1253,8 @@ function draftToCandidate(draft: ImportFilePreview["drafts"][number], index: num
     password: "",
     url: draft.url,
     port: draft.port,
+    keyPath: draft.keyPath,
+    proxyJump: draft.proxyJump,
     type: draft.type,
     folderPath: draft.folderPath,
   };

@@ -2364,10 +2364,8 @@
     "hyperlinkRuleIncomplete": "Each hyperlink rule needs both a pattern and a URL.",
     "hyperlinkRuleInvalidPattern": "The pattern \"{{pattern}}\" is not a valid regular expression.",
     "hyperlinkRuleUrlInvalid": "Hyperlink rule URLs must start with http:// or https://.",
-    "sshOldProtocols": "Old protocol support",
-    "sshOldProtocolsOff": "Off",
-    "sshOldProtocolsLegacy": "Legacy SHA-1 KEX",
-    "sshOldProtocolsHint": "Off by default. Enable only for trusted older SSH servers that cannot negotiate modern key exchange algorithms."
+    "sshOldProtocols": "Legacy Protocols",
+    "sshOldProtocolsHint": "Off by default. Enable all supported legacy SSH compatibility algorithms only for trusted older servers."
   },
   "connections": {
     "title": "Connections",
@@ -2621,12 +2619,12 @@
       "back": "Back",
       "chooseSource": "Choose an import source",
       "fromFileTitle": "Import from file",
-      "fromFileSubtitle": "CSV, TSV, RDCMan, MobaXterm, PuTTY",
+      "fromFileSubtitle": "CSV, TSV, OpenSSH config, RDCMan, MobaXterm, PuTTY",
       "scanTitle": "Scan network",
       "scanSubtitle": "Probe a range for open SSH, Telnet, RDP",
       "chooseFile": "Choose file",
       "noFileChosen": "No file chosen",
-      "fileFormatsHint": "Supported: CSV/TSV/text, RDCMan (.rdg), MobaXterm (.mxtsessions), PuTTY (.reg).",
+      "fileFormatsHint": "Supported: CSV/TSV/text, OpenSSH config, RDCMan (.rdg), MobaXterm (.mxtsessions), PuTTY (.reg).",
       "scanTargetLabel": "Target",
       "scanTargetPlaceholder": "192.168.1.0/24, 10.0.0.10-10.0.0.50, or single IP/host",
       "scanTargetHint": "Light TCP probe of the selected ports. Limited to 1024 hosts per scan.",
@@ -2709,7 +2707,7 @@
     "fileViewPickerTitle": "Select a file to view",
     "fileViewOpenExternal": "Open in external editor",
     "fileViewOpenExternalHint": "Open this Document Connection with the operating system's default app instead of creating a KKTerm tab.",
-    "sshOldProtocols": "Old protocols",
+    "sshOldProtocols": "Legacy Protocols",
     "importSshConfig": "Import .ssh/config",
     "sshConfigFile": "SSH config",
     "importSshConfigEmpty": "No importable SSH Host entries were found in the selected config file."

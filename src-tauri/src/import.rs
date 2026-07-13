@@ -28,6 +28,8 @@ pub struct ImportedConnectionDraft {
     pub user: String,
     pub url: Option<String>,
     pub port: Option<u16>,
+    pub key_path: Option<String>,
+    pub proxy_jump: Option<String>,
     #[serde(rename = "type")]
     pub connection_type: &'static str,
     pub folder_path: Vec<String>,
@@ -56,7 +58,17 @@ pub fn parse_import_file(request: ParseImportFileRequest) -> Result<ImportFilePr
         .and_then(|ext| ext.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
-    parse_import_text(&text, &extension)
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("");
+    let format_hint =
+        if file_name.eq_ignore_ascii_case("config") || file_name.eq_ignore_ascii_case(".config") {
+            "sshconfig"
+        } else {
+            extension.as_str()
+        };
+    parse_import_text(&text, format_hint)
 }
 
 pub fn parse_import_text(text: &str, extension: &str) -> Result<ImportFilePreview, String> {
@@ -74,7 +86,70 @@ pub fn parse_import_text(text: &str, extension: &str) -> Result<ImportFilePrevie
     if extension == "reg" || trimmed.starts_with("Windows Registry Editor") {
         return Ok(parse_putty_reg(text));
     }
+    if extension == "sshconfig" || looks_like_ssh_config(text) {
+        return parse_openssh_config(text);
+    }
     Ok(parse_csv_or_tsv(text))
+}
+
+fn looks_like_ssh_config(text: &str) -> bool {
+    text.lines().any(|raw_line| {
+        let line = raw_line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            return false;
+        }
+        let directive_end = line
+            .find(|character: char| character.is_whitespace() || character == '=')
+            .unwrap_or(line.len());
+        let directive = &line[..directive_end];
+        let value = line[directive_end..]
+            .trim_start_matches(|character: char| character.is_whitespace() || character == '=')
+            .trim();
+        directive.eq_ignore_ascii_case("host") && !value.is_empty()
+    })
+}
+
+fn parse_openssh_config(text: &str) -> Result<ImportFilePreview, String> {
+    let preview = crate::ssh_config::parse_ssh_config_text(text, None)?;
+    let drafts = preview
+        .drafts
+        .into_iter()
+        .map(|draft| ImportedConnectionDraft {
+            name: draft.name,
+            host: draft.host,
+            user: draft.user,
+            url: None,
+            port: draft.port,
+            key_path: draft.key_path,
+            proxy_jump: draft.proxy_jump,
+            connection_type: draft.connection_type,
+            folder_path: Vec::new(),
+        })
+        .collect();
+    let warnings = preview
+        .unsupported_directives
+        .into_iter()
+        .map(|warning| {
+            let scope = warning
+                .host_pattern
+                .map(|pattern| format!(" for Host {pattern}"))
+                .unwrap_or_default();
+            let value = if warning.value.is_empty() {
+                String::new()
+            } else {
+                format!(" {}", warning.value)
+            };
+            format!(
+                "SSH config line {}: unsupported directive {}{}{}",
+                warning.line, warning.directive, value, scope
+            )
+        })
+        .collect();
+    Ok(ImportFilePreview {
+        format: "sshConfig",
+        drafts,
+        warnings,
+    })
 }
 
 fn decode_text(bytes: &[u8]) -> String {
@@ -320,6 +395,8 @@ fn draft_from_row(
         user,
         url: None,
         port,
+        key_path: None,
+        proxy_jump: None,
         connection_type,
         folder_path,
     }))
@@ -498,6 +575,8 @@ impl RdcmanServer {
             user,
             url: None,
             port: self.port,
+            key_path: None,
+            proxy_jump: None,
             connection_type: "rdp",
             folder_path,
         })
@@ -596,6 +675,8 @@ fn parse_mobaxterm_session(
             user: String::new(),
             url: None,
             port: None,
+            key_path: None,
+            proxy_jump: None,
             connection_type,
             folder_path: folder_path.to_vec(),
         }));
@@ -625,6 +706,8 @@ fn parse_mobaxterm_session(
         user,
         url: None,
         port,
+        key_path: None,
+        proxy_jump: None,
         connection_type,
         folder_path: folder_path.to_vec(),
     }))
@@ -746,6 +829,8 @@ fn finalize_putty_session(
         user: values.user.unwrap_or_default(),
         url: None,
         port: values.port,
+        key_path: None,
+        proxy_jump: None,
         connection_type,
         folder_path: Vec::new(),
     });
@@ -1227,6 +1312,8 @@ fn collect_selected_bookmark_drafts(
                     user: String::new(),
                     url: Some(url.to_string()),
                     port: None,
+                    key_path: None,
+                    proxy_jump: None,
                     connection_type: "url",
                     folder_path: folder_path.clone(),
                 });
@@ -1580,6 +1667,34 @@ mod tests {
         assert_eq!(preview.drafts.len(), 1);
         assert_eq!(preview.drafts[0].name, "Comma, name");
         assert_eq!(preview.drafts[0].host, "host with \"quote\"");
+    }
+
+    #[test]
+    fn detects_openssh_config_and_preserves_ssh_fields_and_warnings() {
+        let text = r#"
+Host app
+  HostName app.internal
+  User deploy
+  IdentityFile ~/.ssh/app_key
+
+Host *
+  Port 2222
+  ProxyJump bastion
+  ServerAliveInterval 120
+"#;
+        let preview = parse_import_text(text, "").expect("OpenSSH config parses");
+
+        assert_eq!(preview.format, "sshConfig");
+        assert_eq!(preview.drafts.len(), 1);
+        let draft = &preview.drafts[0];
+        assert_eq!(draft.name, "app");
+        assert_eq!(draft.host, "app.internal");
+        assert_eq!(draft.user, "deploy");
+        assert_eq!(draft.port, Some(2222));
+        assert_eq!(draft.key_path.as_deref(), Some("~/.ssh/app_key"));
+        assert_eq!(draft.proxy_jump.as_deref(), Some("bastion"));
+        assert_eq!(preview.warnings.len(), 1);
+        assert!(preview.warnings[0].contains("ServerAliveInterval 120 for Host *"));
     }
 
     #[test]

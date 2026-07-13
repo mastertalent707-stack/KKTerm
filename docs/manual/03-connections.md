@@ -120,6 +120,8 @@ and is **not** saved.
 
 **Add Connection** uses the same form shape but persists to SQLite. The Type selector label is `connections.type`.
 
+The Add Connection browser's `connections.import.tileTitle` entry opens the batch `connections.import.title` dialog. Its `connections.import.fromFileTitle` tab accepts CSV/TSV/text, OpenSSH config (`~/.ssh/config`, `%USERPROFILE%\.ssh\config`, or equivalent content under another filename), RDCMan `.rdg`, MobaXterm `.mxtsessions`, and PuTTY `.reg`. An OpenSSH config produces one editable, initially selected preview row per concrete Host alias; wildcard-only Host sections supply inherited defaults but do not create rows. `IdentityFile` and `ProxyJump` survive the preview and are saved on imported SSH Connections. Unsupported SSH directives appear under `connections.import.warningsHeading`. Users may select any subset before the primary `connections.import.importCount` action creates the Connections in the chosen Workspace.
+
 When Add Connection, Quick Connect, or Connection Properties needs to write a
 password while encrypted database storage is locked, KKTerm opens the encrypted
 database unlock dialog before changing the durable Connection. A successful
