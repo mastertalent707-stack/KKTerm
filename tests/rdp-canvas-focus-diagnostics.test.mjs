@@ -28,5 +28,9 @@ test("IronRDP canvas keeps the hidden IME input focused after a pointer click", 
     /const onPointerDown = \(e: React\.PointerEvent<HTMLCanvasElement>\) => \{\s*\/\/[\s\S]*?e\.preventDefault\(\);\s*focusInput\("pointerdown"\);/,
   );
   assert.match(styles, /\.rdp-canvas-ime-input \{[\s\S]*?left: 0;[\s\S]*?pointer-events: none;/);
+  assert.match(styles, /\.rdp-canvas-view \{[\s\S]*?-webkit-user-select: none;[\s\S]*?user-select: none;/);
+  assert.match(source, /onContextMenu=\{preventLocalContextMenu\}/);
+  assert.match(source, /draggable=\{false\}/);
+  assert.match(source, /button === 0 && ctrlKey && isMacPlatform\(\)/);
   assert.doesNotMatch(source, /surface-pointerdown/);
 });
