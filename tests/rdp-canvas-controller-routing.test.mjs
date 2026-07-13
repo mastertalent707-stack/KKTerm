@@ -36,6 +36,20 @@ test("assistant remote-desktop tools use IronRDP client commands for canvas RDP"
   assert.match(workspaceSource, /invokeCommand\("send_rdp_client_ctrl_alt_delete"/);
 });
 
+test("IronRDP canvas pastes the local clipboard into the remote as typed text", () => {
+  // No CLIPRDR channel exists on the canvas client, so Ctrl/Cmd+V must read the
+  // local clipboard and replay it as Unicode keyboard input.
+  assert.match(canvasSource, /readFromClipboard/);
+  assert.match(
+    canvasSource,
+    /\(e\.ctrlKey \|\| e\.metaKey\) && !e\.altKey && !e\.shiftKey && e\.code === "KeyV"/,
+  );
+  assert.match(canvasSource, /pasteFromClipboard\(\);/);
+  assert.match(canvasSource, /readFromClipboard\(\)[\s\S]*sendText\(text\)/);
+  // The Cmd/Super modifier stays local so paste does not tap the remote Start menu.
+  assert.match(canvasSource, /isMetaKeyCode\(e\.code\)/);
+});
+
 test("assistant composer direct-send registers an RDP text sender for canvas RDP", () => {
   assert.match(
     workspaceSource,

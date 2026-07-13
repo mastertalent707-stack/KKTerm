@@ -13,6 +13,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
+import { readFromClipboard } from "../../../../lib/clipboard";
 import { invokeCommand, isTauriRuntime } from "../../../../lib/tauri";
 import type { Connection } from "../../../../types";
 import { connectionPasswordOwnerId } from "../utils";
@@ -41,6 +42,10 @@ type RdpCanvasEvent =
     }
   | { kind: "error"; sessionId: string; message: string }
   | { kind: "disconnected"; sessionId: string };
+
+function isMetaKeyCode(code: string): boolean {
+  return code === "MetaLeft" || code === "MetaRight";
+}
 
 function createRdpSessionId() {
   return `rdp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
@@ -260,6 +265,20 @@ export function RdpCanvasView({
     void invokeCommand("send_rdp_client_text", { request: { sessionId, text } }).catch(() => undefined);
   };
 
+  // The IronRDP canvas client has no CLIPRDR virtual channel, so a native
+  // Ctrl/Cmd+V never reaches the remote clipboard. Read the local clipboard and
+  // replay it as Unicode keyboard input, which is layout-independent and works
+  // regardless of the remote paste shortcut.
+  const pasteFromClipboard = () => {
+    void readFromClipboard()
+      .then((text) => {
+        if (text) {
+          sendText(text);
+        }
+      })
+      .catch(() => undefined);
+  };
+
   const setCanvasRef = (node: HTMLCanvasElement | null) => {
     canvasRef.current = node;
     if (surfaceRef) {
@@ -287,10 +306,21 @@ export function RdpCanvasView({
     if (composingRef.current || e.key === "Process") {
       return; // IME is composing — let composition events handle it.
     }
+    // Ctrl/Cmd+V pastes the local clipboard into the remote as typed text, since
+    // the canvas client has no clipboard redirection channel. Handle it before
+    // the scancode path so the raw "V" keystroke is not also sent to the server.
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.code === "KeyV") {
+      e.preventDefault();
+      pasteFromClipboard();
+      return;
+    }
     const shortcut = e.ctrlKey || e.altKey || e.metaKey;
     const isText = isCharacterCode(e.code);
     if (isText && !shortcut) {
       return; // Plain printable key → handled by the Unicode/input path below.
+    }
+    if (isMetaKeyCode(e.code)) {
+      return; // Cmd/Super is a local modifier here; forwarding it just taps the remote Start menu.
     }
     const scancode = scancodeForCode(e.code);
     if (scancode !== undefined) {
@@ -303,10 +333,19 @@ export function RdpCanvasView({
     if (composingRef.current) {
       return;
     }
+    // Matches the paste interception in onKeyDown: swallow the "V" release so it
+    // is not forwarded as a lone scancode after the clipboard was replayed.
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.code === "KeyV") {
+      e.preventDefault();
+      return;
+    }
     const shortcut = e.ctrlKey || e.altKey || e.metaKey;
     const isText = isCharacterCode(e.code);
     if (isText && !shortcut) {
       return;
+    }
+    if (isMetaKeyCode(e.code)) {
+      return; // See onKeyDown: the Cmd/Super modifier is not forwarded to the remote.
     }
     const scancode = scancodeForCode(e.code);
     if (scancode !== undefined) {
