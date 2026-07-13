@@ -27,7 +27,7 @@ test("RDP overlay keyboard focus uses a low-level click hook, not WM_MOUSEACTIVA
   );
   assert.match(
     shim,
-    /SetWindowsHookExW\([\s\S]*WH_MOUSE_LL[\s\S]*,\s*0,\s*\)/,
+    /SetWindowsHookExW\([\s\S]*WH_MOUSE_LL[\s\S]*,\s*0\s*\)/,
     "RDP focus hook should be global low-level (dwThreadId = 0) so it is not tied to a recreated ActiveX child thread",
   );
   assert.match(
@@ -42,8 +42,13 @@ test("RDP overlay keyboard focus uses a low-level click hook, not WM_MOUSEACTIVA
   );
   assert.match(
     source,
-    /fn focus_rdp_window\([\s\S]*SetForegroundWindow\(owner\)[\s\S]*SetForegroundWindow\(active\)[\s\S]*SetFocus\(Some\(focus\)\)/,
-    "RDP focus should foreground KKTerm, foreground the no-activate overlay, and focus the clicked or hosted ActiveX HWND",
+    /fn focus_rdp_window\([\s\S]*AttachThreadInput\(current_thread, foreground_thread, true\)[\s\S]*SetForegroundWindow\(owner\)[\s\S]*SetForegroundWindow\(active\)[\s\S]*SetFocus\(Some\(focus\)\)/,
+    "RDP focus should attach input queues before foregrounding KKTerm/the overlay and focusing the clicked or hosted ActiveX HWND",
+  );
+  assert.match(
+    source,
+    /rdp_debug\(\s*"focus\.apply"[\s\S]*"setFocusSucceeded"/,
+    "RDP focus repair should log whether focus calls actually succeeded",
   );
   assert.match(
     shim,

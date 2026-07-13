@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { readFromClipboard, writeToClipboard } from "../../../../lib/clipboard";
-import { invokeCommand, isTauriRuntime } from "../../../../lib/tauri";
+import { invokeCommand, isTauriRuntime, logUiDebug } from "../../../../lib/tauri";
 import type { Connection } from "../../../../types";
 import { connectionPasswordOwnerId } from "../utils";
 import { isCharacterCode, scancodeForCode } from "./rdpScancodes";
@@ -82,6 +82,21 @@ export function RdpCanvasView({
   const composingRef = useRef(false);
   const [status, setStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const [errorMessage, setErrorMessage] = useState("");
+
+  const focusInput = (reason: string) => {
+    const input = inputRef.current;
+    if (!input) {
+      return;
+    }
+    input.focus({ preventScroll: true });
+    logUiDebug("rdp.canvas.focus", {
+      reason,
+      sessionId: sessionIdRef.current,
+      documentHasFocus: document.hasFocus(),
+      activeElement: document.activeElement?.tagName.toLowerCase() ?? null,
+      inputFocused: document.activeElement === input,
+    });
+  };
 
   // Session lifecycle + framebuffer rendering.
   useEffect(() => {
@@ -230,7 +245,7 @@ export function RdpCanvasView({
     sendPointer(e.clientX, e.clientY, buttonMaskRef.current);
   };
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    inputRef.current?.focus();
+    focusInput("pointerdown");
     const bit = e.button === 1 ? 1 : e.button === 2 ? 2 : e.button === 0 ? 0 : -1;
     if (bit >= 0) {
       buttonMaskRef.current |= 1 << bit;
@@ -311,7 +326,7 @@ export function RdpCanvasView({
       return;
     }
     void invokeCommand("send_rdp_client_ctrl_alt_delete", { request: { sessionId } }).catch(() => undefined);
-    inputRef.current?.focus();
+    focusInput("ctrl-alt-delete");
   };
 
   useEffect(() => {
@@ -322,6 +337,13 @@ export function RdpCanvasView({
   }, [cadSignal]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    logUiDebug("rdp.canvas.key", {
+      sessionId: sessionIdRef.current,
+      code: e.code,
+      key: e.key,
+      composing: composingRef.current,
+      documentHasFocus: document.hasFocus(),
+    });
     if (composingRef.current || e.key === "Process") {
       return; // IME is composing — let composition events handle it.
     }
@@ -405,7 +427,7 @@ export function RdpCanvasView({
         : "";
 
   return (
-    <div className="rdp-canvas-view" onPointerDown={() => inputRef.current?.focus()}>
+    <div className="rdp-canvas-view" onPointerDown={() => focusInput("surface-pointerdown")}>
       <canvas
         ref={setCanvasRef}
         className="rdp-canvas-surface"
